@@ -36,6 +36,17 @@ instantiated.
       - [Knowledge skills](#knowledge-skills)
       - [Tooling skills](#tooling-skills)
     - [Compatible agents](#compatible-agents)
+    - [Agent personas](#agent-personas)
+      - [Persistent team roles](#persistent-team-roles)
+      - [Bounded subagents](#bounded-subagents)
+    - [Agent topologies](#agent-topologies)
+      - [1. Single lead agent (linear)](#1-single-lead-agent-linear)
+      - [2. Sequential role passes](#2-sequential-role-passes)
+      - [3. Independent subagents](#3-independent-subagents)
+      - [4. Persistent agent team](#4-persistent-agent-team)
+      - [Creating new persistent roles](#creating-new-persistent-roles)
+      - [Creating new subagents](#creating-new-subagents)
+      - [Creating new skills](#creating-new-skills)
     - [Agent fallback](#agent-fallback)
   - [Run with containers](#run-with-containers)
   - [Tests](#tests)
@@ -299,6 +310,165 @@ shell commands. It is designed for and tested with:
 
 The template does not require Superpowers, MCP servers, or external model
 access. It works in CI without interactive AI tooling.
+
+### Agent personas
+
+The template defines two classes of actor: **persistent team roles** for
+continuing responsibility and **bounded subagents** for focused, stop-when-done
+work. Roles are selected by risk; do not activate every role automatically.
+
+#### Persistent team roles
+
+| Role | Persona | Owns | Invoke when |
+|---|---|---|---|
+| [Product Owner](.agents/team/product-owner.md) | Protects user value and scope | intent, acceptance evidence, non-goals, thin-slice priority | user value or scope is unclear |
+| [Architect](.agents/team/architect.md) | Protects system boundaries and trade-offs | architecture recommendation, dependency direction, volatility boundaries, migration impact | architecture decisions, boundary changes, integration risk |
+| [Tech Lead](.agents/team/tech-lead.md) | Protects delivery and implementation coherence | thin slices, test strategy, CI alignment, implementation risks | implementation planning, test strategy, CI changes |
+| [Domain Expert](.agents/team/domain-expert.md) | Brings specialised domain constraints | domain vocabulary, regulatory/safety constraints, assumption correction | domain rules affect design, regulatory or safety constraints |
+| [Knowledge Curator](.agents/team/knowledge-curator.md) | Keeps durable knowledge useful and connected | knowledge review, promotion, expiry, graph relationships | task results may create reusable knowledge or contradictions |
+
+#### Bounded subagents
+
+Subagents perform a single bounded task with limited context and compressed
+output. They stop when the task is complete.
+
+| Subagent | Persona | Output | Invoke when |
+|---|---|---|---|
+| [Researcher](.agents/subagents/researcher.md) | Answers one external or documentation question | answer, sources, confidence, unknowns | local repo evidence is insufficient |
+| [Repository Explorer](.agents/subagents/repository-explorer.md) | Inspects one repo area or evidence question | facts with file paths, inferences, unknowns | file set is large or unfamiliar |
+| [Red-team Reviewer](.agents/subagents/red-team-reviewer.md) | Adversarial review of a bounded proposal or patch | findings, severity, evidence, fixes | high-risk decisions, public contract changes |
+| [Evidence Checker](.agents/subagents/evidence-checker.md) | Verifies claims against source evidence | supported, unsupported, ambiguous claims | claims need verification against sources |
+| [Test Reviewer](.agents/subagents/test-reviewer.md) | Assesses whether tests prove the requested behaviour | gaps, overclaims, useful next checks | behavioural change with test coverage |
+| [Security Reviewer](.agents/subagents/security-reviewer.md) | Reviews security-sensitive change or design | findings, severity, exploit sketch, fix direction | auth, personal data, payments, untrusted input |
+| [Performance Reviewer](.agents/subagents/performance-reviewer.md) | Assesses latency, throughput or resource-sensitive work | bottlenecks, measurement plan, cheap fixes | latency, throughput or resource constraints |
+
+### Agent topologies
+
+The template supports multiple agent topologies. Choose the smallest useful
+topology for the task. The [`team-selection`](.agents/skills/coordination/team-selection/SKILL.md)
+skill guides selection.
+
+#### 1. Single lead agent (linear)
+
+A single agent reads `AGENTS.md`, performs discovery, implementation, and
+review using an explicit checklist. This is the simplest topology and works
+with any coding agent.
+
+```
+user -> lead agent -> AGENTS.md -> skills (lazy-loaded)
+                          |
+                          v
+                   implement -> test -> review -> handoff
+```
+
+Use when: task is bounded, low ambiguity, no independent review needed.
+
+Limitation: no independent challenge. Record this in `HANDOFF.toon` when used.
+
+#### 2. Sequential role passes
+
+A single agent passes through multiple persistent role personas in sequence,
+changing perspective between passes. Cheaper than spawning subagents but
+provides limited independence.
+
+```
+lead agent -> product owner pass -> architect pass -> tech lead pass -> review
+```
+
+Use when: task benefits from multiple perspectives but subagents are
+unavailable or expensive.
+
+Limitation: same agent, same context window. Not equivalent to independent
+review.
+
+#### 3. Independent subagents
+
+A lead agent delegates bounded research, exploration or review tasks to
+subagents. Subagents run with focused context, compressed output, and stop
+when done.
+
+```
+lead agent -> delegate -> researcher subagent
+                     -> repository explorer subagent
+                     -> red-team reviewer subagent
+                     -> security reviewer subagent
+                     <- compressed findings
+```
+
+Use when: task needs independent perspectives, broad evidence gathering, or
+specialised review (security, performance, testing).
+
+#### 4. Persistent agent team
+
+Multiple persistent team roles run concurrently with bounded role ownership.
+The project lead owns final synthesis and does not force consensus.
+
+```
+product owner | architect | tech lead  <- parallel persistent roles
+     |              |           |
+     v              v           v
+   intent     architecture   slices
+     |              |           |
+     +------+-------+-----------+
+            |
+            v
+       lead synthesis
+            |
+            v
+       HANDOFF.toon
+```
+
+Use when: complex project with sustained multi-role work, available in
+agents that support concurrent sessions (e.g. Claude with multiple
+conversations or an agent orchestration platform).
+
+#### Creating new persistent roles
+
+To add a new persistent team role:
+
+1. Create a Markdown file under `.agents/team/` named after the role (e.g.
+   `.agents/team/security-officer.md`).
+2. Document the sections: Purpose, Responsibility, Questions owned, Inputs,
+   Outputs, Non-responsibilities, Invoke when.
+3. Reference the role in `CUSTOMIZE_THIS_PROJECT.toon` under `agents.team.roles`
+   if it should be enabled by default for generated projects.
+4. Update [`AGENTS.md`](AGENTS.md) if the role introduces new canonical rules.
+
+#### Creating new subagents
+
+To add a new bounded subagent:
+
+1. Create a Markdown file under `.agents/subagents/` named after the subagent
+   (e.g. `.agents/subagents/api-contract-reviewer.md`).
+2. Document the sections: Task boundary, Required input, Expected output,
+   Context budget, Completion condition, Non-responsibilities, When not to
+   invoke, Expected length, Model diversity.
+3. Reference the subagent in the [`team-selection`](.agents/skills/coordination/team-selection/SKILL.md)
+   skill's conditional roles if it should be conditionally invoked.
+4. Subagents are lazy-loaded — they do not need to be registered in
+   `CATALOG.toon`; they are invoked by the lead agent when needed.
+
+#### Creating new skills
+
+To add a new skill:
+
+1. Create a directory under `.agents/skills/` in the appropriate category
+   (`workflow/`, `discovery/`, `specialise/`, `coordination/`, `knowledge/`,
+   `tooling/`).
+2. Create `SKILL.md` with frontmatter:
+
+   ```yaml
+   ---
+   name: my-skill
+   description: What the skill does, used for lazy-loading.
+   ---
+   ```
+
+3. Document the Outcome, Procedure, Do not sections.
+4. Register the skill in [`.agents/skills/CATALOG.toon`](.agents/skills/CATALOG.toon)
+   with its path and trigger.
+5. If the skill introduces a required file or command, add it to
+   [`.agentic-template/bin/check-repo-contract`](.agentic-template/bin/check-repo-contract).
 
 ### Agent fallback
 
