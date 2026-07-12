@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""Validate docker compose configuration."""
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+ROOT = Path.cwd()
+
+COMPOSE_FILES = ["compose.yaml", "docker-compose.yml"]
+
+
+def fail(msg):
+    print("COMPOSE CONFIG FAILED")
+    print()
+    print(msg)
+    return 1
+
+
+def main():
+    compose_file = None
+    for candidate in COMPOSE_FILES:
+        if (ROOT / candidate).exists():
+            compose_file = candidate
+            break
+
+    if compose_file is None:
+        return fail("no compose.yaml or docker-compose.yml found")
+
+    docker = shutil.which("docker")
+    if not docker:
+        return fail("docker runtime not available")
+
+    result = subprocess.run(
+        [docker, "compose", "-f", compose_file, "config"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=str(ROOT),
+    )
+    if result.returncode != 0:
+        return fail(result.stdout.strip())
+
+    print("COMPOSE CONFIG OK")
+    print(f"file: {compose_file}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

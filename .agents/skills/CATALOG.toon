@@ -2,7 +2,7 @@ skills:
   init:
     path: init/SKILL.md
     trigger: project_profile_absent_or_material_project_shape_unknown
-    purpose: orchestrate discovery, specialisation and validation
+    purpose: orchestrate discovery, specialisation, identity rewrite and validation
 
   detect_project_shape:
     path: discovery/detect-project-shape/SKILL.md
@@ -63,6 +63,10 @@ skills:
     path: coordination/team-selection/SKILL.md
     trigger: task_requires_role_selection
 
+  agent_team_fallback:
+    path: coordination/agent-team-fallback/SKILL.md
+    trigger: preferred_team_topology_unavailable
+
   knowledge_search:
     path: knowledge/knowledge-search/SKILL.md
     trigger: before_planning_or_implementation
@@ -77,6 +81,10 @@ skills:
   handoff_maintenance:
     path: workflow/handoff-maintenance/SKILL.md
     trigger: active_work_state_changed
+
+  reconcile_delivery:
+    path: workflow/reconcile-delivery/SKILL.md
+    trigger: before_delivery_pr_or_material_scope_change
 
   runtime_node:
     path: specialise/runtime-node/SKILL.md
@@ -118,11 +126,7 @@ skills:
 
   container_build:
     path: specialise/container-build/SKILL.md
-    trigger: application_container_deployable
-
-  ci:
-    path: specialise/ci/SKILL.md
-    trigger: repository_commands_known
+    trigger: deployable_service_or_explicit_container_decision_required
 
   infra_local_compose:
     path: specialise/infra-local-compose/SKILL.md
@@ -133,6 +137,13 @@ skills:
   infra_fly:
     path: specialise/infra-fly/SKILL.md
     trigger: fly_deployment_evidence
+  infra_decision:
+    path: specialise/infra-decision/SKILL.md
+    trigger: infrastructure_decision_required_after_init
+
+  ci:
+    path: specialise/ci/SKILL.md
+    trigger: repository_commands_known
 
   test_first:
     path: workflow/test-first/SKILL.md

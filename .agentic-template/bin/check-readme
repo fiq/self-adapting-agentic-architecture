@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path.cwd()
+README = ROOT / "README.md"
+
+TEMPLATE_MARKERS = [
+    "AI-first Project Template",
+    "This is a reusable, opinionated template",
+]
+
+REQUIRED_SECTIONS = [
+    "Run locally",
+    "Run with containers",
+    "Tests",
+    "Configuration and environment variables",
+    "Infrastructure and deployment state",
+    "Deliberate non-goals",
+    "Important decisions and documentation links",
+]
+
+
+def fail(lines):
+    print("README CHECK FAILED")
+    print()
+    for line in lines:
+        print("- " + line)
+    return 1
+
+
+def main():
+    if not README.exists():
+        return fail(["README.md missing"])
+
+    text = README.read_text()
+
+    errors = []
+    for marker in TEMPLATE_MARKERS:
+        if marker in text:
+            errors.append(f"README still contains template marker: {marker!r}")
+    for section in REQUIRED_SECTIONS:
+        # Match as markdown heading (## or ### etc.)
+        pattern = re.compile(rf"^#+\s+{re.escape(section)}\s*$", re.MULTILINE)
+        if not pattern.search(text):
+            errors.append(f"README missing section: {section!r}")
+    if errors:
+        return fail(errors)
+    print("README OK")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

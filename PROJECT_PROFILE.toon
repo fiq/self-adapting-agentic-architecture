@@ -155,10 +155,6 @@ architecture:
   persistence:
     kind: unknown
     provider: unknown
-  infrastructure:
-    local: nix
-    cloud: unknown
-    deployment: unknown
 
 testing:
   harness: unspecialised
@@ -167,8 +163,19 @@ testing:
   philosophy: testing_trophy
 
 containers:
-  application_image: unknown
+  application_image: not_applicable
+  reason: template repository has no deployable application runtime
+  image_test: not_applicable
   compose: minimal_template
+
+infrastructure:
+  local_topology: nix
+  deployment_target: unknown
+  iac:
+    status: deferred
+    tool: null
+    validation_command: null
+    revisit_trigger: deployment target selected during project instantiation
 
 tooling:
   superpowers:

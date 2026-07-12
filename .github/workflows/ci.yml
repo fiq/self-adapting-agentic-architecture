@@ -11,3 +11,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Repository checks
         run: .agentic-template/bin/project check
+      - name: README check
+        run: .agentic-template/bin/project check-readme
+      - name: Readiness
+        run: .agentic-template/bin/project ready

@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Bounded Compose topology smoke test.
+
+Validates configuration, starts the topology, performs a bounded smoke
+check, and ensures deterministic cleanup.
+"""
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+ROOT = Path.cwd()
+COMPOSE_FILES = ["compose.yaml", "docker-compose.yml"]
+
+
+def fail(msg):
+    print("COMPOSE TEST FAILED")
+    print()
+    print(msg)
+    return 1
+
+
+def main():
+    compose_file = None
+    for candidate in COMPOSE_FILES:
+        if (ROOT / candidate).exists():
+            compose_file = candidate
+            break
+
+    if compose_file is None:
+        return fail("no compose.yaml found")
+
+    docker = shutil.which("docker")
+    if not docker:
+        return fail("docker runtime not available")
+
+    compose = [docker, "compose", "-f", compose_file]
+
+    # Validate config first.
+    config = subprocess.run(
+        compose + ["config"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=str(ROOT),
+    )
+    if config.returncode != 0:
+        return fail(f"compose config invalid:\n{config.stdout.strip()}")
+
+    print("starting compose topology...")
+    try:
+        up = subprocess.run(
+            compose + ["up", "-d", "--wait"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            cwd=str(ROOT),
+            timeout=120,
+        )
+        if up.returncode != 0:
+            return fail(f"compose up failed:\n{up.stdout.strip()}")
+        print("topology healthy")
+        return 0
+    finally:
+        print("cleaning up compose topology...")
+        subprocess.run(
+            compose + ["down", "--volumes"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            cwd=str(ROOT),
+        )
+
+
+if __name__ == "__main__":
+    sys.exit(main())

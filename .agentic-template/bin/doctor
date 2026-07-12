@@ -11,6 +11,8 @@ CHECKS = [
     ("knowledge", [str(BIN / "check-knowledge")]),
     ("tooling", [str(BIN / "check-tooling")]),
     ("mcp", [str(BIN / "check-mcp")]),
+    ("readme", [str(BIN / "check-readme")]),
+    ("ready", [str(BIN / "project-ready")]),
 ]
 
 def run(cmd):

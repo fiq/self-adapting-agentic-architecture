@@ -1,36 +1,45 @@
 session:
-  updated: 2026-07-11
-  status: bootstrap_complete
+  updated: 2026-07-12
+  status: init_lifecycle_strengthened
+  branch: init-lifecycle
 
 goal:
-  current: reusable AI-first project template
+  current: make /init a complete repository-specialisation lifecycle
 
 completed:
-  - canonical repository operating contract
+  - canonical repository operating contract with all required sections
   - composable lazy-loaded skill system
   - evidence-driven project discovery
-  - project profile with structured unknowns
-  - hybrid agent topology
+  - project profile with structured unknowns and explicit infrastructure decision
+  - hybrid agent topology with agent-team-fallback skill
   - token-efficient coordination
-  - model routing
+  - model routing with handoff protocol
   - lightweight SDD
   - test-first workflow
   - testing trophy specialisation
   - SQL migration policy
-  - init orchestration
-  - build-container specialisation
+  - init orchestration with discover->decide->specialise->rewrite->validate->handoff phases
+  - build-container specialisation with explicit container decision policy
+  - infra-local-compose specialisation with health checks and deterministic cleanup
+  - infra-decision skill for explicit IaC status
   - tooling and MCP discovery
   - Nix environment
   - CI and repo checks
-  - script-based command dispatcher
+  - script-based command dispatcher with ready, compose-config, compose-test, infra-check
+  - check-readme validation
+  - project-ready deterministic readiness check
+  - reconcile-delivery workflow skill
+  - agent-team-fallback coordination skill
+  - worktree scaffolding under .worktrees/
+  - template README and AGENTS source material under .agentic-template/templates/
   - repository-local knowledge wiki and validation
 
 in_progress: []
 
 next:
-  - instantiate template
-  - run init
-  - allow evidence-driven project specialisation
+  - extend self-test with positive and negative fixtures for readiness
+  - validate full test suite
+  - open PR with concise summary and test evidence
 
 decisions:
   - id: project_concept_date
@@ -49,6 +58,18 @@ decisions:
     summary: .agentic-template/bin/project is the canonical hidden command surface; no template Makefile
   - id: repository_local_knowledge_layer
     summary: .agents/knowledge stores durable knowledge and proposals; HANDOFF stays active state
+  - id: explicit_container_decision
+    summary: every project makes an explicit container decision; deployable services default to tested image
+  - id: explicit_infra_decision
+    summary: every project records local_topology, deployment_target and iac status
+  - id: readiness_command
+    summary: project ready runs all applicable deterministic checks with PASS/NOT APPLICABLE/FAIL summary
+  - id: delivery_reconciliation
+    summary: reconcile-delivery skill compares specs and docs against delivered repository
+  - id: agent_team_fallback
+    summary: graceful degradation preserves acceptance and review gates; single agent is not independent team
+  - id: model_fallback_handoff
+    summary: model or provider changes require handoff update with fixed decisions and test results
 
 risks:
   - constrained TOON validation is intentionally incomplete
@@ -56,15 +77,42 @@ risks:
   - plugin discovery may be advisory
   - MCP discovery must remain secret-safe
   - knowledge validation is lightweight Markdown frontmatter parsing
+  - project-ready container and compose checks require docker availability
 
-files_of_interest:
+files_changed:
   - AGENTS.md
+  - README.md
   - PROJECT_PROFILE.toon
-  - CUSTOMIZE_THIS_PROJECT.toon
+  - HANDOFF.toon
   - .agents/skills/CATALOG.toon
-  - .agents/skills/
-  - .agentic-template/bin/
+  - .agents/skills/init/SKILL.md
+  - .agents/skills/specialise/container-build/SKILL.md
+  - .agents/skills/specialise/infra-local-compose/SKILL.md
+  - .agents/skills/specialise/infra-decision/SKILL.md
+  - .agents/skills/specialise/test-harness/SKILL.md
+  - .agents/skills/specialise/ci/SKILL.md
+  - .agents/skills/tooling/model-routing/SKILL.md
+  - .agents/skills/workflow/reconcile-delivery/SKILL.md
+  - .agents/skills/coordination/agent-team-fallback/SKILL.md
   - .agentic-template/bin/project
-  - .agents/knowledge/
-  - .agents/schemas/
-  - specs/
+  - .agentic-template/bin/bootstrap-project
+  - .agentic-template/bin/check-repo-contract
+  - .agentic-template/bin/check-project-profile
+  - .agentic-template/bin/doctor
+  - .agentic-template/bin/check-readme
+  - .agentic-template/bin/project-ready
+  - .agentic-template/bin/compose-config
+  - .agentic-template/bin/compose-test
+  - .agentic-template/bin/infra-check
+  - .agentic-template/templates/README_TEMPLATE.md
+  - .agentic-template/templates/AGENTS_TEMPLATE.md
+  - .worktrees/.gitkeep
+  - .worktrees/README.md
+
+tests_run:
+  - .agentic-template/bin/self-test
+
+team_fallback:
+  current: single lead agent using explicit review checklist
+  reason: bounded implementation task with clear specification
+  lost_challenge: independent review pass; mitigated by self-test validation

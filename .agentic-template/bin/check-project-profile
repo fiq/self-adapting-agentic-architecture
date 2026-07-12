@@ -16,6 +16,7 @@ REQUIRED_SECTIONS = [
     "architecture:",
     "testing:",
     "containers:",
+    "infrastructure:",
     "tooling:",
 ]
 
@@ -64,7 +65,11 @@ def main():
 
     if CUSTOM.exists():
         custom = CUSTOM.read_text()
-        customised = "status: customised" in custom or "status: customized" in custom
+        customised = (
+            "status: customised" in custom
+            or "status: customized" in custom
+            or "status: consumed" in custom
+        )
         if customised:
             unresolved = []
             for marker in [
@@ -73,6 +78,7 @@ def main():
                 "framework: unknown",
                 "build_system: unknown",
                 "harness: unspecialised",
+                "application_image: unknown",
             ]:
                 if marker in text:
                     unresolved.append(marker)
@@ -81,6 +87,24 @@ def main():
                     "Project marked customised while required specialisation is unresolved: "
                     + ", ".join(unresolved)
                 )
+
+    # Template state is allowed to have unresolved decisions, but the
+    # infrastructure section must exist so the decision is explicit after
+    # specialisation.
+    if "state: template" not in text:
+        infra_block = section_block(text, "infrastructure:")
+        if "iac:" not in infra_block:
+            return fail(
+                "PROJECT_PROFILE.toon infrastructure section is missing iac decision"
+            )
+        if "local_topology:" not in infra_block:
+            return fail(
+                "PROJECT_PROFILE.toon infrastructure section is missing local_topology"
+            )
+        if "deployment_target:" not in infra_block:
+            return fail(
+                "PROJECT_PROFILE.toon infrastructure section is missing deployment_target"
+            )
 
     print("PROJECT PROFILE OK")
     return 0

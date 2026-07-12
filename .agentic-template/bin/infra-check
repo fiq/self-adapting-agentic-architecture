@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""Infrastructure-as-code formatting and static validation.
+
+Checks for the presence of IaC tooling and runs formatting and static
+validation where available. Does not require cloud credentials. Does not
+apply infrastructure.
+"""
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+ROOT = Path.cwd()
+
+
+def fail(msg):
+    print("INFRA CHECK FAILED")
+    print()
+    print(msg)
+    return 1
+
+
+def has_iac_files():
+    indicators = [
+        "*.tf",
+        "*.tf.json",
+        "Pulumi.yaml",
+        "terragrunt.hcl",
+    ]
+    for pattern in indicators:
+        if list(ROOT.glob(pattern)):
+            return True
+    return False
+
+
+def check_terraform():
+    fmt = shutil.which("terraform")
+    if not fmt:
+        return fail("terraform not found on PATH")
+
+    fmt_check = subprocess.run(
+        [fmt, "fmt", "-check", "-recursive"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=str(ROOT),
+    )
+    if fmt_check.returncode != 0:
+        return fail(f"terraform fmt check failed:\n{fmt_check.stdout.strip()}")
+
+    validate = subprocess.run(
+        [fmt, "init", "-backend=false"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=str(ROOT),
+    )
+    if validate.returncode != 0:
+        return fail(f"terraform init failed:\n{validate.stdout.strip()}")
+
+    validate = subprocess.run(
+        [fmt, "validate"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=str(ROOT),
+    )
+    if validate.returncode != 0:
+        return fail(f"terraform validate failed:\n{validate.stdout.strip()}")
+
+    print("INFRA CHECK OK (terraform)")
+    return 0
+
+
+def check_pulumi():
+    pul = shutil.which("pulumi")
+    if not pul:
+        return fail("pulumi not found on PATH")
+
+    # Pulumi preview with a local backend does not require cloud credentials.
+    # Projects using a cloud backend (S3, Azure, GCP, etc.) must provide
+    # credentials out-of-band; this check does not inject secrets.
+    result = subprocess.run(
+        [pul, "preview", "--diff", "--non-interactive"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=str(ROOT),
+    )
+    if result.returncode != 0:
+        return fail(f"pulumi preview failed:\n{result.stdout.strip()}")
+
+    print("INFRA CHECK OK (pulumi)")
+    return 0
+
+
+def main():
+    if not has_iac_files():
+        print("INFRA CHECK: no IaC files found")
+        print("status: not_applicable")
+        return 0
+
+    # Prefer terraform when present.
+    if shutil.which("terraform"):
+        return check_terraform()
+
+    if shutil.which("pulumi"):
+        return check_pulumi()
+
+    return fail("IaC files present but no supported tool found on PATH")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

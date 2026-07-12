@@ -10,7 +10,8 @@ REQUIRED = [
     "next:",
     "decisions:",
     "risks:",
-    "files_of_interest:",
+    "files_changed:",
+    "tests_run:",
 ]
 
 def main():

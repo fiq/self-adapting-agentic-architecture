@@ -31,6 +31,8 @@ REQUIRED_FILES = [
     "docs/wiki/index.md",
     ".github/workflows/ci.yml",
     ".github/copilot-instructions.md",
+    ".worktrees/.gitkeep",
+    ".worktrees/README.md",
     ".agentic-template/bin/bootstrap-project",
     ".agentic-template/bin/project",
     ".agentic-template/bin/inspect-project",
@@ -40,6 +42,11 @@ REQUIRED_FILES = [
     ".agentic-template/bin/check-knowledge",
     ".agentic-template/bin/check-tooling",
     ".agentic-template/bin/check-mcp",
+    ".agentic-template/bin/check-readme",
+    ".agentic-template/bin/project-ready",
+    ".agentic-template/bin/compose-config",
+    ".agentic-template/bin/compose-test",
+    ".agentic-template/bin/infra-check",
     ".agentic-template/bin/doctor",
     ".agentic-template/bin/self-test",
 ]
@@ -63,21 +70,29 @@ REQUIRED_SKILLS = [
     "specialise/sql-migrations",
     "specialise/test-harness",
     "specialise/container-build",
+    "specialise/infra-local-compose",
+    "specialise/infra-decision",
+    "specialise/ci",
     "workflow/test-first",
     "workflow/reassess-project-profile",
     "workflow/handoff-maintenance",
+    "workflow/reconcile-delivery",
     "coordination/team-selection",
+    "coordination/agent-team-fallback",
     "knowledge/knowledge-search",
     "knowledge/knowledge-capture",
     "tooling/detect-mcp",
     "tooling/detect-superpowers",
+    "tooling/model-routing",
 ]
 
 PROJECT_COMMANDS = [
     "help", "init", "inspect", "check", "test", "contract-test",
     "integration-test", "component-test", "e2e-test", "lint", "run",
     "image", "image-test", "repo-check", "check-profile", "check-handoff",
-    "check-knowledge", "check-tooling", "check-mcp", "doctor", "self-test",
+    "check-knowledge", "check-tooling", "check-mcp", "check-readme",
+    "ready", "compose-config", "compose-test", "infra-check",
+    "doctor", "self-test",
 ]
 
 def fail(lines):

@@ -14,3 +14,11 @@ node_modules/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Worktrees: keep scaffolding, ignore generated worktree contents
+.worktrees/*
+!.worktrees/.gitkeep
+!.worktrees/README.md
+
+# Legacy worktrees directory (pre-existing, not part of template scaffolding)
+worktrees/

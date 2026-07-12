@@ -24,6 +24,11 @@ COMMANDS = {
     "check-knowledge": [[str(BIN / "check-knowledge")]],
     "check-tooling": [[str(BIN / "check-tooling")]],
     "check-mcp": [[str(BIN / "check-mcp")]],
+    "check-readme": [[str(BIN / "check-readme")]],
+    "ready": [[str(BIN / "project-ready")]],
+    "compose-config": [[str(BIN / "compose-config")]],
+    "compose-test": [[str(BIN / "compose-test")]],
+    "infra-check": [[str(BIN / "infra-check")]],
     "doctor": [[str(BIN / "doctor")]],
     "self-test": [[str(BIN / "self-test")]],
 }
@@ -40,15 +45,28 @@ UNSPECIALISED = {
     "image-test",
 }
 
+# Commands that may be not applicable after /init specialisation rather
+# than unspecialised. These are surfaced in the unspecialised set so the
+# template still fails clearly, but generated projects may specialise or
+# explicitly mark them not_applicable.
+OPTIONAL_COMMANDS = {
+    "compose-config",
+    "compose-test",
+    "infra-check",
+    "image-test",
+}
+
 
 def print_help():
     print(f"Usage: {COMMAND_NAME} <command> [args...]")
     print()
     print("Commands:")
     for name in sorted(COMMANDS):
-        print(f"  {name}")
+        tag = "  (optional)" if name in OPTIONAL_COMMANDS else ""
+        print(f"  {name}{tag}")
     for name in sorted(UNSPECIALISED):
-        print(f"  {name}  (specialise during init)")
+        tag = "  (optional, specialise or mark not_applicable)" if name in OPTIONAL_COMMANDS else "  (specialise during init)"
+        print(f"  {name}{tag}")
 
 
 def run_many(commands):
