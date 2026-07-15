@@ -47,6 +47,7 @@ instantiated.
       - [Creating new persistent roles](#creating-new-persistent-roles)
       - [Creating new subagents](#creating-new-subagents)
       - [Creating new skills](#creating-new-skills)
+    - [`/sudo` — perform an operation as a persona](#sudo--perform-an-operation-as-a-persona)
     - [Agent fallback](#agent-fallback)
   - [Run with containers](#run-with-containers)
   - [Tests](#tests)
@@ -211,7 +212,7 @@ required structure of a generated project `AGENTS.md`.
 | Workflow | `init`, `discover`, `plan-task`, `specify`, `test-first`, `implement-slice`, `test-change`, `update-handoff`, `handoff-maintenance`, `reassess-project-profile`, `reconcile-delivery`, `architecture-review`, `red-team`, `promote-knowledge` | Orchestrate discovery, planning, implementation, review and delivery |
 | Discovery | `detect-project-shape`, `detect-runtime`, `detect-application-shape`, `detect-messaging`, `detect-persistence`, `detect-infrastructure`, `capture-unknowns` | Inspect repository evidence and classify unknowns |
 | Specialise | `runtime-node`, `runtime-java`, `runtime-python`, `runtime-elixir`, `runtime-godot`, `messaging-kafka`, `persistence-sql`, `persistence-document`, `persistence-redis`, `sql-migrations`, `test-harness`, `container-build`, `infra-local-compose`, `infra-decision`, `infra-aws`, `infra-fly`, `ci` | Specialise runtime, persistence, messaging, testing, containers, infrastructure and CI |
-| Coordination | `team-selection`, `agent-team-fallback` | Select agent roles and degrade gracefully |
+| Coordination | `team-selection`, `sudo`, `adversarial-debate`, `agent-team-fallback` | Select agent roles, switch personas, debate decisions, degrade gracefully |
 | Knowledge | `knowledge-search`, `knowledge-capture` | Search and capture durable project knowledge |
 | Tooling | `detect-mcp`, `detect-superpowers`, `model-routing` | Inspect MCP, Superpowers and model routing |
 
@@ -278,6 +279,8 @@ lazy-loaded via [`CATALOG.toon`](.agents/skills/CATALOG.toon).
 | Skill | Path | Trigger |
 |---|---|---|
 | `team-selection` | [`coordination/team-selection/SKILL.md`](.agents/skills/coordination/team-selection/SKILL.md) | task requires role selection |
+| `sudo` | [`coordination/sudo/SKILL.md`](.agents/skills/coordination/sudo/SKILL.md) | agent switches persona for bounded operation |
+| `adversarial-debate` | [`coordination/adversarial-debate/SKILL.md`](.agents/skills/coordination/adversarial-debate/SKILL.md) | irreversible decision or reviewer disagreement |
 | `agent-team-fallback` | [`coordination/agent-team-fallback/SKILL.md`](.agents/skills/coordination/agent-team-fallback/SKILL.md) | preferred team topology unavailable |
 
 #### Knowledge skills
@@ -469,6 +472,44 @@ To add a new skill:
    with its path and trigger.
 5. If the skill introduces a required file or command, add it to
    [`.agentic-template/bin/check-repo-contract`](.agentic-template/bin/check-repo-contract).
+
+### `/sudo` — perform an operation as a persona
+
+The [`/sudo`](.agents/skills/coordination/sudo/SKILL.md) skill switches the
+agent's active persona to a named team role or subagent for a single bounded
+operation, then returns to the lead agent persona. This is in-place
+role-switching, not spawning a new agent.
+
+```
+/sudo <persona> <operation>
+```
+
+Available personas:
+
+| Persistent roles | Bounded subagents |
+|---|---|
+| `product-owner` | `researcher` |
+| `architect` | `repository-explorer` |
+| `tech-lead` | `red-team-reviewer` |
+| `domain-expert` | `evidence-checker` |
+| `knowledge-curator` | `test-reviewer` |
+| | `security-reviewer` |
+| | `performance-reviewer` |
+
+Example:
+
+```
+/sudo architect review the persistence boundary between the API and database layers
+```
+
+This reads [`.agents/team/architect.md`](.agents/team/architect.md), adopts
+the architect persona for the review, produces architecture findings with
+evidence and confidence, then returns to the lead agent persona.
+
+`/sudo` is cheaper than spawning a subagent but provides no independent
+context isolation. For independent review, spawn a subagent instead. Do not
+chain `/sudo` calls to simulate independent review — sequential role passes
+by the same agent are not equivalent.
 
 ### Agent fallback
 

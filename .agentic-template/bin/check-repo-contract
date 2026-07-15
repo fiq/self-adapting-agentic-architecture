@@ -78,6 +78,8 @@ REQUIRED_SKILLS = [
     "workflow/handoff-maintenance",
     "workflow/reconcile-delivery",
     "coordination/team-selection",
+    "coordination/sudo",
+    "coordination/adversarial-debate",
     "coordination/agent-team-fallback",
     "knowledge/knowledge-search",
     "knowledge/knowledge-capture",
