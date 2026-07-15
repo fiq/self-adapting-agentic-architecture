@@ -23,7 +23,7 @@ The repository preserves both:
 - the project concept date
 - the actual implementation history
 
-Future generated projects may keep, revise or remove this value during `/init`
+Future generated projects may keep, revise or remove this value during `/specialise`
 when the project profile is specialised.
 
 ## Evidence

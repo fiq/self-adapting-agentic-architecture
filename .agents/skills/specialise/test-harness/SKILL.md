@@ -30,9 +30,9 @@ Use real dependency semantics when they are cheap and materially important.
 Prefer Testcontainers for lifecycle-managed integration-test dependencies
 where the stack supports it.
 
-## After `/init`
+## After `/specialise`
 
-Do not leave generic placeholders after `/init`. Unspecialised targets must
+Do not leave generic placeholders after `/specialise`. Unspecialised targets must
 fail clearly and point to `.agentic-template/bin/project init`.
 
 ## Do not

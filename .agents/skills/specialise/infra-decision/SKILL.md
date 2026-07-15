@@ -9,7 +9,7 @@ description: Record an explicit infrastructure-as-code decision and validation c
 
 Every project explicitly records its local topology, deployment target and
 IaC status. No project is left with an implicit or unrecorded infrastructure
-decision after `/init`.
+decision after `/specialise`.
 
 ## Required state
 

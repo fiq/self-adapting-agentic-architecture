@@ -33,7 +33,7 @@ decisions:
       - docs/decisions/0001-record-project-concept-date.md
     consequence_if_changed: project origin metadata becomes less clear
   - id: composable_skills
-    decision: /init orchestrates lazy-loaded bounded skills
+    decision: /specialise orchestrates lazy-loaded bounded skills
     reason:
       - reduces context size
       - avoids one monolithic prompt
@@ -47,7 +47,7 @@ decisions:
     decision: include MIT license in template state
     reason:
       - permissive default for reusable template
-      - /init must re-evaluate license fit
+      - /specialise must re-evaluate license fit
     confidence: medium
     status: active
     validation:
@@ -98,7 +98,7 @@ unknowns:
       - affects persistence and integration choices
     evidence: []
     working_assumption: unknown_until_template_instantiated
-    consequence_if_wrong: /init may recommend the wrong thin slice
+    consequence_if_wrong: /specialise may recommend the wrong thin slice
     blocking: false
     validation:
       - inspect CUSTOMIZE_THIS_PROJECT.toon
@@ -122,7 +122,7 @@ unknowns:
 
 rejected_options:
   - id: monolithic_init_prompt
-    option: put all runtime and infrastructure instructions into /init
+    option: put all runtime and infrastructure instructions into /specialise
     reason_rejected:
       - wastes context
       - makes project intelligence harder to evolve

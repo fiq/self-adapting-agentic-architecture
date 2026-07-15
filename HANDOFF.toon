@@ -4,7 +4,7 @@ session:
   branch: init-lifecycle
 
 goal:
-  current: make /init a complete repository-specialisation lifecycle
+  current: make /specialise a complete repository-specialisation lifecycle
 
 completed:
   - canonical repository operating contract with all required sections

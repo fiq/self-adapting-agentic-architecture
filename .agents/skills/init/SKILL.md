@@ -3,12 +3,12 @@ name: init
 description: Orchestrate evidence-driven project discovery, specialisation, validation and identity rewrite into a delivered project.
 ---
 
-# /init Orchestrator
+# /specialise Orchestrator
 
 ## Outcome
 
 Transform the repository from a generic template into a specialised, truthful,
-delivered project. After `/init` the repository must no longer present itself
+delivered project. After `/specialise` the repository must no longer present itself
 as the AI-first project template.
 
 ## Phases
@@ -106,5 +106,5 @@ discover
 - Add infrastructure merely because it is available.
 - Duplicate `AGENTS.md` into tool-specific files.
 - Leave template onboarding instructions in the generated project README.
-- Leave generic test placeholders after `/init`.
+- Leave generic test placeholders after `/specialise`.
 - Pretend deferred or unknown decisions are `NOT APPLICABLE`.

@@ -1,13 +1,13 @@
 # Agentic Team Project Template
 
 A reusable, opinionated starting point for software projects where AI agents
-reduce decision fatigue through evidence-driven `/init`, concise semantic
+reduce decision fatigue through evidence-driven `/specialise`, concise semantic
 state, composable skills, Nix-owned developer tooling, thin vertical slices,
 test-first work, optional Superpowers workflow support, and practical Clean
 Architecture boundaries.
 
 This is the **source template**. Generated projects must no longer present
-themselves as this template after `/init` completes. See
+themselves as this template after `/specialise` completes. See
 [`.agentic-template/templates/README_TEMPLATE.md`](.agentic-template/templates/README_TEMPLATE.md)
 for the required structure of a generated project README.
 
@@ -61,7 +61,7 @@ instantiated.
                     operating rules
                            |
                            v
-                          /init
+                      /specialise
                            |
                            v
                    evidence discovery
@@ -167,7 +167,7 @@ Run the template commands locally:
 .agentic-template/bin/project doctor
 ```
 
-`/init` has these phases:
+`/specialise` has these phases:
 
 ```text
 discover
@@ -178,7 +178,7 @@ discover
   -> update handoff
 ```
 
-Mandatory postconditions after `/init`:
+Mandatory postconditions after `/specialise`:
 
 - `PROJECT_PROFILE.toon.project.state` is not `template`.
 - `README.md` is project-facing.
@@ -486,7 +486,7 @@ A single agent must never be presented as equivalent to independent review.
 ## Run with containers
 
 The template ships with an empty `compose.yaml`. Generated projects make an
-explicit container decision during `/init`:
+explicit container decision during `/specialise`:
 
 - Deployable services default to a tested application image.
 - Libraries, mobile apps, desktop apps and Godot projects may record
@@ -509,7 +509,7 @@ Template-level tests use the fixture-driven self-test:
 .agentic-template/bin/project self-test
 ```
 
-Generated projects specialise test commands during `/init`:
+Generated projects specialise test commands during `/specialise`:
 
 ```sh
 .agentic-template/bin/project test
@@ -585,5 +585,5 @@ require cloud credentials for ordinary IaC validation.
 This template is designed for AI-assisted delivery. Agents read `AGENTS.md`
 as the source of truth, use `.agents/skills/CATALOG.toon` for lazy-loaded
 specialisation, and record state in `PROJECT_PROFILE.toon` and `HANDOFF.toon`.
-The `/init` lifecycle transforms the template into a specialised, truthful,
+The `/specialise` lifecycle transforms the template into a specialised, truthful,
 delivered project with executable commands and tested documentation.

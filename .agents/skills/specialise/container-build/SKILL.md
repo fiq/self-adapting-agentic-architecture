@@ -53,6 +53,6 @@ containers:
 ## Do not
 
 - Run containers as root when a non-root user is practical.
-- Leave `application_image: unknown` after `/init`.
+- Leave `application_image: unknown` after `/specialise`.
 - Commit brittle or unpinned base images without an update policy.
 - Run `image-test` without meaningful cleanup.

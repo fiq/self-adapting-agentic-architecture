@@ -1,4 +1,4 @@
-# /init
+# /specialise
 
 Use `.agents/skills/init/SKILL.md`.
 

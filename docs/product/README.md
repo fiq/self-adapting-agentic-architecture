@@ -1,3 +1,3 @@
 # Product
 
-Capture durable product context after `/init` discovers project intent.
+Capture durable product context after `/specialise` discovers project intent.

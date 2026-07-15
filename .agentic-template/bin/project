@@ -45,7 +45,7 @@ UNSPECIALISED = {
     "image-test",
 }
 
-# Commands that may be not applicable after /init specialisation rather
+# Commands that may be not applicable after /specialise specialisation rather
 # than unspecialised. These are surfaced in the unspecialised set so the
 # template still fails clearly, but generated projects may specialise or
 # explicitly mark them not_applicable.

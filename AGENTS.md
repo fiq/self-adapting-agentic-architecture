@@ -7,7 +7,7 @@ decision fatigue by inspecting evidence, recommending sensible defaults, and
 asking only the smallest useful question set when material ambiguity remains.
 
 The template is the source of reusable project specialisation. Generated
-projects must no longer present themselves as the template after `/init`.
+projects must no longer present themselves as the template after `/specialise`.
 
 ## Canonical commands
 
@@ -32,7 +32,7 @@ The canonical command surface is `.agentic-template/bin/project`.
 
 Unspecialised commands (`test`, `lint`, `run`, `image`, `image-test`,
 `contract-test`, `integration-test`, `component-test`, `e2e-test`) fail
-clearly until specialised during `/init`. Generated projects may mark
+clearly until specialised during `/specialise`. Generated projects may mark
 non-applicable commands explicitly rather than leaving them unspecialised.
 
 ## Architecture and dependency rules
@@ -61,7 +61,7 @@ non-applicable commands explicitly rather than leaving them unspecialised.
 - Real dependency semantics should be tested when cheap and materially
   important. Prefer Testcontainers for lifecycle-managed integration-test
   dependencies.
-- Do not leave generic test placeholders after `/init`.
+- Do not leave generic test placeholders after `/specialise`.
 
 ## Container and infrastructure rules
 

@@ -1,6 +1,6 @@
 # README Template
 
-After `/init`, replace the template README with a project-facing README.
+After `/specialise`, replace the template README with a project-facing README.
 Do not append to the template README. Keep this template as hidden source
 material under `.agentic-template/templates/`.
 

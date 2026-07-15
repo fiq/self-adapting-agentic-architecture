@@ -1,6 +1,6 @@
 # AGENTS Template
 
-After `/init`, replace the template `AGENTS.md` with a project-specific
+After `/specialise`, replace the template `AGENTS.md` with a project-specific
 operating contract. Keep this template as hidden source material under
 `.agentic-template/templates/`.
 
