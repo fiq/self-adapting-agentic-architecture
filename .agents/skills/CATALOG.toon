@@ -63,6 +63,14 @@ skills:
     path: coordination/team-selection/SKILL.md
     trigger: task_requires_role_selection
 
+  sudo:
+    path: coordination/sudo/SKILL.md
+    trigger: agent_switches_persona_for_bounded_operation
+
+  adversarial_debate:
+    path: coordination/adversarial-debate/SKILL.md
+    trigger: irreversible_decision_or_reviewer_disagreement
+
   agent_team_fallback:
     path: coordination/agent-team-fallback/SKILL.md
     trigger: preferred_team_topology_unavailable
