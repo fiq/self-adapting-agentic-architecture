@@ -46,6 +46,7 @@
 
           shellHook = ''
             echo "AI-first template shell: use .agentic-template/bin/project help"
+            echo "Optional: .agentic-template/bin/project install-hooks (non-blocking wiki-drift pre-commit)"
           '';
           };
       });

@@ -1,0 +1,30 @@
+change:
+  id: CHG-000
+  title: Short change title
+  status: proposed
+  intent: One sentence on why this change exists.
+  audience_level: developer
+  relates_to: []
+
+deltas:
+  - op: ADDED
+    capability: capability-name
+    requirement: The system does X.
+    scenarios:
+      - id: S1
+        when: a trigger occurs
+        then: an observable outcome happens
+        and: []
+
+acceptance:
+  - scenario: S1
+    test_id: capability-name/x-happens
+    layer: acceptance
+
+tasks:
+  - id: T1
+    slice: smallest end-to-end proof of S1
+    status: pending
+
+non_goals: []
+risks: []

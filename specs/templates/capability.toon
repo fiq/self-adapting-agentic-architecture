@@ -1,0 +1,15 @@
+capability:
+  id: CAP-000
+  name: capability-name
+  status: living
+  summary: One sentence describing the capability.
+  relates_to: []
+
+requirements:
+  - id: R1
+    requirement: The system does X.
+    scenarios:
+      - id: S1
+        when: a trigger occurs
+        then: an observable outcome happens
+        and: []

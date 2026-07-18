@@ -8,6 +8,7 @@ CUSTOM = ROOT / "CUSTOMIZE_THIS_PROJECT.toon"
 
 REQUIRED_SECTIONS = [
     "project:",
+    "audience:",
     "facts:",
     "inferences:",
     "decisions:",
@@ -87,6 +88,25 @@ def main():
                     "Project marked customised while required specialisation is unresolved: "
                     + ", ".join(unresolved)
                 )
+
+    # Audience calibration must exist. Template state may leave it unresolved,
+    # but a specialised project must record skill level, app shape and an
+    # explicit, bought-into right-sizing decision.
+    audience_block = section_block(text, "audience:")
+    for field in ["skill_level:", "app_shape:", "right_sizing:"]:
+        if field not in audience_block:
+            return fail("PROJECT_PROFILE.toon audience section is missing " + field)
+    if "state: template" not in text:
+        for marker in ["skill_level: unknown", "app_shape: unknown"]:
+            if marker in audience_block:
+                return fail(
+                    "Specialised project has unresolved audience calibration: " + marker
+                )
+        if "bought_in: false" in audience_block:
+            return fail(
+                "Specialised project has no bought-into right-sizing decision "
+                "(audience.right_sizing.bought_in is false)"
+            )
 
     # Template state is allowed to have unresolved decisions, but the
     # infrastructure section must exist so the decision is explicit after

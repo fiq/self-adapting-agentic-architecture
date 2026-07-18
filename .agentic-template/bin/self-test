@@ -155,6 +155,55 @@ def main():
         ):
             failures += 1
 
+        # ---- change spec validation ----
+        valid_change = (
+            work / "specs/changes/example-dark-mode/change.toon"
+        )
+        write(
+            valid_change,
+            "change:\n"
+            "  id: CHG-901\n"
+            "  title: Dark mode\n"
+            "  status: proposed\n"
+            "  intent: Users want a dark theme.\n"
+            "  audience_level: developer\n"
+            "  relates_to: []\n"
+            "\n"
+            "deltas:\n"
+            "  - op: ADDED\n"
+            "    capability: theming\n"
+            "    requirement: The app supports a dark theme.\n"
+            "    scenarios:\n"
+            "      - id: S1\n"
+            "        when: user clicks the theme toggle\n"
+            "        then: the app switches to dark mode\n"
+            "        and: []\n"
+            "\n"
+            "acceptance:\n"
+            "  - scenario: S1\n"
+            "    test_id: theming/dark-mode-toggle\n"
+            "    layer: acceptance\n"
+        )
+        if not expect(
+            work,
+            "valid change spec passes check-changes",
+            PROJECT + ["check-changes"],
+            0,
+            "CHANGES OK",
+        ):
+            failures += 1
+        # Break the scenario->acceptance mapping.
+        replace(valid_change, "scenario: S1\n    test_id", "scenario: S9\n    test_id")
+        if not expect(
+            work,
+            "change spec with unmapped acceptance fails",
+            PROJECT + ["check-changes"],
+            1,
+            "unknown scenario S9",
+        ):
+            failures += 1
+        shutil.rmtree(valid_change.parent)
+
         # restore clean copy for readiness tests
         copy_repo(work.parent / "restore2")
         shutil.rmtree(work)
@@ -262,6 +311,15 @@ def main():
             "harness: unspecialised",
             "harness: specialised",
         ).replace(
+            "skill_level: unknown",
+            "skill_level: developer",
+        ).replace(
+            "app_shape: unknown",
+            "app_shape: cli",
+        ).replace(
+            "bought_in: false",
+            "bought_in: true",
+        ).replace(
             "application_image: not_applicable",
             "application_image: not_applicable",
         )
@@ -348,7 +406,7 @@ def main():
         # ---- negative: active spec claiming missing component ----
         # Restore for spec test
         profile.write_text(specialised_profile)
-        active_spec = work / "specs/active/SPEC-001-missing-service.md"
+        active_spec = work / "specs/changes/SPEC-001-missing-service/proposal.md"
         write(
             active_spec,
             "# Missing Service\n\n"

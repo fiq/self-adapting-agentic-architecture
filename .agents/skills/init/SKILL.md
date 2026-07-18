@@ -31,14 +31,22 @@ discover
 5. Inspect repository evidence with `.agentic-template/bin/inspect-project`.
 6. Load `.agents/skills/CATALOG.toon`.
 7. Load only relevant discovery skills.
-8. Update `PROJECT_PROFILE.toon` with facts, inferences, decisions and unknowns.
-9. Classify unknowns as blocking or non-blocking.
+8. Run `calibrate-audience` early: establish skill level and app shape in plain
+   language and record them in `PROJECT_PROFILE.toon.audience`.
+9. If `CUSTOMIZE_THIS_PROJECT.toon.narrative` (or a referenced file) is present,
+   run `narrative-intake` to turn it into initial `specs/capabilities/` and a
+   first `specs/changes/<id>/` proposal.
+10. Update `PROJECT_PROFILE.toon` with facts, inferences, decisions and unknowns.
+11. Classify unknowns as blocking or non-blocking.
 10. Re-evaluate `LICENSE`; keep MIT only if compatible with project intent,
     dependencies and copied upstream code. Remove temporarily when uncertain.
 
 ### 2. Decide
 
 1. Recommend the smallest useful architecture with confidence and evidence.
+   Right-size to the calibrated audience: state what is deliberately excluded,
+   secure buy-in, and record a bought-into right-sizing decision in
+   `PROJECT_PROFILE.toon` (ADR when durable).
 2. Explicitly record the container decision (default to a tested application
    image for deployable services unless a documented exception applies).
 3. Explicitly record the local-topology and IaC decision (status: required,
@@ -90,6 +98,8 @@ discover
 ## Mandatory postconditions
 
 - `PROJECT_PROFILE.toon.project.state` is not `template`.
+- `PROJECT_PROFILE.toon.audience` records a resolved skill level, app shape and
+  a bought-into right-sizing decision.
 - `README.md` is project-facing.
 - `AGENTS.md` is project-facing.
 - `CUSTOMIZE_THIS_PROJECT.toon` is marked as consumed or historical input.

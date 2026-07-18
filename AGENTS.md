@@ -17,12 +17,15 @@ The canonical command surface is `.agentic-template/bin/project`.
 |---|---|
 | `project init` | Evidence-driven discovery, specialisation, identity rewrite and validation |
 | `project inspect` | Print compact project evidence |
-| `project check` | Run all repo-contract, profile, handoff, knowledge and tooling checks |
+| `project check` | Run all repo-contract, profile, handoff, knowledge, changes and tooling checks |
 | `project repo-check` | Validate required files, skills and commands |
 | `project check-profile` | Validate PROJECT_PROFILE.toon structure and resolved state |
 | `project check-handoff` | Validate HANDOFF.toon |
 | `project check-knowledge` | Validate knowledge entries |
+| `project check-changes` | Validate TOON change proposals and capabilities |
+| `project check-wiki` | Warn on wiki drift from the knowledge graph and specs |
 | `project check-readme` | Validate README is not template-facing and has required sections |
+| `project install-hooks` | Opt-in: install a non-blocking wiki-drift pre-commit hook |
 | `project ready` | Run all applicable deterministic readiness checks |
 | `project compose-config` | Validate docker compose configuration |
 | `project compose-test` | Bounded Compose smoke test with deterministic cleanup |
@@ -50,12 +53,54 @@ non-applicable commands explicitly rather than leaving them unspecialised.
 - Do not merge provider-specific or platform-specific paths into shared
   abstractions unless explicitly requested.
 
+## Quality and technical debt
+
+Quality is a standing obligation on all work, re-checked explicitly inside
+`/ideate` and `/review`, not a separate phase.
+
+- Follow the boy-scout rule: leave code in the path of a change cleaner than
+  you found it.
+- Prefer reuse over duplication. Extract shared utility at the second or later
+  occurrence, never on a single occurrence. Do not pre-abstract.
+- Pay down technical debt encountered directly in the work's path. Record
+  out-of-scope debt as a spec follow-up or a `RISK-`/`Q-` knowledge entry
+  instead of leaving it silent.
+- Documentation updates land in the same change as the behaviour they
+  describe. Do not defer them.
+- Check non-trivial design choices against boundaries, dependency direction,
+  coupling and reversibility before implementing.
+- Do not leave silent `TODO`s or dead code. Convert them into recorded
+  changes, tasks or knowledge entries.
+
+## Right-sizing and over-engineering
+
+Architecture scales to the calibrated app shape and audience skill level: a
+simpler shape means fewer layers. Recommend the smallest sufficient design.
+
+The smaller architecture is a conscious, bought-into choice, never a silent
+omission:
+
+- state plainly what is deliberately not being built and why;
+- secure the user's buy-in before proceeding;
+- record the right-sizing decision in `PROJECT_PROFILE.toon` decisions,
+  promoted to an ADR when durable;
+- record the conditions that would justify revisiting it.
+
+This keeps YAGNI deliberate and revisitable rather than unexamined.
+
 ## Testing expectations
 
 - Default to test-first for meaningful behaviour.
 - Use a testing trophy: strong unit/domain feedback, strong integration or
   component confidence, focused contracts, and a few high-value E2E paths.
 - Select test layers from actual risks, not a fixed checklist.
+- Drive design outside-in, from the boundary in. A change's `WHEN/THEN`
+  scenarios (see the spec system) drive tests before implementation
+  (ATDD-aligned).
+- Choose the boundary test's fidelity by risk and known architectural
+  direction: acceptance, component-integration or subcutaneous. Keep a thin
+  real-dependency confirmation layer where it is cheap and materially
+  important.
 - Unspecialised test targets must fail clearly and point to
   `.agentic-template/bin/project init`.
 - Real dependency semantics should be tested when cheap and materially
@@ -93,7 +138,35 @@ Update documentation when:
 - active specs are delivered, changed, deferred or removed;
 - architecture boundaries or ADRs change;
 - canonical commands are specialised or marked not applicable;
-- delivery reconciliation is performed.
+- delivery reconciliation is performed;
+- audience calibration or right-sizing decisions change;
+- the wiki drifts from the knowledge graph, specs or code.
+
+## Spec system
+
+Specs are OpenSpec-shaped, TOON-encoded and agent-first.
+
+- Living requirements sit in `specs/capabilities/`; in-flight proposals in
+  `specs/changes/<id>/`; completed proposals in `specs/archive/`.
+- A change proposal is `proposal.md` (why), optional `design.md` (tradeoffs)
+  and `change.toon` (the agent source of truth: `ADDED`/`MODIFIED`/`REMOVED`
+  deltas, each requirement carrying `WHEN/THEN` scenarios, plus an
+  `acceptance` map from scenario to test and `tasks`).
+- Structured spec content is TOON, validated by `.agents/schemas/` via
+  `project check-changes`. Markdown holds only rationale.
+- Do not add an external spec CLI dependency. A Markdown export is deferred
+  until a non-agent consumer needs it.
+
+## Knowledge graph and taxonomy
+
+Knowledge, specs, ADRs and wiki pages form one connected graph defined by
+`.agents/knowledge/TAXONOMY.md`.
+
+- Search the graph via `knowledge-search` before planning or implementing.
+- Link every new durable artifact back into the graph by ID; edges must
+  resolve to existing nodes (enforced by `check-knowledge` and
+  `check-changes`).
+- Keep the wiki current against the graph; `check-wiki` warns on drift.
 
 ## Branch and PR workflow
 
@@ -197,8 +270,21 @@ or the task can no longer be safely bounded.
 
 - Put the most important conclusion first.
 - Use concise sections, short paragraphs, small tables and ASCII diagrams.
+  Prefer bullets and diagrams over prose as complexity rises.
 - Use TOON for compact semantic state and Markdown for durable explanation.
 - Prefer progressive disclosure over walls of text.
+- At a status handoff or decision point, offer alternatives and guidance, not
+  a flat report.
+- At a genuinely hard choice, attribute each relevant persona's stance as
+  `discourages` / `accepts` / `encourages`, then let the lead synthesise
+  without forcing consensus. For example:
+
+  ```
+  choice: add a message broker now
+    architect     discourages (no evidence of async need yet)
+    tech-lead     accepts     (isolated, reversible)
+    product-owner encourages  (unblocks the next capability)
+  ```
 
 ## Git provenance
 

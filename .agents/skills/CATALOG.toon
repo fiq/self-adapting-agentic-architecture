@@ -59,6 +59,14 @@ skills:
     path: discovery/capture-unknowns/SKILL.md
     trigger: material_unknown_discovered
 
+  calibrate_audience:
+    path: discovery/calibrate-audience/SKILL.md
+    trigger: audience_or_app_shape_unknown_or_changed
+    required_evidence:
+      - existing_docs
+      - entrypoints
+      - user_statements
+
   team_selection:
     path: coordination/team-selection/SKILL.md
     trigger: task_requires_role_selection
@@ -93,6 +101,22 @@ skills:
   reconcile_delivery:
     path: workflow/reconcile-delivery/SKILL.md
     trigger: before_delivery_pr_or_material_scope_change
+
+  wiki_tidy:
+    path: workflow/wiki-tidy/SKILL.md
+    trigger: wiki_drift_or_natural_task_boundary
+
+  ideate:
+    path: workflow/ideate/SKILL.md
+    trigger: ambiguous_or_unspecified_feature_request
+
+  review_loop:
+    path: workflow/review-loop/SKILL.md
+    trigger: before_merge_or_boy_scout_cleanup
+
+  narrative_intake:
+    path: workflow/narrative-intake/SKILL.md
+    trigger: narrative_provided_inline_or_file
 
   runtime_node:
     path: specialise/runtime-node/SKILL.md
@@ -156,6 +180,9 @@ skills:
   test_first:
     path: workflow/test-first/SKILL.md
     trigger: meaningful_behaviour_change
+  outside_in_tdd:
+    path: workflow/outside-in-tdd/SKILL.md
+    trigger: implementing_a_change_scenario
   reassess_project_profile:
     path: workflow/reassess-project-profile/SKILL.md
     trigger: material_profile_assumption_changed

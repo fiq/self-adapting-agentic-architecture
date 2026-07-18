@@ -24,6 +24,7 @@ instantiated.
     - [1. Create your project from this template repo](#1-create-your-project-from-this-template-repo)
     - [2. Provide briefs, artifacts and intent](#2-provide-briefs-artifacts-and-intent)
     - [3. Start the agent-guided setup](#3-start-the-agent-guided-setup)
+  - [Development lifecycle](#development-lifecycle)
   - [Run locally](#run-locally)
   - [Skills and agent compatibility](#skills-and-agent-compatibility)
     - [The `init` skill](#the-init-skill)
@@ -151,6 +152,43 @@ the smallest useful next setup steps. If my project intent is unclear, interview
 me and help convert my answers, briefs and artifacts into project state.
 ```
 
+## Development lifecycle
+
+Work flows through a small, connected loop. Agents drive it; humans steer at
+decision points.
+
+```
+/specialise ─► calibrate audience + app shape (plain language), right-size
+                 the architecture as a recorded, bought-into choice
+     ▼
+/ideate ─────► short-cycle multi-persona loop → specs/changes/<id>/change.toon
+    (idea or     Intent → Boundary → Delivery → Quality gate
+    narrative)   (a narrative, inline or file, is taken in via narrative-intake)
+     ▼
+outside-in ► write the acceptance test for each WHEN/THEN scenario first,
+   ATDD        fidelity by risk (acceptance / component-integration / subcutaneous)
+     ▼
+/review ────► bounded boy-scout clean-up: code, language and architectural
+                 smells, inappropriate coupling
+     ▼
+archive change → specs/capabilities/  +  wiki-tidy keeps docs and the
+                 knowledge graph current
+```
+
+- **Specs** are OpenSpec-shaped, TOON-encoded and agent-first — living
+  requirements in `specs/capabilities/`, proposals in `specs/changes/<id>/`
+  (`proposal.md` for rationale, `change.toon` for deltas, `WHEN/THEN`
+  scenarios, acceptance and tasks). Validate with `project check-changes`.
+- **Quality is standing**, not a phase: boy-scout rule, reuse over duplication,
+  pay in-path debt, docs land in the change, no silent TODOs.
+- **Right-sizing is conscious**: the smallest sufficient architecture is chosen
+  and recorded with what is deliberately excluded and when to revisit.
+- **Hard choices** show each persona's stance as discourages / accepts /
+  encourages; the lead synthesises without forcing consensus.
+- **The knowledge graph** (`.agents/knowledge/TAXONOMY.md`) connects knowledge,
+  specs, ADRs and wiki; `project check-wiki` warns on drift and
+  `project install-hooks` opts into a non-blocking pre-commit reminder.
+
 ## Run locally
 
 Enter the Nix development shell if you use flakes:
@@ -209,8 +247,8 @@ required structure of a generated project `AGENTS.md`.
 
 | Category | Skills | Purpose |
 |---|---|---|
-| Workflow | `init`, `discover`, `plan-task`, `specify`, `test-first`, `implement-slice`, `test-change`, `update-handoff`, `handoff-maintenance`, `reassess-project-profile`, `reconcile-delivery`, `architecture-review`, `red-team`, `promote-knowledge` | Orchestrate discovery, planning, implementation, review and delivery |
-| Discovery | `detect-project-shape`, `detect-runtime`, `detect-application-shape`, `detect-messaging`, `detect-persistence`, `detect-infrastructure`, `capture-unknowns` | Inspect repository evidence and classify unknowns |
+| Workflow | `init`, `discover`, `plan-task`, `specify`, `ideate`, `narrative-intake`, `test-first`, `outside-in-tdd`, `implement-slice`, `test-change`, `review-loop`, `wiki-tidy`, `update-handoff`, `handoff-maintenance`, `reassess-project-profile`, `reconcile-delivery`, `architecture-review`, `red-team`, `promote-knowledge` | Orchestrate ideation, discovery, planning, ATDD, implementation, review and delivery |
+| Discovery | `calibrate-audience`, `detect-project-shape`, `detect-runtime`, `detect-application-shape`, `detect-messaging`, `detect-persistence`, `detect-infrastructure`, `capture-unknowns` | Calibrate audience, inspect repository evidence and classify unknowns |
 | Specialise | `runtime-node`, `runtime-java`, `runtime-python`, `runtime-elixir`, `runtime-godot`, `messaging-kafka`, `persistence-sql`, `persistence-document`, `persistence-redis`, `sql-migrations`, `test-harness`, `container-build`, `infra-local-compose`, `infra-decision`, `infra-aws`, `infra-fly`, `ci` | Specialise runtime, persistence, messaging, testing, containers, infrastructure and CI |
 | Coordination | `team-selection`, `sudo`, `adversarial-debate`, `agent-team-fallback` | Select agent roles, switch personas, debate decisions, degrade gracefully |
 | Knowledge | `knowledge-search`, `knowledge-capture` | Search and capture durable project knowledge |
@@ -229,9 +267,14 @@ lazy-loaded via [`CATALOG.toon`](.agents/skills/CATALOG.toon).
 | `discover` | [`workflow/discover/SKILL.md`](.agents/skills/workflow/discover/SKILL.md) | evidence gathering needed |
 | `plan-task` | [`workflow/plan-task/SKILL.md`](.agents/skills/workflow/plan-task/SKILL.md) | bounded task planning |
 | `specify` | [`workflow/specify/SKILL.md`](.agents/skills/workflow/specify/SKILL.md) | meaningful feature or behaviour change |
+| `ideate` | [`workflow/ideate/SKILL.md`](.agents/skills/workflow/ideate/SKILL.md) | ambiguous or unspecified feature request |
+| `narrative-intake` | [`workflow/narrative-intake/SKILL.md`](.agents/skills/workflow/narrative-intake/SKILL.md) | narrative provided inline or as a file |
 | `test-first` | [`workflow/test-first/SKILL.md`](.agents/skills/workflow/test-first/SKILL.md) | meaningful behaviour change |
+| `outside-in-tdd` | [`workflow/outside-in-tdd/SKILL.md`](.agents/skills/workflow/outside-in-tdd/SKILL.md) | implementing a change scenario |
 | `implement-slice` | [`workflow/implement-slice/SKILL.md`](.agents/skills/workflow/implement-slice/SKILL.md) | thin slice implementation |
 | `test-change` | [`workflow/test-change/SKILL.md`](.agents/skills/workflow/test-change/SKILL.md) | test modification |
+| `review-loop` | [`workflow/review-loop/SKILL.md`](.agents/skills/workflow/review-loop/SKILL.md) | before merge or boy-scout cleanup |
+| `wiki-tidy` | [`workflow/wiki-tidy/SKILL.md`](.agents/skills/workflow/wiki-tidy/SKILL.md) | wiki drift or natural task boundary |
 | `update-handoff` | [`workflow/update-handoff/SKILL.md`](.agents/skills/workflow/update-handoff/SKILL.md) | work state changed |
 | `handoff-maintenance` | [`workflow/handoff-maintenance/SKILL.md`](.agents/skills/workflow/handoff-maintenance/SKILL.md) | active work state changed |
 | `reassess-project-profile` | [`workflow/reassess-project-profile/SKILL.md`](.agents/skills/workflow/reassess-project-profile/SKILL.md) | material profile assumption changed |
@@ -244,6 +287,7 @@ lazy-loaded via [`CATALOG.toon`](.agents/skills/CATALOG.toon).
 
 | Skill | Path | Trigger |
 |---|---|---|
+| `calibrate-audience` | [`discovery/calibrate-audience/SKILL.md`](.agents/skills/discovery/calibrate-audience/SKILL.md) | audience or app shape unknown or changed |
 | `detect-project-shape` | [`discovery/detect-project-shape/SKILL.md`](.agents/skills/discovery/detect-project-shape/SKILL.md) | repository shape unknown |
 | `detect-runtime` | [`discovery/detect-runtime/SKILL.md`](.agents/skills/discovery/detect-runtime/SKILL.md) | project runtime unknown |
 | `detect-application-shape` | [`discovery/detect-application-shape/SKILL.md`](.agents/skills/discovery/detect-application-shape/SKILL.md) | runtime or framework detected |

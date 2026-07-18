@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Opt-in git hook installer.
+
+Installs a non-blocking pre-commit hook that runs `project check-wiki` so wiki
+drift is surfaced at commit time. Never installed automatically; run
+`.agentic-template/bin/project install-hooks` to opt in. The hook only warns
+and always allows the commit; an agent still runs the wiki-tidy skill to fix
+drift.
+"""
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path.cwd()
+
+HOOK = """#!/bin/sh
+# Installed by: .agentic-template/bin/project install-hooks
+# Non-blocking: surfaces wiki drift, never fails the commit.
+.agentic-template/bin/project check-wiki || true
+exit 0
+"""
+
+
+def git_dir():
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-dir"],
+            cwd=str(ROOT),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    return (ROOT / result.stdout.strip()).resolve()
+
+
+def main():
+    gd = git_dir()
+    if gd is None:
+        print("install-hooks: not a git repository; nothing to install")
+        return 1
+    hooks = gd / "hooks"
+    hooks.mkdir(parents=True, exist_ok=True)
+    pre_commit = hooks / "pre-commit"
+    if pre_commit.exists() and "install-hooks" not in pre_commit.read_text():
+        print(f"install-hooks: {pre_commit} already exists and is not ours; leaving it")
+        return 1
+    pre_commit.write_text(HOOK)
+    pre_commit.chmod(0o755)
+    print(f"install-hooks: installed non-blocking pre-commit at {pre_commit}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

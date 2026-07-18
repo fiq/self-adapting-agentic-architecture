@@ -20,7 +20,8 @@ the delivered repository, not stale intentions.
 ## Procedure
 
 1. Read `PROJECT_PROFILE.toon`, `HANDOFF.toon`, `README.md`, `AGENTS.md`.
-2. Read active specs under `specs/active/`.
+2. Read in-flight change proposals under `specs/changes/` and living
+   requirements under `specs/capabilities/`.
 3. Read architecture overview under `docs/architecture/`.
 4. Read ADR summaries under `docs/decisions/`.
 5. Walk the repository structure and compare against documented claims.
@@ -44,10 +45,11 @@ the delivered repository, not stale intentions.
    - `HANDOFF.toon` current objective and next actions;
    - architecture overview under `docs/architecture/`;
    - ADR links under `docs/decisions/`;
-   - active specification status under `specs/active/`.
+   - in-flight change status under `specs/changes/`.
 
-9. Move completed specs from `specs/active/` to `specs/delivered/`, or mark
-   them delivered in place.
+9. Archive delivered changes: move `specs/changes/<id>/` to `specs/archive/`
+   and fold their deltas into `specs/capabilities/`, or mark delivered in
+   place.
 
 ## Ready gate
 
@@ -62,5 +64,6 @@ the delivered repository, not stale intentions.
 ## Do not
 
 - Leave stale architecture claims in the README.
-- Keep delivered specs in `specs/active/` without a delivered marker.
+- Keep delivered changes in `specs/changes/` without archiving or a delivered
+  marker.
 - Pretend a deferred component is delivered.

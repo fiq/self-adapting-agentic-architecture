@@ -4,6 +4,17 @@ project:
   concept_date: 2026-05-16
   concept_date_reason: original decision date for creating this template
 
+audience:
+  skill_level: unknown
+  app_shape: unknown
+  language_by_role: []
+  right_sizing:
+    smallest_sufficient: template has no application architecture yet
+    deliberately_excluded: []
+    revisit_when:
+      - project instantiated via /specialise
+    bought_in: false
+
 facts:
   - id: template_repository
     observation: repository is a reusable AI-first project template

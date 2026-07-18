@@ -10,6 +10,20 @@ domain:
   core_capabilities: []
   non_goals: []
 
+audience:
+  skill_level: infer
+  app_shape: infer
+  language_by_role: []
+  right_sizing:
+    smallest_sufficient: infer
+    deliberately_excluded: []
+    revisit_when: []
+    bought_in: false
+
+narrative:
+  inline: null
+  file: null
+
 architecture:
   style: infer
   application_shape: infer
@@ -128,6 +142,11 @@ communication:
 
 sdd:
   enabled: true
+  spec_format: openspec_shaped_toon_encoded
+  spec_layout:
+    living_requirements: specs/capabilities
+    in_flight_changes: specs/changes
+    archived_changes: specs/archive
   spec_required_for:
     - meaningful_feature
     - behavioural_change

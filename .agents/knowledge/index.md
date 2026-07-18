@@ -1,6 +1,8 @@
 # Knowledge Index
 
-Search this index first, then load only relevant entries.
+Search this index first, then load only relevant entries. The full graph — how
+knowledge, specs, ADRs and wiki pages connect — is defined in
+[`TAXONOMY.md`](TAXONOMY.md).
 
 | Category | Folder | ID Prefix | Purpose |
 |---|---|---:|---|

@@ -98,7 +98,7 @@ def entry_files():
     for path in KNOWLEDGE.rglob("*.md"):
         if "/templates/" in str(path):
             continue
-        if path.name in {"README.md", "index.md"}:
+        if path.name in {"README.md", "index.md", "TAXONOMY.md"}:
             continue
         yield path
 

@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""Warn-only wiki upkeep check.
+
+The wiki is durable explanation that must track the knowledge graph, specs and
+code. This check never blocks: it prints warnings for drift so an agent knows
+to run the wiki-tidy skill. It reports:
+
+- wiki pages referencing a knowledge id that does not resolve;
+- the wiki lagging behind knowledge or specs (by last commit time, when the
+  repository is a git checkout).
+"""
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+ROOT = Path.cwd()
+WIKI = ROOT / "docs/wiki"
+KNOWLEDGE = ROOT / ".agents/knowledge"
+SPECS = ROOT / "specs"
+
+# ADR is intentionally excluded: decisions are dual-homed in docs/decisions and
+# would produce false positives against knowledge ids.
+LINK_PREFIXES = ("DOM", "SYS", "CON", "ARCH", "PAT", "RISK", "Q", "LRN", "INBOX")
+LINK_RE = re.compile(r"\b((?:" + "|".join(LINK_PREFIXES) + r")-[0-9]+)\b")
+
+
+def knowledge_ids():
+    ids = set()
+    if not KNOWLEDGE.exists():
+        return ids
+    for path in KNOWLEDGE.rglob("*.md"):
+        if "/templates/" in str(path) or path.name in {"README.md", "index.md", "TAXONOMY.md"}:
+            continue
+        text = path.read_text()
+        if not text.startswith("---\n"):
+            continue
+        end = text.find("\n---", 4)
+        block = text[4:end] if end > 0 else text
+        match = re.search(r"^id:\s*(\S+)", block, re.MULTILINE)
+        if match:
+            ids.add(match.group(1))
+    return ids
+
+
+def last_commit_ts(path):
+    try:
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%ct", "--", str(path)],
+            cwd=str(ROOT),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    try:
+        return int(result.stdout.strip())
+    except ValueError:
+        return None
+
+
+def main():
+    warnings = []
+
+    if not WIKI.exists():
+        print("WIKI OK")
+        print()
+        print("WARNINGS")
+        print("- docs/wiki is missing")
+        return 0
+
+    known = knowledge_ids()
+    for path in sorted(WIKI.rglob("*.md")):
+        for token in LINK_RE.findall(path.read_text()):
+            if token not in known:
+                warnings.append(
+                    f"{path.relative_to(ROOT)}: references unknown knowledge id {token}"
+                )
+
+    wiki_ts = last_commit_ts(WIKI)
+    if wiki_ts is not None:
+        for label, target in (("knowledge", KNOWLEDGE), ("specs", SPECS)):
+            other_ts = last_commit_ts(target)
+            if other_ts is not None and other_ts > wiki_ts:
+                warnings.append(
+                    f"{label} changed after the wiki was last updated; "
+                    "run the wiki-tidy skill"
+                )
+
+    print("WIKI OK")
+    if warnings:
+        print()
+        print("WARNINGS")
+        for warning in warnings:
+            print("- " + warning)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

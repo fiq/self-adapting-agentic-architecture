@@ -72,6 +72,8 @@ def main():
         ([str(BIN / "check-project-profile")], "project profile"),
         ([str(BIN / "check-handoff")], "handoff"),
         ([str(BIN / "check-knowledge")], "knowledge"),
+        ([str(BIN / "check-changes")], "change specs"),
+        ([str(BIN / "check-wiki")], "wiki upkeep"),
         ([str(BIN / "check-readme")], "documentation"),
     ]
 

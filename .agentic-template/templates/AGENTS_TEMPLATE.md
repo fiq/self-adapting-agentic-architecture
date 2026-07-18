@@ -10,23 +10,37 @@ A generated project AGENTS.md must include:
 
 1. **Project identity** — name, purpose and primary consumer.
 2. **Canonical commands** — `.agentic-template/bin/project` commands that
-   apply, and explicit "not applicable" markers for non-applicable commands.
+   apply (including `check-changes` and `check-wiki`), and explicit "not
+   applicable" markers for non-applicable commands.
 3. **Architecture and dependency rules** — runtime, framework, Clean
    Architecture boundaries, and what must not be added without evidence.
-4. **Testing expectations** — test layers, test-first policy, real dependency
-   semantics.
-5. **Container and infrastructure rules** — container decision, Compose
+4. **Quality and technical debt** — boy-scout rule, reuse over duplication at
+   the 2nd+ occurrence, pay in-path debt / record out-of-scope debt, docs land
+   in the same change, no silent TODOs.
+5. **Right-sizing** — architecture scales to the calibrated audience; the
+   smaller design is a conscious, recorded, bought-into choice.
+6. **Testing expectations** — boundary-in, ATDD-aligned design; fidelity by
+   risk (acceptance / component-integration / subcutaneous); real dependency
+   semantics where cheap and material.
+7. **Spec system** — OpenSpec-shaped, TOON-encoded specs under
+   `specs/capabilities` and `specs/changes`, validated by `check-changes`.
+8. **Knowledge graph and taxonomy** — knowledge, specs, ADRs and wiki form one
+   graph (`.agents/knowledge/TAXONOMY.md`); search before acting, link by id.
+9. **Container and infrastructure rules** — container decision, Compose
    topology, IaC status.
-6. **Documentation update triggers** — when README, AGENTS, PROFILE, HANDOFF,
-   wiki, ADRs and specs must be updated.
-7. **Branch and PR workflow** — one issue per branch, PR requirements, merge
-   ownership.
-8. **Worktree rules** — one mutable worktree per agent, no dirty removal,
-   cleanup verification.
-9. **Agent roles and ownership** — persistent roles, subagents, delegation.
-10. **Team and model fallback** — degradation order and handoff protocol.
-11. **Handoff requirements** — what HANDOFF.toon must contain.
-12. **Git provenance** — real commit dates, no history rewriting.
+10. **Documentation update triggers** — when README, AGENTS, PROFILE, HANDOFF,
+    wiki, ADRs and specs must be updated.
+11. **Branch and PR workflow** — one issue per branch, PR requirements, merge
+    ownership.
+12. **Worktree rules** — one mutable worktree per agent, no dirty removal,
+    cleanup verification.
+13. **Agent roles and ownership** — persistent roles, subagents, delegation.
+14. **Team and model fallback** — degradation order and handoff protocol.
+15. **Communication rules** — conclusion first; alternatives and per-persona
+    stance (discourages / accepts / encourages) at hard choices; ASCII and
+    bullets as complexity rises.
+16. **Handoff requirements** — what HANDOFF.toon must contain.
+17. **Git provenance** — real commit dates, no history rewriting.
 
 ## CLAUDE.md
 

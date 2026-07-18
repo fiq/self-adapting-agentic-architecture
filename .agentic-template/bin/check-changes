@@ -1,0 +1,300 @@
+#!/usr/bin/env python3
+"""Validate TOON-encoded specs: change proposals and living capabilities.
+
+Structured spec content is TOON (a small YAML subset). This validator parses it
+with the standard library only and enforces the schemas documented in
+.agents/schemas/change.schema.md and .agents/schemas/capability.schema.md.
+"""
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path.cwd()
+CHANGES = ROOT / "specs/changes"
+CAPABILITIES = ROOT / "specs/capabilities"
+KNOWLEDGE = ROOT / ".agents/knowledge"
+
+CHANGE_STATUS = {"proposed", "accepted", "delivered", "archived"}
+CAPABILITY_STATUS = {"living", "deprecated"}
+DELTA_OPS = {"ADDED", "MODIFIED", "REMOVED"}
+KNOWLEDGE_ID = re.compile(r"^[A-Z]+-[0-9]+$")
+
+
+# ---- minimal TOON (YAML subset) parser -------------------------------------
+
+def tokenize(text):
+    tokens = []
+    for raw in text.splitlines():
+        stripped = raw.lstrip(" ")
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(raw) - len(stripped)
+        tokens.append((indent, stripped.rstrip()))
+    return tokens
+
+
+def parse_scalar(val):
+    if val == "[]":
+        return []
+    if val in {"null", "~", ""}:
+        return None
+    if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+        return val[1:-1]
+    return val
+
+
+def parse(tokens, i, indent):
+    if i >= len(tokens):
+        return None, i
+    if tokens[i][1].startswith("- "):
+        return parse_list(tokens, i, indent)
+    return parse_map(tokens, i, indent)
+
+
+def parse_map(tokens, i, indent):
+    result = {}
+    while i < len(tokens):
+        cur_indent, content = tokens[i]
+        if cur_indent != indent or content.startswith("- "):
+            break
+        key, _, val = content.partition(":")
+        key = key.strip()
+        val = val.strip()
+        if val == "":
+            i += 1
+            if i < len(tokens) and tokens[i][0] > indent:
+                child, i = parse(tokens, i, tokens[i][0])
+                result[key] = child
+            else:
+                result[key] = None
+        else:
+            result[key] = parse_scalar(val)
+            i += 1
+    return result, i
+
+
+def parse_list(tokens, i, indent):
+    result = []
+    while i < len(tokens):
+        cur_indent, content = tokens[i]
+        if cur_indent != indent or not content.startswith("- "):
+            break
+        item = content[2:].strip()
+        key, sep, val = item.partition(":")
+        if sep and not item.startswith("["):
+            entry = {}
+            key = key.strip()
+            val = val.strip()
+            if val == "":
+                i += 1
+                if i < len(tokens) and tokens[i][0] > indent:
+                    child, i = parse(tokens, i, tokens[i][0])
+                    entry[key] = child
+                else:
+                    entry[key] = None
+            else:
+                entry[key] = parse_scalar(val)
+                i += 1
+            while i < len(tokens) and tokens[i][0] > indent and not tokens[i][1].startswith("- "):
+                sub, i = parse_map(tokens, i, tokens[i][0])
+                entry.update(sub)
+            result.append(entry)
+        else:
+            result.append(parse_scalar(item))
+            i += 1
+    return result, i
+
+
+def parse_toon(text):
+    tokens = tokenize(text)
+    if not tokens:
+        return {}
+    value, _ = parse(tokens, 0, tokens[0][0])
+    return value
+
+
+# ---- validation ------------------------------------------------------------
+
+def as_list(value):
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def validate_scenarios(scenarios, rel, label, errors, seen_ids):
+    ids = []
+    for scenario in as_list(scenarios):
+        if not isinstance(scenario, dict):
+            errors.append(f"{rel}: {label} has a malformed scenario")
+            continue
+        sid = scenario.get("id")
+        if not sid:
+            errors.append(f"{rel}: {label} scenario missing id")
+        else:
+            if sid in seen_ids:
+                errors.append(f"{rel}: duplicate scenario id {sid}")
+            seen_ids.add(sid)
+            ids.append(sid)
+        for field in ("when", "then"):
+            if not scenario.get(field):
+                errors.append(f"{rel}: scenario {sid or '?'} missing {field}")
+    return ids
+
+
+def validate_change(data, rel, known_ids, errors):
+    change = data.get("change") if isinstance(data, dict) else None
+    if not isinstance(change, dict):
+        errors.append(f"{rel}: missing change block")
+        return
+    for field in ("id", "title", "intent", "status"):
+        if not change.get(field):
+            errors.append(f"{rel}: change missing {field}")
+    status = change.get("status")
+    if status and status not in CHANGE_STATUS:
+        errors.append(f"{rel}: invalid change status {status}")
+
+    scenario_ids = set()
+    covered_required = set()
+    deltas = as_list(data.get("deltas"))
+    if not deltas:
+        errors.append(f"{rel}: change has no deltas")
+    for delta in deltas:
+        if not isinstance(delta, dict):
+            errors.append(f"{rel}: malformed delta")
+            continue
+        op = delta.get("op")
+        if op not in DELTA_OPS:
+            errors.append(f"{rel}: delta op {op} not in ADDED/MODIFIED/REMOVED")
+        if not delta.get("capability"):
+            errors.append(f"{rel}: delta missing capability")
+        if not delta.get("requirement"):
+            errors.append(f"{rel}: delta missing requirement")
+        ids = validate_scenarios(delta.get("scenarios"), rel, "delta", errors, scenario_ids)
+        if op != "REMOVED":
+            if not ids:
+                errors.append(f"{rel}: non-REMOVED delta has no scenarios")
+            covered_required.update(ids)
+
+    acceptance = as_list(data.get("acceptance"))
+    if not acceptance:
+        errors.append(f"{rel}: change has no acceptance entries")
+    accepted = set()
+    for entry in acceptance:
+        if not isinstance(entry, dict):
+            errors.append(f"{rel}: malformed acceptance entry")
+            continue
+        ref = entry.get("scenario")
+        if not entry.get("test_id"):
+            errors.append(f"{rel}: acceptance entry for {ref or '?'} missing test_id")
+        if ref not in scenario_ids:
+            errors.append(f"{rel}: acceptance references unknown scenario {ref}")
+        else:
+            accepted.add(ref)
+    for sid in sorted(covered_required - accepted):
+        errors.append(f"{rel}: scenario {sid} has no acceptance test")
+
+    validate_relations(change.get("relates_to"), rel, known_ids, errors)
+
+
+def validate_capability(data, rel, known_ids, errors):
+    cap = data.get("capability") if isinstance(data, dict) else None
+    if not isinstance(cap, dict):
+        errors.append(f"{rel}: missing capability block")
+        return
+    for field in ("id", "name", "summary", "status"):
+        if not cap.get(field):
+            errors.append(f"{rel}: capability missing {field}")
+    status = cap.get("status")
+    if status and status not in CAPABILITY_STATUS:
+        errors.append(f"{rel}: invalid capability status {status}")
+
+    requirements = as_list(data.get("requirements"))
+    if not requirements:
+        errors.append(f"{rel}: capability has no requirements")
+    req_ids = set()
+    scenario_ids = set()
+    for req in requirements:
+        if not isinstance(req, dict):
+            errors.append(f"{rel}: malformed requirement")
+            continue
+        rid = req.get("id")
+        if not rid:
+            errors.append(f"{rel}: requirement missing id")
+        elif rid in req_ids:
+            errors.append(f"{rel}: duplicate requirement id {rid}")
+        else:
+            req_ids.add(rid)
+        if not req.get("requirement"):
+            errors.append(f"{rel}: requirement {rid or '?'} missing text")
+        validate_scenarios(req.get("scenarios"), rel, "requirement", errors, scenario_ids)
+
+    validate_relations(cap.get("relates_to"), rel, known_ids, errors)
+
+
+def validate_relations(relates_to, rel, known_ids, errors):
+    for target in as_list(relates_to):
+        if isinstance(target, str) and KNOWLEDGE_ID.match(target) and target not in known_ids:
+            errors.append(f"{rel}: relates_to references missing knowledge id {target}")
+
+
+def knowledge_ids():
+    ids = set()
+    if not KNOWLEDGE.exists():
+        return ids
+    for path in KNOWLEDGE.rglob("*.md"):
+        if "/templates/" in str(path) or path.name in {"README.md", "index.md", "TAXONOMY.md"}:
+            continue
+        text = path.read_text()
+        if not text.startswith("---\n"):
+            continue
+        end = text.find("\n---", 4)
+        block = text[4:end] if end > 0 else text
+        match = re.search(r"^id:\s*(\S+)", block, re.MULTILINE)
+        if match:
+            ids.add(match.group(1))
+    return ids
+
+
+def main():
+    errors = []
+    known = knowledge_ids()
+    count = 0
+
+    if CHANGES.exists():
+        for path in sorted(CHANGES.glob("*/change.toon")):
+            count += 1
+            rel = path.relative_to(ROOT)
+            try:
+                data = parse_toon(path.read_text())
+            except Exception as exc:  # noqa: BLE001 - report parse failure as a finding
+                errors.append(f"{rel}: could not parse ({exc})")
+                continue
+            validate_change(data, rel, known, errors)
+
+    if CAPABILITIES.exists():
+        for path in sorted(CAPABILITIES.glob("*.toon")):
+            count += 1
+            rel = path.relative_to(ROOT)
+            try:
+                data = parse_toon(path.read_text())
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"{rel}: could not parse ({exc})")
+                continue
+            validate_capability(data, rel, known, errors)
+
+    if errors:
+        print("CHANGES CHECK FAILED")
+        print()
+        for error in errors:
+            print("- " + error)
+        return 1
+
+    if count == 0:
+        print("NO CHANGES OR CAPABILITIES")
+        return 0
+    print("CHANGES OK")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
