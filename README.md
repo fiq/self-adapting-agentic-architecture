@@ -4,19 +4,25 @@ A framework for AI agents and humans to collaborate on principal-level engineeri
 
 ## What this solves
 
-**Problem:** When an agent acts alone, humans lose visibility into trade-offs and assumptions. When humans micro-direct agents, decisions become slow. When guardrails are opaque, teams can't learn or adapt them.
+**Problem:** When an agent acts alone, humans lose visibility into trade-offs and assumptions. When humans micro-direct agents, decisions become slow. When guardrails are opaque, teams cannot learn or adapt them.
 
 **Solution:** Make the operating rules explicit and learnable (`AGENTS.md`), keep semantic state visible and structured (`.toon` files), use composable skills that agents can invoke in any topology, and stay human-in-the-loop at irreversible or high-stakes choices.
 
 ## Value
 
-- **Principal-level decisions, not code generation.** Architecture boundaries, right-sizing (conscious, recorded, bought-in), quality gates, role attribution, tech choices — decisions that are hard to reverse.
+- **Principal-level decisions, not code generation.** Architecture boundaries, right-sizing (conscious, recorded, bought-in), quality gates, role attribution, tech choices - decisions that are hard to reverse.
 - **Adapts to your experience.** The workflow calibrates to the user's skill level and project complexity. A domain expert can partner with an agent on design; a junior engineer gets more coaching and structure.
 - **Opinionated but learnable.** The rules are in readable Markdown, not hidden in prompt engineering. You can change them, disagree with them, or understand why they exist.
 - **No magic.** Commands are explicit shell scripts under `.agentic-template/bin/`. Hooks and commands are in `CLAUDE.md` (symlink to `AGENTS.md`). Knowledge is stored locally in `.agents/knowledge/` with durable schemas.
-- **Works with any agent.** No proprietary integrations. Agents read `AGENTS.md` and execute shell commands. That's it.
+- **Works with any agent.** No proprietary integrations. Agents read `AGENTS.md` and execute shell commands. That is it.
 
-## How it works
+## How it works (for engineers)
+
+1. **You provide project intent** - briefs, constraints, user stories, artifacts.
+2. **The agent inspects the repo** - existing code, manifests, configs - and asks the smallest useful question set to resolve unknowns.
+3. **The agent proposes a minimal architecture** - smallest sufficient design, recorded and bought into.
+4. **You decide at hard choices** - architecture boundaries, trade-offs, what NOT to build.
+5. **Development follows a loop** - calibrate, ideate, spec (TOON), ATDD, review, archive + wiki.
 
 ```
 Human provides:                    Agent discovers:              Human decides at:
@@ -24,19 +30,21 @@ Human provides:                    Agent discovers:              Human decides a
 - Briefs, artifacts                - Persistence, messaging      - Architecture boundaries
 - User stories                     - Test strategy               - Right-sizing (what NOT to build)
 - Constraints                      - Container, infra            - Trade-offs between personas
-                                                                   
-                           ↓
 
-                    /specialise → evidence-driven bootstrap
+                           |
+                           v
+
+                    /specialise -> evidence-driven bootstrap
                                     calibrate audience, build project profile
-                                    
-                           ↓
-                    
-                    Development lifecycle:
-                    calibrate → ideate → spec (TOON) → ATDD → review → archive + wiki
+
+                           |
+                           v
+
+                     Development lifecycle:
+                     calibrate -> ideate -> spec (TOON) -> ATDD -> review -> archive + wiki
 ```
 
-## Get started
+## 🚀 Get started
 
 ### 1. Create a repository from this template
 
@@ -57,8 +65,8 @@ In Claude, Codex or another coding agent, read `AGENTS.md` first (or `CLAUDE.md`
 
 ```
 Help me initialise this project from the template.
-Run .agentic-template/bin/project init, inspect the result, and guide me 
-through the smallest useful next setup steps. If my project intent is unclear, 
+Run .agentic-template/bin/project init, inspect the result, and guide me
+through the smallest useful next setup steps. If my project intent is unclear,
 interview me and help convert my answers, briefs and artifacts into project state.
 ```
 
@@ -76,25 +84,29 @@ The agent will:
 Work flows through a small, connected loop. Agents drive it; humans steer at decision points.
 
 ```
-/specialise ─► calibrate audience + app shape (plain language)
-                right-size: smallest sufficient architecture, recorded buy-in
-     ▼
-/ideate ─────► short-cycle multi-persona loop → specs/changes/<id>/change.toon
-    (idea or     Intent → Boundary → Delivery → Quality gate
-    narrative)   At hard choices: show persona stances (discourages/accepts/encourages)
-     ▼
-outside-in ► acceptance test per WHEN/THEN scenario, fidelity by risk
-   ATDD        (acceptance / component-integration / subcutaneous)
-     ▼
-/review ────► boy-scout cleanup: code, language and architectural smells, coupling
-     ▼
-archive ─────► specs/capabilities/ + wiki keeps docs and knowledge graph current
+/specialise --> calibrate audience + app shape (plain language)
+                  right-size: smallest sufficient architecture, recorded buy-in
+      |
+      v
+/ideate ------> short-cycle multi-persona loop -> specs/changes/<id>/change.toon
+     (idea or     Intent -> Boundary -> Delivery -> Quality gate
+     narrative)   At hard choices: show persona stances (discourages/accepts/encourages)
+      |
+      v
+outside-in -> acceptance test per WHEN/THEN scenario, fidelity by risk
+    ATDD        (acceptance / component-integration / subcutaneous)
+      |
+      v
+/review ------> boy-scout cleanup: code, language and architectural smells, coupling
+      |
+      v
+archive -------> specs/capabilities/ + wiki keeps docs and knowledge graph current
 ```
 
 **Key principles:**
 - **Specs are TOON-encoded, agent-first.** Living requirements in `specs/capabilities/`, proposals in `specs/changes/<id>/` with deltas, `WHEN/THEN` scenarios and acceptance tests (ATDD bridge).
 - **Quality is standing, not a phase.** Boy-scout rule, reuse over duplication, pay in-path debt, docs land in the change, no silent TODOs.
-- **Right-sizing is conscious.** The smallest sufficient architecture is chosen, explicitly. What's excluded and why are recorded. Revisit conditions are named.
+- **Right-sizing is conscious.** The smallest sufficient architecture is chosen, explicitly. What is excluded and why are recorded. Revisit conditions are named.
 - **Knowledge forms one graph.** `AGENTS.md` + `PROJECT_PROFILE.toon` + specs + `HANDOFF.toon` + `.agents/knowledge/` + wiki all connect via `TAXONOMY.md`. Agents search before acting.
 
 ## Philosophy
@@ -117,11 +129,11 @@ The template does not force choices. It:
 - Asks only high-impact questions
 - Records unknowns, not secret assumptions
 
-Example: if you have a `package.json`, Node is inferred. If you have both Python and Java, the agent asks which is primary. If you have neither, the agent asks what you're building.
+Example: if you have a `package.json`, Node is inferred. If you have both Python and Java, the agent asks which is primary. If you have neither, the agent asks what you are building.
 
 ### Principal-level, not code-generation
 
-This is not a scaffolding tool. It's for:
+This is not a scaffolding tool. It is for:
 - Making architecture boundary decisions
 - Choosing what NOT to build (right-sizing)
 - Reconciling trade-offs between personas
@@ -140,12 +152,12 @@ choice: add a message broker now
   architect     discourages (no async evidence yet)
   tech-lead     accepts     (isolated, reversible)
   product-owner encourages  (unblocks the next capability)
-  → [human decides]
+  -> [human decides]
 ```
 
 No consensus required. The lead decides, informed by who cares what.
 
-## Run locally
+## 🏃 Run locally
 
 Enter the Nix development shell:
 
@@ -153,7 +165,7 @@ Enter the Nix development shell:
 nix develop
 ```
 
-Or use the documented one-shot ladder (pinned container → npx fallback).
+Or use the documented one-shot ladder (pinned container -> npx fallback).
 
 Run the canonical commands:
 
@@ -165,16 +177,16 @@ Run the canonical commands:
 .agentic-template/bin/project doctor     # Diagnostic summary
 ```
 
-## Skills and agent compatibility
+## 🛠️ Skills and agent compatibility
 
-This template is built on **composable skills** — reusable workflows for ideation, discovery, planning, testing, refactoring, review and delivery. Skills are lazy-loaded via `.agents/skills/CATALOG.toon` and do not require all of them at once.
+This template is built on **composable skills** - reusable workflows for ideation, discovery, planning, testing, refactoring, review and delivery. Skills are lazy-loaded via `.agents/skills/CATALOG.toon` and do not require all of them at once.
 
 ### The development loop in skills
 
 | Skill | Trigger | Purpose |
 |---|---|---|
 | `calibrate-audience` | Project shape known | Establish skill level, app shape, record right-sizing |
-| `ideate` | Ambiguous feature request | Multi-persona loop → validated spec |
+| `ideate` | Ambiguous feature request | Multi-persona loop -> validated spec |
 | `narrative-intake` | Narrative provided | Turn free text into a structured change proposal |
 | `specify` | Meaningful behaviour change | Create proportional OpenSpec-shaped TOON specs |
 | `outside-in-tdd` | Implementing a change | Start from acceptance test, fidelity by risk |
@@ -183,12 +195,12 @@ This template is built on **composable skills** — reusable workflows for ideat
 
 ### Compatible agents
 
-- **Claude** (Anthropic) — reads `CLAUDE.md` (symlink to `AGENTS.md`)
-- **Copilot** (GitHub) — reads `AGENTS.md` + `.github/copilot-instructions.md`
-- **Codex** (OpenAI) — reads `AGENTS.md`
+- **Claude** (Anthropic) - reads `CLAUDE.md` (symlink to `AGENTS.md`)
+- **Copilot** (GitHub) - reads `AGENTS.md` + `.github/copilot-instructions.md`
+- **Codex** (OpenAI) - reads `AGENTS.md`
 - Any agent that can read Markdown and execute shell commands
 
-### Agent personas (persistent roles)
+### Agent personas (persistent roles) 👥
 
 The template defines persistent team roles that agents can adopt via `/sudo`:
 - **Product Owner:** scope, intent, acceptance criteria
@@ -199,10 +211,10 @@ The template defines persistent team roles that agents can adopt via `/sudo`:
 
 ### Agent topologies (how agents coordinate)
 
-1. **Single lead + fallback checklist** — one agent, explicit review gates (cheapest)
-2. **Sequential role passes** — lead switches personas via `/sudo` (scalable)
-3. **Independent subagents** — separate agents per role (most rigorous)
-4. **Persistent team** — dedicated roles with long-term memory (highest fidelity)
+1. **Single lead + fallback checklist** - one agent, explicit review gates (cheapest)
+2. **Sequential role passes** - lead switches personas via `/sudo` (scalable)
+3. **Independent subagents** - separate agents per role (most rigorous)
+4. **Persistent team** - dedicated roles with long-term memory (highest fidelity)
 
 Pick the topology that matches your risk and budget.
 
@@ -218,13 +230,13 @@ docker run -it $(docker build -q .)
 
 See `README_TEMPLATE.md` (generated README) for runtime instructions.
 
-## Tests
+## 🧪 Tests
 
 Default to test-first for meaningful behaviour.
 
 **Testing posture:**
 - **Outside-in, boundary-in ATDD.** Start from acceptance test, drive inward.
-- **Fidelity by risk.** Acceptance, component-integration, or subcutaneous — choose per scenario.
+- **Fidelity by risk.** Acceptance, component-integration, or subcutaneous - choose per scenario.
 - **Real dependencies where they matter.** Use Testcontainers for lifecycle-managed integration tests.
 - **Testing trophy:** strong unit feedback + strong integration confidence + a few E2E paths.
 
@@ -234,13 +246,13 @@ Default to test-first for meaningful behaviour.
 .agentic-template/bin/project e2e-test
 ```
 
-## Configuration and environment variables
+## ⚙️ Configuration and environment variables
 
 Project configuration is declared in:
-- `AGENTS.md` — operating rules and canonical commands
-- `PROJECT_PROFILE.toon` — project facts, inferences, decisions, unknowns
-- `HANDOFF.toon` — active work state, completed work, next actions
-- `.agents/knowledge/` — durable decisions (ADRs), patterns, risks, questions, learnings
+- `AGENTS.md` - operating rules and canonical commands
+- `PROJECT_PROFILE.toon` - project facts, inferences, decisions, unknowns
+- `HANDOFF.toon` - active work state, completed work, next actions
+- `.agents/knowledge/` - durable decisions (ADRs), patterns, risks, questions, learnings
 
 Environment variables are documented in the generated `README.md`.
 
@@ -253,16 +265,16 @@ Every project records:
 
 See `PROJECT_PROFILE.toon.infrastructure` and the generated README.
 
-## Deliberate non-goals
+## 🚫 Deliberate non-goals
 
 This is **not**:
 - An internal developer platform (IDP). No defaults for databases, brokers, Kubernetes, or runtimes.
-- A code-generation service. It's for decision-making.
+- A code-generation service. It is for decision-making.
 - Black-box magic. All rules are readable; all state is structured text.
 - Coupled to a single agent or platform.
-- A replacement for human architecture review. It's a tool to make review more structured.
+- A replacement for human architecture review. It is a tool to make review more structured.
 
-## Important decisions and documentation links
+## 📚 Important decisions and documentation links
 
 - **Architecture:** see `docs/architecture/` (ADRs)
 - **Decisions:** see `docs/decisions/` (ADR index)
@@ -283,4 +295,4 @@ If you use this template, you are opting into:
 - **Persistent topologies** (personas, subagents) that preserve context across sessions
 - **Hard choice attribution** (persona stance) so you know who favours what trade-off
 
-The goal is not to replace you. It's to make it faster and clearer for you and an agent to collaborate on decisions that matter.
+The goal is not to replace you. It is to make it faster and clearer for you and an agent to collaborate on decisions that matter.
