@@ -27,6 +27,10 @@ the lead agent persona. This is role-switching, not spawning a new agent.
 - `domain-expert`
 - `knowledge-curator`
 
+Project-specific personas created by `/specialise` (e.g. `compliance-officer`,
+`end-user-novice`, `on-call-sre`) also live in `.agents/team/` and are valid
+`/sudo` targets.
+
 ### Bounded subagents
 
 - `researcher`

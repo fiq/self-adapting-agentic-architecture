@@ -67,6 +67,14 @@ skills:
       - entrypoints
       - user_statements
 
+  detect_personas:
+    path: discovery/detect-personas/SKILL.md
+    trigger: project_specialisation_needs_stakeholder_or_user_viewpoints
+    required_evidence:
+      - narrative_or_customize_file
+      - project_profile_unknowns
+      - app_shape_and_domain
+
   team_selection:
     path: coordination/team-selection/SKILL.md
     trigger: task_requires_role_selection

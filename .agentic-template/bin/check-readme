@@ -41,8 +41,8 @@ def main():
         if marker in text:
             errors.append(f"README still contains template marker: {marker!r}")
     for section in REQUIRED_SECTIONS:
-        # Match as markdown heading (## or ### etc.)
-        pattern = re.compile(rf"^#+\s+{re.escape(section)}\s*$", re.MULTILINE)
+        # Match as markdown heading (## or ### etc.), tolerating emoji prefixes.
+        pattern = re.compile(rf"^#+\s+[^\w\s]*\s*{re.escape(section)}\s*$", re.MULTILINE)
         if not pattern.search(text):
             errors.append(f"README missing section: {section!r}")
     if errors:

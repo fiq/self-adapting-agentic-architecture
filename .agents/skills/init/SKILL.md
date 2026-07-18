@@ -33,12 +33,17 @@ discover
 7. Load only relevant discovery skills.
 8. Run `calibrate-audience` early: establish skill level and app shape in plain
    language and record them in `PROJECT_PROFILE.toon.audience`.
-9. If `CUSTOMIZE_THIS_PROJECT.toon.narrative` (or a referenced file) is present,
-   run `narrative-intake` to turn it into initial `specs/capabilities/` and a
-   first `specs/changes/<id>/` proposal.
-10. Update `PROJECT_PROFILE.toon` with facts, inferences, decisions and unknowns.
-11. Classify unknowns as blocking or non-blocking.
-10. Re-evaluate `LICENSE`; keep MIT only if compatible with project intent,
+9. Run `detect-personas`: inspect the narrative, domain and unknowns to decide
+   whether project-specific personas or stakeholder stand-ins are needed.
+   Propose them if inferable; ask the smallest question set if ambiguous.
+   Materialise accepted personas as `.agents/team/<name>.md` files and record
+   them in `PROJECT_PROFILE.toon.personas`.
+10. If `CUSTOMIZE_THIS_PROJECT.toon.narrative` (or a referenced file) is present,
+    run `narrative-intake` to turn it into initial `specs/capabilities/` and a
+    first `specs/changes/<id>/` proposal.
+11. Update `PROJECT_PROFILE.toon` with facts, inferences, decisions and unknowns.
+12. Classify unknowns as blocking or non-blocking.
+13. Re-evaluate `LICENSE`; keep MIT only if compatible with project intent,
     dependencies and copied upstream code. Remove temporarily when uncertain.
 
 ### 2. Decide

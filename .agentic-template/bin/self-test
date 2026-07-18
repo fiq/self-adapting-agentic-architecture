@@ -259,6 +259,34 @@ def main():
             failures += 1
         readme.write_text(original_readme)
 
+        # ---- positive: emoji-prefixed headings pass check-readme ----
+        readme.write_text(
+            "# Emoji Project\n\n"
+            "## 🏃 Run locally\n\n"
+            "Instructions here.\n\n"
+            "## Run with containers\n\n"
+            "Docker.\n\n"
+            "## 🧪 Tests\n\n"
+            "pytest.\n\n"
+            "## ⚙️ Configuration and environment variables\n\n"
+            "None.\n\n"
+            "## Infrastructure and deployment state\n\n"
+            "Not applicable.\n\n"
+            "## 🚫 Deliberate non-goals\n\n"
+            "No cloud.\n\n"
+            "## 📚 Important decisions and documentation links\n\n"
+            "See ADRs.\n"
+        )
+        if not expect(
+            work,
+            "emoji-prefixed README headings pass check-readme",
+            PROJECT + ["check-readme"],
+            0,
+            "README OK",
+        ):
+            failures += 1
+        readme.write_text(original_readme)
+
         # ---- infra-check with no IaC files ----
         if not expect(
             work,
