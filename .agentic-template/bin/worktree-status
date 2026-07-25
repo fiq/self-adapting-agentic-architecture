@@ -78,8 +78,14 @@ def handoff_branch():
 def main():
     result = run(["git", "worktree", "list", "--porcelain"])
     if result.returncode:
-        print(result.stdout.strip())
-        return result.returncode
+        print("WORKTREE STATUS")
+        print()
+        print("git worktree unavailable")
+        detail = result.stdout.strip()
+        if detail:
+            print()
+            print(detail)
+        return 0
 
     items = parse_worktrees(result.stdout)
     print("WORKTREE STATUS")
