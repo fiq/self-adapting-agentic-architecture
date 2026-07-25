@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import shutil
+import re
 import subprocess
 import sys
 import tempfile
@@ -62,6 +63,28 @@ def main():
             failures += 1
         if not expect(work, "template unresolved fields are allowed", PROJECT + ["check-profile"], 0):
             failures += 1
+
+        handoff = work / "HANDOFF.toon"
+        original_handoff = handoff.read_text()
+        bad_handoff = re.sub(
+            r"(?ms)^knowledge:\n.*?(?=^team_fallback:)",
+            "knowledge:\n"
+            "  consulted:\n"
+            "    - .agents/knowledge/index.md\n"
+            "  proposals: []\n"
+            "  no_record: null\n\n",
+            original_handoff,
+        )
+        handoff.write_text(bad_handoff)
+        if not expect(
+            work,
+            "empty knowledge upkeep rationale fails handoff validation",
+            PROJECT + ["check-handoff"],
+            1,
+            "knowledge.no_record",
+        ):
+            failures += 1
+        handoff.write_text(original_handoff)
 
         profile = work / "PROJECT_PROFILE.toon"
         replace(profile, "    format: s_expression", "    format: json")

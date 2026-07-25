@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import sys
 
 REQUIRED = [
@@ -32,9 +33,8 @@ def main():
         print()
         print("HANDOFF.toon contains placeholder text: " + ", ".join(found))
         return 1
-    knowledge_start = text.find("knowledge:")
-    if knowledge_start >= 0:
-        knowledge = text[knowledge_start:]
+    knowledge = top_level_block(text, "knowledge:")
+    if knowledge:
         missing_knowledge = [
             field
             for field in ["consulted:", "proposals:", "no_record:"]
@@ -48,8 +48,46 @@ def main():
                 + ", ".join(missing_knowledge)
             )
             return 1
+        if not has_list_items(knowledge, "consulted"):
+            print("ERROR")
+            print()
+            print("HANDOFF.toon knowledge.consulted must record IDs, paths or explicit sources")
+            return 1
+        if not has_list_items(knowledge, "proposals") and no_record_empty(knowledge):
+            print("ERROR")
+            print()
+            print(
+                "HANDOFF.toon knowledge.no_record must explain why no durable "
+                "knowledge update was needed when proposals is empty"
+            )
+            return 1
     print("HANDOFF OK")
     return 0
+
+
+def top_level_block(text, section):
+    start = text.find(section)
+    if start < 0:
+        return ""
+    end = len(text)
+    for match in re.finditer(r"(?m)^[A-Za-z_]+:", text[start + len(section):]):
+        end = start + len(section) + match.start()
+        break
+    return text[start:end]
+
+
+def has_list_items(block, field):
+    pattern = rf"(?m)^  {re.escape(field)}:\n(?:    - .+\n?)+"
+    return bool(re.search(pattern, block))
+
+
+def no_record_empty(block):
+    match = re.search(r"(?m)^  no_record:\s*(.*)$", block)
+    if not match:
+        return True
+    value = match.group(1).strip()
+    return value in {"", "null", "[]", "none"}
+
 
 if __name__ == "__main__":
     sys.exit(main())

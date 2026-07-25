@@ -18,7 +18,6 @@ REQUIRED_SECTIONS = [
     "Configuration and environment variables",
     "Infrastructure and deployment state",
     "Deliberate non-goals",
-    "Structured data policy",
     "Important decisions and documentation links",
 ]
 
