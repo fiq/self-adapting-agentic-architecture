@@ -99,6 +99,19 @@ decisions:
       - .agents/knowledge/README.md
       - .agentic-template/bin/check-knowledge
     consequence_if_changed: agents may duplicate guidance or lose durable learnings between sessions
+  - id: repo_native_context_store
+    decision: treat the repository as the context store for agents and humans
+    reason:
+      - keeps structure, lineage, behavior and conformance versioned with code
+      - avoids adding external memory infrastructure before project evidence exists
+      - gives fresh sessions deterministic artifacts to query before planning
+    confidence: high
+    status: active
+    validation:
+      - docs/context-store.md
+      - .agentic-template/bin/project docs
+      - .agentic-template/bin/project check
+    consequence_if_changed: agents may depend on stale remembered context or ungoverned external stores
   - id: structured_data_policy_configurable
     decision: allow generated projects to choose TOON or S-expressions by semantic purpose
     reason:
@@ -111,6 +124,19 @@ decisions:
       - docs/structured-data.md
       - .agentic-template/bin/check-project-profile
     consequence_if_changed: agents may mix semantic formats without a recorded reason
+  - id: architecture_fitness_functions
+    decision: generated projects identify top architecture risks and encode cheap deterministic fitness functions where practical
+    reason:
+      - moves repeated conformance checks out of ad hoc review memory
+      - keeps AI-led changes aligned with architecture characteristics
+      - makes handoffs explicit about constraint changes
+    confidence: medium
+    status: active
+    validation:
+      - docs/validation.md
+      - docs/context-store.md
+      - .agentic-template/bin/project ready
+    consequence_if_changed: architecture drift remains dependent on reviewer recall
 
 unknowns:
   - id: target_project_domain
@@ -232,6 +258,16 @@ tooling:
     packet_style: semantic_summary_with_source_refs
     source_refs_required: true
     opaque_transport_blobs: false
+  context_store:
+    default: repository_native
+    external_store: not_default
+    layers:
+      - structure
+      - lineage
+      - behavior
+      - conformance
+    guide: docs/context-store.md
+    validator: .agentic-template/bin/project check
   knowledge:
     location: .agents/knowledge
     validator: .agentic-template/bin/check-knowledge

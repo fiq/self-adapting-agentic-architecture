@@ -61,7 +61,16 @@ def main():
         # ---- baseline checks ----
         if not expect(work, "baseline repo check passes", PROJECT + ["repo-check"], 0):
             failures += 1
+        if not expect(work, "baseline handoff check passes", PROJECT + ["check-handoff"], 0):
+            failures += 1
         if not expect(work, "template unresolved fields are allowed", PROJECT + ["check-profile"], 0):
+            failures += 1
+        mcp_result = run(work, PROJECT + ["check-mcp"])
+        if mcp_result.returncode == 0 and "structure          unknown" not in mcp_result.stdout:
+            print("ok      context store layers do not appear as MCP options")
+        else:
+            print("failed  context store layers do not appear as MCP options")
+            print(mcp_result.stdout)
             failures += 1
 
         handoff = work / "HANDOFF.toon"
@@ -284,6 +293,30 @@ def main():
         ):
             failures += 1
         docs_map.write_text(original_docs_map)
+
+        docs_map.write_text(original_docs_map.replace("Context Store", "Context Ledger", 1))
+        if not expect(
+            work,
+            "missing context store docs route fails",
+            PROJECT + ["repo-check"],
+            1,
+            ".agentic-template/bin/docs-map must include the Context Store route",
+        ):
+            failures += 1
+        docs_map.write_text(original_docs_map)
+
+        context_store = work / "docs/context-store.md"
+        original_context_store = context_store.read_text()
+        context_store.write_text(original_context_store.replace("Conformance", "Compliance", 1))
+        if not expect(
+            work,
+            "missing context store layer fails",
+            PROJECT + ["repo-check"],
+            1,
+            "docs/context-store.md must describe repo-native context store layers",
+        ):
+            failures += 1
+        context_store.write_text(original_context_store)
 
         # ---- profile validation ----
         replace(
@@ -508,6 +541,8 @@ def main():
             "Run .agentic-template/bin/project startup.\n\n"
             "## Documentation IA\n\n"
             "Use the docs route table.\n\n"
+            "## Context store\n\n"
+            "See docs/context-store.md.\n\n"
             "## 🏃 Run locally\n\n"
             "Instructions here.\n\n"
             "## Run with containers\n\n"
@@ -614,6 +649,8 @@ def main():
             "Run .agentic-template/bin/project startup.\n\n"
             "## Documentation IA\n\n"
             "Use the docs route table.\n\n"
+            "## Context store\n\n"
+            "See docs/context-store.md.\n\n"
             "## Run locally\n\n"
             "Run the project.\n\n"
             "## Run with containers\n\n"

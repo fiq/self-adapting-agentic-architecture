@@ -18,6 +18,7 @@ REQUIRED_FILES = [
     "flake.lock",
     "compose.yaml",
     "docs/README.md",
+    "docs/context-store.md",
     "docs/validation.md",
     "docs/runbooks/README.md",
     "docs/runbooks/RUNBOOK_TEMPLATE.md",
@@ -175,6 +176,24 @@ def check_session_startup(path, label, errors):
     if project_identity >= 0 and section_start > project_identity:
         errors.append(f"{label} {heading} must appear before ## Project identity")
 
+def check_context_store(errors):
+    path = ROOT / "docs/context-store.md"
+    if not path.exists():
+        return
+    compact = compact_whitespace(path.read_text())
+    required = [
+        "Structure",
+        "Lineage",
+        "Behavior",
+        "Conformance",
+        "Do not add an external vector store, database or SaaS memory layer by default",
+    ]
+    if any(item not in compact for item in required):
+        errors.append(
+            "docs/context-store.md must describe repo-native context store "
+            "layers and default external-store posture"
+        )
+
 def main():
     errors = []
     for rel in REQUIRED_FILES:
@@ -268,6 +287,14 @@ def main():
             "{label} must present a route-based documentation IA",
             errors,
         )
+    check_required_text(
+        ROOT / ".agentic-template/bin/docs-map",
+        ".agentic-template/bin/docs-map",
+        "Context Store",
+        "{label} must include the Context Store route",
+        errors,
+    )
+    check_context_store(errors)
     for skill in REQUIRED_SKILLS:
         skill_path = ROOT / ".agents/skills" / skill / "SKILL.md"
         if not skill_path.exists():

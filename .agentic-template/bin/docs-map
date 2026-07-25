@@ -18,6 +18,10 @@ START_PATHS = [
         ".agents/knowledge/index.md -> specs/README.md -> relevant skill",
     ),
     (
+        "Recover project context",
+        "docs/context-store.md -> PROJECT_PROFILE.toon -> specs/README.md -> knowledge index",
+    ),
+    (
         "Validate and hand off",
         "docs/validation.md -> project check -> project ready -> HANDOFF.toon",
     ),
@@ -54,6 +58,7 @@ DOC_GROUPS = [
         "Knowledge And Decisions",
         [
             ("Knowledge", ".agents/knowledge/index.md", "searchable graph index"),
+            ("Context Store", "docs/context-store.md", "repo-native structure, lineage, behavior and conformance map"),
             ("Wiki", "docs/wiki/index.md", "human-facing durable docs"),
             ("Decisions", "docs/decisions/README.md", "ADR index"),
             ("Structured data", "docs/structured-data.md", "TOON/S-expression policy"),

@@ -36,3 +36,9 @@ confirmation layer where semantics matter:
 Use real dependencies where semantics matter and cost is reasonable. Do not let
 mocked tests overclaim confidence. See
 `.agents/skills/workflow/outside-in-tdd/SKILL.md`.
+
+Architecture fitness functions cover conformance risks that ordinary behavior
+tests do not express well: dependency direction, schema drift, boundary leaks,
+deployability and important quality budgets. Put cheap automated fitness
+functions behind `project check` or `project ready`; record manual checks in
+`HANDOFF.toon.tests_run` until they can be automated.

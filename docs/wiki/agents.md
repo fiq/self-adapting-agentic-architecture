@@ -28,6 +28,12 @@ After meaningful work, use `knowledge-capture` to decide whether discoveries
 belong in `HANDOFF.toon`, the knowledge inbox, questions, learnings, decisions,
 patterns, risks or no durable record.
 
+For context recovery, the repo-native context store is documented in
+[`docs/context-store.md`](../context-store.md) and tracked as `INBOX-008` while
+the pattern gathers evidence. It connects structure, lineage, behavior and
+conformance so new sessions can recover intent without depending on remembered
+prompt context.
+
 Lifecycle skills (lazy-loaded via `.agents/skills/CATALOG.toon`):
 
 - `calibrate-audience` — skill level, app shape, recorded right-sizing;

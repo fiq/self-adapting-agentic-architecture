@@ -37,9 +37,14 @@ archive change → specs/capabilities/  +  wiki-tidy keeps docs and the
 ```
 
 - Specs are OpenSpec-shaped, structured and agent-first (`specs/README.md`).
+- The repo-native context store (`docs/context-store.md`) ties specs, profile,
+  handoff, knowledge and validation into one query path.
 - TOON is preferred for state/contracts; S-expressions are preferred for
   rules/compute when a project needs a compact policy DSL.
 - Quality is standing, not a phase: reuse over duplication, pay in-path debt,
   docs land in the change, no silent TODOs.
 - `project check-changes` validates specs; `project check-wiki` warns on wiki
   drift; `project install-hooks` opts into a non-blocking pre-commit.
+- Non-trivial handoff notes include the spec reference or no-spec rationale,
+  fitness-function delta or no-change rationale, validation and knowledge
+  update.

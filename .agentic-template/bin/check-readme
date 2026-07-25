@@ -14,6 +14,7 @@ TEMPLATE_MARKERS = [
 REQUIRED_SECTIONS = [
     "Agent startup",
     "Documentation IA",
+    "Context store",
     "Run locally",
     "Run with containers",
     "Tests",

@@ -94,10 +94,29 @@ Start from the route that matches your intent:
 | Create a project from the template | `.agentic-template/bin/project startup` | `CUSTOMIZE_THIS_PROJECT.toon`, then `.agentic-template/bin/project init` |
 | Continue active work | `.agentic-template/bin/project startup` | `HANDOFF.toon`, then `.agentic-template/bin/project backlog` |
 | Understand the rules | `AGENTS.md` | `PROJECT_PROFILE.toon`, then `.agents/knowledge/index.md` |
+| Recover project context | `docs/context-store.md` | `PROJECT_PROFILE.toon`, `specs/README.md`, then `.agents/knowledge/index.md` |
 | Plan or implement a change | `.agents/knowledge/index.md` | `specs/README.md`, then the relevant skill in `.agents/skills/CATALOG.toon` |
 | Validate or hand off | `docs/validation.md` | `.agentic-template/bin/project check`, `.agentic-template/bin/project ready`, then `HANDOFF.toon` |
 
 For a full command-line map, run `.agentic-template/bin/project docs`.
+
+## Context store
+
+The context store is the repository, not an external memory service. It is the
+versioned set of artifacts that let humans and agents recover intent,
+behavior, lineage and conformance:
+
+| Layer | Sources |
+|---|---|
+| Structure | `AGENTS.md`, `README.md`, architecture docs, command surface |
+| Lineage | `PROJECT_PROFILE.toon`, `HANDOFF.toon`, ADRs, knowledge entries |
+| Behavior | `specs/`, tests and acceptance scenarios |
+| Conformance | `project check`, `project ready`, CI and fitness functions |
+
+Generated projects should encode the top 1-3 architecture risks as cheap
+fitness functions where practical. Non-trivial handoffs should include the spec
+reference or no-spec rationale, fitness-function delta or no-change rationale,
+validation run and knowledge update. See `docs/context-store.md`.
 
 ## Development lifecycle
 
@@ -128,6 +147,9 @@ archive -------> specs/capabilities/ + wiki keeps docs and knowledge graph curre
 - **Quality is standing, not a phase.** Boy-scout rule, reuse over duplication, pay in-path debt, docs land in the change, no silent TODOs.
 - **Right-sizing is conscious.** The smallest sufficient architecture is chosen, explicitly. What is excluded and why are recorded. Revisit conditions are named.
 - **Knowledge forms one graph.** `AGENTS.md` + `PROJECT_PROFILE.toon` + specs + `HANDOFF.toon` + `.agents/knowledge/` + wiki all connect via `TAXONOMY.md`. Agents search before acting.
+- **Context is repo-native.** Structure, lineage, behavior and conformance live
+  in versioned files and checks, with external memory added only when evidence
+  justifies it.
 - **Format policy is explicit.** TOON fits state/contracts; S-expressions fit rules/compute. See `docs/structured-data.md`.
 
 ## Philosophy
@@ -273,6 +295,8 @@ Default to test-first for meaningful behaviour.
 
 Project configuration is declared in:
 - `AGENTS.md` - operating rules and canonical commands
+- `docs/context-store.md` - repo-native structure, lineage, behavior and
+  conformance map
 - `PROJECT_PROFILE.toon` - project facts, inferences, decisions, unknowns
 - `HANDOFF.toon` - active work state, completed work, next actions
 - `PROJECT_PROFILE.toon.structured_data` - TOON/S-expression policy by purpose
@@ -309,6 +333,7 @@ This is **not**:
 - **Architecture:** see `docs/architecture/` (ADRs)
 - **Decisions:** see `docs/decisions/` (ADR index)
 - **Docs map:** see `docs/README.md`
+- **Context store:** see `docs/context-store.md`
 - **Validation:** see `docs/validation.md`
 - **Runbooks:** see `docs/runbooks/` for optional repeatable operations
 - **Knowledge:** see `.agents/knowledge/` (taxonomy, domains, systems, risks, questions)

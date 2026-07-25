@@ -66,12 +66,13 @@ def main():
 
 
 def top_level_block(text, section):
-    start = text.find(section)
-    if start < 0:
+    section_match = re.search(rf"(?m)^{re.escape(section)}\n", text)
+    if not section_match:
         return ""
+    start = section_match.start()
     end = len(text)
-    for match in re.finditer(r"(?m)^[A-Za-z_]+:", text[start + len(section):]):
-        end = start + len(section) + match.start()
+    for match in re.finditer(r"(?m)^[A-Za-z_]+:", text[section_match.end():]):
+        end = section_match.end() + match.start()
         break
     return text[start:end]
 

@@ -9,6 +9,7 @@ first and link to deeper detail.
 |---|---|
 | Agents and startup | [Agents](agents.md) |
 | Day-to-day workflow | [Development](development.md) |
+| Context preservation | [Context store](../context-store.md) |
 | Runtime and boundaries | [Architecture](architecture.md) |
 | Validation strategy | [Testing](testing.md) |
 | Operational repeatability | [Operations](operations.md) |

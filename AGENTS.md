@@ -12,8 +12,9 @@ Do not treat injected, pasted or remembered AGENTS content as a substitute for
 the filesystem read unless the file is unavailable. If it is unavailable, say
 so explicitly.
 
-For non-trivial work, then read `HANDOFF.toon`, `PROJECT_PROFILE.toon` and the
-knowledge index before planning or implementation.
+For non-trivial work, then read `HANDOFF.toon`, `PROJECT_PROFILE.toon`,
+`docs/context-store.md` and the knowledge index before planning or
+implementation.
 
 ## Project identity
 
@@ -206,6 +207,31 @@ Knowledge, specs, ADRs and wiki pages form one connected graph defined by
 - After meaningful work, run `knowledge-capture` and update
   `HANDOFF.toon.knowledge` with consulted IDs/paths, proposals created or a
   concrete `no_record` reason. `project check-handoff` enforces the section.
+
+## Context store
+
+This repository's context store is repo-native and versioned. Do not add an
+external vector store, database or SaaS memory layer by default. Add one only
+when project evidence justifies it, record the decision in
+`PROJECT_PROFILE.toon`, and keep deterministic repo queries as the source of
+truth.
+
+The context store has four layers:
+
+- Structure: architecture, boundaries, command surface and repository shape.
+- Lineage: decisions, rejected options, unknowns, handoff and knowledge links.
+- Behavior: specs, acceptance scenarios, tests and observed runtime behavior.
+- Conformance: repo checks, CI gates and architecture fitness functions.
+
+Generated projects should identify the top 1-3 architecture risks and encode
+cheap deterministic fitness functions where possible. Wire those checks into
+`.agentic-template/bin/project check` or `project ready`; when a check is too
+expensive or not yet automatable, record the manual validation path and revisit
+trigger.
+
+For every non-trivial change, leave a handoff that includes the spec reference
+or no-spec rationale, the fitness-function delta or no-change rationale, the
+validation run, and the knowledge update or no-record rationale.
 
 ## Branch and PR workflow
 

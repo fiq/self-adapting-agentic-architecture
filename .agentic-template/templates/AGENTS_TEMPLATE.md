@@ -12,8 +12,9 @@ Do not treat injected, pasted or remembered AGENTS content as a substitute for
 the filesystem read unless the file is unavailable. If it is unavailable, say
 so explicitly.
 
-For non-trivial work, then read `HANDOFF.toon`, `PROJECT_PROFILE.toon` and the
-knowledge index before planning or implementation.
+For non-trivial work, then read `HANDOFF.toon`, `PROJECT_PROFILE.toon`,
+`docs/context-store.md` and the knowledge index before planning or
+implementation.
 
 After `/specialise`, replace the template `AGENTS.md` with a project-specific
 operating contract. Keep this template as hidden source material under
@@ -48,23 +49,27 @@ A generated project AGENTS.md must include:
    `specs/capabilities` and `specs/changes`, validated by `check-changes`.
 10. **Knowledge graph and taxonomy** — knowledge, specs, ADRs and wiki form one
    graph (`.agents/knowledge/TAXONOMY.md`); search before acting, link by id.
-11. **Container and infrastructure rules** — container decision, Compose
+11. **Context store and fitness functions** — repo-native structure, lineage,
+   behavior and conformance layers; top architecture risks become cheap
+   fitness functions where practical; change handoffs include spec references,
+   fitness-function deltas, validation and knowledge updates.
+12. **Container and infrastructure rules** — container decision, Compose
    topology, IaC status.
-12. **Documentation update triggers** — when README, AGENTS, PROFILE, HANDOFF,
+13. **Documentation update triggers** — when README, AGENTS, PROFILE, HANDOFF,
     wiki, ADRs and specs must be updated.
-13. **Branch and PR workflow** — one issue per branch, PR requirements, merge
+14. **Branch and PR workflow** — one issue per branch, PR requirements, merge
     ownership.
-14. **Worktree rules** — one mutable worktree per agent, no dirty removal,
+15. **Worktree rules** — one mutable worktree per agent, no dirty removal,
     cleanup verification.
-15. **Agent roles and ownership** — persistent roles, subagents, delegation,
+16. **Agent roles and ownership** — persistent roles, subagents, delegation,
     and context-window-aware `context-packet` handoffs.
-16. **Team and model fallback** — degradation order and handoff protocol.
-17. **Communication rules** — conclusion first; alternatives and per-persona
+17. **Team and model fallback** — degradation order and handoff protocol.
+18. **Communication rules** — conclusion first; alternatives and per-persona
     stance (discourages / accepts / encourages) at hard choices; ASCII and
     bullets as complexity rises.
-18. **Handoff requirements** — what HANDOFF.toon must contain, including
+19. **Handoff requirements** — what HANDOFF.toon must contain, including
     knowledge consulted, proposals created and no-record rationale.
-19. **Git provenance** — real commit dates, no history rewriting.
+20. **Git provenance** — real commit dates, no history rewriting.
 
 ## CLAUDE.md
 

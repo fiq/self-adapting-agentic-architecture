@@ -5,11 +5,23 @@ import re
 def list_items(section_text):
     return re.findall(r"^\s+-\s+([A-Za-z0-9_.-]+)\s*$", section_text, flags=re.M)
 
+def nested_block(text, field, indent=2):
+    prefix = " " * indent
+    section_match = re.search(rf"(?m)^{prefix}{re.escape(field)}\n", text)
+    if not section_match:
+        return ""
+    end = len(text)
+    next_field = rf"(?m)^{prefix}[A-Za-z_]+:"
+    for match in re.finditer(next_field, text[section_match.end():]):
+        end = section_match.end() + match.start()
+        break
+    return text[section_match.start():end]
+
 def main():
     profile = Path("PROJECT_PROFILE.toon").read_text() if Path("PROJECT_PROFILE.toon").exists() else ""
     required = []
     optional = []
-    mcp = profile.split("mcp:", 1)[1] if "mcp:" in profile else ""
+    mcp = nested_block(profile, "mcp:")
     if "required:" in mcp:
         required = list_items(mcp.split("required:", 1)[1].split("optional:", 1)[0])
     if "optional:" in mcp:

@@ -8,6 +8,7 @@ AGENTS = ROOT / "AGENTS.md"
 FOLLOW_ON = [
     "HANDOFF.toon",
     "PROJECT_PROFILE.toon",
+    "docs/context-store.md",
     ".agents/knowledge/index.md",
 ]
 
@@ -21,7 +22,7 @@ WELCOME = r"""
 
 WHAT_HAPPENS = [
     "Confirm AGENTS.md was read from disk.",
-    "Load current state for non-trivial work.",
+    "Load the repo-native context store for non-trivial work.",
     "Inspect evidence before asking preference questions.",
     "Pick the smallest useful next action and validate it.",
 ]
@@ -38,6 +39,10 @@ START_PATHS = [
     (
         "Find the right document",
         "Run .agentic-template/bin/project docs for the documentation map.",
+    ),
+    (
+        "Recover project context",
+        "Read docs/context-store.md, then follow the structure, lineage, behavior and conformance links.",
     ),
     (
         "Validate before handoff",

@@ -10,6 +10,7 @@ Markdown and active state in structured files.
 | Create a project from the template | `.agentic-template/bin/project startup` | `CUSTOMIZE_THIS_PROJECT.toon`, then `.agentic-template/bin/project init` |
 | Continue active work | `.agentic-template/bin/project startup` | `HANDOFF.toon`, then `.agentic-template/bin/project backlog` |
 | Understand the rules | `AGENTS.md` | `PROJECT_PROFILE.toon`, then `.agents/knowledge/index.md` |
+| Recover project context | `docs/context-store.md` | `PROJECT_PROFILE.toon`, `specs/README.md`, then `.agents/knowledge/index.md` |
 | Plan or implement a change | `.agents/knowledge/index.md` | `specs/README.md`, then the relevant skill in `.agents/skills/CATALOG.toon` |
 | Validate or hand off | `docs/validation.md` | `.agentic-template/bin/project check`, `.agentic-template/bin/project ready`, then `HANDOFF.toon` |
 
@@ -49,6 +50,7 @@ output.
 | Area | Path | Purpose |
 |---|---|---|
 | Knowledge | `.agents/knowledge/` | Searchable graph of durable knowledge |
+| Context store | `docs/context-store.md` | Repo-native structure, lineage, behavior and conformance map |
 | Wiki | `docs/wiki/` | Human-facing durable docs |
 | Decisions | `docs/decisions/` | ADRs and decision records |
 | Structured data | `docs/structured-data.md` | TOON/S-expression policy |
@@ -68,6 +70,8 @@ output.
   the welcome, startup sequence, options and canonical contract before planning
   or implementation.
 - Search `.agents/knowledge/index.md` before planning or implementation.
+- Use `docs/context-store.md` when recovering project context across sessions
+  or reviewing agent-led changes.
 - Use `docs/wiki/index.md` for human-facing durable docs.
 - Use `project docs` for a command-line map of key files.
 - Add runbooks only for repeated operations with exact commands and validation.
