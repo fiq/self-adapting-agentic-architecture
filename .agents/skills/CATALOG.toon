@@ -207,3 +207,11 @@ skills:
   model_routing:
     path: tooling/model-routing/SKILL.md
     trigger: delegation_or_model_choice_needed
+
+  context_packet:
+    path: tooling/context-packet/SKILL.md
+    trigger: delegation_or_context_window_pressure
+    required_evidence:
+      - objective
+      - acceptance_criteria
+      - relevant_source_refs

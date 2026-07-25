@@ -1,8 +1,8 @@
 # Change Schema
 
 A change proposal lives in `specs/changes/<id>/` as `proposal.md` (why),
-optional `design.md` (tradeoffs) and `change.toon` (the agent source of truth).
-`change.toon` is validated by `.agentic-template/bin/check-changes`.
+optional `design.md` (tradeoffs) and a structured change artifact. The template
+default is `change.toon`, validated by `.agentic-template/bin/check-changes`.
 
 ## Structure
 

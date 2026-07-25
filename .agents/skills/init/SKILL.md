@@ -41,9 +41,13 @@ discover
 10. If `CUSTOMIZE_THIS_PROJECT.toon.narrative` (or a referenced file) is present,
     run `narrative-intake` to turn it into initial `specs/capabilities/` and a
     first `specs/changes/<id>/` proposal.
-11. Update `PROJECT_PROFILE.toon` with facts, inferences, decisions and unknowns.
-12. Classify unknowns as blocking or non-blocking.
-13. Re-evaluate `LICENSE`; keep MIT only if compatible with project intent,
+11. Resolve `CUSTOMIZE_THIS_PROJECT.toon.structured_data`: default TOON for
+    state/contracts and S-expressions for rules/compute. Ask only if the user
+    requested a different policy or the project needs executable policy DSLs.
+12. Update `PROJECT_PROFILE.toon` with facts, inferences, decisions, unknowns
+    and the resolved structured-data policy.
+13. Classify unknowns as blocking or non-blocking.
+14. Re-evaluate `LICENSE`; keep MIT only if compatible with project intent,
     dependencies and copied upstream code. Remove temporarily when uncertain.
 
 ### 2. Decide
@@ -109,6 +113,7 @@ discover
 - `AGENTS.md` is project-facing.
 - `CUSTOMIZE_THIS_PROJECT.toon` is marked as consumed or historical input.
 - Runtime, testing, container, infrastructure and CI decisions are explicit.
+- Structured-data format policy is explicit.
 - Applicable repository commands are specialised.
 - Non-applicable commands are explicitly recorded as such.
 - `HANDOFF.toon` points to real project work.

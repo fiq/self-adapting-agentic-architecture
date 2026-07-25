@@ -45,6 +45,7 @@ Always:
 - preserve the same acceptance and review gates;
 - keep tests and validation evidence;
 - record branch, worktree and commit state;
+- preserve context with a `context-packet` sized to the fallback agent/model;
 - identify safe bounded next work.
 
 Never:

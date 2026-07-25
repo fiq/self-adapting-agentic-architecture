@@ -44,6 +44,8 @@ trivial implementation    -> no durable record
 - Link proposals to existing IDs when possible.
 - Avoid recording trivial implementation details.
 - Capture contradictions with existing guidance.
+- Update `HANDOFF.toon.knowledge` on every meaningful task: record consulted
+  IDs/paths, proposals created, or a concrete `no_record` reason.
 
 ## Output
 

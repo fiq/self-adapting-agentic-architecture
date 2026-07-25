@@ -47,7 +47,8 @@ Before changing model or provider:
 3. record unresolved ambiguity;
 4. preserve test results;
 5. record branch, worktree and commit state;
-6. identify safe bounded next work.
+6. create a `context-packet` sized to the target context window;
+7. identify safe bounded next work.
 
 ## When to escalate
 
@@ -65,3 +66,4 @@ Escalate when:
 - Secretly reroute a directly addressed task.
 - Switch models mid-task without recording handoff state.
 - Use a strong model for mechanical edits when a cheaper model is reliable.
+- Encode semantic context into opaque transport blobs.

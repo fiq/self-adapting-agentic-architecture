@@ -99,6 +99,15 @@ tests_run:
   - .agentic-template/bin/project ready
   - nix flake check
 
+knowledge:
+  consulted:
+    - .agents/knowledge/index.md
+    - .agents/knowledge/inbox/INBOX-001-hidden-template-tooling.md
+  proposals:
+    - .agents/knowledge/inbox/INBOX-002-enforce-knowledge-graph-upkeep.md
+    - .agents/knowledge/inbox/INBOX-003-context-packet-budgeting.md
+  no_record: null
+
 team_fallback:
   current: single lead agent using explicit review checklist
   reason: bounded implementation task with an approved plan

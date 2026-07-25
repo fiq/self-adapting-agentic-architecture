@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path.cwd()
@@ -16,6 +17,7 @@ REQUIRED_SECTIONS = [
     "rejected_options:",
     "architecture:",
     "testing:",
+    "structured_data:",
     "containers:",
     "infrastructure:",
     "tooling:",
@@ -47,6 +49,49 @@ def section_block(text, section):
     end = min(next_positions) if next_positions else len(text)
     return text[start:end]
 
+def nested_format(block, key):
+    pattern = rf"(?m)^  {re.escape(key)}:\n(?:    .*\n)*?    format: ([a-z_]+)"
+    match = re.search(pattern, block)
+    return match.group(1) if match else None
+
+def validate_structured_data(text, label):
+    block = section_block(text, "structured_data:")
+    if not block:
+        return f"{label} structured_data section is missing"
+    control_format = nested_format(block, "control_files")
+    if control_format is not None and control_format != "toon":
+        return f"{label} structured_data.control_files.format must be toon"
+    state_format = nested_format(block, "state_and_contracts")
+    if state_format not in {"toon", "s_expression"}:
+        return (
+            f"{label} structured_data.state_and_contracts.format must be "
+            "toon or s_expression"
+        )
+    rules_format = nested_format(block, "rules_and_compute")
+    if rules_format not in {"toon", "s_expression", "none"}:
+        return (
+            f"{label} structured_data.rules_and_compute.format must be "
+            "toon, s_expression or none"
+        )
+    return None
+
+def validate_context_budget(text, label):
+    tooling = section_block(text, "tooling:")
+    if "context_budget:" not in tooling:
+        return f"{label} tooling.context_budget section is missing"
+    target = re.search(r"(?m)^    default_target: ([a-z_]+)", tooling)
+    if not target or target.group(1) not in {"small", "medium", "large"}:
+        return f"{label} tooling.context_budget.default_target must be small, medium or large"
+    reserve = re.search(r"(?m)^    reserve_response_percent: ([0-9]+)", tooling)
+    if not reserve:
+        return f"{label} tooling.context_budget.reserve_response_percent is missing"
+    percent = int(reserve.group(1))
+    if percent < 20 or percent > 60:
+        return f"{label} tooling.context_budget.reserve_response_percent must be between 20 and 60"
+    if "opaque_transport_blobs: false" not in tooling:
+        return f"{label} tooling.context_budget.opaque_transport_blobs must be false"
+    return None
+
 def main():
     if not PROFILE.exists():
         return fail("PROJECT_PROFILE.toon missing")
@@ -54,6 +99,12 @@ def main():
     missing = [s for s in REQUIRED_SECTIONS if s not in text]
     if missing:
         return fail("PROJECT_PROFILE.toon missing sections: " + ", ".join(missing))
+    structured_error = validate_structured_data(text, "PROJECT_PROFILE.toon")
+    if structured_error:
+        return fail(structured_error)
+    context_error = validate_context_budget(text, "PROJECT_PROFILE.toon")
+    if context_error:
+        return fail(context_error)
 
     unknowns = section_block(text, "unknowns:")
     if "\n  - id:" in unknowns:
@@ -66,6 +117,14 @@ def main():
 
     if CUSTOM.exists():
         custom = CUSTOM.read_text()
+        if "structured_data:" in custom:
+            custom_error = validate_structured_data(custom, "CUSTOMIZE_THIS_PROJECT.toon")
+            if custom_error:
+                return fail(custom_error)
+        if "context_budget:" in custom:
+            custom_context_error = validate_context_budget(custom, "CUSTOMIZE_THIS_PROJECT.toon")
+            if custom_context_error:
+                return fail(custom_context_error)
         customised = (
             "status: customised" in custom
             or "status: customized" in custom

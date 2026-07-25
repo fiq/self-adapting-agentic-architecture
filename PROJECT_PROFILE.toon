@@ -99,6 +99,18 @@ decisions:
       - .agents/knowledge/README.md
       - .agentic-template/bin/check-knowledge
     consequence_if_changed: agents may duplicate guidance or lose durable learnings between sessions
+  - id: structured_data_policy_configurable
+    decision: allow generated projects to choose TOON or S-expressions by semantic purpose
+    reason:
+      - TOON is readable and diff-friendly for state and contracts
+      - S-expressions are compact and regular for rule predicates and computation
+      - explicit policy prevents format drift across agent handoffs
+    confidence: medium
+    status: active
+    validation:
+      - docs/structured-data.md
+      - .agentic-template/bin/check-project-profile
+    consequence_if_changed: agents may mix semantic formats without a recorded reason
 
 unknowns:
   - id: target_project_domain
@@ -173,6 +185,26 @@ testing:
   test_first: true
   philosophy: testing_trophy
 
+structured_data:
+  control_files:
+    format: toon
+    reason: template bootstrap tools read PROJECT_PROFILE.toon, HANDOFF.toon and CUSTOMIZE_THIS_PROJECT.toon
+  state_and_contracts:
+    format: toon
+    allowed:
+      - toon
+      - s_expression
+    default_reason: best default for human-readable state, line diffs and docs-adjacent contracts
+  rules_and_compute:
+    format: s_expression
+    allowed:
+      - toon
+      - s_expression
+      - none
+    default_reason: best default for compact predicates, routing rules and executable policy DSLs when needed
+  mixed_use_allowed: true
+  rule: use one semantic format per artifact; record deviations as decisions
+
 containers:
   application_image: not_applicable
   reason: template repository has no deployable application runtime
@@ -194,6 +226,12 @@ tooling:
   mcp:
     required: []
     optional: []
+  context_budget:
+    default_target: small
+    reserve_response_percent: 30
+    packet_style: semantic_summary_with_source_refs
+    source_refs_required: true
+    opaque_transport_blobs: false
   knowledge:
     location: .agents/knowledge
     validator: .agentic-template/bin/check-knowledge

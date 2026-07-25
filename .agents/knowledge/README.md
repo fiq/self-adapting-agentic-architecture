@@ -84,6 +84,16 @@ stale_entries: []
 open_questions: []
 ```
 
+## Handoff Gate
+
+After meaningful work, update `HANDOFF.toon.knowledge` with:
+
+- `consulted`: IDs or paths used;
+- `proposals`: knowledge entries created or updated;
+- `no_record`: a concrete reason if no durable graph update was warranted.
+
+`project check-handoff` enforces that this checkpoint exists.
+
 ## Superpowers Boundary
 
 Superpowers provides the engineering workflow: brainstorming, planning, TDD,

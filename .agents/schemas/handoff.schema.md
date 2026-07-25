@@ -28,3 +28,9 @@ It should not contain:
 - trivial implementation notes.
 
 Prefer knowledge IDs over copied content.
+
+`knowledge` must include:
+
+- `consulted`: IDs or paths used before planning/implementation;
+- `proposals`: new or updated knowledge entries, or `[]`;
+- `no_record`: reason when meaningful work produced no durable knowledge.

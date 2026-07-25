@@ -76,7 +76,7 @@ agents:
   token_efficiency:
     minimise_duplicate_context: true
     bounded_delegation_default: true
-    compress_results_before_team_sharing: true
+    summarise_results_before_team_sharing: true
     stop_completed_subagents: true
     lazy_load_skills: true
   model_efficiency:
@@ -140,6 +140,23 @@ communication:
   paginate_large_feedback: true
   neurodiverse_friendly: true
 
+structured_data:
+  state_and_contracts:
+    format: toon
+    benefit: readable, diff-friendly project state and contracts
+  rules_and_compute:
+    format: s_expression
+    benefit: compact predicates, transformations and policy evaluation
+  options:
+    state_and_contracts:
+      - toon
+      - s_expression
+    rules_and_compute:
+      - toon
+      - s_expression
+      - none
+  guidance: TOON for state/contracts; S-expressions for rules/compute unless project evidence says otherwise
+
 sdd:
   enabled: true
   spec_format: openspec_shaped_toon_encoded
@@ -163,6 +180,12 @@ sdd:
   archive_completed_specs: true
 
 tooling:
+  context_budget:
+    default_target: small
+    reserve_response_percent: 30
+    packet_style: semantic_summary_with_source_refs
+    source_refs_required: true
+    opaque_transport_blobs: false
   superpowers:
     expected: optional
     status: detect

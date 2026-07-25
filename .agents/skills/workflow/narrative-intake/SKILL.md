@@ -1,15 +1,15 @@
 ---
 name: narrative-intake
-description: Consume a narrative (prompt or file), interrogate and expand it, and convert it to a TOON change proposal.
+description: Consume a narrative (prompt or file), interrogate and expand it, and convert it to a structured change proposal.
 ---
 
 # Narrative Intake
 
 ## Outcome
 
-Turn a free-text narrative into a validated `change.toon` (and, at project
-creation, initial `specs/capabilities/`). The narrative may be an inline
-prompt or a file (e.g. `CUSTOMIZE_THIS_PROJECT.toon.narrative`).
+Turn a free-text narrative into a validated structured change artifact (and, at
+project creation, initial `specs/capabilities/`). The narrative may be an
+inline prompt or a file (e.g. `CUSTOMIZE_THIS_PROJECT.toon.narrative`).
 
 ## Flow
 
@@ -18,7 +18,7 @@ narrative (prompt | file)
    ▼ interrogate: intent, users, behaviour, non-goals, unknowns
    ▼ expand:      derive WHEN/THEN scenarios from described outcomes
    ▼ ideate:      brief /ideate rounds where material ambiguity remains
-   ▼ convert:     proposal.md (why) + change.toon (deltas + scenarios
+   ▼ convert:     proposal.md (why) + structured change artifact (deltas + scenarios
                    + acceptance + tasks)
    ▼ validate:    project check-changes
 ```

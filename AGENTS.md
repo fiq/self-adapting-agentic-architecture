@@ -22,7 +22,7 @@ The canonical command surface is `.agentic-template/bin/project`.
 | `project check-profile` | Validate PROJECT_PROFILE.toon structure and resolved state |
 | `project check-handoff` | Validate HANDOFF.toon |
 | `project check-knowledge` | Validate knowledge entries |
-| `project check-changes` | Validate TOON change proposals and capabilities |
+| `project check-changes` | Validate structured change proposals and capabilities |
 | `project check-wiki` | Warn on wiki drift from the knowledge graph and specs |
 | `project check-readme` | Validate README is not template-facing and has required sections |
 | `project install-hooks` | Opt-in: install a non-blocking wiki-drift pre-commit hook |
@@ -142,18 +142,35 @@ Update documentation when:
 - audience calibration or right-sizing decisions change;
 - the wiki drifts from the knowledge graph, specs or code.
 
+## Structured data formats
+
+Generated projects choose semantic formats in `CUSTOMIZE_THIS_PROJECT.toon` and
+record the resolved policy in `PROJECT_PROFILE.toon.structured_data`.
+
+- TOON is the default for state and contracts because it is readable,
+  diff-friendly and close to Markdown docs.
+- S-expressions are the default for rules and computation because they are
+  compact and regular for predicates, routing and transformations.
+- Keep template control files as TOON unless project tooling is specialised.
+- Use one semantic format per artifact and record deliberate deviations as
+  profile decisions.
+
 ## Spec system
 
-Specs are OpenSpec-shaped, TOON-encoded and agent-first.
+Specs are OpenSpec-shaped, structured-data encoded and agent-first. TOON is the
+template default; generated projects may choose S-expressions for state and
+contracts during setup.
 
 - Living requirements sit in `specs/capabilities/`; in-flight proposals in
   `specs/changes/<id>/`; completed proposals in `specs/archive/`.
 - A change proposal is `proposal.md` (why), optional `design.md` (tradeoffs)
-  and `change.toon` (the agent source of truth: `ADDED`/`MODIFIED`/`REMOVED`
-  deltas, each requirement carrying `WHEN/THEN` scenarios, plus an
+  and a structured change artifact (the agent source of truth:
+  `ADDED`/`MODIFIED`/`REMOVED` deltas, each requirement carrying `WHEN/THEN`
+  scenarios, plus an
   `acceptance` map from scenario to test and `tasks`).
-- Structured spec content is TOON, validated by `.agents/schemas/` via
-  `project check-changes`. Markdown holds only rationale.
+- Structured spec content follows `PROJECT_PROFILE.toon.structured_data`,
+  validated by `.agents/schemas/` via `project check-changes` when the project
+  uses the template default TOON tooling. Markdown holds only rationale.
 - Do not add an external spec CLI dependency. A Markdown export is deferred
   until a non-agent consumer needs it.
 
@@ -167,6 +184,9 @@ Knowledge, specs, ADRs and wiki pages form one connected graph defined by
   resolve to existing nodes (enforced by `check-knowledge` and
   `check-changes`).
 - Keep the wiki current against the graph; `check-wiki` warns on drift.
+- After meaningful work, run `knowledge-capture` and update
+  `HANDOFF.toon.knowledge` with consulted IDs/paths, proposals created or a
+  concrete `no_record` reason. `project check-handoff` enforces the section.
 
 ## Branch and PR workflow
 
@@ -200,6 +220,9 @@ Knowledge, specs, ADRs and wiki pages form one connected graph defined by
 - Use stronger models only where added capability is likely to matter.
 - Required roles are selected by risk; do not activate every role
   automatically.
+- Respect context windows with `context-packet`: send semantic summaries,
+  source refs and only necessary snippets; do not encode semantic context into
+  opaque transport blobs.
 
 ## Team and model fallback
 
@@ -229,7 +252,8 @@ Before changing model or provider:
 3. record unresolved ambiguity;
 4. preserve test results;
 5. record branch, worktree and commit state;
-6. identify safe bounded next work.
+6. preserve bounded context with `context-packet`;
+7. identify safe bounded next work.
 
 Use stronger models for ambiguity, architecture, risk and conflict. Use
 midrange models for bounded implementation, testing and documentation. Use
@@ -265,13 +289,15 @@ or the task can no longer be safely bounded.
 - tests run;
 - branch, worktree and commit state;
 - team or model fallback state where relevant.
+- knowledge consulted, proposals created and no-record rationale.
 
 ## Communication rules
 
 - Put the most important conclusion first.
 - Use concise sections, short paragraphs, small tables and ASCII diagrams.
   Prefer bullets and diagrams over prose as complexity rises.
-- Use TOON for compact semantic state and Markdown for durable explanation.
+- Use the configured structured-data policy for compact semantic state and
+  Markdown for durable explanation.
 - Prefer progressive disclosure over walls of text.
 - At a status handoff or decision point, offer alternatives and guidance, not
   a flat report.

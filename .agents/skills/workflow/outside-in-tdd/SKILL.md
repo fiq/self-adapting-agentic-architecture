@@ -7,14 +7,14 @@ description: Drive design from the boundary in, starting from a change scenario'
 
 ## Outcome
 
-Drive design from the boundary in. Each `change.toon` scenario's acceptance
+Drive design from the boundary in. Each structured change scenario's acceptance
 test is written first (ATDD) and fails for the right reason before any
 implementation, then design pressure moves inward.
 
 ## Loop
 
 ```
-change.toon scenario (WHEN/THEN)
+structured change scenario (WHEN/THEN)
    ▼ acceptance[].test_id  ── write the boundary test first (it fails)
    ▼ drive inward ── collaborators appear as needed; mock at boundaries
    ▼ inner unit tests ── shape the design

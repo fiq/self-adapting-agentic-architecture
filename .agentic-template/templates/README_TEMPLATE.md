@@ -22,11 +22,13 @@ A generated project README must include:
 10. **Infrastructure and deployment state** — where the project deploys and
     what IaC status is recorded.
 11. **Deliberate non-goals** — what the project intentionally does not do.
-12. **Development lifecycle** — how work flows: `/ideate` (or a narrative) →
-    a TOON change spec → boundary-in ATDD → `/review` clean-up → archive and
-    wiki upkeep.
-13. **Important decisions and documentation links** — ADRs, wiki and specs.
-14. **AI-assisted delivery statement** — where relevant, state that AI agents
+12. **Structured data policy** — whether TOON or S-expressions are used for
+    state/contracts and rules/compute, with terse benefits.
+13. **Development lifecycle** — how work flows: `/ideate` (or a narrative) →
+    a structured change spec → boundary-in ATDD → `/review` clean-up → archive
+    and wiki upkeep.
+14. **Important decisions and documentation links** — ADRs, wiki and specs.
+15. **AI-assisted delivery statement** — where relevant, state that AI agents
     assisted delivery and where the operating contract lives.
 
 ## Template markers that must not remain

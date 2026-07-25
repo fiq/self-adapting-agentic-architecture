@@ -12,6 +12,7 @@ REQUIRED = [
     "risks:",
     "files_changed:",
     "tests_run:",
+    "knowledge:",
 ]
 
 def main():
@@ -31,6 +32,22 @@ def main():
         print()
         print("HANDOFF.toon contains placeholder text: " + ", ".join(found))
         return 1
+    knowledge_start = text.find("knowledge:")
+    if knowledge_start >= 0:
+        knowledge = text[knowledge_start:]
+        missing_knowledge = [
+            field
+            for field in ["consulted:", "proposals:", "no_record:"]
+            if field not in knowledge
+        ]
+        if missing_knowledge:
+            print("ERROR")
+            print()
+            print(
+                "HANDOFF.toon knowledge section missing fields: "
+                + ", ".join(missing_knowledge)
+            )
+            return 1
     print("HANDOFF OK")
     return 0
 

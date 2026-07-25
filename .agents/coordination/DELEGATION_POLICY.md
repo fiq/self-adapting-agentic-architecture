@@ -8,4 +8,6 @@ task -> bounded? -> subagent
      -> high-risk ambiguous? -> independent review
 ```
 
-Compress results before sharing them. Stop bounded agents when done.
+Use `context-packet` for delegated tasks unless the full handoff is already
+contained in the immediate conversation. Compress meaning before sharing
+results. Stop bounded agents when done.

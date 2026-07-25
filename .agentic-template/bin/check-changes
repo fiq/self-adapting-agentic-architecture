@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Validate TOON-encoded specs: change proposals and living capabilities.
+"""Validate template-default TOON specs: change proposals and capabilities.
 
-Structured spec content is TOON (a small YAML subset). This validator parses it
-with the standard library only and enforces the schemas documented in
+Structured spec content defaults to TOON (a small YAML subset). This validator
+parses it with the standard library only and enforces the schemas documented in
 .agents/schemas/change.schema.md and .agents/schemas/capability.schema.md.
 """
 from pathlib import Path

@@ -134,7 +134,7 @@ recommendation, when:
 
 ## Efficiency
 
-<Model class or context compression guidance.>
+<Model class or context-packet guidance.>
 ```
 
 ## Output

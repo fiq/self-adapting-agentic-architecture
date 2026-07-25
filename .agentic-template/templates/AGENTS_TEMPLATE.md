@@ -22,25 +22,29 @@ A generated project AGENTS.md must include:
 6. **Testing expectations** — boundary-in, ATDD-aligned design; fidelity by
    risk (acceptance / component-integration / subcutaneous); real dependency
    semantics where cheap and material.
-7. **Spec system** — OpenSpec-shaped, TOON-encoded specs under
+7. **Structured data formats** — configured TOON/S-expression policy; TOON
+   benefits state/contracts, S-expressions benefit rules/compute.
+8. **Spec system** — OpenSpec-shaped structured specs under
    `specs/capabilities` and `specs/changes`, validated by `check-changes`.
-8. **Knowledge graph and taxonomy** — knowledge, specs, ADRs and wiki form one
+9. **Knowledge graph and taxonomy** — knowledge, specs, ADRs and wiki form one
    graph (`.agents/knowledge/TAXONOMY.md`); search before acting, link by id.
-9. **Container and infrastructure rules** — container decision, Compose
+10. **Container and infrastructure rules** — container decision, Compose
    topology, IaC status.
-10. **Documentation update triggers** — when README, AGENTS, PROFILE, HANDOFF,
+11. **Documentation update triggers** — when README, AGENTS, PROFILE, HANDOFF,
     wiki, ADRs and specs must be updated.
-11. **Branch and PR workflow** — one issue per branch, PR requirements, merge
+12. **Branch and PR workflow** — one issue per branch, PR requirements, merge
     ownership.
-12. **Worktree rules** — one mutable worktree per agent, no dirty removal,
+13. **Worktree rules** — one mutable worktree per agent, no dirty removal,
     cleanup verification.
-13. **Agent roles and ownership** — persistent roles, subagents, delegation.
-14. **Team and model fallback** — degradation order and handoff protocol.
-15. **Communication rules** — conclusion first; alternatives and per-persona
+14. **Agent roles and ownership** — persistent roles, subagents, delegation,
+    and context-window-aware `context-packet` handoffs.
+15. **Team and model fallback** — degradation order and handoff protocol.
+16. **Communication rules** — conclusion first; alternatives and per-persona
     stance (discourages / accepts / encourages) at hard choices; ASCII and
     bullets as complexity rises.
-16. **Handoff requirements** — what HANDOFF.toon must contain.
-17. **Git provenance** — real commit dates, no history rewriting.
+17. **Handoff requirements** — what HANDOFF.toon must contain, including
+    knowledge consulted, proposals created and no-record rationale.
+18. **Git provenance** — real commit dates, no history rewriting.
 
 ## CLAUDE.md
 

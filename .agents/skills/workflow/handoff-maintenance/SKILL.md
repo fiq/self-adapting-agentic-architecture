@@ -23,6 +23,7 @@ wiki dump.
 - tests run
 - knowledge consulted by ID
 - knowledge proposals created by path or ID
+- explicit `knowledge.no_record` reason when nothing durable changed
 - handoff warnings
 
 ## Exclude

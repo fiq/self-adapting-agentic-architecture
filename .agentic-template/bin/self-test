@@ -63,6 +63,29 @@ def main():
         if not expect(work, "template unresolved fields are allowed", PROJECT + ["check-profile"], 0):
             failures += 1
 
+        profile = work / "PROJECT_PROFILE.toon"
+        replace(profile, "    format: s_expression", "    format: json")
+        if not expect(
+            work,
+            "invalid structured data format fails profile validation",
+            PROJECT + ["check-profile"],
+            1,
+            "structured_data.rules_and_compute.format",
+        ):
+            failures += 1
+        replace(profile, "    format: json", "    format: s_expression")
+
+        replace(profile, "    default_target: small", "    default_target: giant")
+        if not expect(
+            work,
+            "invalid context budget target fails profile validation",
+            PROJECT + ["check-profile"],
+            1,
+            "tooling.context_budget.default_target",
+        ):
+            failures += 1
+        replace(profile, "    default_target: giant", "    default_target: small")
+
         # ---- CLAUDE.md symlink ----
         claude = work / "CLAUDE.md"
         claude.unlink()
@@ -81,7 +104,6 @@ def main():
             failures += 1
 
         # ---- profile validation ----
-        profile = work / "PROJECT_PROFILE.toon"
         replace(
             profile,
             "\nrejected_options:",
@@ -274,6 +296,8 @@ def main():
             "Not applicable.\n\n"
             "## 🚫 Deliberate non-goals\n\n"
             "No cloud.\n\n"
+            "## Structured data policy\n\n"
+            "TOON for state; S-expressions for rules.\n\n"
             "## 📚 Important decisions and documentation links\n\n"
             "See ADRs.\n"
         )
@@ -374,6 +398,8 @@ def main():
             "Deferred.\n\n"
             "## Deliberate non-goals\n\n"
             "No cloud platform.\n\n"
+            "## Structured data policy\n\n"
+            "TOON for state; S-expressions for rules.\n\n"
             "## Important decisions and documentation links\n\n"
             "See AGENTS.md.\n"
         )

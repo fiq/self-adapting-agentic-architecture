@@ -19,7 +19,7 @@ Start with:
                  architecture as a recorded, bought-into choice
      ▼
 /ideate ─────► short-cycle multi-persona loop (Intent → Boundary → Delivery →
-    (idea or     Quality gate) → specs/changes/<id>/change.toon
+    (idea or     Quality gate) → structured change artifact
     narrative)
      ▼
 outside-in ► acceptance test per WHEN/THEN scenario, fidelity by risk
@@ -32,7 +32,9 @@ archive change → specs/capabilities/  +  wiki-tidy keeps docs and the
                  knowledge graph current
 ```
 
-- Specs are OpenSpec-shaped, TOON-encoded and agent-first (`specs/README.md`).
+- Specs are OpenSpec-shaped, structured and agent-first (`specs/README.md`).
+- TOON is preferred for state/contracts; S-expressions are preferred for
+  rules/compute when a project needs a compact policy DSL.
 - Quality is standing, not a phase: reuse over duplication, pay in-path debt,
   docs land in the change, no silent TODOs.
 - `project check-changes` validates specs; `project check-wiki` warns on wiki

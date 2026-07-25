@@ -4,7 +4,7 @@
 should point back to it.
 
 Use persistent roles for continuing responsibility and subagents for bounded
-work. Keep context focused and compress outputs.
+work. Keep context focused and summarise outputs semantically.
 
 Before planning or implementation, agents should search `.agents/knowledge/`
 through the `knowledge-search` skill. Knowledge, specs, ADRs and wiki form one
@@ -16,7 +16,7 @@ patterns, risks or no durable record.
 Lifecycle skills (lazy-loaded via `.agents/skills/CATALOG.toon`):
 
 - `calibrate-audience` — skill level, app shape, recorded right-sizing;
-- `ideate` / `narrative-intake` — idea or narrative → validated `change.toon`;
+- `ideate` / `narrative-intake` — idea or narrative → validated structured change;
 - `outside-in-tdd` — boundary-in ATDD from change scenarios;
 - `review-loop` — boy-scout clean-up, smells and coupling;
 - `wiki-tidy` — keep the wiki current against the graph.
@@ -27,5 +27,6 @@ encourages; the lead synthesises without forcing consensus.
 Superpowers remains the preferred workflow layer for brainstorming, planning,
 TDD, debugging, implementation, review and verification when it is available.
 It is optional: Claude, Codex, Copilot and CI must still be able to start from
-`AGENTS.md`, `PROJECT_PROFILE.toon`, `HANDOFF.toon` and repository commands
+`AGENTS.md`, `PROJECT_PROFILE.toon`, `HANDOFF.toon`, the structured-data policy
+and repository commands
 without Superpowers.

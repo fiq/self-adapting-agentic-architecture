@@ -6,7 +6,7 @@ A framework for AI agents and humans to collaborate on principal-level engineeri
 
 **Problem:** When an agent acts alone, humans lose visibility into trade-offs and assumptions. When humans micro-direct agents, decisions become slow. When guardrails are opaque, teams cannot learn or adapt them.
 
-**Solution:** Make the operating rules explicit and learnable (`AGENTS.md`), keep semantic state visible and structured (`.toon` files), use composable skills that agents can invoke in any topology, and stay human-in-the-loop at irreversible or high-stakes choices.
+**Solution:** Make the operating rules explicit and learnable (`AGENTS.md`), keep semantic state visible and structured, use composable skills that agents can invoke in any topology, and stay human-in-the-loop at irreversible or high-stakes choices.
 
 ## Value
 
@@ -22,7 +22,7 @@ A framework for AI agents and humans to collaborate on principal-level engineeri
 2. **The agent inspects the repo** - existing code, manifests, configs - and asks the smallest useful question set to resolve unknowns.
 3. **The agent proposes a minimal architecture** - smallest sufficient design, recorded and bought into.
 4. **You decide at hard choices** - architecture boundaries, trade-offs, what NOT to build.
-5. **Development follows a loop** - calibrate, ideate, spec (TOON), ATDD, review, archive + wiki.
+5. **Development follows a loop** - calibrate, ideate, structured spec, ATDD, review, archive + wiki.
 
 ```
 Human provides:                    Agent discovers:              Human decides at:
@@ -41,7 +41,7 @@ Human provides:                    Agent discovers:              Human decides a
                            v
 
                      Development lifecycle:
-                     calibrate -> ideate -> spec (TOON) -> ATDD -> review -> archive + wiki
+                     calibrate -> ideate -> structured spec -> ATDD -> review -> archive + wiki
 ```
 
 ## 🚀 Get started
@@ -88,7 +88,7 @@ Work flows through a small, connected loop. Agents drive it; humans steer at dec
                   right-size: smallest sufficient architecture, recorded buy-in
       |
       v
-/ideate ------> short-cycle multi-persona loop -> specs/changes/<id>/change.toon
+/ideate ------> short-cycle multi-persona loop -> structured change artifact
      (idea or     Intent -> Boundary -> Delivery -> Quality gate
      narrative)   At hard choices: show persona stances (discourages/accepts/encourages)
       |
@@ -104,10 +104,11 @@ archive -------> specs/capabilities/ + wiki keeps docs and knowledge graph curre
 ```
 
 **Key principles:**
-- **Specs are TOON-encoded, agent-first.** Living requirements in `specs/capabilities/`, proposals in `specs/changes/<id>/` with deltas, `WHEN/THEN` scenarios and acceptance tests (ATDD bridge).
+- **Specs are structured and agent-first.** TOON is the template default; generated projects may choose TOON or S-expressions by purpose during setup.
 - **Quality is standing, not a phase.** Boy-scout rule, reuse over duplication, pay in-path debt, docs land in the change, no silent TODOs.
 - **Right-sizing is conscious.** The smallest sufficient architecture is chosen, explicitly. What is excluded and why are recorded. Revisit conditions are named.
 - **Knowledge forms one graph.** `AGENTS.md` + `PROJECT_PROFILE.toon` + specs + `HANDOFF.toon` + `.agents/knowledge/` + wiki all connect via `TAXONOMY.md`. Agents search before acting.
+- **Format policy is explicit.** TOON fits state/contracts; S-expressions fit rules/compute. See `docs/structured-data.md`.
 
 ## Philosophy
 
@@ -116,7 +117,7 @@ archive -------> specs/capabilities/ + wiki keeps docs and knowledge graph curre
 This template works with any agent that can:
 - Read Markdown files
 - Execute shell commands
-- Interpret TOON (a small YAML subset)
+- Interpret simple structured text (TOON by default)
 - Follow a text-based operating contract
 
 No proprietary APIs. No agent-specific prompting tricks. The contract is learnable.
@@ -188,7 +189,7 @@ This template is built on **composable skills** - reusable workflows for ideatio
 | `calibrate-audience` | Project shape known | Establish skill level, app shape, record right-sizing |
 | `ideate` | Ambiguous feature request | Multi-persona loop -> validated spec |
 | `narrative-intake` | Narrative provided | Turn free text into a structured change proposal |
-| `specify` | Meaningful behaviour change | Create proportional OpenSpec-shaped TOON specs |
+| `specify` | Meaningful behaviour change | Create proportional OpenSpec-shaped structured specs |
 | `outside-in-tdd` | Implementing a change | Start from acceptance test, fidelity by risk |
 | `review-loop` | Before merge | Boy-scout cleanup, smells, coupling |
 | `wiki-tidy` | At task boundaries | Keep docs and knowledge graph current |
@@ -252,9 +253,16 @@ Project configuration is declared in:
 - `AGENTS.md` - operating rules and canonical commands
 - `PROJECT_PROFILE.toon` - project facts, inferences, decisions, unknowns
 - `HANDOFF.toon` - active work state, completed work, next actions
+- `PROJECT_PROFILE.toon.structured_data` - TOON/S-expression policy by purpose
 - `.agents/knowledge/` - durable decisions (ADRs), patterns, risks, questions, learnings
 
 Environment variables are documented in the generated `README.md`.
+
+## Structured data policy
+
+Default setup uses TOON for state/contracts and S-expressions for rules/compute.
+TOON is readable and diff-friendly; S-expressions are compact for predicates and
+transformations. See `docs/structured-data.md`.
 
 ## Infrastructure and deployment state
 
@@ -290,7 +298,7 @@ The `/specialise` bootstrap, the development lifecycle, the persona topology, th
 
 If you use this template, you are opting into:
 - **Composable skills** that agents can invoke
-- **Semantic state** (TOON files) that agents can parse and update
+- **Semantic state** (structured text) that agents can parse and update
 - **Readable operating rules** (this contract) that agents and humans share
 - **Persistent topologies** (personas, subagents) that preserve context across sessions
 - **Hard choice attribution** (persona stance) so you know who favours what trade-off

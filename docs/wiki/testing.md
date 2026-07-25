@@ -1,8 +1,8 @@
 # Testing
 
-Drive design outside-in, from the boundary in (ATDD-aligned): a `change.toon`
-scenario's acceptance test is written first and fails for the right reason
-before any implementation.
+Drive design outside-in, from the boundary in (ATDD-aligned): a structured
+change scenario's acceptance test is written first and fails for the right
+reason before any implementation.
 
 ```
 WHEN/THEN scenario ──► acceptance test (fails) ──► drive inward ──► passes

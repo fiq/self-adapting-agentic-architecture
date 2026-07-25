@@ -8,20 +8,20 @@ description: Short-cycle multi-persona session that turns an idea or narrative i
 ## Outcome
 
 Turn an idea — or a narrative (prompt or file) — into a validated
-`specs/changes/<id>/change.toon` through a short, bounded, multi-persona loop.
+structured change proposal through a short, bounded, multi-persona loop.
 Auto-suggest this when a feature request is ambiguous or unspecified.
 
 ## Loop
 
 ```
-knowledge-search ──► team-selection ──► rounds ──► change.toon ──► update-handoff
+knowledge-search ──► team-selection ──► rounds ──► structured spec ──► update-handoff
                                           │
         ┌─────────────────────────────────┼─────────────────────────────────┐
         ▼                 ▼                ▼                 ▼
      Intent           Boundary         Delivery         Quality gate
    product-owner      architect        tech-lead        all active
    domain-expert                                         personas
-        └──── one compressed summary + one bounded question per round ────┘
+        └──── one concise summary + one bounded question per round ────┘
 ```
 
 - Cap at 3–4 rounds. Seed with a narrative via `narrative-intake` when given.
@@ -56,8 +56,8 @@ conclusion first.
 
 ## Output
 
-- `specs/changes/<id>/` with `proposal.md` (why) and `change.toon` (deltas +
-  `WHEN/THEN` scenarios + acceptance + tasks), validated by
+- `specs/changes/<id>/` with `proposal.md` (why) and a structured change
+  artifact (deltas + `WHEN/THEN` scenarios + acceptance + tasks), validated by
   `project check-changes`;
 - `HANDOFF.toon` updated;
 - knowledge captured or questions recorded via `knowledge-capture`.
