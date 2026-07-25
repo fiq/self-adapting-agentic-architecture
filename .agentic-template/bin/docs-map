@@ -11,6 +11,7 @@ DOCS = [
     ("Documentation map", "docs/README.md", "where durable docs live"),
     ("Structured data", "docs/structured-data.md", "TOON/S-expression policy"),
     ("Validation", "docs/validation.md", "what checks prove and record"),
+    ("Runbooks", "docs/runbooks/README.md", "optional repeatable operating procedures"),
     ("Wiki", "docs/wiki/index.md", "human-facing durable docs"),
     ("Decisions", "docs/decisions/README.md", "ADR index"),
     ("Specs", "specs/README.md", "capabilities and change proposals"),

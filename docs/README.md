@@ -10,6 +10,7 @@ Markdown and active state in structured files.
 | Handoff | `HANDOFF.toon` | Current work state and knowledge upkeep |
 | Structured data | `docs/structured-data.md` | TOON/S-expression policy |
 | Validation | `docs/validation.md` | What checks prove and where to record them |
+| Runbooks | `docs/runbooks/` | Optional repeatable operating procedures |
 | Wiki | `docs/wiki/` | Durable project explanation |
 | Decisions | `docs/decisions/` | ADRs and decision records |
 | Specs | `specs/` | Capabilities and change proposals |
@@ -20,5 +21,6 @@ Markdown and active state in structured files.
 - Search `.agents/knowledge/index.md` before planning or implementation.
 - Use `docs/wiki/index.md` for human-facing durable docs.
 - Use `project docs` for a command-line map of key files.
+- Add runbooks only for repeated operations with exact commands and validation.
 - Keep generated-project README files project-facing; do not dump template
   internals there unless they help the project user.

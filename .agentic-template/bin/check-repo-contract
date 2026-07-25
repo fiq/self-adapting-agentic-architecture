@@ -19,6 +19,8 @@ REQUIRED_FILES = [
     "compose.yaml",
     "docs/README.md",
     "docs/validation.md",
+    "docs/runbooks/README.md",
+    "docs/runbooks/RUNBOOK_TEMPLATE.md",
     ".agents/skills/CATALOG.toon",
     ".agents/skills/init/SKILL.md",
     ".agents/knowledge/README.md",

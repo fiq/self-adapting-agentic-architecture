@@ -108,6 +108,7 @@ knowledge:
     - .agents/knowledge/inbox/INBOX-003-context-packet-budgeting.md
     - .agents/knowledge/inbox/INBOX-004-documentation-map-and-validation-blueprint.md
     - .agents/knowledge/inbox/INBOX-005-read-only-work-status-commands.md
+    - .agents/knowledge/inbox/INBOX-006-conditional-runbook-scaffolding.md
   no_record: null
 
 team_fallback:
