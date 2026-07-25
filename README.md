@@ -85,6 +85,20 @@ The agent will:
 - Rewrite the README and operating contract for your project
 - Hand off to `HANDOFF.toon` so the next work continues from here
 
+## Documentation IA
+
+Start from the route that matches your intent:
+
+| Intent | Start With | Then Read |
+|---|---|---|
+| Create a project from the template | `.agentic-template/bin/project startup` | `CUSTOMIZE_THIS_PROJECT.toon`, then `.agentic-template/bin/project init` |
+| Continue active work | `.agentic-template/bin/project startup` | `HANDOFF.toon`, then `.agentic-template/bin/project backlog` |
+| Understand the rules | `AGENTS.md` | `PROJECT_PROFILE.toon`, then `.agents/knowledge/index.md` |
+| Plan or implement a change | `.agents/knowledge/index.md` | `specs/README.md`, then the relevant skill in `.agents/skills/CATALOG.toon` |
+| Validate or hand off | `docs/validation.md` | `.agentic-template/bin/project check`, `.agentic-template/bin/project ready`, then `HANDOFF.toon` |
+
+For a full command-line map, run `.agentic-template/bin/project docs`.
+
 ## Development lifecycle
 
 Work flows through a small, connected loop. Agents drive it; humans steer at decision points.

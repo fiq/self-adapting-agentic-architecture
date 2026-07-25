@@ -252,12 +252,20 @@ def main():
             "{label} must point agents to .agentic-template/bin/project startup",
             errors,
         )
-    for required in ["AGENTIC TEAM STARTUP", "WHAT HAPPENS NEXT", "OPTIONS"]:
+    for required in ["AGENTIC TEAM STARTUP", "WHAT HAPPENS NEXT", "START PATHS", "OPTIONS"]:
         check_required_text(
             ROOT / ".agentic-template/bin/startup",
             ".agentic-template/bin/startup",
             required,
             "{label} must print startup welcome, sequence and options",
+            errors,
+        )
+    for required in ["START PATHS", "Start Here", "Current State", "Delivery Workflow"]:
+        check_required_text(
+            ROOT / ".agentic-template/bin/docs-map",
+            ".agentic-template/bin/docs-map",
+            required,
+            "{label} must present a route-based documentation IA",
             errors,
         )
     for skill in REQUIRED_SKILLS:

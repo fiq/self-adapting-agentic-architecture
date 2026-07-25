@@ -17,21 +17,24 @@ A generated project README must include:
    `.agentic-template/bin/project startup`, confirm `AGENTS.md` was read from
    disk, review the printed sequence/options, and then continue from the
    operating contract.
-7. **Run locally** — how to start the project in a development shell.
-8. **Run with containers** — container build and run instructions, or an
+7. **Documentation IA** — a compact route table for creating the project,
+   continuing active work, understanding rules, planning changes, validating
+   and handing off.
+8. **Run locally** — how to start the project in a development shell.
+9. **Run with containers** — container build and run instructions, or an
    explicit "not applicable" with a reason.
-9. **Tests** — how to run the test suite via `.agentic-template/bin/project`.
-10. **Configuration and environment variables** — what env vars or config
+10. **Tests** — how to run the test suite via `.agentic-template/bin/project`.
+11. **Configuration and environment variables** — what env vars or config
    files the project uses.
-11. **Infrastructure and deployment state** — where the project deploys and
+12. **Infrastructure and deployment state** — where the project deploys and
     what IaC status is recorded.
-12. **Deliberate non-goals** — what the project intentionally does not do.
-13. **Development lifecycle** — how work flows: `/ideate` (or a narrative) →
+13. **Deliberate non-goals** — what the project intentionally does not do.
+14. **Development lifecycle** — how work flows: `/ideate` (or a narrative) →
     a structured change spec → boundary-in ATDD → `/review` clean-up → archive
     and wiki upkeep.
-14. **Important decisions and documentation links** — ADRs, wiki, specs,
+15. **Important decisions and documentation links** — ADRs, wiki, specs,
     docs map and structured-data policy where relevant.
-15. **AI-assisted delivery statement** — where relevant, state that AI agents
+16. **AI-assisted delivery statement** — where relevant, state that AI agents
     assisted delivery and where the operating contract lives.
 
 ## Template markers that must not remain

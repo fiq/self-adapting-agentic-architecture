@@ -272,6 +272,19 @@ def main():
             failures += 1
         startup.write_text(original_startup)
 
+        docs_map = work / ".agentic-template/bin/docs-map"
+        original_docs_map = docs_map.read_text()
+        docs_map.write_text(original_docs_map.replace("START PATHS", "DOCUMENTS", 1))
+        if not expect(
+            work,
+            "missing route-based docs IA fails",
+            PROJECT + ["repo-check"],
+            1,
+            ".agentic-template/bin/docs-map must present a route-based documentation IA",
+        ):
+            failures += 1
+        docs_map.write_text(original_docs_map)
+
         # ---- profile validation ----
         replace(
             profile,
@@ -423,7 +436,11 @@ def main():
             failures += 1
         if not expect(work, "project startup shows options", PROJECT + ["startup"], 0, "OPTIONS"):
             failures += 1
+        if not expect(work, "project startup shows start paths", PROJECT + ["startup"], 0, "START PATHS"):
+            failures += 1
         if not expect(work, "project docs prints documentation map", PROJECT + ["docs"], 0, "DOCUMENTATION MAP"):
+            failures += 1
+        if not expect(work, "project docs prints start paths", PROJECT + ["docs"], 0, "START PATHS"):
             failures += 1
         if not expect(work, "project --list includes backlog", PROJECT + ["--list"], 0, "backlog"):
             failures += 1
@@ -489,6 +506,8 @@ def main():
             "# Emoji Project\n\n"
             "## Agent startup\n\n"
             "Run .agentic-template/bin/project startup.\n\n"
+            "## Documentation IA\n\n"
+            "Use the docs route table.\n\n"
             "## 🏃 Run locally\n\n"
             "Instructions here.\n\n"
             "## Run with containers\n\n"
@@ -593,6 +612,8 @@ def main():
             "A specialised project.\n\n"
             "## Agent startup\n\n"
             "Run .agentic-template/bin/project startup.\n\n"
+            "## Documentation IA\n\n"
+            "Use the docs route table.\n\n"
             "## Run locally\n\n"
             "Run the project.\n\n"
             "## Run with containers\n\n"

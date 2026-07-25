@@ -20,10 +20,29 @@ WELCOME = r"""
 """
 
 WHAT_HAPPENS = [
-    "1. Confirm AGENTS.md was read from disk.",
-    "2. Load current state for non-trivial work.",
-    "3. Inspect evidence before asking preference questions.",
-    "4. Pick the smallest useful next action and validate it.",
+    "Confirm AGENTS.md was read from disk.",
+    "Load current state for non-trivial work.",
+    "Inspect evidence before asking preference questions.",
+    "Pick the smallest useful next action and validate it.",
+]
+
+START_PATHS = [
+    (
+        "New project setup",
+        "Update CUSTOMIZE_THIS_PROJECT.toon, then run .agentic-template/bin/project init.",
+    ),
+    (
+        "Continue active work",
+        "Read HANDOFF.toon, then run .agentic-template/bin/project backlog.",
+    ),
+    (
+        "Find the right document",
+        "Run .agentic-template/bin/project docs for the documentation map.",
+    ),
+    (
+        "Validate before handoff",
+        "Run .agentic-template/bin/project check, then .agentic-template/bin/project ready.",
+    ),
 ]
 
 OPTIONS = [
@@ -62,8 +81,13 @@ def main():
     print("Read the contract. Load the state. Make the smallest useful move.")
     print()
     print("WHAT HAPPENS NEXT")
-    for item in WHAT_HAPPENS:
-        print(f"- {item}")
+    for number, item in enumerate(WHAT_HAPPENS, start=1):
+        print(f"{number}. {item}")
+    print()
+    print("START PATHS")
+    for label, action in START_PATHS:
+        print(f"- {label}")
+        print(f"  {action}")
     print()
     print("OPTIONS")
     for command, purpose in OPTIONS:

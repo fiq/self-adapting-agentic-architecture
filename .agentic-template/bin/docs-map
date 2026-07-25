@@ -4,34 +4,92 @@ import sys
 
 ROOT = Path.cwd()
 
-DOCS = [
-    ("Operating contract", "AGENTS.md", "canonical rules for agents and humans"),
-    ("Project profile", "PROJECT_PROFILE.toon", "facts, decisions, unknowns and policy"),
-    ("Handoff", "HANDOFF.toon", "current work state and knowledge upkeep"),
-    ("Documentation map", "docs/README.md", "where durable docs live"),
-    ("Structured data", "docs/structured-data.md", "TOON/S-expression policy"),
-    ("Validation", "docs/validation.md", "what checks prove and record"),
-    ("Runbooks", "docs/runbooks/README.md", "optional repeatable operating procedures"),
-    ("Wiki", "docs/wiki/index.md", "human-facing durable docs"),
-    ("Decisions", "docs/decisions/README.md", "ADR index"),
-    ("Specs", "specs/README.md", "capabilities and change proposals"),
-    ("Knowledge", ".agents/knowledge/index.md", "searchable graph index"),
+START_PATHS = [
+    (
+        "New project setup",
+        "README.md -> CUSTOMIZE_THIS_PROJECT.toon -> project startup -> project init",
+    ),
+    (
+        "Continue active work",
+        "project startup -> HANDOFF.toon -> project backlog",
+    ),
+    (
+        "Plan or implement a change",
+        ".agents/knowledge/index.md -> specs/README.md -> relevant skill",
+    ),
+    (
+        "Validate and hand off",
+        "docs/validation.md -> project check -> project ready -> HANDOFF.toon",
+    ),
+]
+
+DOC_GROUPS = [
+    (
+        "Start Here",
+        [
+            ("README", "README.md", "first human-facing overview and onboarding"),
+            ("Startup command", ".agentic-template/bin/startup", "agent welcome, options and AGENTS.md disk read"),
+            ("Docs home", "docs/README.md", "information architecture and navigation"),
+        ],
+    ),
+    (
+        "Current State",
+        [
+            ("Operating contract", "AGENTS.md", "canonical rules for agents and humans"),
+            ("Project profile", "PROJECT_PROFILE.toon", "facts, decisions, unknowns and policy"),
+            ("Handoff", "HANDOFF.toon", "current work state and knowledge upkeep"),
+            ("Customisation input", "CUSTOMIZE_THIS_PROJECT.toon", "bootstrap intent and constraints"),
+        ],
+    ),
+    (
+        "Delivery Workflow",
+        [
+            ("Development", "docs/wiki/development.md", "lifecycle and command sequence"),
+            ("Specs", "specs/README.md", "capabilities and change proposals"),
+            ("Validation", "docs/validation.md", "what checks prove and record"),
+            ("Runbooks", "docs/runbooks/README.md", "optional repeatable operating procedures"),
+        ],
+    ),
+    (
+        "Knowledge And Decisions",
+        [
+            ("Knowledge", ".agents/knowledge/index.md", "searchable graph index"),
+            ("Wiki", "docs/wiki/index.md", "human-facing durable docs"),
+            ("Decisions", "docs/decisions/README.md", "ADR index"),
+            ("Structured data", "docs/structured-data.md", "TOON/S-expression policy"),
+        ],
+    ),
+    (
+        "Agent Adapters",
+        [
+            ("Claude adapter", ".claude/skills/agentic-template/SKILL.md", "thin native pointer to startup and canonical skills"),
+            ("Cursor adapter", ".cursor/rules/agentic-startup-and-skills.mdc", "always-applied startup and skill-routing rule"),
+            ("Copilot instructions", ".github/copilot-instructions.md", "GitHub Copilot startup shim"),
+            ("Codex instructions", ".codex/README.md", "Codex startup shim"),
+        ],
+    ),
 ]
 
 
 def main():
     print("DOCUMENTATION MAP")
     print()
+    print("START PATHS")
+    for label, route in START_PATHS:
+        print(f"- {label}: {route}")
+    print()
     missing = []
-    for label, path, purpose in DOCS:
-        exists = (ROOT / path).exists()
-        marker = "ok" if exists else "missing"
-        print(f"- {label}: {path} [{marker}]")
-        print(f"  {purpose}")
-        if not exists:
-            missing.append(path)
-    if missing:
+    for group, docs in DOC_GROUPS:
+        print(group.upper())
+        for label, path, purpose in docs:
+            exists = (ROOT / path).exists()
+            marker = "ok" if exists else "missing"
+            print(f"- {label}: {path} [{marker}]")
+            print(f"  {purpose}")
+            if not exists:
+                missing.append(path)
         print()
+    if missing:
         print("MISSING")
         for path in missing:
             print(f"  - {path}")

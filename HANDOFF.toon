@@ -4,29 +4,22 @@ session:
   branch: main
 
 goal:
-  current: diagnose and fix agent cold-start misses of AGENTS.md in generated projects
+  current: improve first-start documentation information architecture and accessibility
 
 completed:
-  - added `## Session startup` near the top of `AGENTS.md`
-  - added required session startup section 1 to `.agentic-template/templates/AGENTS_TEMPLATE.md`
-  - tightened README onboarding to require reading `AGENTS.md` from disk and confirming it
-  - tightened `.github/copilot-instructions.md` as an external agent startup surface
-  - diagnosed the chicken-and-egg gap as missing cold-start adapters and no executable startup handshake outside `AGENTS.md`
-  - added `.agentic-template/bin/project startup` to print `AGENTS.md` from disk and list follow-on state files
-  - added an ASCII startup welcome, boot sequence and options menu to `project startup`
-  - added a Claude native skill adapter at `.claude/skills/agentic-template/SKILL.md`
-  - added a Cursor always-applied project rule at `.cursor/rules/agentic-startup-and-skills.mdc`
-  - tightened `.codex/README.md` and `.claude/README.md` to require startup or disk-read confirmation
-  - made generated READMEs require an `Agent startup` section with `.agentic-template/bin/project startup`
-  - fixed `check-wiki` dirty-tree drift detection so uncommitted wiki updates count as local documentation updates
-  - updated `check-repo-contract` to require the startup section, disk-read language and pre-identity placement
-  - added self-test regressions for missing live, template, README, Claude, Codex, Cursor and Copilot startup rules and startup display
-  - captured `INBOX-007` for the reusable startup disk-read contract pattern
+  - reshaped `.agentic-template/bin/project startup` around welcome, sequence, start paths and command options
+  - reshaped `.agentic-template/bin/project docs` into route-based documentation IA
+  - added `Documentation IA` route table to `README.md`
+  - expanded `docs/README.md` from a flat map into start paths plus grouped sections
+  - added wiki start paths in `docs/wiki/index.md`
+  - clarified `docs/wiki/development.md` to use `project docs` when the user knows intent but not the right document
+  - made generated READMEs require a `Documentation IA` section
+  - added repo-contract and self-test coverage for route-based docs IA
 
 in_progress: []
 
 next:
-  - use the startup rule in the next generated project and promote `INBOX-007` if it reduces startup contract misses
+  - use the startup and docs IA in the next generated project and refine the route labels from observed friction
 
 decisions:
   - id: structured_data_policy_configurable
@@ -45,39 +38,33 @@ decisions:
     summary: agents must read `AGENTS.md` from disk before substantive answers or tool calls; `project startup`, generated templates and supported agent entrypoints repeat the rule
   - id: thin_native_agent_adapters
     summary: Claude and Cursor get native startup/skill-routing adapters that point back to `.agents/skills/CATALOG.toon` instead of duplicating the canonical skill tree
+  - id: route_based_docs_ia
+    summary: first-start docs should offer intent-based routes before exposing the full reference map
 
 risks:
   - check-handoff validates knowledge bookkeeping structurally but does not prove semantic freshness
   - check-wiki remains warn-only; human or lead agent must still promote useful inbox entries after evidence
   - worktree-status reports observable git state and does not reconcile mismatches automatically
   - repository checks can enforce startup contract wording and adapter presence but cannot prove a live agent actually read the file
+  - route labels are template hypotheses until tried in generated projects
 
 files_changed:
   - .agentic-template/bin/check-repo-contract
   - .agentic-template/bin/check-readme
-  - .agentic-template/bin/check-wiki
-  - .agentic-template/bin/bootstrap-project
-  - .agentic-template/bin/project
+  - .agentic-template/bin/docs-map
   - .agentic-template/bin/self-test
   - .agentic-template/bin/startup
-  - .agentic-template/templates/AGENTS_TEMPLATE.md
   - .agentic-template/templates/README_TEMPLATE.md
-  - .agents/knowledge/inbox/INBOX-007-session-startup-disk-read.md
-  - .agents/README.md
-  - .claude/README.md
-  - .claude/skills/agentic-template/SKILL.md
-  - .codex/README.md
-  - .cursor/rules/agentic-startup-and-skills.mdc
-  - .github/copilot-instructions.md
-  - AGENTS.md
   - docs/README.md
-  - docs/wiki/agents.md
   - docs/wiki/development.md
+  - docs/wiki/index.md
   - HANDOFF.toon
   - README.md
 
 tests_run:
   - 2026-07-26 .agentic-template/bin/project startup: pass
+  - 2026-07-26 .agentic-template/bin/project docs: pass
+  - 2026-07-26 .agentic-template/bin/project check-readme: pass
   - 2026-07-26 .agentic-template/bin/project check-wiki: pass
   - 2026-07-26 .agentic-template/bin/project self-test: pass
   - 2026-07-26 .agentic-template/bin/project check: pass
@@ -90,11 +77,10 @@ knowledge:
     - .agents/knowledge/inbox/INBOX-002-enforce-knowledge-graph-upkeep.md
     - .agents/knowledge/inbox/INBOX-004-documentation-map-and-validation-blueprint.md
     - .agents/knowledge/inbox/INBOX-007-session-startup-disk-read.md
-  proposals:
-    - .agents/knowledge/inbox/INBOX-007-session-startup-disk-read.md
-  no_record: null
+  proposals: []
+  no_record: existing `INBOX-004` and `INBOX-007` already cover docs navigation and startup IA; this pass refines implementation, not a new durable proposal
 
 team_fallback:
   current: single lead agent using explicit review checklist
-  reason: bounded contract and documentation update
+  reason: bounded documentation IA refinement
   lost_challenge: independent reviewer; mitigated by explicit limitation analysis and deterministic self-test

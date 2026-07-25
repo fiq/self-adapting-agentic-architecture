@@ -13,6 +13,9 @@ Start with:
 .agentic-template/bin/project doctor
 ```
 
+Use `.agentic-template/bin/project docs` when you know the kind of work but not
+which document to read first.
+
 ## Development lifecycle
 
 ```
