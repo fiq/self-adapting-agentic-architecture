@@ -27,6 +27,8 @@ The canonical command surface is `.agentic-template/bin/project`.
 | `project check-readme` | Validate README is not template-facing and has required sections |
 | `project install-hooks` | Opt-in: install a non-blocking wiki-drift pre-commit hook |
 | `project docs` | Print compact documentation navigation |
+| `project backlog` | Print current in-progress and next work from HANDOFF.toon |
+| `project worktree-status` | Print read-only agent worktree status |
 | `project ready` | Run all applicable deterministic readiness checks |
 | `project compose-config` | Validate docker compose configuration |
 | `project compose-test` | Bounded Compose smoke test with deterministic cleanup |

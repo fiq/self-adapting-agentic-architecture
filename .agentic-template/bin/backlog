@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path.cwd()
+HANDOFF = ROOT / "HANDOFF.toon"
+
+
+def section(text, name):
+    marker = f"{name}:"
+    start = text.find(marker)
+    if start < 0:
+        return "(missing)"
+    end = len(text)
+    for line_start in range(start + len(marker), len(text)):
+        if text[line_start - 1] == "\n":
+            next_line = text[line_start:]
+            if next_line and not next_line.startswith(" ") and ":" in next_line.split("\n", 1)[0]:
+                end = line_start - 1
+                break
+    return text[start:end].strip()
+
+
+def worktree_summary():
+    result = subprocess.run(
+        ["git", "worktree", "list", "--porcelain"],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    if result.returncode:
+        return ["(git worktree unavailable)"]
+    paths = [
+        line.split(" ", 1)[1]
+        for line in result.stdout.splitlines()
+        if line.startswith("worktree ")
+    ]
+    claimed = []
+    for path in paths:
+        if "/.worktrees/" in path:
+            claimed.append(str(Path(path).name))
+    return claimed or ["none under .worktrees/"]
+
+
+def main():
+    if not HANDOFF.exists():
+        print("BACKLOG")
+        print()
+        print("HANDOFF.toon missing")
+        return 1
+    text = HANDOFF.read_text()
+    print("BACKLOG")
+    print()
+    print("IN PROGRESS")
+    print(section(text, "in_progress"))
+    print()
+    print("NEXT")
+    print(section(text, "next"))
+    print()
+    print("CLAIMED WORKTREES")
+    for item in worktree_summary():
+        print(f"- {item}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

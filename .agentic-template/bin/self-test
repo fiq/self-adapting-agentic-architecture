@@ -246,6 +246,14 @@ def main():
             failures += 1
         if not expect(work, "project docs prints documentation map", PROJECT + ["docs"], 0, "DOCUMENTATION MAP"):
             failures += 1
+        if not expect(work, "project --list includes backlog", PROJECT + ["--list"], 0, "backlog"):
+            failures += 1
+        if not expect(work, "project --list includes worktree-status", PROJECT + ["--list"], 0, "worktree-status"):
+            failures += 1
+        if not expect(work, "project backlog prints current work", PROJECT + ["backlog"], 0, "BACKLOG"):
+            failures += 1
+        if not expect(work, "project worktree-status prints worktrees", PROJECT + ["worktree-status"], 0, "WORKTREE STATUS"):
+            failures += 1
 
         # ---- check-readme on template: should pass (template README is allowed) ----
         if not expect(work, "check-readme passes on template README", PROJECT + ["check-readme"], 0, "README OK"):

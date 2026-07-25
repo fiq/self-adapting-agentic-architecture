@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path.cwd()
+
+
+def run(cmd):
+    return subprocess.run(
+        cmd,
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+
+def parse_worktrees(output):
+    items = []
+    current = {}
+    for line in output.splitlines():
+        if not line:
+            if current:
+                items.append(current)
+                current = {}
+            continue
+        if " " in line:
+            key, value = line.split(" ", 1)
+        else:
+            key, value = line, ""
+        current[key] = value
+    if current:
+        items.append(current)
+    return items
+
+
+def branch_name(item):
+    branch = item.get("branch", "")
+    prefix = "refs/heads/"
+    if branch.startswith(prefix):
+        return branch[len(prefix):]
+    return branch or "(detached)"
+
+
+def owner_for(path, branch):
+    if branch and "/" in branch:
+        return branch.split("/", 1)[0]
+    try:
+        rel = Path(path).resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        return "unknown"
+    if len(rel.parts) >= 2 and rel.parts[0] == ".worktrees":
+        return rel.parts[1].split("-", 1)[0]
+    return "main" if rel == Path(".") else "unknown"
+
+
+def last_commit(path):
+    result = subprocess.run(
+        ["git", "-C", path, "log", "-1", "--oneline"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    return result.stdout.strip() or "(no commits)"
+
+
+def handoff_branch():
+    path = ROOT / "HANDOFF.toon"
+    if not path.exists():
+        return "(HANDOFF.toon missing)"
+    for line in path.read_text().splitlines():
+        if line.startswith("  branch:"):
+            return line.split(":", 1)[1].strip()
+    return "(not recorded)"
+
+
+def main():
+    result = run(["git", "worktree", "list", "--porcelain"])
+    if result.returncode:
+        print(result.stdout.strip())
+        return result.returncode
+
+    items = parse_worktrees(result.stdout)
+    print("WORKTREE STATUS")
+    print()
+    print(f"handoff branch: {handoff_branch()}")
+    print()
+    for item in items:
+        path = item.get("worktree", "")
+        branch = branch_name(item)
+        owner = owner_for(path, branch)
+        rel = Path(path)
+        try:
+            rel = rel.resolve().relative_to(ROOT.resolve())
+        except ValueError:
+            pass
+        print(f"- path: {rel}")
+        print(f"  branch: {branch}")
+        print(f"  owner: {owner}")
+        print(f"  head: {last_commit(path)}")
+    agent_worktrees = [
+        item for item in items
+        if "/.worktrees/" in item.get("worktree", "") or item.get("worktree", "").endswith("/.worktrees")
+    ]
+    if not agent_worktrees:
+        print()
+        print("agent worktrees: none under .worktrees/")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

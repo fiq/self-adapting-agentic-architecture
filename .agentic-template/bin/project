@@ -29,6 +29,8 @@ COMMANDS = {
     "check-tooling": [[str(BIN / "check-tooling")]],
     "check-mcp": [[str(BIN / "check-mcp")]],
     "check-readme": [[str(BIN / "check-readme")]],
+    "backlog": [[str(BIN / "backlog")]],
+    "worktree-status": [[str(BIN / "worktree-status")]],
     "ready": [[str(BIN / "project-ready")]],
     "compose-config": [[str(BIN / "compose-config")]],
     "compose-test": [[str(BIN / "compose-test")]],

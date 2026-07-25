@@ -90,6 +90,12 @@ skills:
   agent_team_fallback:
     path: coordination/agent-team-fallback/SKILL.md
     trigger: preferred_team_topology_unavailable
+  worktree_status:
+    path: coordination/worktree-status/SKILL.md
+    trigger: user_asks_active_worktrees_or_agent_status
+  backlog_status:
+    path: coordination/backlog-status/SKILL.md
+    trigger: user_asks_current_or_next_work
 
   knowledge_search:
     path: knowledge/knowledge-search/SKILL.md
