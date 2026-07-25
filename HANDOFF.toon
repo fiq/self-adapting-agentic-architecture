@@ -106,6 +106,7 @@ knowledge:
   proposals:
     - .agents/knowledge/inbox/INBOX-002-enforce-knowledge-graph-upkeep.md
     - .agents/knowledge/inbox/INBOX-003-context-packet-budgeting.md
+    - .agents/knowledge/inbox/INBOX-004-documentation-map-and-validation-blueprint.md
   no_record: null
 
 team_fallback:

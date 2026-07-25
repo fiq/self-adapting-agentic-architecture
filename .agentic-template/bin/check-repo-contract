@@ -17,6 +17,8 @@ REQUIRED_FILES = [
     "flake.nix",
     "flake.lock",
     "compose.yaml",
+    "docs/README.md",
+    "docs/validation.md",
     ".agents/skills/CATALOG.toon",
     ".agents/skills/init/SKILL.md",
     ".agents/knowledge/README.md",
@@ -57,6 +59,7 @@ REQUIRED_FILES = [
     ".agentic-template/bin/compose-test",
     ".agentic-template/bin/infra-check",
     ".agentic-template/bin/doctor",
+    ".agentic-template/bin/docs-map",
     ".agentic-template/bin/self-test",
 ]
 
@@ -103,7 +106,7 @@ PROJECT_COMMANDS = [
     "integration-test", "component-test", "e2e-test", "lint", "run",
     "image", "image-test", "repo-check", "check-profile", "check-handoff",
     "check-knowledge", "check-tooling", "check-mcp", "check-readme",
-    "ready", "compose-config", "compose-test", "infra-check",
+    "ready", "compose-config", "compose-test", "infra-check", "docs",
     "doctor", "self-test",
 ]
 

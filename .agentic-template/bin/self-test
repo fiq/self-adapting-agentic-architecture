@@ -242,6 +242,10 @@ def main():
             failures += 1
         if not expect(work, "project --list includes check-readme", PROJECT + ["--list"], 0, "check-readme"):
             failures += 1
+        if not expect(work, "project --list includes docs", PROJECT + ["--list"], 0, "docs"):
+            failures += 1
+        if not expect(work, "project docs prints documentation map", PROJECT + ["docs"], 0, "DOCUMENTATION MAP"):
+            failures += 1
 
         # ---- check-readme on template: should pass (template README is allowed) ----
         if not expect(work, "check-readme passes on template README", PROJECT + ["check-readme"], 0, "README OK"):

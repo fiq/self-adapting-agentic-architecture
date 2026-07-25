@@ -286,6 +286,8 @@ This is **not**:
 
 - **Architecture:** see `docs/architecture/` (ADRs)
 - **Decisions:** see `docs/decisions/` (ADR index)
+- **Docs map:** see `docs/README.md`
+- **Validation:** see `docs/validation.md`
 - **Knowledge:** see `.agents/knowledge/` (taxonomy, domains, systems, risks, questions)
 - **Durable rules:** see `AGENTS.md` (operating contract)
 - **Development lifecycle:** see `docs/wiki/development.md`

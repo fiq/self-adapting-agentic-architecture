@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+
+ROOT = Path.cwd()
+
+DOCS = [
+    ("Operating contract", "AGENTS.md", "canonical rules for agents and humans"),
+    ("Project profile", "PROJECT_PROFILE.toon", "facts, decisions, unknowns and policy"),
+    ("Handoff", "HANDOFF.toon", "current work state and knowledge upkeep"),
+    ("Documentation map", "docs/README.md", "where durable docs live"),
+    ("Structured data", "docs/structured-data.md", "TOON/S-expression policy"),
+    ("Validation", "docs/validation.md", "what checks prove and record"),
+    ("Wiki", "docs/wiki/index.md", "human-facing durable docs"),
+    ("Decisions", "docs/decisions/README.md", "ADR index"),
+    ("Specs", "specs/README.md", "capabilities and change proposals"),
+    ("Knowledge", ".agents/knowledge/index.md", "searchable graph index"),
+]
+
+
+def main():
+    print("DOCUMENTATION MAP")
+    print()
+    missing = []
+    for label, path, purpose in DOCS:
+        exists = (ROOT / path).exists()
+        marker = "ok" if exists else "missing"
+        print(f"- {label}: {path} [{marker}]")
+        print(f"  {purpose}")
+        if not exists:
+            missing.append(path)
+    if missing:
+        print()
+        print("MISSING")
+        for path in missing:
+            print(f"  - {path}")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
