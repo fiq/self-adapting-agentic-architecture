@@ -5,6 +5,10 @@ lazy-loaded skills. `AGENTS.md` remains canonical.
 
 Load only the files needed for the current task.
 
+Native tool adapters are thin pointers, not copies of the canonical skill
+tree. Claude uses `.claude/skills/agentic-template/SKILL.md`; Cursor uses
+`.cursor/rules/agentic-startup-and-skills.mdc`.
+
 ## Knowledge Layer
 
 Use `.agents/knowledge/` for durable reviewed project knowledge and

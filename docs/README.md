@@ -15,9 +15,14 @@ Markdown and active state in structured files.
 | Decisions | `docs/decisions/` | ADRs and decision records |
 | Specs | `specs/` | Capabilities and change proposals |
 | Knowledge | `.agents/knowledge/` | Searchable graph of durable knowledge |
+| Claude adapter | `.claude/skills/agentic-template/SKILL.md` | Thin native pointer to startup and canonical skills |
+| Cursor adapter | `.cursor/rules/agentic-startup-and-skills.mdc` | Always-applied startup and skill-routing rule |
 
 ## Navigation Rules
 
+- For a fresh agent session, run `.agentic-template/bin/project startup` to see
+  the welcome, startup sequence, options and canonical contract before planning
+  or implementation.
 - Search `.agents/knowledge/index.md` before planning or implementation.
 - Use `docs/wiki/index.md` for human-facing durable docs.
 - Use `project docs` for a command-line map of key files.

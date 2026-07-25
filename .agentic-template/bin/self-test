@@ -126,6 +126,152 @@ def main():
         if not expect(work, "restored CLAUDE.md symlink passes", PROJECT + ["repo-check"], 0):
             failures += 1
 
+        # ---- startup contract ----
+        agents = work / "AGENTS.md"
+        agents_template = work / ".agentic-template/templates/AGENTS_TEMPLATE.md"
+        copilot_instructions = work / ".github/copilot-instructions.md"
+        codex_readme = work / ".codex/README.md"
+        claude_readme = work / ".claude/README.md"
+        claude_skill = work / ".claude/skills/agentic-template/SKILL.md"
+        cursor_rule = work / ".cursor/rules/agentic-startup-and-skills.mdc"
+        original_agents = agents.read_text()
+        original_agents_template = agents_template.read_text()
+        original_copilot_instructions = copilot_instructions.read_text()
+        original_codex_readme = codex_readme.read_text()
+        original_claude_readme = claude_readme.read_text()
+        original_claude_skill = claude_skill.read_text()
+        original_cursor_rule = cursor_rule.read_text()
+
+        agents.write_text(original_agents.replace("## Session startup", "## Missing startup", 1))
+        if not expect(
+            work,
+            "missing AGENTS session startup fails",
+            PROJECT + ["repo-check"],
+            1,
+            "AGENTS.md missing ## Session startup",
+        ):
+            failures += 1
+        agents.write_text(original_agents)
+
+        agents_template.write_text(
+            original_agents_template.replace(
+                "`AGENTS.md` from disk before",
+                "AGENTS content from memory before",
+                1,
+            )
+        )
+        if not expect(
+            work,
+            "missing template disk-read startup rule fails",
+            PROJECT + ["repo-check"],
+            1,
+            "AGENTS template must instruct agents to read AGENTS.md from disk",
+        ):
+            failures += 1
+        agents_template.write_text(original_agents_template)
+
+        copilot_instructions.write_text(
+            original_copilot_instructions.replace(
+                "read `AGENTS.md` from\n"
+                "disk",
+                "read AGENTS content from memory",
+                1,
+            )
+        )
+        if not expect(
+            work,
+            "missing Copilot disk-read startup rule fails",
+            PROJECT + ["repo-check"],
+            1,
+            ".github/copilot-instructions.md must instruct agents to read AGENTS.md from disk",
+        ):
+            failures += 1
+        copilot_instructions.write_text(original_copilot_instructions)
+
+        codex_readme.write_text(
+            original_codex_readme.replace(
+                "read `../AGENTS.md` from\n"
+                "disk",
+                "read AGENTS content from memory",
+                1,
+            )
+        )
+        if not expect(
+            work,
+            "missing Codex disk-read startup rule fails",
+            PROJECT + ["repo-check"],
+            1,
+            ".codex/README.md must instruct agents to read ../AGENTS.md from disk",
+        ):
+            failures += 1
+        codex_readme.write_text(original_codex_readme)
+
+        claude_readme.write_text(
+            original_claude_readme.replace(
+                "read `../AGENTS.md` from\n"
+                "disk",
+                "read AGENTS content from memory",
+                1,
+            )
+        )
+        if not expect(
+            work,
+            "missing Claude disk-read startup rule fails",
+            PROJECT + ["repo-check"],
+            1,
+            ".claude/README.md must instruct agents to read ../AGENTS.md from disk",
+        ):
+            failures += 1
+        claude_readme.write_text(original_claude_readme)
+
+        claude_skill.write_text(
+            original_claude_skill.replace(
+                "read `../AGENTS.md` from disk",
+                "read AGENTS content from memory",
+                1,
+            )
+        )
+        if not expect(
+            work,
+            "missing Claude skill disk-read startup rule fails",
+            PROJECT + ["repo-check"],
+            1,
+            ".claude/skills/agentic-template/SKILL.md must instruct agents to read ../AGENTS.md from disk",
+        ):
+            failures += 1
+        claude_skill.write_text(original_claude_skill)
+
+        cursor_rule.write_text(
+            original_cursor_rule.replace(
+                "read `AGENTS.md` from\n"
+                "disk",
+                "read AGENTS content from memory",
+                1,
+            )
+        )
+        if not expect(
+            work,
+            "missing Cursor disk-read startup rule fails",
+            PROJECT + ["repo-check"],
+            1,
+            ".cursor/rules/agentic-startup-and-skills.mdc must instruct agents to read AGENTS.md from disk",
+        ):
+            failures += 1
+        cursor_rule.write_text(original_cursor_rule)
+
+        startup = work / ".agentic-template/bin/startup"
+        original_startup = startup.read_text()
+        startup.write_text(original_startup.replace("WHAT HAPPENS NEXT", "STARTUP STEPS", 1))
+        if not expect(
+            work,
+            "missing startup sequence display fails",
+            PROJECT + ["repo-check"],
+            1,
+            ".agentic-template/bin/startup must print startup welcome, sequence and options",
+        ):
+            failures += 1
+        startup.write_text(original_startup)
+
         # ---- profile validation ----
         replace(
             profile,
@@ -265,7 +411,17 @@ def main():
             failures += 1
         if not expect(work, "project --list includes check-readme", PROJECT + ["--list"], 0, "check-readme"):
             failures += 1
+        if not expect(work, "project --list includes startup", PROJECT + ["--list"], 0, "startup"):
+            failures += 1
         if not expect(work, "project --list includes docs", PROJECT + ["--list"], 0, "docs"):
+            failures += 1
+        if not expect(work, "project startup reads AGENTS from disk", PROJECT + ["startup"], 0, "AGENTS.md read from disk"):
+            failures += 1
+        if not expect(work, "project startup shows welcome", PROJECT + ["startup"], 0, "AGENTIC TEAM STARTUP"):
+            failures += 1
+        if not expect(work, "project startup explains sequence", PROJECT + ["startup"], 0, "WHAT HAPPENS NEXT"):
+            failures += 1
+        if not expect(work, "project startup shows options", PROJECT + ["startup"], 0, "OPTIONS"):
             failures += 1
         if not expect(work, "project docs prints documentation map", PROJECT + ["docs"], 0, "DOCUMENTATION MAP"):
             failures += 1
@@ -316,9 +472,23 @@ def main():
             failures += 1
         readme.write_text(original_readme)
 
+        # ---- negative: README agent startup section must include startup command ----
+        readme.write_text(original_readme.replace(".agentic-template/bin/project startup", "project agent startup"))
+        if not expect(
+            work,
+            "missing README startup command fails check-readme",
+            PROJECT + ["check-readme"],
+            1,
+            "missing required text",
+        ):
+            failures += 1
+        readme.write_text(original_readme)
+
         # ---- positive: emoji-prefixed headings pass check-readme ----
         readme.write_text(
             "# Emoji Project\n\n"
+            "## Agent startup\n\n"
+            "Run .agentic-template/bin/project startup.\n\n"
             "## 🏃 Run locally\n\n"
             "Instructions here.\n\n"
             "## Run with containers\n\n"
@@ -421,6 +591,8 @@ def main():
         readme.write_text(
             "# My Specialised Project\n\n"
             "A specialised project.\n\n"
+            "## Agent startup\n\n"
+            "Run .agentic-template/bin/project startup.\n\n"
             "## Run locally\n\n"
             "Run the project.\n\n"
             "## Run with containers\n\n"

@@ -3,6 +3,21 @@
 `AGENTS.md` is canonical. Claude, Codex, Copilot and other model instructions
 should point back to it.
 
+For a fresh session, run `.agentic-template/bin/project startup` first. It
+prints an ASCII welcome, startup sequence, options, `AGENTS.md` from disk and
+the follow-on state files required for non-trivial work.
+
+Native adapters are intentionally thin:
+
+- Claude: `.claude/skills/agentic-template/SKILL.md`
+- Cursor: `.cursor/rules/agentic-startup-and-skills.mdc`
+- Copilot: `.github/copilot-instructions.md`
+- Codex: `.codex/README.md`
+
+The canonical skills remain under `.agents/skills/` and are indexed by
+`.agents/skills/CATALOG.toon`. The startup adapter pattern is tracked as
+`INBOX-007` until it has enough generated-project evidence to promote.
+
 Use persistent roles for continuing responsibility and subagents for bounded
 work. Keep context focused and summarise outputs semantically.
 

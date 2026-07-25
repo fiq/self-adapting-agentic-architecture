@@ -1,4 +1,7 @@
-Read `AGENTS.md`. It is canonical.
+Run `.agentic-template/bin/project startup` first, or read `AGENTS.md` from
+disk yourself. Confirm that `AGENTS.md` was read from disk, then continue.
+Review the startup sequence and options before choosing the next command.
+`AGENTS.md` is canonical.
 
 Read `HANDOFF.toon` for current work and `PROJECT_PROFILE.toon` for project
 facts, assumptions, decisions and unknowns.

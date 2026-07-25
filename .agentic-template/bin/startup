@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+from hashlib import sha256
+from pathlib import Path
+import sys
+
+ROOT = Path.cwd()
+AGENTS = ROOT / "AGENTS.md"
+FOLLOW_ON = [
+    "HANDOFF.toon",
+    "PROJECT_PROFILE.toon",
+    ".agents/knowledge/index.md",
+]
+
+WELCOME = r"""
+   ___                    __  _        ______
+  / _ | ___ ____ ___  ___/ /_(_)___   /_  __/__ ___ ___ _
+ / __ |/ _ `/ -_) _ \/ _  / / __/      / / / -_) _ `/  ' \
+/_/ |_|\_, /\__/_//_/\_,_/_/\__/      /_/  \__/\_,_/_/_/_/
+      /___/
+"""
+
+WHAT_HAPPENS = [
+    "1. Confirm AGENTS.md was read from disk.",
+    "2. Load current state for non-trivial work.",
+    "3. Inspect evidence before asking preference questions.",
+    "4. Pick the smallest useful next action and validate it.",
+]
+
+OPTIONS = [
+    (".agentic-template/bin/project init", "specialise a new project from evidence"),
+    (".agentic-template/bin/project inspect", "print compact repository evidence"),
+    (".agentic-template/bin/project docs", "show documentation navigation"),
+    (".agentic-template/bin/project backlog", "show current and next work"),
+    (".agentic-template/bin/project check", "run contract and state checks"),
+    (".agentic-template/bin/project ready", "run readiness gates"),
+]
+
+
+def fail(message):
+    print("STARTUP FAILED")
+    print()
+    print(message)
+    return 1
+
+
+def status(path):
+    if path.exists():
+        return "present"
+    return "missing"
+
+
+def main():
+    if not AGENTS.exists():
+        return fail("AGENTS.md is unavailable; say so explicitly before continuing.")
+
+    text = AGENTS.read_text()
+    digest = sha256(text.encode()).hexdigest()
+
+    print(WELCOME.strip())
+    print()
+    print("AGENTIC TEAM STARTUP")
+    print("Read the contract. Load the state. Make the smallest useful move.")
+    print()
+    print("WHAT HAPPENS NEXT")
+    for item in WHAT_HAPPENS:
+        print(f"- {item}")
+    print()
+    print("OPTIONS")
+    for command, purpose in OPTIONS:
+        print(f"- {command}")
+        print(f"  {purpose}")
+    print()
+    print(f"AGENTS.md read from disk: {AGENTS}")
+    print(f"sha256: {digest}")
+    print()
+    print("----- AGENTS.md -----")
+    print(text.rstrip())
+    print("----- END AGENTS.md -----")
+    print()
+    print("For non-trivial work, read these next before planning or implementation:")
+    missing = []
+    for rel in FOLLOW_ON:
+        path = ROOT / rel
+        print(f"- {rel}: {status(path)}")
+        if not path.exists():
+            missing.append(rel)
+    if missing:
+        print()
+        print("Missing follow-on state files:")
+        for rel in missing:
+            print(f"- {rel}")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

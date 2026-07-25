@@ -1,5 +1,20 @@
 # Repository Operating Contract
 
+## Session startup
+
+At the start of every new conversation or task in this repository, read
+`AGENTS.md` from disk before giving a substantive answer or making tool calls.
+If starting from a human prompt or agent-specific shim, run
+`.agentic-template/bin/project startup` first; it prints an ASCII welcome,
+startup sequence, options and `AGENTS.md` from disk.
+
+Do not treat injected, pasted or remembered AGENTS content as a substitute for
+the filesystem read unless the file is unavailable. If it is unavailable, say
+so explicitly.
+
+For non-trivial work, then read `HANDOFF.toon`, `PROJECT_PROFILE.toon` and the
+knowledge index before planning or implementation.
+
 ## Project identity
 
 This repository is an AI-first project template. Agents should reduce
@@ -15,6 +30,7 @@ The canonical command surface is `.agentic-template/bin/project`.
 
 | Command | Purpose |
 |---|---|
+| `project startup` | Print welcome, options, `AGENTS.md` from disk and required follow-on state files |
 | `project init` | Evidence-driven discovery, specialisation, identity rewrite and validation |
 | `project inspect` | Print compact project evidence |
 | `project check` | Run all repo-contract, profile, handoff, knowledge, changes and tooling checks |

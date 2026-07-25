@@ -1,0 +1,17 @@
+---
+description: Repository startup and canonical agent skill routing.
+alwaysApply: true
+---
+
+Run `.agentic-template/bin/project startup` first, or read `AGENTS.md` from
+disk yourself. Confirm that `AGENTS.md` was read from disk, then review the
+startup sequence and options before choosing the next command.
+
+`AGENTS.md` is the canonical operating contract. For non-trivial work, read
+`HANDOFF.toon`, `PROJECT_PROFILE.toon` and `.agents/knowledge/index.md` before
+planning or implementation.
+
+Canonical repository skills live under `.agents/skills/` and are indexed by
+`.agents/skills/CATALOG.toon`. Load only the relevant `.agents/skills/.../SKILL.md`
+files for the task instead of copying or symlinking the full skill tree into
+Cursor rules.

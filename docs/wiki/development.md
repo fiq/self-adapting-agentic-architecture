@@ -7,6 +7,7 @@ Start with:
 
 ```sh
 .agentic-template/bin/project help
+.agentic-template/bin/project startup
 .agentic-template/bin/project init
 .agentic-template/bin/project check
 .agentic-template/bin/project doctor

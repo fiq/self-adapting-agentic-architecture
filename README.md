@@ -14,7 +14,10 @@ A framework for AI agents and humans to collaborate on principal-level engineeri
 - **Adapts to your experience.** The workflow calibrates to the user's skill level and project complexity. A domain expert can partner with an agent on design; a junior engineer gets more coaching and structure.
 - **Opinionated but learnable.** The rules are in readable Markdown, not hidden in prompt engineering. You can change them, disagree with them, or understand why they exist.
 - **No magic.** Commands are explicit shell scripts under `.agentic-template/bin/`. Hooks and commands are in `CLAUDE.md` (symlink to `AGENTS.md`). Knowledge is stored locally in `.agents/knowledge/` with durable schemas.
-- **Works with any agent.** No proprietary integrations. Agents read `AGENTS.md` and execute shell commands. That is it.
+- **Works with any agent.** No proprietary integrations. Agents start with
+  `.agentic-template/bin/project startup`, read `AGENTS.md` from disk and
+  see the startup sequence and options before executing shell commands. That is
+  it.
 
 ## How it works (for engineers)
 
@@ -59,11 +62,14 @@ Update `CUSTOMIZE_THIS_PROJECT.toon`:
 
 Add any artifacts: sketches, API drafts, package files, links.
 
-### 3. Start with an agent
+### 3. Agent startup
 
-In Claude, Codex or another coding agent, read `AGENTS.md` first (or `CLAUDE.md`), then ask:
+In Claude, Codex or another coding agent, make the first prompt explicit:
 
 ```
+Run .agentic-template/bin/project startup first. Confirm that AGENTS.md was
+read from disk, review the startup sequence and options, then continue.
+
 Help me initialise this project from the template.
 Run .agentic-template/bin/project init, inspect the result, and guide me
 through the smallest useful next setup steps. If my project intent is unclear,
@@ -172,6 +178,7 @@ Run the canonical commands:
 
 ```sh
 .agentic-template/bin/project help
+.agentic-template/bin/project startup    # Welcome, options and AGENTS.md from disk
 .agentic-template/bin/project init       # Bootstrap a new project
 .agentic-template/bin/project check      # Run all repo checks
 .agentic-template/bin/project ready      # Is this project ready to ship?
@@ -196,9 +203,10 @@ This template is built on **composable skills** - reusable workflows for ideatio
 
 ### Compatible agents
 
-- **Claude** (Anthropic) - reads `CLAUDE.md` (symlink to `AGENTS.md`)
+- **Claude** (Anthropic) - reads `CLAUDE.md`, `.claude/README.md` and `.claude/skills/agentic-template/SKILL.md`
 - **Copilot** (GitHub) - reads `AGENTS.md` + `.github/copilot-instructions.md`
-- **Codex** (OpenAI) - reads `AGENTS.md`
+- **Codex** (OpenAI) - reads `AGENTS.md` + `.codex/README.md`
+- **Cursor** - reads `AGENTS.md` + `.cursor/rules/agentic-startup-and-skills.mdc`
 - Any agent that can read Markdown and execute shell commands
 
 ### Agent personas (persistent roles) 👥

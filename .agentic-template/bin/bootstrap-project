@@ -16,6 +16,7 @@ def main():
     print(flush=True)
     print("phases: discover -> decide -> specialise -> rewrite identity -> validate -> update handoff", flush=True)
     print(flush=True)
+    print("startup: run .agentic-template/bin/project startup for the disk-read contract", flush=True)
     print("reading AGENTS.md, HANDOFF.toon, PROJECT_PROFILE.toon and CUSTOMIZE_THIS_PROJECT.toon", flush=True)
     print("resolving structured-data policy: TOON for state/contracts, S-expressions for rules/compute by default", flush=True)
     print("loading .agents/skills/CATALOG.toon", flush=True)

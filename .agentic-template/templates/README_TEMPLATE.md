@@ -13,21 +13,25 @@ A generated project README must include:
 3. **Delivered or intended thin slice** — what is working now or intended next.
 4. **Runtime architecture diagram** — an ASCII or image diagram of the system.
 5. **Repository structure** — key directories and their purpose.
-6. **Run locally** — how to start the project in a development shell.
-7. **Run with containers** — container build and run instructions, or an
+6. **Agent startup** — tell fresh agent sessions to run
+   `.agentic-template/bin/project startup`, confirm `AGENTS.md` was read from
+   disk, review the printed sequence/options, and then continue from the
+   operating contract.
+7. **Run locally** — how to start the project in a development shell.
+8. **Run with containers** — container build and run instructions, or an
    explicit "not applicable" with a reason.
-8. **Tests** — how to run the test suite via `.agentic-template/bin/project`.
-9. **Configuration and environment variables** — what env vars or config
+9. **Tests** — how to run the test suite via `.agentic-template/bin/project`.
+10. **Configuration and environment variables** — what env vars or config
    files the project uses.
-10. **Infrastructure and deployment state** — where the project deploys and
+11. **Infrastructure and deployment state** — where the project deploys and
     what IaC status is recorded.
-11. **Deliberate non-goals** — what the project intentionally does not do.
-12. **Development lifecycle** — how work flows: `/ideate` (or a narrative) →
+12. **Deliberate non-goals** — what the project intentionally does not do.
+13. **Development lifecycle** — how work flows: `/ideate` (or a narrative) →
     a structured change spec → boundary-in ATDD → `/review` clean-up → archive
     and wiki upkeep.
-13. **Important decisions and documentation links** — ADRs, wiki, specs,
+14. **Important decisions and documentation links** — ADRs, wiki, specs,
     docs map and structured-data policy where relevant.
-14. **AI-assisted delivery statement** — where relevant, state that AI agents
+15. **AI-assisted delivery statement** — where relevant, state that AI agents
     assisted delivery and where the operating contract lives.
 
 ## Template markers that must not remain

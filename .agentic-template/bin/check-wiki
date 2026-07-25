@@ -6,8 +6,8 @@ code. This check never blocks: it prints warnings for drift so an agent knows
 to run the wiki-tidy skill. It reports:
 
 - wiki pages referencing a knowledge id that does not resolve;
-- the wiki lagging behind knowledge or specs (by last commit time, when the
-  repository is a git checkout).
+- the wiki lagging behind knowledge or specs (by last commit time in clean
+  checkouts, with local file mtimes considered for dirty working trees).
 """
 from pathlib import Path
 import re
@@ -61,6 +61,26 @@ def last_commit_ts(path):
     except ValueError:
         return None
 
+def latest_file_mtime(path):
+    if not path.exists():
+        return None
+    candidates = [path] if path.is_file() else [p for p in path.rglob("*") if p.is_file()]
+    latest = None
+    for candidate in candidates:
+        try:
+            mtime = candidate.stat().st_mtime
+        except OSError:
+            continue
+        if latest is None or mtime > latest:
+            latest = mtime
+    return latest
+
+def latest_observed_ts(path):
+    observed = [ts for ts in [last_commit_ts(path), latest_file_mtime(path)] if ts is not None]
+    if not observed:
+        return None
+    return max(observed)
+
 
 def main():
     warnings = []
@@ -80,10 +100,10 @@ def main():
                     f"{path.relative_to(ROOT)}: references unknown knowledge id {token}"
                 )
 
-    wiki_ts = last_commit_ts(WIKI)
+    wiki_ts = latest_observed_ts(WIKI)
     if wiki_ts is not None:
         for label, target in (("knowledge", KNOWLEDGE), ("specs", SPECS)):
-            other_ts = last_commit_ts(target)
+            other_ts = latest_observed_ts(target)
             if other_ts is not None and other_ts > wiki_ts:
                 warnings.append(
                     f"{label} changed after the wiki was last updated; "

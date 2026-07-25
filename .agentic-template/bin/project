@@ -8,6 +8,7 @@ BIN = Path(__file__).resolve().parent
 COMMAND_NAME = ".agentic-template/bin/project"
 
 COMMANDS = {
+    "startup": [[str(BIN / "startup")]],
     "init": [[str(BIN / "bootstrap-project")]],
     "inspect": [[str(BIN / "inspect-project")]],
     "check": [

@@ -1,5 +1,20 @@
 # AGENTS Template
 
+## Session startup
+
+At the start of every new conversation or task in this repository, read
+`AGENTS.md` from disk before giving a substantive answer or making tool calls.
+If starting from a human prompt or agent-specific shim, run
+`.agentic-template/bin/project startup` first; it prints an ASCII welcome,
+startup sequence, options and `AGENTS.md` from disk.
+
+Do not treat injected, pasted or remembered AGENTS content as a substitute for
+the filesystem read unless the file is unavailable. If it is unavailable, say
+so explicitly.
+
+For non-trivial work, then read `HANDOFF.toon`, `PROJECT_PROFILE.toon` and the
+knowledge index before planning or implementation.
+
 After `/specialise`, replace the template `AGENTS.md` with a project-specific
 operating contract. Keep this template as hidden source material under
 `.agentic-template/templates/`.
@@ -8,43 +23,48 @@ operating contract. Keep this template as hidden source material under
 
 A generated project AGENTS.md must include:
 
-1. **Project identity** — name, purpose and primary consumer.
-2. **Canonical commands** — `.agentic-template/bin/project` commands that
+1. **Session startup** — read `AGENTS.md` from disk before substantive answers
+   or tool calls; expose `.agentic-template/bin/project startup` as the
+   startup handshake with an ASCII welcome, boot sequence and options; for
+   non-trivial work, then read `HANDOFF.toon`, `PROJECT_PROFILE.toon` and the
+   knowledge index before planning or implementation.
+2. **Project identity** — name, purpose and primary consumer.
+3. **Canonical commands** — `.agentic-template/bin/project` commands that
    apply (including `check-changes` and `check-wiki`), and explicit "not
    applicable" markers for non-applicable commands.
-3. **Architecture and dependency rules** — runtime, framework, Clean
+4. **Architecture and dependency rules** — runtime, framework, Clean
    Architecture boundaries, and what must not be added without evidence.
-4. **Quality and technical debt** — boy-scout rule, reuse over duplication at
+5. **Quality and technical debt** — boy-scout rule, reuse over duplication at
    the 2nd+ occurrence, pay in-path debt / record out-of-scope debt, docs land
    in the same change, no silent TODOs.
-5. **Right-sizing** — architecture scales to the calibrated audience; the
+6. **Right-sizing** — architecture scales to the calibrated audience; the
    smaller design is a conscious, recorded, bought-into choice.
-6. **Testing expectations** — boundary-in, ATDD-aligned design; fidelity by
+7. **Testing expectations** — boundary-in, ATDD-aligned design; fidelity by
    risk (acceptance / component-integration / subcutaneous); real dependency
    semantics where cheap and material.
-7. **Structured data formats** — configured TOON/S-expression policy; TOON
+8. **Structured data formats** — configured TOON/S-expression policy; TOON
    benefits state/contracts, S-expressions benefit rules/compute.
-8. **Spec system** — OpenSpec-shaped structured specs under
+9. **Spec system** — OpenSpec-shaped structured specs under
    `specs/capabilities` and `specs/changes`, validated by `check-changes`.
-9. **Knowledge graph and taxonomy** — knowledge, specs, ADRs and wiki form one
+10. **Knowledge graph and taxonomy** — knowledge, specs, ADRs and wiki form one
    graph (`.agents/knowledge/TAXONOMY.md`); search before acting, link by id.
-10. **Container and infrastructure rules** — container decision, Compose
+11. **Container and infrastructure rules** — container decision, Compose
    topology, IaC status.
-11. **Documentation update triggers** — when README, AGENTS, PROFILE, HANDOFF,
+12. **Documentation update triggers** — when README, AGENTS, PROFILE, HANDOFF,
     wiki, ADRs and specs must be updated.
-12. **Branch and PR workflow** — one issue per branch, PR requirements, merge
+13. **Branch and PR workflow** — one issue per branch, PR requirements, merge
     ownership.
-13. **Worktree rules** — one mutable worktree per agent, no dirty removal,
+14. **Worktree rules** — one mutable worktree per agent, no dirty removal,
     cleanup verification.
-14. **Agent roles and ownership** — persistent roles, subagents, delegation,
+15. **Agent roles and ownership** — persistent roles, subagents, delegation,
     and context-window-aware `context-packet` handoffs.
-15. **Team and model fallback** — degradation order and handoff protocol.
-16. **Communication rules** — conclusion first; alternatives and per-persona
+16. **Team and model fallback** — degradation order and handoff protocol.
+17. **Communication rules** — conclusion first; alternatives and per-persona
     stance (discourages / accepts / encourages) at hard choices; ASCII and
     bullets as complexity rises.
-17. **Handoff requirements** — what HANDOFF.toon must contain, including
+18. **Handoff requirements** — what HANDOFF.toon must contain, including
     knowledge consulted, proposals created and no-record rationale.
-18. **Git provenance** — real commit dates, no history rewriting.
+19. **Git provenance** — real commit dates, no history rewriting.
 
 ## CLAUDE.md
 

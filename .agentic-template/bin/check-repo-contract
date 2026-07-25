@@ -43,6 +43,12 @@ REQUIRED_FILES = [
     ".github/copilot-instructions.md",
     ".worktrees/.gitkeep",
     ".worktrees/README.md",
+    ".agentic-template/templates/AGENTS_TEMPLATE.md",
+    ".claude/README.md",
+    ".claude/skills/agentic-template/SKILL.md",
+    ".codex/README.md",
+    ".cursor/rules/agentic-startup-and-skills.mdc",
+    ".agentic-template/bin/startup",
     ".agentic-template/bin/bootstrap-project",
     ".agentic-template/bin/backlog",
     ".agentic-template/bin/project",
@@ -108,12 +114,12 @@ REQUIRED_SKILLS = [
 ]
 
 PROJECT_COMMANDS = [
-    "help", "init", "inspect", "check", "backlog", "test", "contract-test",
-    "integration-test", "component-test", "e2e-test", "lint", "run",
-    "image", "image-test", "repo-check", "check-profile", "check-handoff",
-    "check-knowledge", "check-tooling", "check-mcp", "check-readme",
-    "ready", "compose-config", "compose-test", "infra-check", "docs",
-    "doctor", "self-test", "worktree-status",
+    "help", "startup", "init", "inspect", "check", "backlog", "test",
+    "contract-test", "integration-test", "component-test", "e2e-test",
+    "lint", "run", "image", "image-test", "repo-check", "check-profile",
+    "check-handoff", "check-knowledge", "check-tooling", "check-mcp",
+    "check-readme", "ready", "compose-config", "compose-test", "infra-check",
+    "docs", "doctor", "self-test", "worktree-status",
 ]
 
 def fail(lines):
@@ -137,6 +143,38 @@ def check_skill_frontmatter(path):
         return "frontmatter missing description"
     return None
 
+def compact_whitespace(text):
+    return " ".join(text.split())
+
+def check_required_text(path, label, required_text, error, errors):
+    if not path.exists():
+        return
+    compact = compact_whitespace(path.read_text())
+    if required_text not in compact:
+        errors.append(error.format(label=label))
+
+def check_session_startup(path, label, errors):
+    if not path.exists():
+        return
+    text = path.read_text()
+    heading = "## Session startup"
+    read_rule = "read `AGENTS.md` from disk"
+    if heading not in text:
+        errors.append(f"{label} missing {heading}")
+        return
+    section_start = text.find(heading)
+    next_heading = text.find("\n## ", section_start + len(heading))
+    if next_heading < 0:
+        section = text[section_start:]
+    else:
+        section = text[section_start:next_heading]
+    compact = compact_whitespace(section)
+    if read_rule not in compact:
+        errors.append(f"{label} must instruct agents to read AGENTS.md from disk")
+    project_identity = text.find("## Project identity")
+    if project_identity >= 0 and section_start > project_identity:
+        errors.append(f"{label} {heading} must appear before ## Project identity")
+
 def main():
     errors = []
     for rel in REQUIRED_FILES:
@@ -151,11 +189,86 @@ def main():
         errors.append("CLAUDE.md is not a symlink")
     elif os.readlink(claude) != "AGENTS.md":
         errors.append("CLAUDE.md does not link to AGENTS.md")
+    check_session_startup(ROOT / "AGENTS.md", "AGENTS.md", errors)
+    check_session_startup(
+        ROOT / ".agentic-template/templates/AGENTS_TEMPLATE.md",
+        "AGENTS template",
+        errors,
+    )
+    check_required_text(
+        ROOT / ".github/copilot-instructions.md",
+        ".github/copilot-instructions.md",
+        "read `AGENTS.md` from disk",
+        "{label} must instruct agents to read AGENTS.md from disk",
+        errors,
+    )
+    check_required_text(
+        ROOT / ".github/copilot-instructions.md",
+        ".github/copilot-instructions.md",
+        ".agentic-template/bin/project startup",
+        "{label} must point agents to .agentic-template/bin/project startup",
+        errors,
+    )
+    check_required_text(
+        ROOT / ".cursor/rules/agentic-startup-and-skills.mdc",
+        ".cursor/rules/agentic-startup-and-skills.mdc",
+        "read `AGENTS.md` from disk",
+        "{label} must instruct agents to read AGENTS.md from disk",
+        errors,
+    )
+    check_required_text(
+        ROOT / ".cursor/rules/agentic-startup-and-skills.mdc",
+        ".cursor/rules/agentic-startup-and-skills.mdc",
+        ".agents/skills/CATALOG.toon",
+        "{label} must point agents to .agents/skills/CATALOG.toon",
+        errors,
+    )
+    check_required_text(
+        ROOT / ".claude/skills/agentic-template/SKILL.md",
+        ".claude/skills/agentic-template/SKILL.md",
+        "read `../AGENTS.md` from disk",
+        "{label} must instruct agents to read ../AGENTS.md from disk",
+        errors,
+    )
+    check_required_text(
+        ROOT / ".claude/skills/agentic-template/SKILL.md",
+        ".claude/skills/agentic-template/SKILL.md",
+        ".agents/skills/CATALOG.toon",
+        "{label} must point agents to .agents/skills/CATALOG.toon",
+        errors,
+    )
+    for rel in [".codex/README.md", ".claude/README.md"]:
+        check_required_text(
+            ROOT / rel,
+            rel,
+            "read `../AGENTS.md` from disk",
+            "{label} must instruct agents to read ../AGENTS.md from disk",
+            errors,
+        )
+        check_required_text(
+            ROOT / rel,
+            rel,
+            ".agentic-template/bin/project startup",
+            "{label} must point agents to .agentic-template/bin/project startup",
+            errors,
+        )
+    for required in ["AGENTIC TEAM STARTUP", "WHAT HAPPENS NEXT", "OPTIONS"]:
+        check_required_text(
+            ROOT / ".agentic-template/bin/startup",
+            ".agentic-template/bin/startup",
+            required,
+            "{label} must print startup welcome, sequence and options",
+            errors,
+        )
     for skill in REQUIRED_SKILLS:
         skill_path = ROOT / ".agents/skills" / skill / "SKILL.md"
         if not skill_path.exists():
             errors.append(f"missing skill {skill}")
     for skill_path in sorted((ROOT / ".agents/skills").rglob("SKILL.md")):
+        problem = check_skill_frontmatter(skill_path)
+        if problem:
+            errors.append(f"{skill_path.relative_to(ROOT)} {problem}")
+    for skill_path in sorted((ROOT / ".claude/skills").rglob("SKILL.md")):
         problem = check_skill_frontmatter(skill_path)
         if problem:
             errors.append(f"{skill_path.relative_to(ROOT)} {problem}")

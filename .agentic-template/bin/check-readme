@@ -12,6 +12,7 @@ TEMPLATE_MARKERS = [
 ]
 
 REQUIRED_SECTIONS = [
+    "Agent startup",
     "Run locally",
     "Run with containers",
     "Tests",
@@ -19,6 +20,10 @@ REQUIRED_SECTIONS = [
     "Infrastructure and deployment state",
     "Deliberate non-goals",
     "Important decisions and documentation links",
+]
+
+REQUIRED_TEXT = [
+    ".agentic-template/bin/project startup",
 ]
 
 
@@ -42,9 +47,15 @@ def main():
             errors.append(f"README still contains template marker: {marker!r}")
     for section in REQUIRED_SECTIONS:
         # Match as markdown heading (## or ### etc.), tolerating emoji prefixes.
-        pattern = re.compile(rf"^#+\s+[^\w\s]*\s*{re.escape(section)}\s*$", re.MULTILINE)
+        pattern = re.compile(
+            rf"^#+\s+[^\w\s]*\s*(?:\d+\.\s+)?{re.escape(section)}\s*$",
+            re.MULTILINE,
+        )
         if not pattern.search(text):
             errors.append(f"README missing section: {section!r}")
+    for required in REQUIRED_TEXT:
+        if required not in text:
+            errors.append(f"README missing required text: {required!r}")
     if errors:
         return fail(errors)
     print("README OK")
