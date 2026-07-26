@@ -1,5 +1,5 @@
 project:
-  state: actor_review_fallback_policy_in_progress
+  state: actor_review_fallback_policy_shipped
   name: self-adapting-agentic-architecture
   confidence: medium
   concept_date: 2026-07-25
