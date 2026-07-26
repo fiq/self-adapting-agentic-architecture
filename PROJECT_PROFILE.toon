@@ -1,254 +1,323 @@
 project:
-  state: template
+  state: initialised_pending_approval
+  name: self-adapting-agentic-architecture
   confidence: medium
-  concept_date: 2026-05-16
-  concept_date_reason: original decision date for creating this template
+  concept_date: 2026-07-25
+  concept_date_reason: user requested project initialization as a Java-first experimental platform
 
 audience:
-  skill_level: unknown
-  app_shape: unknown
-  language_by_role: []
+  skill_level: developer
+  app_shape: cli
+  language_by_role:
+    - role: core_domain
+      language: Java
+    - role: cli
+      language: Java with picocli
+    - role: model_adapter
+      language: Java with LangChain4j behind application ports
+    - role: persistence
+      language: Java with SQLite adapter
+    - role: benchmarks
+      language: Java with JMH
   right_sizing:
-    smallest_sufficient: template has no application architecture yet
-    deliberately_excluded: []
+    smallest_sufficient: local Gradle Java CLI evaluating one Git-worktree candidate at a time through plain Java ports and deterministic policies
+    deliberately_excluded:
+      - OpenSearch and vector storage because the first slice has no large retrieval corpus or semantic search evidence
+      - AST mutation because bounded workflow mutations can start as validated workflow-definition patches
+      - LSP integration because repair diagnostics can start from deterministic validation output
+      - distributed workers because local sequential evaluation is sufficient until benchmark throughput becomes a measured bottleneck
+      - automatic production deployment because promotion policy and rollback must be proven manually first
     revisit_when:
-      - project instantiated via /specialise
-    bought_in: false
+      - experiment evidence requires semantic search across workflow or evaluation history
+      - text or structured workflow mutations cause repeated safety or correctness failures
+      - repairs repeatedly need language-server diagnostics
+      - local benchmark throughput blocks research cadence
+      - users request unattended promotion into protected integration branches or production
+    bought_in: true
 
 facts:
-  - id: template_repository
-    observation: repository is a reusable AI-first project template
+  - id: user_requested_java_platform
+    observation: user requested Java, Gradle, LangChain4j, picocli, SQLite, JUnit 5, AssertJ, jqwik, JMH and Git worktrees
     evidence:
-      - AGENTS.md
       - CUSTOMIZE_THIS_PROJECT.toon
+      - user prompt 2026-07-25
+    confidence: high
+  - id: no_prior_application_runtime
+    observation: repository inspection before customization found no application runtime evidence
+    evidence:
+      - .agentic-template/bin/project init output
+      - .agentic-template/bin/inspect-project
     confidence: high
 
 inferences:
-  - id: no_application_runtime_yet
-    conclusion: template state intentionally has no Java, Python, Node, Elixir or Godot runtime
+  - id: cli_first_experimental_shape
+    conclusion: the smallest useful product shape is a local CLI rather than a service
     based_on:
-      - no_runtime_manifest_present
-      - generic_nix_shell
+      - user requested picocli
+      - candidate isolation depends on local Git worktrees
+      - automatic production deployment is explicitly deferred
     confidence: high
-    validation: run .agentic-template/bin/inspect-project after customisation
+    validation: first CLI slice exercises one mutation evaluation end to end
+  - id: plain_java_core_boundary
+    conclusion: core domain should contain only records, deterministic value checks and policies with no LangChain4j or infrastructure imports
+    based_on:
+      - user required LangChain4j behind adapters
+      - deterministic approval boundary is central to safety
+    confidence: high
+    validation: .agentic-template/bin/project lint
 
 decisions:
-  - id: project_concept_date
-    decision: record 2026-05-16 as the project concept date
+  - id: langchain4j_adapter_boundary
+    decision: LangChain4j is allowed only under adapters/langchain4j and through application ports
     reason:
-      - captures the date the project was decided
-      - separates project intent metadata from implementation timestamps
+      - keeps the core domain plain Java
+      - prevents model-provider details from controlling validation, scoring or promotion
     confidence: high
     status: active
     validation:
-      - docs/decisions/0001-record-project-concept-date.md
-    consequence_if_changed: project origin metadata becomes less clear
-  - id: composable_skills
-    decision: /specialise orchestrates lazy-loaded bounded skills
+      - .agentic-template/bin/project lint
+      - docs/architecture/module-boundaries.md
+    consequence_if_changed: model-provider code could leak into deterministic decision paths
+  - id: deterministic_approval_boundary
+    decision: model output may propose or repair mutations but may not approve candidates
     reason:
-      - reduces context size
-      - avoids one monolithic prompt
+      - approval must be auditable and repeatable
+      - fitness scores and promotion decisions must remain deterministic
     confidence: high
     status: active
     validation:
-      - .agents/skills/CATALOG.toon
-      - .agents/skills/init/SKILL.md
-    consequence_if_changed: init workflow becomes harder to reason about
-  - id: mit_template_license
-    decision: include MIT license in template state
+      - specs/capabilities/CAP-001-mutation-fitness-loop.toon
+      - application/src/acceptanceTest/java/io/github/selfadaptingagenticarchitecture/application/MutationEvaluationLoopAcceptanceTest.java
+    consequence_if_changed: experiments could self-reinforce model-preferred candidates without independent fitness evidence
+  - id: sqlite_experiment_metadata
+    decision: persist experiment metadata in SQLite through an adapter
     reason:
-      - permissive default for reusable template
-      - /specialise must re-evaluate license fit
+      - local experiments need durable audit state
+      - SQLite keeps operational complexity low
+      - no server database evidence exists yet
     confidence: medium
     status: active
     validation:
-      - LICENSE
-      - .agents/skills/init/SKILL.md
-    consequence_if_changed: downstream projects may need a different license
-  - id: truthful_git_provenance
-    decision: use real commit author and committer dates
+      - future migration test from an empty schema
+    consequence_if_changed: experiment lineage may need a heavier operational dependency
+  - id: git_worktree_candidate_isolation
+    decision: create mutation candidates in isolated Git worktrees and commit candidate state before evaluation
     reason:
-      - avoids false project history
-      - keeps repository provenance auditable
+      - isolates candidate changes from coordination checkout
+      - gives every evaluation auditable Git provenance
+    confidence: high
+    status: active
+    validation:
+      - future Git adapter integration test
+    consequence_if_changed: candidate evaluation could mutate shared working state
+  - id: no_application_container_initially
+    decision: do not build a container image for the first local CLI slice
+    reason:
+      - there is no deployable service or web app
+      - Nix and Gradle are sufficient for local execution
+    confidence: medium
+    status: active
+    validation:
+      - README.md
+      - .agentic-template/bin/project ready
+    consequence_if_changed: distribution work could distract from validating the mutation loop
+  - id: jqwik_1_9_3_pending_policy_review
+    decision: pin jqwik to 1.9.3 for the initial scaffold
+    reason:
+      - user requested jqwik property tests
+      - jqwik 1.10.x release notes include explicit anti-AI-agent usage language
+      - this repository is AI-agent-assisted
+    confidence: medium
+    status: active
+    validation:
+      - gradle/libs.versions.toml
+      - future dependency policy review
+    consequence_if_changed: using jqwik 1.10.x may conflict with the project's AI-assisted workflow
+  - id: tool_unavailable_integration_fallback
+    decision: allow PR-less self-reviewed integration only when PR tooling is unavailable and the user explicitly authorizes shipping to main
+    reason:
+      - GitHub app and gh PR creation were unavailable for this repository
+      - direct main integration still needs branch isolation, deterministic checks and explicit provenance
     confidence: high
     status: active
     validation:
       - AGENTS.md
-    consequence_if_changed: history becomes misleading
-  - id: canonical_project_script
-    decision: use .agentic-template/bin/project as the stable repository command surface
-    reason:
-      - avoids colliding with downstream projects that already have a Makefile
-      - keeps command dispatch testable with Python standard library
-      - leaves runtime-specific build tools free for project specialisation
-    confidence: high
-    status: active
-    validation:
-      - .agentic-template/bin/project --list
-      - .agentic-template/bin/project check
-    consequence_if_changed: generated projects may inherit confusing or conflicting command wrappers
-  - id: repository_local_knowledge_layer
-    decision: use .agents/knowledge for durable knowledge, proposals and graph-like relationships
-    reason:
-      - preserves HANDOFF.toon as active task state
-      - keeps Superpowers focused on engineering workflow
-      - gives agents searchable local context without external infrastructure
-    confidence: high
-    status: active
-    validation:
-      - .agents/knowledge/README.md
-      - .agentic-template/bin/check-knowledge
-    consequence_if_changed: agents may duplicate guidance or lose durable learnings between sessions
-  - id: repo_native_context_store
-    decision: treat the repository as the context store for agents and humans
-    reason:
-      - keeps structure, lineage, behavior and conformance versioned with code
-      - avoids adding external memory infrastructure before project evidence exists
-      - gives fresh sessions deterministic artifacts to query before planning
-    confidence: high
-    status: active
-    validation:
-      - docs/context-store.md
-      - .agentic-template/bin/project docs
-      - .agentic-template/bin/project check
-    consequence_if_changed: agents may depend on stale remembered context or ungoverned external stores
-  - id: structured_data_policy_configurable
-    decision: allow generated projects to choose TOON or S-expressions by semantic purpose
-    reason:
-      - TOON is readable and diff-friendly for state and contracts
-      - S-expressions are compact and regular for rule predicates and computation
-      - explicit policy prevents format drift across agent handoffs
-    confidence: medium
-    status: active
-    validation:
-      - docs/structured-data.md
-      - .agentic-template/bin/check-project-profile
-    consequence_if_changed: agents may mix semantic formats without a recorded reason
-  - id: architecture_fitness_functions
-    decision: generated projects identify top architecture risks and encode cheap deterministic fitness functions where practical
-    reason:
-      - moves repeated conformance checks out of ad hoc review memory
-      - keeps AI-led changes aligned with architecture characteristics
-      - makes handoffs explicit about constraint changes
-    confidence: medium
-    status: active
-    validation:
-      - docs/validation.md
-      - docs/context-store.md
-      - .agentic-template/bin/project ready
-    consequence_if_changed: architecture drift remains dependent on reviewer recall
+      - docs/wiki/development.md
+      - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
+    consequence_if_changed: future agents may either block unnecessarily on unavailable PR tooling or push to main without adequate review evidence
 
 unknowns:
-  - id: target_project_domain
-    question: What domain and users will a generated project serve?
+  - id: Q-001
+    question: Which model provider and LangChain4j integration should be used first?
     why_it_matters:
-      - affects architecture recommendation
-      - affects test harness risks
-      - affects persistence and integration choices
-    evidence: []
-    working_assumption: unknown_until_template_instantiated
-    consequence_if_wrong: /specialise may recommend the wrong thin slice
+      - affects adapter configuration and test doubles
+      - affects retrieval and tool-calling support
+    evidence:
+      - user specified LangChain4j but not a provider
+    working_assumption: define provider-neutral application ports and choose provider after architecture approval
+    consequence_if_wrong: early adapter code may overfit to the wrong provider
     blocking: false
     validation:
-      - inspect CUSTOMIZE_THIS_PROJECT.toon
-      - inspect repository evidence
-      - ask smallest useful question set
+      - choose provider before implementing adapters/langchain4j
     status: open
-  - id: application_runtime
-    question: Which runtime and framework does the instantiated project need?
+  - id: Q-002
+    question: What is the first real workflow representation and mutation patch format?
     why_it_matters:
-      - determines dev shell extensions
-      - determines test harness
-      - determines build container strategy
-    evidence: []
-    working_assumption: infer_from_repository_evidence
-    consequence_if_wrong: build and test commands may be specialised incorrectly
+      - determines validation semantics
+      - determines whether text patches are enough before AST mutation
+    evidence:
+      - user requested plain Java records for WorkflowGraph and Mutation
+    working_assumption: start with a serialized workflow definition plus bounded patch metadata
+    consequence_if_wrong: candidate mutations may be too vague to validate deterministically
     blocking: false
     validation:
-      - .agentic-template/bin/inspect-project
-      - discovery runtime skills
+      - approve or revise CAP-001 before implementation
+    status: open
+  - id: Q-003
+    question: What branch or namespace should promoted candidates target?
+    why_it_matters:
+      - promotion can mean a local branch, a candidate registry update or a protected integration branch
+      - rollback semantics depend on the target
+    evidence:
+      - user requested promoted or discarded but did not specify target branch policy
+    working_assumption: promote to a local reviewed candidate branch, not main or production
+    consequence_if_wrong: automation could affect protected history or integration flow
+    blocking: false
+    validation:
+      - decide promotion target before Git adapter implementation
+    status: open
+  - id: Q-004
+    question: What initial objectives and weights should define multi-objective fitness?
+    why_it_matters:
+      - score thresholds determine promotion and discard behavior
+      - benchmark evidence can dominate correctness if weights are wrong
+    evidence:
+      - user requested deterministic checks, benchmarks and multi-objective scoring
+    working_assumption: start with correctness as gate and benchmark change as weighted evidence
+    consequence_if_wrong: candidates may be promoted for speed while failing behavioral intent
+    blocking: false
+    validation:
+      - encode policy in the first implementation spec after approval
     status: open
 
 rejected_options:
-  - id: monolithic_init_prompt
-    option: put all runtime and infrastructure instructions into /specialise
+  - id: opensearch_vector_storage_now
+    option: add OpenSearch, vector storage or external memory now
     reason_rejected:
-      - wastes context
-      - makes project intelligence harder to evolve
+      - no retrieval scale evidence exists
+      - repo-native context and SQLite metadata are sufficient for the first slice
     evidence:
-      - .agents/skills/CATALOG.toon
-  - id: default_platform_stack
-    option: include Kafka, Redis, database, Kubernetes or LocalStack by default
+      - user explicit non-goal
+      - docs/context-store.md
+    revisit_when:
+      - workflow/evidence corpus needs semantic retrieval with measured local limits
+  - id: ast_mutation_now
+    option: mutate Java AST or workflow source using typed code transformations in the first slice
     reason_rejected:
-      - no template-state evidence justifies them
-      - increases decision fatigue
+      - first loop can validate bounded workflow-definition mutations without AST infrastructure
+      - AST mutation increases blast radius before the loop is proven
     evidence:
-      - compose.yaml
-  - id: template_makefile_facade
-    option: keep a template Makefile as the canonical command facade
+      - user explicit non-goal
+    revisit_when:
+      - text or structured workflow patches repeatedly fail deterministic validation
+  - id: distributed_workers_now
+    option: distribute candidate evaluation across workers
     reason_rejected:
-      - can conflict with legitimate downstream project Makefiles
-      - Make target hierarchies can hide behaviour and confuse agents
-      - .agentic-template/bin/project is explicit and directly testable
+      - local sequential evaluation is simpler and auditable
+      - throughput bottleneck is not yet measured
     evidence:
-      - .agentic-template/bin/project
+      - user explicit non-goal
+    revisit_when:
+      - benchmark queue time blocks experiment cadence
+  - id: automatic_production_deployment_now
+    option: automatically deploy promoted candidates
+    reason_rejected:
+      - promotion and rollback governance are not proven
+      - user explicitly deferred production deployment automation
+    evidence:
+      - user explicit non-goal
+    revisit_when:
+      - protected promotion target and rollback policy have human approval
 
 architecture:
-  application_shape: unknown
-  language: unknown
-  framework: unknown
-  build_system: unknown
+  application_shape: cli
+  language: Java
+  framework: picocli
+  build_system: Gradle
+  style: clean_architecture
+  modules:
+    - core
+    - application
+    - adapters/langchain4j
+    - adapters/git
+    - adapters/sqlite
+    - adapters/checks
+    - benchmarks
+    - cli
   integrations:
-    messaging: none_known
-    external_services: []
+    model_access: LangChain4j through application ports
+    git: local Git worktrees through adapter
+    checks: deterministic command execution through adapter
+    benchmarks: JMH evidence adapter
+    messaging: none
+    external_services:
+      - model provider selected later
   persistence:
-    kind: unknown
-    provider: unknown
+    kind: relational
+    engine: sqlite
+    provider: local_file
+    migrations: required_before_sqlite_adapter_delivery
 
 testing:
-  harness: unspecialised
-  layers: []
+  harness: gradle_junit5_assertj_jqwik_jmh
+  layers:
+    - unit: core records, deterministic validation and scoring policies
+    - component: mutation loop with fake model, Git, check and benchmark ports
+    - integration: future real Git worktree and SQLite adapter semantics
+    - contract: future workflow and evidence file contracts
+    - benchmark: JMH benchmark evidence used by scoring
   test_first: true
   philosophy: testing_trophy
+  first_acceptance_test: application/src/acceptanceTest/java/io/github/selfadaptingagenticarchitecture/application/MutationEvaluationLoopAcceptanceTest.java
 
 structured_data:
   control_files:
     format: toon
-    reason: template bootstrap tools read PROJECT_PROFILE.toon, HANDOFF.toon and CUSTOMIZE_THIS_PROJECT.toon
+    reason: repository bootstrap tools read PROJECT_PROFILE.toon, HANDOFF.toon and CUSTOMIZE_THIS_PROJECT.toon
   state_and_contracts:
     format: toon
     allowed:
       - toon
       - s_expression
-    default_reason: best default for human-readable state, line diffs and docs-adjacent contracts
+    default_reason: readable, diff-friendly state, specs and handoff contracts
   rules_and_compute:
     format: s_expression
     allowed:
       - toon
       - s_expression
       - none
-    default_reason: best default for compact predicates, routing rules and executable policy DSLs when needed
+    default_reason: compact deterministic policy predicates if scoring rules need a DSL later
   mixed_use_allowed: true
-  rule: use one semantic format per artifact; record deviations as decisions
+  rule: use one semantic format per artifact and record deliberate deviations
 
 containers:
   application_image: not_applicable
-  reason: template repository has no deployable application runtime
+  reason: initial project is a local experimental CLI, not a deployable service or web application
   image_test: not_applicable
-  compose: minimal_template
+  compose: empty_no_services
 
 infrastructure:
-  local_topology: nix
-  deployment_target: unknown
+  local_topology: nix_gradle_local_git_sqlite
+  deployment_target: local_cli
   iac:
-    status: deferred
+    status: not_applicable
     tool: null
     validation_command: null
-    revisit_trigger: deployment target selected during project instantiation
+    revisit_trigger: remote execution or production deployment target selected
 
 tooling:
   superpowers:
-    status: detect
+    status: optional
   mcp:
     required: []
     optional: []
@@ -258,17 +327,3 @@ tooling:
     packet_style: semantic_summary_with_source_refs
     source_refs_required: true
     opaque_transport_blobs: false
-  context_store:
-    default: repository_native
-    external_store: not_default
-    layers:
-      - structure
-      - lineage
-      - behavior
-      - conformance
-    guide: docs/context-store.md
-    validator: .agentic-template/bin/project check
-  knowledge:
-    location: .agents/knowledge
-    validator: .agentic-template/bin/check-knowledge
-    promotion: inbox_then_review

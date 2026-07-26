@@ -1,107 +1,158 @@
 session:
-  updated: 2026-07-26
-  status: validation_complete
-  branch: main
+  updated: 2026-07-27
+  status: shipping_to_main_authorized
+  branch: codex/initialize-agentic-architecture
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
+  head: 831ab17
+  dirty: true
 
 goal:
-  current: apply context-store architecture takeaways to the project template
+  current: self-review initialized project branch and ship to main using tool-unavailable integration fallback
+  phase: branch_self_review_and_main_merge
 
 completed:
-  - added `docs/context-store.md` as the repo-native context-store guide
-  - made non-trivial startup load `docs/context-store.md` alongside handoff, profile and knowledge index
-  - added context-store routes to README, docs map, startup and wiki navigation
-  - documented architecture fitness functions and change handoff evidence in `docs/validation.md`
-  - made generated READMEs require a `Context store` section
-  - made generated AGENTS contracts require context-store and fitness-function rules
-  - added repo-contract and self-test coverage for context-store drift
-  - tightened `check-handoff` so test entries such as `check-knowledge:` do not shadow the top-level `knowledge:` section
-  - tightened `check-mcp` so context-store layer names do not appear as optional MCP declarations
-  - recorded profile decisions for `repo_native_context_store` and `architecture_fitness_functions`
-  - added knowledge proposal `INBOX-008` for the reusable pattern
+  - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
+  - read `CUSTOMIZE_THIS_PROJECT.toon`, `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md` and `.agents/knowledge/index.md`
+  - ran `.agentic-template/bin/project init`; command completed and confirmed agent workflow owns specialization edits
+  - populated `CUSTOMIZE_THIS_PROJECT.toon` with the Java-first project intent and marked it consumed
+  - rewrote README and AGENTS as project-facing documents
+  - updated PROJECT_PROFILE with resolved audience, architecture, runtime, persistence, container and infrastructure decisions
+  - created initial knowledge nodes for domain, system, deterministic boundary, self-approval risk and open questions
+  - created capability spec `CAP-001` and change proposal `CHG-001`
+  - added Gradle Java module scaffold for `core`, `application`, adapters, `benchmarks` and `cli`
+  - defined plain Java records for WorkflowGraph, Mutation, Candidate, FitnessResult and EvaluationEvidence
+  - defined application ports and `MutationEvaluationLoop` placeholder
+  - added first outside-in component acceptance test for a candidate being evaluated and discarded
+  - added architecture-boundary fitness check preventing LangChain4j/picocli/SQLite leaks into core/application
+  - updated docs, wiki, CI, Nix shell, compose name and gitignore
+  - committed initialization branch as `d68e087 Initialize self-adapting-agentic-architecture`
+  - pushed branch `codex/initialize-agentic-architecture`
+  - attempted PR creation through GitHub app and gh; both failed due token or integration permissions
+  - user explicitly authorized skipping PR, self-reviewing and shipping to main
+  - documented tool-unavailable integration fallback in AGENTS, README, development wiki and PROJECT_PROFILE
+  - self-reviewed fallback diff; no findings
 
-in_progress: []
+in_progress:
+  - main merge
 
 next:
-  - use the context-store route in the next generated project and refine the handoff wording from observed friction
-  - consider promoting `INBOX-008` after generated-project evidence shows it improves startup, review or handoff quality without excess ceremony
+  - merge `codex/initialize-agentic-architecture` to `main`
+  - push `main`
+  - after shipping, approve or revise the proposed architecture and module boundaries
+  - answer the smallest high-impact questions: first model provider, first workflow patch format, promotion target and fitness objective weights
+  - implement the `MutationEvaluationLoop` against fake ports until the component acceptance test passes
+  - add real Git worktree and SQLite adapter integration tests after the fake-port slice passes
 
 decisions:
-  - id: structured_data_policy_configurable
-    summary: generated projects can choose TOON or S-expressions by purpose; template control files remain TOON until tooling is specialised
-  - id: context_packet_for_delegation
-    summary: context-window pressure is handled through semantic packets with source refs, not byte-compressed or opaque prompt payloads
-  - id: generated_readme_low_clutter
-    summary: generated READMEs should stay project-facing; template operating detail belongs in AGENTS, docs map, profile and hidden template docs unless directly useful
-  - id: knowledge_upkeep_handoff_gate
-    summary: meaningful work must record consulted knowledge, proposals created or a concrete no-record rationale
-  - id: session_startup_disk_read
-    summary: agents must read `AGENTS.md` from disk before substantive answers or tool calls; `project startup`, generated templates and supported agent entrypoints repeat the rule
-  - id: route_based_docs_ia
-    summary: first-start docs should offer intent-based routes before exposing the full reference map
-  - id: repo_native_context_store
-    summary: context is preserved as versioned repository artifacts and checks; external memory stores are not default
-  - id: architecture_fitness_functions
-    summary: generated projects should encode top architecture risks as cheap deterministic checks where practical
+  - id: langchain4j_adapter_boundary
+    summary: LangChain4j stays behind `adapters/langchain4j`; core and application stay provider-free
+  - id: deterministic_approval_boundary
+    summary: model output may propose or repair but validation, scoring, promotion and rollback are deterministic
+  - id: cli_first_local_shape
+    summary: first system shape is a local Gradle Java CLI, not a service
+  - id: sqlite_experiment_metadata
+    summary: SQLite is the local metadata store through an adapter; migrations are required before adapter delivery
+  - id: no_application_container_initially
+    summary: container image is not applicable until distribution or remote execution is selected
+  - id: jqwik_1_9_3_pending_policy_review
+    summary: jqwik is pinned to 1.9.3 because jqwik 1.10.x release notes include anti-AI-agent usage language
+  - id: tool_unavailable_integration_fallback
+    summary: PR-less main merge is allowed only when tools are unavailable, user explicitly authorizes it, checks pass and self-review/handoff evidence is recorded
 
 risks:
-  - repository checks can enforce required context-store files and wording but cannot prove a live agent queried the store correctly
-  - check-wiki remains warn-only; human or lead agent must still promote useful inbox entries after evidence
-  - route labels and fitness-function wording are template hypotheses until tried in generated projects
-  - fitness functions can become ceremony if generated projects add generic checks unrelated to their top risks
+  - component acceptance test is intentionally failing at `MutationEvaluationLoop.evaluate`; do not wire it into readiness until implementation starts
+  - Gradle commands need Nix daemon access in this environment; sandboxed runs can fail even when project commands pass outside the sandbox
+  - model provider, workflow patch format, promotion target and fitness weights are unresolved but not blocking architecture approval
+  - integration and contract commands currently report explicit not-applicable/deferred status for the approval slice
+  - jqwik dependency should be policy-reviewed before upgrading to 1.10.x or later
+  - skipping PR loses independent GitHub review and CI-before-merge; mitigated by local readiness checks, self-review and explicit user authorization
 
 files_changed:
-  - .agentic-template/bin/check-repo-contract
-  - .agentic-template/bin/check-readme
-  - .agentic-template/bin/check-handoff
-  - .agentic-template/bin/check-mcp
-  - .agentic-template/bin/docs-map
-  - .agentic-template/bin/self-test
-  - .agentic-template/bin/startup
-  - .agentic-template/templates/AGENTS_TEMPLATE.md
-  - .agentic-template/templates/README_TEMPLATE.md
-  - .agents/knowledge/inbox/INBOX-008-repo-native-context-store.md
+  - .agentic-template/bin/check-architecture-boundaries
+  - .agentic-template/bin/gradle-command
+  - .agentic-template/bin/project
+  - .agentic-template/bin/project-not-applicable
+  - .github/workflows/ci.yml
+  - .gitignore
   - AGENTS.md
-  - docs/context-store.md
-  - docs/README.md
-  - docs/validation.md
-  - docs/wiki/agents.md
-  - docs/wiki/architecture.md
-  - docs/wiki/development.md
-  - docs/wiki/index.md
-  - docs/wiki/testing.md
+  - CUSTOMIZE_THIS_PROJECT.toon
   - HANDOFF.toon
   - PROJECT_PROFILE.toon
   - README.md
+  - build.gradle.kts
+  - settings.gradle.kts
+  - gradle/libs.versions.toml
+  - compose.yaml
+  - flake.nix
+  - core/
+  - application/
+  - adapters/
+  - benchmarks/
+  - cli/
+  - specs/capabilities/CAP-001-mutation-fitness-loop.toon
+  - specs/changes/CHG-001-mutation-fitness-loop/
+  - docs/architecture/module-boundaries.md
+  - docs/validation.md
+  - docs/wiki/architecture.md
+  - docs/wiki/development.md
+  - docs/wiki/domain.md
+  - docs/wiki/testing.md
+  - .agents/knowledge/domains/DOM-001-agentic-workflow-evolution.md
+  - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md
+  - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
+  - .agents/knowledge/risks/RISK-001-model-self-approval.md
+  - .agents/knowledge/questions/Q-001-model-provider.md
+  - .agents/knowledge/questions/Q-002-promotion-target.md
+  - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
 
 tests_run:
-  - 2026-07-26 .agentic-template/bin/project repo-check: pass
-  - 2026-07-26 .agentic-template/bin/project check-readme: pass
-  - 2026-07-26 .agentic-template/bin/project check-knowledge: pass
-  - 2026-07-26 .agentic-template/bin/project check-profile: pass
-  - 2026-07-26 .agentic-template/bin/project check-mcp: pass
-  - 2026-07-26 .agentic-template/bin/project docs: pass
-  - 2026-07-26 .agentic-template/bin/project startup: pass
-  - 2026-07-26 .agentic-template/bin/project check-handoff: pass
-  - 2026-07-26 .agentic-template/bin/project check-wiki: pass
-  - 2026-07-26 .agentic-template/bin/project self-test: pass
-  - 2026-07-26 .agentic-template/bin/project check: pass
-  - 2026-07-26 .agentic-template/bin/project ready: pass
-  - 2026-07-26 git diff --check: pass
+  - 2026-07-26 `.agentic-template/bin/project init`: pass
+  - 2026-07-26 `.agentic-template/bin/project inspect`: pass; detected Java Gradle evidence
+  - 2026-07-26 `.agentic-template/bin/project check`: pass
+  - 2026-07-26 `git diff --check`: pass
+  - 2026-07-26 `.agentic-template/bin/project test`: initially blocked by sandboxed Nix cache write, then compile failed on ValidationResult factory name, fixed and passed
+  - 2026-07-26 `.agentic-template/bin/project component-test`: expected fail at `MutationEvaluationLoop.evaluate` UnsupportedOperationException
+  - 2026-07-26 `.agentic-template/bin/project lint`: pass
+  - 2026-07-26 `.agentic-template/bin/project ready`: sandboxed run failed on Nix daemon access, escalated run passed
+  - 2026-07-26 `.agentic-template/bin/project run`: sandboxed run failed on Nix daemon access, escalated run passed and printed pending-approval CLI message
+  - 2026-07-26 `.agentic-template/bin/project test`: pass after pinning jqwik to 1.9.3
+  - 2026-07-26 `.agentic-template/bin/project ready`: pass after pinning jqwik to 1.9.3
+  - 2026-07-27 PR creation through GitHub app: failed with Resource not accessible by integration
+  - 2026-07-27 PR creation through gh: failed with Resource not accessible by personal access token
+  - 2026-07-27 `.agentic-template/bin/project check`: pass after fallback docs
+  - 2026-07-27 `.agentic-template/bin/project lint`: pass after fallback docs
+  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after fallback docs
+  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after fallback docs
+  - 2026-07-27 `git diff --check`: pass after fallback docs
+  - 2026-07-27 `.agentic-template/bin/project ready`: runner session stale with no live OS process; prior ready passed before docs-only fallback update, and affected validators passed after update
 
 knowledge:
   consulted:
     - .agents/knowledge/index.md
     - .agents/knowledge/TAXONOMY.md
-    - .agents/knowledge/inbox/INBOX-002-enforce-knowledge-graph-upkeep.md
-    - .agents/knowledge/inbox/INBOX-003-context-packet-budgeting.md
-    - .agents/knowledge/inbox/INBOX-004-documentation-map-and-validation-blueprint.md
-    - .agents/knowledge/inbox/INBOX-007-session-startup-disk-read.md
-    - https://www.infoq.com/articles/ai-speed-context-store-architecture/
-  proposals:
     - .agents/knowledge/inbox/INBOX-008-repo-native-context-store.md
+    - specs/templates/capability.toon
+    - specs/templates/change.toon
+    - .agents/skills/init/SKILL.md
+    - .agents/skills/knowledge/knowledge-search/SKILL.md
+    - .agents/skills/workflow/specify/SKILL.md
+    - .agents/skills/workflow/outside-in-tdd/SKILL.md
+    - .agents/skills/specialise/runtime-java/SKILL.md
+    - .agents/skills/specialise/test-harness/SKILL.md
+    - .agents/skills/specialise/sql-migrations/SKILL.md
+  proposals:
+    - .agents/knowledge/domains/DOM-001-agentic-workflow-evolution.md
+    - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md
+    - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
+    - .agents/knowledge/risks/RISK-001-model-self-approval.md
+    - .agents/knowledge/questions/Q-001-model-provider.md
+    - .agents/knowledge/questions/Q-002-promotion-target.md
+    - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
+    - specs/capabilities/CAP-001-mutation-fitness-loop.toon
+    - specs/changes/CHG-001-mutation-fitness-loop/
   no_record: null
 
 team_fallback:
   current: single lead agent using explicit review checklist
-  reason: bounded documentation and repository-contract refinement
-  lost_challenge: independent reviewer; mitigated by targeted contract checks, self-test and final project validation
+  reason: initialization and approval-slice setup were bounded; no persistent agent team was invoked
+  lost_challenge: independent PR reviewer and PR-gated CI; mitigated by branch isolation, local readiness checks, self-review and explicit user authorization to ship to main

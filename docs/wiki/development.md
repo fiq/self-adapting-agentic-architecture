@@ -1,50 +1,37 @@
 # Development
 
-Nix owns developer tooling. Repository commands are the shared local and CI
-entrypoints.
-
 Start with:
 
 ```sh
-.agentic-template/bin/project help
 .agentic-template/bin/project startup
-.agentic-template/bin/project init
+nix develop
+```
+
+Common commands:
+
+```sh
 .agentic-template/bin/project check
-.agentic-template/bin/project doctor
+.agentic-template/bin/project test
+.agentic-template/bin/project lint
+.agentic-template/bin/project component-test
 ```
 
-Use `.agentic-template/bin/project docs` when you know the kind of work but not
-which document to read first.
+`component-test` is the first failing outside-in test for `CHG-001`. Keep
+LangChain4j behind `adapters/langchain4j` and keep deterministic decisions out
+of model authority.
 
-## Development lifecycle
+## Tool-unavailable Integration Fallback
 
-```
-/specialise ─► calibrate audience + app shape (plain language), right-size
-                 architecture as a recorded, bought-into choice
-     ▼
-/ideate ─────► short-cycle multi-persona loop (Intent → Boundary → Delivery →
-    (idea or     Quality gate) → structured change artifact
-    narrative)
-     ▼
-outside-in ► acceptance test per WHEN/THEN scenario, fidelity by risk
-   ATDD        (acceptance / component-integration / subcutaneous)
-     ▼
-/review ────► bounded boy-scout clean-up: code, language and architectural
-                 smells, inappropriate coupling
-     ▼
-archive change → specs/capabilities/  +  wiki-tidy keeps docs and the
-                 knowledge graph current
-```
+Default integration is branch plus PR. If PR or GitHub tooling is unavailable,
+the lead agent may skip the PR only when the user explicitly authorizes it.
 
-- Specs are OpenSpec-shaped, structured and agent-first (`specs/README.md`).
-- The repo-native context store (`docs/context-store.md`) ties specs, profile,
-  handoff, knowledge and validation into one query path.
-- TOON is preferred for state/contracts; S-expressions are preferred for
-  rules/compute when a project needs a compact policy DSL.
-- Quality is standing, not a phase: reuse over duplication, pay in-path debt,
-  docs land in the change, no silent TODOs.
-- `project check-changes` validates specs; `project check-wiki` warns on wiki
-  drift; `project install-hooks` opts into a non-blocking pre-commit.
-- Non-trivial handoff notes include the spec reference or no-spec rationale,
-  fitness-function delta or no-change rationale, validation and knowledge
-  update.
+Required fallback steps:
+
+- keep the work on a bounded branch;
+- run `.agentic-template/bin/project check`, `.agentic-template/bin/project ready`
+  and relevant specialized tests;
+- self-review the staged branch in code-review style;
+- record the fallback reason, validation, branch, commit and lost independent
+  review challenge in `HANDOFF.toon`;
+- merge to `main` only after explicit user authorization;
+- push `main` without force-pushing.

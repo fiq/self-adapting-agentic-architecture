@@ -1,356 +1,187 @@
-# Agentic Team Project Template
+# self-adapting-agentic-architecture
 
-A framework for AI agents and humans to collaborate on principal-level engineering decisions. **Technology and agent agnostic.** Works with any coding agent that can read Markdown and run shell commands (Claude, Codex, Copilot, etc.). Reduces decision fatigue through evidence-driven discovery, structured semantic state, and composable workflows that adapt to your skill level and project complexity.
+self-adapting-agentic-architecture is a Java-first experimental platform for
+evolving agentic workflows. It explores a bounded loop where a model proposes a
+workflow mutation, deterministic validators evaluate the result in an isolated
+Git worktree, and a multi-objective fitness score decides whether the candidate
+is promoted or discarded.
 
-## What this solves
+The first consumer is a developer-researcher or platform maintainer who wants
+auditable experiments over autonomous agent workflow changes.
 
-**Problem:** When an agent acts alone, humans lose visibility into trade-offs and assumptions. When humans micro-direct agents, decisions become slow. When guardrails are opaque, teams cannot learn or adapt them.
+## Intended thin slice
 
-**Solution:** Make the operating rules explicit and learnable (`AGENTS.md`), keep semantic state visible and structured, use composable skills that agents can invoke in any topology, and stay human-in-the-loop at irreversible or high-stakes choices.
+The first approved implementation slice will prove one candidate path:
 
-## Value
-
-- **Principal-level decisions, not code generation.** Architecture boundaries, right-sizing (conscious, recorded, bought-in), quality gates, role attribution, tech choices - decisions that are hard to reverse.
-- **Adapts to your experience.** The workflow calibrates to the user's skill level and project complexity. A domain expert can partner with an agent on design; a junior engineer gets more coaching and structure.
-- **Opinionated but learnable.** The rules are in readable Markdown, not hidden in prompt engineering. You can change them, disagree with them, or understand why they exist.
-- **No magic.** Commands are explicit shell scripts under `.agentic-template/bin/`. Hooks and commands are in `CLAUDE.md` (symlink to `AGENTS.md`). Knowledge is stored locally in `.agents/knowledge/` with durable schemas.
-- **Works with any agent.** No proprietary integrations. Agents start with
-  `.agentic-template/bin/project startup`, read `AGENTS.md` from disk and
-  see the startup sequence and options before executing shell commands. That is
-  it.
-
-## How it works (for engineers)
-
-1. **You provide project intent** - briefs, constraints, user stories, artifacts.
-2. **The agent inspects the repo** - existing code, manifests, configs - and asks the smallest useful question set to resolve unknowns.
-3. **The agent proposes a minimal architecture** - smallest sufficient design, recorded and bought into.
-4. **You decide at hard choices** - architecture boundaries, trade-offs, what NOT to build.
-5. **Development follows a loop** - calibrate, ideate, structured spec, ATDD, review, archive + wiki.
-
-```
-Human provides:                    Agent discovers:              Human decides at:
-- Project intent                   - Runtime, framework          - Hard choices
-- Briefs, artifacts                - Persistence, messaging      - Architecture boundaries
-- User stories                     - Test strategy               - Right-sizing (what NOT to build)
-- Constraints                      - Container, infra            - Trade-offs between personas
-
-                           |
-                           v
-
-                    /specialise -> evidence-driven bootstrap
-                                    calibrate audience, build project profile
-
-                           |
-                           v
-
-                     Development lifecycle:
-                     calibrate -> ideate -> structured spec -> ATDD -> review -> archive + wiki
+```text
+baseline workflow
+  -> model proposes bounded mutation
+  -> deterministic validation
+  -> isolated Git worktree candidate
+  -> candidate commit
+  -> deterministic checks and JMH benchmark evidence
+  -> multi-objective fitness result
+  -> deterministic promote or discard
 ```
 
-## 🚀 Get started
+The model may propose mutations and repairs, but it must never approve its own
+result.
 
-### 1. Create a repository from this template
+## Runtime architecture diagram
 
-On GitHub, use **Use this template**. Locally, copy the repo and point `origin` at your new repository.
-
-### 2. Provide what you know
-
-Update `CUSTOMIZE_THIS_PROJECT.toon`:
-- **project:** name, purpose, primary users
-- **domain:** core capabilities, hard constraints
-- **narrative:** (optional) a free-text project brief; agents will interrogate and expand it
-
-Add any artifacts: sketches, API drafts, package files, links.
-
-### 3. Agent startup
-
-In Claude, Codex or another coding agent, make the first prompt explicit:
-
-```
-Run .agentic-template/bin/project startup first. Confirm that AGENTS.md was
-read from disk, review the startup sequence and options, then continue.
-
-Help me initialise this project from the template.
-Run .agentic-template/bin/project init, inspect the result, and guide me
-through the smallest useful next setup steps. If my project intent is unclear,
-interview me and help convert my answers, briefs and artifacts into project state.
+```text
+CLI (picocli)
+  |
+  v
+Application use case: MutationEvaluationLoop
+  |
+  +--> core records and deterministic policies
+  |
+  +--> ports
+        |-- MutationProposer          -> adapters/langchain4j
+        |-- CandidateWorkspace        -> adapters/git
+        |-- ExperimentMetadataStore   -> adapters/sqlite
+        |-- CheckRunner               -> adapters/checks
+        |-- BenchmarkRunner           -> benchmarks/JMH
 ```
 
-The agent will:
-- Inspect repository evidence (existing code, manifests, config)
-- Ask the smallest useful question set to resolve unknowns
-- Recommend the smallest sufficient architecture
-- Populate `PROJECT_PROFILE.toon` with facts, inferences, decisions and unknowns
-- Specialise runtime, testing, containers and CI from your evidence
-- Rewrite the README and operating contract for your project
-- Hand off to `HANDOFF.toon` so the next work continues from here
+LangChain4j is intentionally isolated behind adapter ports. The core domain is
+plain Java and must not import model-provider libraries.
+
+## Repository structure
+
+| Path | Purpose |
+|---|---|
+| `core/` | Plain Java records and deterministic domain types |
+| `application/` | Use-case orchestration and ports |
+| `adapters/langchain4j/` | Model access, typed AI services, tool calling and retrieval integration |
+| `adapters/git/` | Git worktree and commit isolation |
+| `adapters/sqlite/` | SQLite experiment metadata persistence |
+| `adapters/checks/` | Deterministic command execution for checks |
+| `benchmarks/` | JMH benchmarks and benchmark evidence adapters |
+| `cli/` | picocli command entrypoint |
+| `specs/` | Capability and change specs |
+| `docs/` | Architecture, validation, decisions, runbooks and wiki |
+
+## Agent startup
+
+Fresh agent sessions must run `.agentic-template/bin/project startup`, confirm
+that `AGENTS.md` was read from disk, review the printed sequence and options,
+then continue from the operating contract. For non-trivial work, read
+`HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md` and
+`.agents/knowledge/index.md` before planning or implementation.
 
 ## Documentation IA
 
-Start from the route that matches your intent:
-
-| Intent | Start With | Then Read |
+| Need | Start with | Then read |
 |---|---|---|
-| Create a project from the template | `.agentic-template/bin/project startup` | `CUSTOMIZE_THIS_PROJECT.toon`, then `.agentic-template/bin/project init` |
-| Continue active work | `.agentic-template/bin/project startup` | `HANDOFF.toon`, then `.agentic-template/bin/project backlog` |
-| Understand the rules | `AGENTS.md` | `PROJECT_PROFILE.toon`, then `.agents/knowledge/index.md` |
-| Recover project context | `docs/context-store.md` | `PROJECT_PROFILE.toon`, `specs/README.md`, then `.agents/knowledge/index.md` |
-| Plan or implement a change | `.agents/knowledge/index.md` | `specs/README.md`, then the relevant skill in `.agents/skills/CATALOG.toon` |
-| Validate or hand off | `docs/validation.md` | `.agentic-template/bin/project check`, `.agentic-template/bin/project ready`, then `HANDOFF.toon` |
-
-For a full command-line map, run `.agentic-template/bin/project docs`.
+| Continue current work | `.agentic-template/bin/project backlog` | `HANDOFF.toon` |
+| Understand architecture | `docs/architecture/module-boundaries.md` | `PROJECT_PROFILE.toon` |
+| Plan a behavior change | `specs/README.md` | `specs/changes/` |
+| Validate work | `docs/validation.md` | `.agentic-template/bin/project check` |
+| Maintain context | `docs/context-store.md` | `.agents/knowledge/` |
+| Check documentation drift | `.agentic-template/bin/project check-wiki` | `docs/wiki/` |
 
 ## Context store
 
-The context store is the repository, not an external memory service. It is the
-versioned set of artifacts that let humans and agents recover intent,
-behavior, lineage and conformance:
+The repository is the durable context store. Structure lives in `AGENTS.md`,
+this README, `PROJECT_PROFILE.toon` and architecture docs. Lineage lives in
+`HANDOFF.toon`, ADRs and `.agents/knowledge/`. Behavior lives in specs and
+tests. Conformance lives in repository checks, CI and architecture fitness
+functions.
 
-| Layer | Sources |
-|---|---|
-| Structure | `AGENTS.md`, `README.md`, architecture docs, command surface |
-| Lineage | `PROJECT_PROFILE.toon`, `HANDOFF.toon`, ADRs, knowledge entries |
-| Behavior | `specs/`, tests and acceptance scenarios |
-| Conformance | `project check`, `project ready`, CI and fitness functions |
+Do not add an external vector store, database memory layer or SaaS memory layer
+by default. Add one only when project evidence justifies it and
+`PROJECT_PROFILE.toon` records the decision. Every non-trivial handoff should
+include the spec reference, validation run, fitness-function delta and
+knowledge update or no-record rationale.
 
-Generated projects should encode the top 1-3 architecture risks as cheap
-fitness functions where practical. Non-trivial handoffs should include the spec
-reference or no-spec rationale, fitness-function delta or no-change rationale,
-validation run and knowledge update. See `docs/context-store.md`.
+## Run locally
 
-## Development lifecycle
-
-Work flows through a small, connected loop. Agents drive it; humans steer at decision points.
-
-```
-/specialise --> calibrate audience + app shape (plain language)
-                  right-size: smallest sufficient architecture, recorded buy-in
-      |
-      v
-/ideate ------> short-cycle multi-persona loop -> structured change artifact
-     (idea or     Intent -> Boundary -> Delivery -> Quality gate
-     narrative)   At hard choices: show persona stances (discourages/accepts/encourages)
-      |
-      v
-outside-in -> acceptance test per WHEN/THEN scenario, fidelity by risk
-    ATDD        (acceptance / component-integration / subcutaneous)
-      |
-      v
-/review ------> boy-scout cleanup: code, language and architectural smells, coupling
-      |
-      v
-archive -------> specs/capabilities/ + wiki keeps docs and knowledge graph current
-```
-
-**Key principles:**
-- **Specs are structured and agent-first.** TOON is the template default; generated projects may choose TOON or S-expressions by purpose during setup.
-- **Quality is standing, not a phase.** Boy-scout rule, reuse over duplication, pay in-path debt, docs land in the change, no silent TODOs.
-- **Right-sizing is conscious.** The smallest sufficient architecture is chosen, explicitly. What is excluded and why are recorded. Revisit conditions are named.
-- **Knowledge forms one graph.** `AGENTS.md` + `PROJECT_PROFILE.toon` + specs + `HANDOFF.toon` + `.agents/knowledge/` + wiki all connect via `TAXONOMY.md`. Agents search before acting.
-- **Context is repo-native.** Structure, lineage, behavior and conformance live
-  in versioned files and checks, with external memory added only when evidence
-  justifies it.
-- **Format policy is explicit.** TOON fits state/contracts; S-expressions fit rules/compute. See `docs/structured-data.md`.
-
-## Philosophy
-
-### Agent-agnostic
-
-This template works with any agent that can:
-- Read Markdown files
-- Execute shell commands
-- Interpret simple structured text (TOON by default)
-- Follow a text-based operating contract
-
-No proprietary APIs. No agent-specific prompting tricks. The contract is learnable.
-
-### Evidence-driven, not opinionated
-
-The template does not force choices. It:
-- Inspects repository evidence first (existing code, manifests, config)
-- Recommends the smallest sufficient option
-- Asks only high-impact questions
-- Records unknowns, not secret assumptions
-
-Example: if you have a `package.json`, Node is inferred. If you have both Python and Java, the agent asks which is primary. If you have neither, the agent asks what you are building.
-
-### Principal-level, not code-generation
-
-This is not a scaffolding tool. It is for:
-- Making architecture boundary decisions
-- Choosing what NOT to build (right-sizing)
-- Reconciling trade-offs between personas
-- Keeping technical debt visible and paid
-- Keeping quality standing, not deferred
-- Recording durable decisions (ADRs)
-
-Code generation happens *inside* the lifecycle, not as the whole point.
-
-### Humans stay in the loop
-
-At every hard choice, agents surface the trade-off:
-
-```
-choice: add a message broker now
-  architect     discourages (no async evidence yet)
-  tech-lead     accepts     (isolated, reversible)
-  product-owner encourages  (unblocks the next capability)
-  -> [human decides]
-```
-
-No consensus required. The lead decides, informed by who cares what.
-
-## 🏃 Run locally
-
-Enter the Nix development shell:
+Use the Nix development shell:
 
 ```sh
 nix develop
+.agentic-template/bin/project run
 ```
 
-Or use the documented one-shot ladder (pinned container -> npx fallback).
-
-Run the canonical commands:
-
-```sh
-.agentic-template/bin/project help
-.agentic-template/bin/project startup    # Welcome, options and AGENTS.md from disk
-.agentic-template/bin/project init       # Bootstrap a new project
-.agentic-template/bin/project check      # Run all repo checks
-.agentic-template/bin/project ready      # Is this project ready to ship?
-.agentic-template/bin/project doctor     # Diagnostic summary
-```
-
-## 🛠️ Skills and agent compatibility
-
-This template is built on **composable skills** - reusable workflows for ideation, discovery, planning, testing, refactoring, review and delivery. Skills are lazy-loaded via `.agents/skills/CATALOG.toon` and do not require all of them at once.
-
-### The development loop in skills
-
-| Skill | Trigger | Purpose |
-|---|---|---|
-| `calibrate-audience` | Project shape known | Establish skill level, app shape, record right-sizing |
-| `ideate` | Ambiguous feature request | Multi-persona loop -> validated spec |
-| `narrative-intake` | Narrative provided | Turn free text into a structured change proposal |
-| `specify` | Meaningful behaviour change | Create proportional OpenSpec-shaped structured specs |
-| `outside-in-tdd` | Implementing a change | Start from acceptance test, fidelity by risk |
-| `review-loop` | Before merge | Boy-scout cleanup, smells, coupling |
-| `wiki-tidy` | At task boundaries | Keep docs and knowledge graph current |
-
-### Compatible agents
-
-- **Claude** (Anthropic) - reads `CLAUDE.md`, `.claude/README.md` and `.claude/skills/agentic-template/SKILL.md`
-- **Copilot** (GitHub) - reads `AGENTS.md` + `.github/copilot-instructions.md`
-- **Codex** (OpenAI) - reads `AGENTS.md` + `.codex/README.md`
-- **Cursor** - reads `AGENTS.md` + `.cursor/rules/agentic-startup-and-skills.mdc`
-- Any agent that can read Markdown and execute shell commands
-
-### Agent personas (persistent roles) 👥
-
-The template defines persistent team roles that agents can adopt via `/sudo`:
-- **Product Owner:** scope, intent, acceptance criteria
-- **Architect:** boundaries, trade-offs, reversibility
-- **Tech Lead:** thin slices, test strategy, delivery
-- **Domain Expert:** domain rules, validation paths
-- **Knowledge Curator:** durable knowledge, graph consistency
-
-### Agent topologies (how agents coordinate)
-
-1. **Single lead + fallback checklist** - one agent, explicit review gates (cheapest)
-2. **Sequential role passes** - lead switches personas via `/sudo` (scalable)
-3. **Independent subagents** - separate agents per role (most rigorous)
-4. **Persistent team** - dedicated roles with long-term memory (highest fidelity)
-
-Pick the topology that matches your risk and budget.
+The CLI is only scaffolded in the approval slice; the mutation loop is not
+implemented yet.
 
 ## Run with containers
 
-Every project makes an explicit container decision. Deployable services and web applications default to a tested application image unless evidence supports a documented exception.
+Not applicable for the initial architecture. This is a local experimental CLI,
+not a deployable service or web application. Revisit an application image when
+the CLI needs reproducible distribution outside the Nix/Gradle environment.
 
-```sh
-.agentic-template/bin/project image
-.agentic-template/bin/project image-test
-docker run -it $(docker build -q .)
-```
-
-See `README_TEMPLATE.md` (generated README) for runtime instructions.
-
-## 🧪 Tests
-
-Default to test-first for meaningful behaviour.
-
-**Testing posture:**
-- **Outside-in, boundary-in ATDD.** Start from acceptance test, drive inward.
-- **Fidelity by risk.** Acceptance, component-integration, or subcutaneous - choose per scenario.
-- **Real dependencies where they matter.** Use Testcontainers for lifecycle-managed integration tests.
-- **Testing trophy:** strong unit feedback + strong integration confidence + a few E2E paths.
+## Tests
 
 ```sh
 .agentic-template/bin/project test
-.agentic-template/bin/project integration-test
-.agentic-template/bin/project e2e-test
+.agentic-template/bin/project lint
+.agentic-template/bin/project component-test
 ```
 
-## ⚙️ Configuration and environment variables
+`component-test` runs the first outside-in acceptance test for the mutation and
+fitness loop. It is expected to fail until the architecture is approved and the
+thin slice is implemented.
 
-Project configuration is declared in:
-- `AGENTS.md` - operating rules and canonical commands
-- `docs/context-store.md` - repo-native structure, lineage, behavior and
-  conformance map
-- `PROJECT_PROFILE.toon` - project facts, inferences, decisions, unknowns
-- `HANDOFF.toon` - active work state, completed work, next actions
-- `PROJECT_PROFILE.toon.structured_data` - TOON/S-expression policy by purpose
-- `.agents/knowledge/` - durable decisions (ADRs), patterns, risks, questions, learnings
+## Configuration and environment variables
 
-Environment variables are documented in the generated `README.md`.
+No required model-provider configuration is committed. Future LangChain4j
+adapters should read provider credentials from environment variables or local
+ignored config and keep provider-specific details out of the core domain.
 
-## Structured data policy
+Initial expected variables, names still subject to approval:
 
-Default setup uses TOON for state/contracts and S-expressions for rules/compute.
-TOON is readable and diff-friendly; S-expressions are compact for predicates and
-transformations. See `docs/structured-data.md`.
+| Variable | Purpose |
+|---|---|
+| `SAAA_MODEL_PROVIDER` | Select the LangChain4j-backed model adapter |
+| `SAAA_MODEL_API_KEY` | Provider API key for model-backed mutation proposal |
+| `SAAA_EXPERIMENT_DB` | SQLite database path for experiment metadata |
 
 ## Infrastructure and deployment state
 
-Every project records:
-- **Local topology:** Nix devshell, containers, Compose
-- **Deployment target:** cloud provider, serverless, self-hosted, deferred
-- **IaC status:** required, deferred, not applicable
+Local topology is Nix plus Gradle. Deployment target is `local_cli` only.
+Infrastructure as code is not applicable until a remote execution or deployment
+target is selected.
 
-See `PROJECT_PROFILE.toon.infrastructure` and the generated README.
+## Deliberate non-goals
 
-## 🚫 Deliberate non-goals
+- OpenSearch or vector storage
+- AST mutation
+- LSP integration
+- distributed workers
+- automatic production deployment
 
-This is **not**:
-- An internal developer platform (IDP). No defaults for databases, brokers, Kubernetes, or runtimes.
-- A code-generation service. It is for decision-making.
-- Black-box magic. All rules are readable; all state is structured text.
-- Coupled to a single agent or platform.
-- A replacement for human architecture review. It is a tool to make review more structured.
+Each is recorded as deferred in `PROJECT_PROFILE.toon` with revisit
+conditions.
 
-## 📚 Important decisions and documentation links
+## Development lifecycle
 
-- **Architecture:** see `docs/architecture/` (ADRs)
-- **Decisions:** see `docs/decisions/` (ADR index)
-- **Docs map:** see `docs/README.md`
-- **Context store:** see `docs/context-store.md`
-- **Validation:** see `docs/validation.md`
-- **Runbooks:** see `docs/runbooks/` for optional repeatable operations
-- **Knowledge:** see `.agents/knowledge/` (taxonomy, domains, systems, risks, questions)
-- **Durable rules:** see `AGENTS.md` (operating contract)
-- **Development lifecycle:** see `docs/wiki/development.md`
+Work flows from a narrative or `/ideate` into a structured change spec, then a
+boundary-first acceptance test, then implementation, review, validation,
+handoff and knowledge/wiki upkeep. Meaningful behavior changes must update the
+spec and validation evidence in the same change.
+
+Default integration is branch plus PR. If PR tooling is unavailable and the user
+explicitly authorizes skipping the PR, use the documented fallback: keep work on
+a bounded branch, run checks, self-review in code-review style, update handoff
+with the fallback reason and validation, merge to `main`, then push `main`
+without force-pushing.
+
+## Important decisions and documentation links
+
+- `PROJECT_PROFILE.toon` records current evidence-backed architecture state.
+- `docs/architecture/module-boundaries.md` records module boundaries.
+- `docs/context-store.md` records the repo-native context-store model.
+- `specs/capabilities/CAP-001-mutation-fitness-loop.toon` records the first
+  living capability.
+- `specs/changes/CHG-001-mutation-fitness-loop/` records the first proposed
+  implementation slice.
 
 ## AI-assisted delivery statement
 
-This template was designed with AI agents as first-class collaborators. The structure, workflows and rules reflect a philosophy: agents reduce decision fatigue when operating under an explicit, learnable contract that keeps humans in the loop at irreversible choices.
-
-The `/specialise` bootstrap, the development lifecycle, the persona topology, the knowledge graph, and the CI contract were all developed with agent assistance. They have been shaped by what makes agent-human collaboration effective, not just what makes sense to humans alone.
-
-If you use this template, you are opting into:
-- **Composable skills** that agents can invoke
-- **Semantic state** (structured text) that agents can parse and update
-- **Readable operating rules** (this contract) that agents and humans share
-- **Persistent topologies** (personas, subagents) that preserve context across sessions
-- **Hard choice attribution** (persona stance) so you know who favours what trade-off
-
-The goal is not to replace you. It is to make it faster and clearer for you and an agent to collaborate on decisions that matter.
+AI agents may assist delivery, propose changes and run checks. Deterministic
+validation, fitness scoring, promotion and rollback remain outside model
+authority. The operating contract lives in `AGENTS.md`.

@@ -1,44 +1,13 @@
 # Testing
 
-Drive design outside-in, from the boundary in (ATDD-aligned): a structured
-change scenario's acceptance test is written first and fails for the right
-reason before any implementation.
+The testing approach is boundary-in and ATDD-aligned.
 
-```
-WHEN/THEN scenario ──► acceptance test (fails) ──► drive inward ──► passes
-```
+- Unit tests cover plain Java domain policies.
+- Component tests drive the mutation loop with fake model, Git, check and
+  benchmark ports.
+- Integration tests are deferred until Git and SQLite adapters exist.
+- Benchmarks use JMH and feed `EvaluationEvidence`.
 
-Choose the boundary test's fidelity by risk and known architectural direction:
-
-```
-acceptance (end-to-end)   high value / risk, user-visible
-component-integration     bounded slice, real internal wiring
-subcutaneous              logic under the UI where UI cost > its risk
-```
-
-Underneath, keep a testing-trophy balance and a thin real-dependency
-confirmation layer where semantics matter:
-
-```
-                         E2E
-                          /\
-                         /few\
-                       /------\
-                      /component\
-                    /integration\
-                   /------------\
-                  / contract     \
-                 /----------------\
-                / unit/domain      \
-               /____________________\
-```
-
-Use real dependencies where semantics matter and cost is reasonable. Do not let
-mocked tests overclaim confidence. See
-`.agents/skills/workflow/outside-in-tdd/SKILL.md`.
-
-Architecture fitness functions cover conformance risks that ordinary behavior
-tests do not express well: dependency direction, schema drift, boundary leaks,
-deployability and important quality budgets. Put cheap automated fitness
-functions behind `project check` or `project ready`; record manual checks in
-`HANDOFF.toon.tests_run` until they can be automated.
+The first approval-driving test is
+`application/src/acceptanceTest/java/io/github/selfadaptingagenticarchitecture/application/MutationEvaluationLoopAcceptanceTest.java`.
+It is expected to fail until `CHG-001` is approved and implemented.

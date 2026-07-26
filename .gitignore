@@ -8,12 +8,19 @@ result-*
 tmp/
 dist/
 build/
+**/build/
 coverage/
 node_modules/
 .pytest_cache/
 __pycache__/
 *.pyc
 .DS_Store
+.gradle/
+.jqwik-database
+out/
+*.db
+*.sqlite
+*.sqlite3
 
 # Worktrees: keep scaffolding, ignore generated worktree contents
 .worktrees/*
