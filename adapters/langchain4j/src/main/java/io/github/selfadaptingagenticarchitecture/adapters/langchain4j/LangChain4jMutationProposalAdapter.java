@@ -7,6 +7,7 @@ import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 import io.github.selfadaptingagenticarchitecture.application.MutationProposer;
 import io.github.selfadaptingagenticarchitecture.core.Mutation;
+import io.github.selfadaptingagenticarchitecture.core.MutationLimits;
 import io.github.selfadaptingagenticarchitecture.core.MutationScope;
 import io.github.selfadaptingagenticarchitecture.core.WorkflowGraph;
 import java.util.Arrays;
@@ -14,11 +15,6 @@ import java.util.List;
 import java.util.Objects;
 
 public final class LangChain4jMutationProposalAdapter implements MutationProposer {
-    static final int MAX_ID_LENGTH = 128;
-    static final int MAX_SUMMARY_LENGTH = 500;
-    static final int MAX_SCOPE_LENGTH = 64;
-    static final int MAX_PATCH_LENGTH = 10_000;
-
     private final WorkflowMutationAiService service;
 
     public static LangChain4jMutationProposalAdapter from(ChatModel chatModel) {
@@ -83,15 +79,15 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
     public record MutationProposal(String id, String summary, String scope, String patch) {
         private Mutation toMutation() {
             return new Mutation(
-                    requireBounded(id, "id", MAX_ID_LENGTH),
-                    requireBounded(summary, "summary", MAX_SUMMARY_LENGTH),
+                    requireBounded(id, "id", MutationLimits.MAX_ID_LENGTH),
+                    requireBounded(summary, "summary", MutationLimits.MAX_SUMMARY_LENGTH),
                     parseScope(scope),
-                    requireBounded(patch, "patch", MAX_PATCH_LENGTH)
+                    requireBounded(patch, "patch", MutationLimits.MAX_PATCH_LENGTH)
             );
         }
 
         private static MutationScope parseScope(String scope) {
-            String value = requireBounded(scope, "scope", MAX_SCOPE_LENGTH);
+            String value = requireBounded(scope, "scope", MutationLimits.MAX_SCOPE_LENGTH);
             try {
                 return MutationScope.valueOf(value);
             } catch (IllegalArgumentException exception) {
