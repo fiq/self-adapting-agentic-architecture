@@ -77,10 +77,19 @@ acceptance:
     test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.rejectsOversizedModelOutputDeterministically
     layer: unit
   - scenario: S4
+    test_id: application/BoundedMutationValidatorTest.rejectsOversizedMutationFields
+    layer: unit
+  - scenario: S4
+    test_id: application/BoundedMutationValidatorTest.rejectsAuthorityBearingMutationText
+    layer: unit
+  - scenario: S4
     test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.mutationProposalContractDoesNotExposeApprovalOrScoringAuthority
     layer: unit
   - scenario: S4
     test_id: application/MutationEvaluationLoopAcceptanceTest.stopsInvalidModelProposalBeforeCandidateCreationAndEvaluation
+    layer: component
+  - scenario: S4
+    test_id: application/MutationEvaluationLoopAcceptanceTest.realValidatorStopsAuthorityBearingProposalBeforeCandidateCreationAndEvaluation
     layer: component
 
 tasks:
@@ -103,6 +112,9 @@ tasks:
     slice: implement provider-neutral LangChain4j typed-service mutation proposal adapter
     status: completed
   - id: T7
+    slice: implement deterministic bounded mutation validator policy
+    status: completed
+  - id: T8
     slice: select first live LangChain4j provider and CLI configuration path
     status: pending
 

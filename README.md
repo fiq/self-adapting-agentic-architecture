@@ -106,10 +106,11 @@ nix develop
 ```
 
 The CLI is scaffolded. The application mutation loop orchestration is
-implemented and covered by a component test. Git, SQLite, command-check and JMH
-evidence adapters have integration coverage; the LangChain4j mutation proposer
-adapter has provider-neutral typed-service coverage. Live provider selection
-and credential configuration remain deferred.
+implemented and covered by a component test. Deterministic bounded mutation
+validation is implemented. Git, SQLite, command-check and JMH evidence adapters
+have integration coverage; the LangChain4j mutation proposer adapter has
+provider-neutral typed-service coverage. Live provider selection and credential
+configuration remain deferred.
 
 ## Run with containers
 
@@ -130,7 +131,8 @@ the CLI needs reproducible distribution outside the Nix/Gradle environment.
 fitness loop. `integration-test` covers real Git worktree candidate creation,
 SQLite experiment metadata persistence, deterministic command checks and JMH
 benchmark evidence. `test` covers the provider-neutral LangChain4j mutation
-proposal adapter without live provider credentials.
+proposal adapter without live provider credentials and the deterministic
+bounded mutation validator.
 
 ## Configuration and environment variables
 
