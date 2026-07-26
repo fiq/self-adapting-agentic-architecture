@@ -1,75 +1,132 @@
 project:
-  name: null
-  purpose: null
-  concept_date: 2026-05-16
-  status: template
+  name: self-adapting-agentic-architecture
+  purpose: Java-first experimental platform for evolving agentic workflows through model-guided mutation, Git-versioned candidates and external fitness evaluation.
+  concept_date: 2026-07-25
+  status: consumed
 
 domain:
-  summary: null
-  primary_users: []
-  core_capabilities: []
-  non_goals: []
+  summary: Evolutionary experimentation for agentic workflow definitions, with deterministic validation and external fitness scoring.
+  primary_users:
+    - developer-researchers evolving agentic workflows
+    - agent platform maintainers comparing candidate workflow changes
+  core_capabilities:
+    - model proposes bounded workflow mutations
+    - deterministic mutation validation
+    - isolated Git worktree candidate creation
+    - candidate commit provenance
+    - deterministic checks and JMH benchmark execution
+    - multi-objective fitness scoring from evaluation evidence
+    - deterministic promotion or discard decision
+  non_goals:
+    - OpenSearch or external vector storage
+    - AST-level mutation
+    - LSP integration
+    - distributed workers
+    - automatic production deployment
 
 audience:
-  skill_level: infer
-  app_shape: infer
-  language_by_role: []
+  skill_level: developer
+  app_shape: cli
+  language_by_role:
+    - role: core_domain
+      language: Java
+    - role: cli
+      language: Java with picocli
+    - role: model_adapter
+      language: Java with LangChain4j behind ports
+    - role: persistence
+      language: Java with SQLite through an adapter
+    - role: benchmarks
+      language: Java with JMH
   right_sizing:
-    smallest_sufficient: infer
-    deliberately_excluded: []
-    revisit_when: []
-    bought_in: false
+    smallest_sufficient: A local CLI orchestrates one mutation candidate at a time through plain Java core ports and adapters for model access, Git, checks, benchmarks and SQLite metadata.
+    deliberately_excluded:
+      - OpenSearch/vector storage until retrieval corpus scale and query quality require it.
+      - AST mutation until text or structured workflow mutations prove insufficient.
+      - LSP integration until code-aware repair needs exceed simple validation feedback.
+      - distributed workers until local sequential evaluation throughput becomes a measured bottleneck.
+      - automatic production deployment until promotion targets and rollback policy are proven manually.
+    revisit_when:
+      - experiments need semantic search across large workflow/evidence corpora
+      - mutation safety requires typed program transformations
+      - validation failures repeatedly require language-server diagnostics
+      - benchmark throughput blocks research cadence
+      - users request unattended promotion into production branches
+    bought_in: true
 
 narrative:
-  inline: null
+  inline: |
+    Initialise this repository as self-adapting-agentic-architecture.
+
+    The project is a Java-first experimental platform for evolving agentic
+    workflows through model-guided mutation, Git-versioned candidates and
+    external fitness evaluation.
+
+    Use LangChain4j for model access, typed AI services, tool calling,
+    retrieval integration and agent coordination. Keep LangChain4j behind
+    adapters so the core domain remains plain Java.
+
+    The first thin slice must prove this loop:
+    baseline workflow -> model proposes a bounded mutation -> mutation is
+    validated -> candidate is created in an isolated Git worktree -> candidate
+    is committed -> deterministic checks and benchmarks run -> a
+    multi-objective fitness score is calculated -> the candidate is promoted
+    or discarded.
+
+    The model may propose mutations and repairs, but it must never approve its
+    own result. Validation, fitness scoring, promotion and rollback must remain
+    deterministic.
   file: null
 
 architecture:
-  style: infer
-  application_shape: infer
-  language: infer
-  framework: infer
-  build: infer
-  deployment: infer
-  persistence: infer
-  messaging: infer
-  external_services: []
+  style: clean_architecture
+  application_shape: cli
+  language: Java
+  framework: picocli
+  build: Gradle
+  deployment: local_experimental_cli
+  persistence: SQLite experiment metadata
+  messaging: none
+  external_services:
+    - LangChain4j-compatible model provider behind adapter ports
+    - local Git executable for candidate worktrees
+    - local deterministic check and benchmark commands
 
 development:
   local_environment:
     nix: required
-    containers: infer
+    containers: not_applicable_initially
   commands:
-    test: specialise
-    lint: specialise
-    integration_test: specialise
-    run: specialise
-    image: specialise
+    test: Gradle JUnit 5 test suite
+    lint: Gradle check plus architecture fitness checks
+    integration_test: Gradle integration tests for Git and SQLite adapters
+    run: picocli application entrypoint
+    image: not_applicable_initially
 
 testing:
   philosophy: testing_trophy
   test_first: true
-  harness: specialise
+  harness: Gradle with JUnit 5, AssertJ, jqwik and JMH
   layers:
-    unit: infer
-    contract: infer
-    integration: infer
-    component: infer
-    e2e: infer
+    unit: core domain policies and scoring
+    contract: ports and evidence formats
+    integration: Git worktree and SQLite adapter semantics
+    component: CLI orchestration with fake model/check/benchmark adapters
+    e2e: deferred until the CLI loop has a stable command contract
   real_dependency_policy:
     cheap_and_semantically_important: use_real
     expensive_or_remote: substitute_or_later_fidelity
 
 persistence:
-  engine: infer
-  provider: infer
-  migrations: required_if_relational
+  engine: sqlite
+  provider: local_file
+  migrations: required
 
 containers:
-  application_image: infer
-  local_runtime: infer
-  compose_required: infer
-  platform_smoke: optional
+  application_image: deferred
+  local_runtime: nix_and_gradle
+  compose_required: false
+  platform_smoke: not_applicable_initially
 
 agents:
   mode: hybrid
@@ -89,16 +146,16 @@ agents:
     roles:
       product_owner:
         enabled: true
-        responsibility: business_value
+        responsibility: research_value_and_user_workflow
       architect:
         enabled: true
-        responsibility: boundaries_and_tradeoffs
+        responsibility: deterministic_boundaries_and_tradeoffs
       tech_lead:
         enabled: true
-        responsibility: delivery_and_implementation
+        responsibility: delivery_and_testability
       domain_expert:
-        enabled: infer
-        responsibility: null
+        enabled: true
+        responsibility: agentic_workflow_evaluation
   subagents:
     default_enabled:
       - researcher
@@ -109,15 +166,13 @@ agents:
     conditional:
       security_reviewer:
         when:
-          - authentication
-          - personal_data
-          - payments
+          - model_tool_calling
           - untrusted_external_input
+          - Git mutation execution
       performance_reviewer:
         when:
-          - latency_sensitive
-          - throughput_sensitive
-          - realtime
+          - benchmark_validity
+          - evaluation_throughput
           - resource_constrained
 
 coordination:
@@ -127,10 +182,12 @@ coordination:
     - architecture_boundary_change
     - irreversible_dependency_choice
     - material_scope_change
+    - model_self_approval_boundary_change
   independent_review_required_for:
     - security_sensitive_change
     - migration
     - public_contract_change
+    - promotion_policy_change
 
 communication:
   inverted_pyramid: true
@@ -146,7 +203,7 @@ structured_data:
     benefit: readable, diff-friendly project state and contracts
   rules_and_compute:
     format: s_expression
-    benefit: compact predicates, transformations and policy evaluation
+    benefit: compact deterministic policy predicates where useful
   options:
     state_and_contracts:
       - toon
@@ -155,7 +212,7 @@ structured_data:
       - toon
       - s_expression
       - none
-  guidance: TOON for state/contracts; S-expressions for rules/compute unless project evidence says otherwise
+  guidance: TOON for state/contracts; S-expressions only for explicit deterministic rule/policy artifacts.
 
 sdd:
   enabled: true
@@ -202,18 +259,10 @@ generation:
     - capture material unknowns
     - recommend smallest architecture
     - ask only high-impact unresolved questions
-    - specialise runtime
-    - specialise persistence
-    - specialise messaging where required
-    - specialise test harness
-    - specialise SQL migration strategy where relational persistence exists
-    - specialise application build container where appropriate
-    - configure Nix development shell
+    - specialise Java runtime
+    - specialise SQLite persistence
+    - specialise Gradle test harness
     - configure repository commands
     - configure agent topology
-    - validate MCP expectations
-    - detect Superpowers integration
-    - configure CI from repository primitives
-    - initialise project wiki
     - initialise current handoff state
     - validate complete project state

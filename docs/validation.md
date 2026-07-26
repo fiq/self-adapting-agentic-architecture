@@ -39,6 +39,16 @@ Wire automated fitness functions into `.agentic-template/bin/project check`,
 automation is not yet credible, record the manual validation path and revisit
 trigger.
 
+Current project-specific fitness function:
+
+```sh
+.agentic-template/bin/project lint
+```
+
+It protects the deterministic model boundary by failing when LangChain4j,
+picocli or SQLite implementation dependencies leak into `core/` or
+`application/`.
+
 ## Required Recording
 
 Record meaningful validation in `HANDOFF.toon.tests_run`.

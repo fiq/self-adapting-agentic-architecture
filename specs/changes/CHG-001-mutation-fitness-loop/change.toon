@@ -1,0 +1,69 @@
+change:
+  id: CHG-001
+  title: Mutation fitness loop
+  status: proposed
+  intent: Prove one model-proposed workflow mutation can be validated, isolated, evaluated and deterministically promoted or discarded.
+  audience_level: developer
+  relates_to:
+    - DOM-001
+    - SYS-001
+    - ARCH-001
+    - RISK-001
+    - Q-001
+    - Q-002
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: The system evaluates a bounded workflow mutation candidate without allowing the model to approve its own result.
+    scenarios:
+      - id: S1
+        when: a baseline workflow is available and the model proposes a valid bounded mutation
+        then: the system creates and commits a candidate in an isolated Git worktree
+        and:
+          - candidate work does not modify the coordination checkout
+      - id: S2
+        when: deterministic checks and benchmarks complete for the candidate
+        then: the system records EvaluationEvidence and calculates a multi-objective FitnessResult
+        and:
+          - scoring uses deterministic evidence rather than model approval
+      - id: S3
+        when: the FitnessResult does not satisfy promotion policy
+        then: the candidate is discarded deterministically
+        and:
+          - rollback or cleanup remains outside model authority
+
+acceptance:
+  - scenario: S1
+    test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
+    layer: component
+  - scenario: S2
+    test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
+    layer: component
+  - scenario: S3
+    test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
+    layer: component
+
+tasks:
+  - id: T1
+    slice: define plain Java records and application ports for the loop
+    status: pending
+  - id: T2
+    slice: make the outside-in component test fail for missing loop implementation
+    status: pending
+  - id: T3
+    slice: implement the deterministic orchestration with fake adapters
+    status: pending
+  - id: T4
+    slice: add real Git worktree and SQLite integration tests after approval
+    status: pending
+
+non_goals:
+  - OpenSearch or vector storage
+  - AST mutation
+  - LSP integration
+  - distributed workers
+  - automatic production deployment
+
+risks:
+  - RISK-001 model self-approval if deterministic boundaries are weakened
