@@ -1,7 +1,7 @@
 change:
   id: CHG-001
   title: Mutation fitness loop
-  status: proposed
+  status: accepted
   intent: Prove one model-proposed workflow mutation can be validated, isolated, evaluated and deterministically promoted or discarded.
   audience_level: developer
   relates_to:
@@ -47,13 +47,13 @@ acceptance:
 tasks:
   - id: T1
     slice: define plain Java records and application ports for the loop
-    status: pending
+    status: completed
   - id: T2
     slice: make the outside-in component test fail for missing loop implementation
-    status: pending
+    status: completed
   - id: T3
     slice: implement the deterministic orchestration with fake adapters
-    status: pending
+    status: completed
   - id: T4
     slice: add real Git worktree and SQLite integration tests after approval
     status: pending

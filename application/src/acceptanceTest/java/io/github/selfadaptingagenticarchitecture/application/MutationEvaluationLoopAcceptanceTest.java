@@ -3,6 +3,7 @@ package io.github.selfadaptingagenticarchitecture.application;
 import static io.github.selfadaptingagenticarchitecture.core.FitnessDecision.DISCARD;
 import static io.github.selfadaptingagenticarchitecture.core.MutationScope.WORKFLOW_DEFINITION;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.selfadaptingagenticarchitecture.core.BenchmarkEvidence;
 import io.github.selfadaptingagenticarchitecture.core.Candidate;
@@ -12,6 +13,9 @@ import io.github.selfadaptingagenticarchitecture.core.Mutation;
 import io.github.selfadaptingagenticarchitecture.core.ValidationResult;
 import io.github.selfadaptingagenticarchitecture.core.WorkflowGraph;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +36,7 @@ final class MutationEvaluationLoopAcceptanceTest {
         );
         var decisions = new RecordingDecisionSink();
         var metadata = new RecordingMetadataStore();
+        var evaluatedAt = Instant.parse("2026-07-27T00:00:00Z");
 
         var loop = new MutationEvaluationLoop(
                 ignored -> mutation,
@@ -47,16 +52,65 @@ final class MutationEvaluationLoopAcceptanceTest {
                         DISCARD
                 ),
                 metadata,
-                decisions
+                decisions,
+                Clock.fixed(evaluatedAt, ZoneOffset.UTC)
         );
 
         var result = loop.evaluate(baseline);
 
         assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.evidence().checksPassed()).isTrue();
+        assertThat(result.evidence().evaluatedAt()).isEqualTo(evaluatedAt);
         assertThat(metadata.recordedCandidates()).containsExactly(candidate);
         assertThat(metadata.recordedFitness()).contains(result);
         assertThat(decisions.discardedCandidate()).contains(candidate);
+        assertThat(decisions.promotedCandidate()).isEmpty();
+    }
+
+    @Test
+    void rejectsFitnessResultForCandidateThatWasNotEvaluated() {
+        var baseline = new WorkflowGraph("baseline", "v1", "agent -> tool -> answer");
+        var mutation = new Mutation("mut-001", "tighten tool selection", WORKFLOW_DEFINITION, "replace tool policy");
+        var candidate = new Candidate(
+                "cand-001",
+                mutation.id(),
+                "candidate/mut-001",
+                Path.of(".worktrees/candidate-mut-001"),
+                "abc1234"
+        );
+        var unexpectedCandidate = new Candidate(
+                "cand-002",
+                mutation.id(),
+                "candidate/mut-002",
+                Path.of(".worktrees/candidate-mut-002"),
+                "def5678"
+        );
+        var decisions = new RecordingDecisionSink();
+        var metadata = new RecordingMetadataStore();
+
+        var loop = new MutationEvaluationLoop(
+                ignored -> mutation,
+                (workflow, proposed) -> ValidationResult.passed(),
+                (workflow, proposed) -> candidate,
+                ignored -> List.of(CheckEvidence.passed("gradle-test", "all deterministic checks passed")),
+                ignored -> List.of(BenchmarkEvidence.measurement("sample-throughput", 42.0, "ops/s")),
+                (evaluatedCandidate, evidence) -> new FitnessResult(
+                        unexpectedCandidate,
+                        evidence,
+                        Map.of("correctness", 1.0),
+                        1.0,
+                        DISCARD
+                ),
+                metadata,
+                decisions
+        );
+
+        assertThatThrownBy(() -> loop.evaluate(baseline))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("fitness result candidate does not match evaluated candidate");
+        assertThat(metadata.recordedCandidates()).containsExactly(candidate);
+        assertThat(metadata.recordedFitness()).isEmpty();
+        assertThat(decisions.discardedCandidate()).isEmpty();
         assertThat(decisions.promotedCandidate()).isEmpty();
     }
 

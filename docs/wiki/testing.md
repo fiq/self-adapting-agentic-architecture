@@ -10,4 +10,6 @@ The testing approach is boundary-in and ATDD-aligned.
 
 The first approval-driving test is
 `application/src/acceptanceTest/java/io/github/selfadaptingagenticarchitecture/application/MutationEvaluationLoopAcceptanceTest.java`.
-It is expected to fail until `CHG-001` is approved and implemented.
+It currently passes against fake ports and proves the deterministic application
+orchestration. Real Git worktree and SQLite semantics remain deferred until the
+adapters are implemented.
