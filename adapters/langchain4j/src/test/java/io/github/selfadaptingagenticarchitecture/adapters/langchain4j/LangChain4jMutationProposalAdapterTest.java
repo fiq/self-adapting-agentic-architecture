@@ -8,6 +8,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import io.github.selfadaptingagenticarchitecture.core.MutationLimits;
 import io.github.selfadaptingagenticarchitecture.core.MutationScope;
 import io.github.selfadaptingagenticarchitecture.core.WorkflowGraph;
 import java.util.Arrays;
@@ -97,13 +98,13 @@ final class LangChain4jMutationProposalAdapterTest {
                 "mut-oversized",
                 "oversized patch",
                 WORKFLOW_DEFINITION.name(),
-                "x".repeat(LangChain4jMutationProposalAdapter.MAX_PATCH_LENGTH + 1)
+                "x".repeat(MutationLimits.MAX_PATCH_LENGTH + 1)
         ));
         var adapter = new LangChain4jMutationProposalAdapter(service);
 
         assertThatThrownBy(() -> adapter.proposeFor(new WorkflowGraph("baseline", "v1", "agent -> answer")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("patch must be at most 10000 characters");
+                .hasMessage("patch must be at most " + MutationLimits.MAX_PATCH_LENGTH + " characters");
     }
 
     @Test
@@ -112,7 +113,7 @@ final class LangChain4jMutationProposalAdapterTest {
                 .map(component -> component.getName().toLowerCase())
                 .toList())
                 .containsExactly("id", "summary", "scope", "patch")
-                .doesNotContain("score", "decision", "approve", "promote", "rollback");
+                .doesNotContain("score", "decision", "approve", "promote", "discard", "rollback");
     }
 
     private static final class RecordingMutationService
