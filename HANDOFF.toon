@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: shipped_to_main
-  branch: main
+  status: ready_for_self_review
+  branch: codex/implement-mutation-loop
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: latest_main_commit_after_final_handoff
-  dirty: false
+  head: d07610d
+  dirty: true
 
 goal:
-  current: initialized self-adapting-agentic-architecture is shipped on main using the tool-unavailable integration fallback
-  phase: delivered
+  current: implement the fake-port mutation evaluation loop, clean redundant branches and prepare self-reviewed main integration
+  phase: self_review
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -33,13 +33,22 @@ completed:
   - self-reviewed fallback diff; no findings
   - merged `codex/initialize-agentic-architecture` into `main` with merge commit `309fec7`
   - pushed `main` to origin through `1851775`
+  - deleted merged redundant branch `codex/initialize-agentic-architecture` locally and on origin
+  - created branch `codex/implement-mutation-loop` from clean `main`
+  - implemented deterministic `MutationEvaluationLoop` orchestration through application ports
+  - injected `Clock` into the loop and pinned the component test timestamp
+  - self-review found and fixed scorer-candidate mismatch validation in `MutationEvaluationLoop`
+  - added a component regression test for mismatched `FitnessResult.candidate`
+  - updated README, testing wiki, project profile and `CHG-001` task state for the fake-port slice
+  - verified the component acceptance test now passes
 
 in_progress: []
 
 next:
-  - after shipping, approve or revise the proposed architecture and module boundaries
+  - self-review the implementation branch
+  - commit, merge to `main` and push using the explicitly authorized PR-less fallback if checks remain green
+  - delete the implementation branch after it is merged and pushed
   - answer the smallest high-impact questions: first model provider, first workflow patch format, promotion target and fitness objective weights
-  - implement the `MutationEvaluationLoop` against fake ports until the component acceptance test passes
   - add real Git worktree and SQLite adapter integration tests after the fake-port slice passes
 
 decisions:
@@ -59,10 +68,10 @@ decisions:
     summary: PR-less main merge is allowed only when tools are unavailable, user explicitly authorizes it, checks pass and self-review/handoff evidence is recorded
 
 risks:
-  - component acceptance test is intentionally failing at `MutationEvaluationLoop.evaluate`; do not wire it into readiness until implementation starts
+  - fake ports prove application orchestration only; real Git worktree and SQLite semantics are still deferred
   - Gradle commands need Nix daemon access in this environment; sandboxed runs can fail even when project commands pass outside the sandbox
   - model provider, workflow patch format, promotion target and fitness weights are unresolved but not blocking architecture approval
-  - integration and contract commands currently report explicit not-applicable/deferred status for the approval slice
+  - integration and contract commands currently report explicit not-applicable/deferred status until real adapter contracts stabilize
   - jqwik dependency should be policy-reviewed before upgrading to 1.10.x or later
   - skipping PR loses independent GitHub review and CI-before-merge; mitigated by local readiness checks, self-review and explicit user authorization
 
@@ -127,6 +136,25 @@ tests_run:
   - 2026-07-27 self-review: no findings
   - 2026-07-27 `git merge --no-ff codex/initialize-agentic-architecture`: pass
   - 2026-07-27 `git push origin main`: pass, pushed `831ab17..1851775`
+  - 2026-07-27 `git branch -d codex/initialize-agentic-architecture`: pass
+  - 2026-07-27 `git push origin --delete codex/initialize-agentic-architecture`: pass
+  - 2026-07-27 `.agentic-template/bin/project component-test`: pass after `MutationEvaluationLoop` fake-port implementation
+  - 2026-07-27 `.agentic-template/bin/project test`: pass
+  - 2026-07-27 `.agentic-template/bin/project lint`: pass
+  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass
+  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass
+  - 2026-07-27 `git diff --check`: pass
+  - 2026-07-27 `.agentic-template/bin/project check`: pass
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass
+  - 2026-07-27 self-review: fixed scorer-candidate mismatch guard; no remaining findings
+  - 2026-07-27 `.agentic-template/bin/project component-test`: pass after self-review fix
+  - 2026-07-27 `.agentic-template/bin/project test`: pass after self-review fix
+  - 2026-07-27 `.agentic-template/bin/project lint`: pass after self-review fix
+  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after self-review fix
+  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after self-review fix
+  - 2026-07-27 `git diff --check`: pass after self-review fix
+  - 2026-07-27 `.agentic-template/bin/project check`: pass after self-review fix
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass after self-review fix
 
 knowledge:
   consulted:
