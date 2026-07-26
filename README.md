@@ -177,11 +177,11 @@ Default integration is branch plus PR. If PR tooling is unavailable and the user
 explicitly authorizes skipping the PR, use the documented fallback: keep work on
 a bounded branch, run checks, request risk-appropriate actor review when agent
 tooling is available, retry or get human review if a reviewer times out, address
-findings, self-review in code-review style, update handoff with the fallback
-reason, validation and actor-review result, merge to `main`, then push `main`
-without force-pushing. If actor review tooling is unavailable, disclose the lost
-actor-review gate and get explicit user authorization for that degraded path
-before merge.
+actor or human review findings, self-review in code-review style, update
+handoff with the fallback reason, validation and actor-review or substituted
+human-review result, merge to `main`, then push `main` without force-pushing. If
+actor review tooling is unavailable, disclose the lost actor-review gate and get
+explicit user authorization for that degraded path before merge.
 
 ## Important decisions and documentation links
 
