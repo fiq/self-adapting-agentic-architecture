@@ -137,14 +137,14 @@ decisions:
     decision: allow PR-less actor-reviewed integration only when PR tooling is unavailable and the user explicitly authorizes shipping to main
     reason:
       - GitHub app and gh PR creation were unavailable for this repository
-      - direct main integration still needs branch isolation, deterministic checks, completed risk-appropriate actor review when available, lead self-review and explicit provenance
+      - direct main integration still needs branch isolation, deterministic checks, completed risk-appropriate actor review when available or explicit human review when substituted after actor timeout, lead self-review and explicit provenance
     confidence: high
     status: active
     validation:
       - AGENTS.md
       - docs/wiki/development.md
       - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
-    consequence_if_changed: future agents may either block unnecessarily on unavailable PR tooling or push to main without adequate actor-review evidence
+    consequence_if_changed: future agents may either block unnecessarily on unavailable PR tooling or push to main without adequate actor-review or substituted human-review evidence
 
 unknowns:
   - id: Q-001
