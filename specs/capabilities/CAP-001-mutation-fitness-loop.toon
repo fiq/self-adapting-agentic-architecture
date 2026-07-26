@@ -1,0 +1,30 @@
+capability:
+  id: CAP-001
+  name: mutation-fitness-loop
+  status: living
+  summary: Evaluate one model-proposed workflow mutation as an isolated Git candidate using deterministic validation, checks, benchmark evidence and fitness scoring.
+  relates_to:
+    - DOM-001
+    - SYS-001
+    - ARCH-001
+    - RISK-001
+
+requirements:
+  - id: R1
+    requirement: The system evaluates a bounded workflow mutation candidate without allowing the model to approve its own result.
+    scenarios:
+      - id: S1
+        when: a baseline workflow is available and the model proposes a valid bounded mutation
+        then: the system creates and commits a candidate in an isolated Git worktree
+        and:
+          - candidate work does not modify the coordination checkout
+      - id: S2
+        when: deterministic checks and benchmarks complete for the candidate
+        then: the system records EvaluationEvidence and calculates a multi-objective FitnessResult
+        and:
+          - scoring uses deterministic evidence rather than model approval
+      - id: S3
+        when: the FitnessResult does not satisfy promotion policy
+        then: the candidate is discarded deterministically
+        and:
+          - rollback or cleanup remains outside model authority

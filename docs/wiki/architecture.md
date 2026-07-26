@@ -1,20 +1,18 @@
 # Architecture
 
-Use the smallest architecture that satisfies evidence and intent.
+self-adapting-agentic-architecture is a local Java CLI with Clean Architecture
+module boundaries.
 
+```text
+cli -> application -> core
+           ^
+           |
+  adapters and benchmarks implement ports
 ```
-external world -> adapters -> use cases -> domain/application
-                                    ^
-                                    |
-                         dependency direction
-```
 
-Add boundaries around volatile external APIs, databases, brokers, object
-storage, payment providers, AI model providers and cloud-specific services when
-they materially affect behaviour or tests.
+The key architecture rule is `ARCH-001`: LangChain4j is an adapter detail, and
+validation, fitness scoring, promotion and rollback remain deterministic Java
+decisions. `RISK-001` tracks the model self-approval failure mode.
 
-Do not create one interface per class.
-
-When a boundary matters, prefer an executable architecture fitness function
-over a review-only reminder. Record the chosen check, or the reason it remains
-manual, in `docs/validation.md` and `PROJECT_PROFILE.toon`.
+Run `.agentic-template/bin/project lint` to enforce the first boundary fitness
+function.

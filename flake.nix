@@ -1,5 +1,5 @@
 {
-  description = "AI-first project template development shell and checks";
+  description = "self-adapting-agentic-architecture development shell and checks";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -39,13 +39,15 @@
           pkgs.mkShell {
             packages = [
               pkgs.git
+              pkgs.gradle
+              pkgs.jdk21_headless
               pkgs.jq
               pkgs.python3
               pkgs.ripgrep
             ];
 
           shellHook = ''
-            echo "AI-first template shell: use .agentic-template/bin/project help"
+            echo "self-adapting-agentic-architecture shell: use .agentic-template/bin/project help"
             echo "Optional: .agentic-template/bin/project install-hooks (non-blocking wiki-drift pre-commit)"
           '';
           };
