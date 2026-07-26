@@ -1,14 +1,14 @@
 session:
-  updated: 2026-07-26
-  status: approval_pending
+  updated: 2026-07-27
+  status: shipping_to_main_authorized
   branch: codex/initialize-agentic-architecture
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
   head: 831ab17
   dirty: true
 
 goal:
-  current: initialise self-adapting-agentic-architecture and stop before broad implementation for architecture approval
-  phase: thin_slice_spec_and_boundary_test
+  current: self-review initialized project branch and ship to main using tool-unavailable integration fallback
+  phase: branch_self_review_and_main_merge
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -25,12 +25,20 @@ completed:
   - added first outside-in component acceptance test for a candidate being evaluated and discarded
   - added architecture-boundary fitness check preventing LangChain4j/picocli/SQLite leaks into core/application
   - updated docs, wiki, CI, Nix shell, compose name and gitignore
+  - committed initialization branch as `d68e087 Initialize self-adapting-agentic-architecture`
+  - pushed branch `codex/initialize-agentic-architecture`
+  - attempted PR creation through GitHub app and gh; both failed due token or integration permissions
+  - user explicitly authorized skipping PR, self-reviewing and shipping to main
+  - documented tool-unavailable integration fallback in AGENTS, README, development wiki and PROJECT_PROFILE
+  - self-reviewed fallback diff; no findings
 
 in_progress:
-  - CHG-001 awaits user approval before implementing the mutation evaluation loop
+  - main merge
 
 next:
-  - approve or revise the proposed architecture and module boundaries
+  - merge `codex/initialize-agentic-architecture` to `main`
+  - push `main`
+  - after shipping, approve or revise the proposed architecture and module boundaries
   - answer the smallest high-impact questions: first model provider, first workflow patch format, promotion target and fitness objective weights
   - implement the `MutationEvaluationLoop` against fake ports until the component acceptance test passes
   - add real Git worktree and SQLite adapter integration tests after the fake-port slice passes
@@ -48,6 +56,8 @@ decisions:
     summary: container image is not applicable until distribution or remote execution is selected
   - id: jqwik_1_9_3_pending_policy_review
     summary: jqwik is pinned to 1.9.3 because jqwik 1.10.x release notes include anti-AI-agent usage language
+  - id: tool_unavailable_integration_fallback
+    summary: PR-less main merge is allowed only when tools are unavailable, user explicitly authorizes it, checks pass and self-review/handoff evidence is recorded
 
 risks:
   - component acceptance test is intentionally failing at `MutationEvaluationLoop.evaluate`; do not wire it into readiness until implementation starts
@@ -55,6 +65,7 @@ risks:
   - model provider, workflow patch format, promotion target and fitness weights are unresolved but not blocking architecture approval
   - integration and contract commands currently report explicit not-applicable/deferred status for the approval slice
   - jqwik dependency should be policy-reviewed before upgrading to 1.10.x or later
+  - skipping PR loses independent GitHub review and CI-before-merge; mitigated by local readiness checks, self-review and explicit user authorization
 
 files_changed:
   - .agentic-template/bin/check-architecture-boundaries
@@ -92,6 +103,7 @@ files_changed:
   - .agents/knowledge/risks/RISK-001-model-self-approval.md
   - .agents/knowledge/questions/Q-001-model-provider.md
   - .agents/knowledge/questions/Q-002-promotion-target.md
+  - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
 
 tests_run:
   - 2026-07-26 `.agentic-template/bin/project init`: pass
@@ -105,6 +117,14 @@ tests_run:
   - 2026-07-26 `.agentic-template/bin/project run`: sandboxed run failed on Nix daemon access, escalated run passed and printed pending-approval CLI message
   - 2026-07-26 `.agentic-template/bin/project test`: pass after pinning jqwik to 1.9.3
   - 2026-07-26 `.agentic-template/bin/project ready`: pass after pinning jqwik to 1.9.3
+  - 2026-07-27 PR creation through GitHub app: failed with Resource not accessible by integration
+  - 2026-07-27 PR creation through gh: failed with Resource not accessible by personal access token
+  - 2026-07-27 `.agentic-template/bin/project check`: pass after fallback docs
+  - 2026-07-27 `.agentic-template/bin/project lint`: pass after fallback docs
+  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after fallback docs
+  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after fallback docs
+  - 2026-07-27 `git diff --check`: pass after fallback docs
+  - 2026-07-27 `.agentic-template/bin/project ready`: runner session stale with no live OS process; prior ready passed before docs-only fallback update, and affected validators passed after update
 
 knowledge:
   consulted:
@@ -127,6 +147,7 @@ knowledge:
     - .agents/knowledge/risks/RISK-001-model-self-approval.md
     - .agents/knowledge/questions/Q-001-model-provider.md
     - .agents/knowledge/questions/Q-002-promotion-target.md
+    - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
     - specs/capabilities/CAP-001-mutation-fitness-loop.toon
     - specs/changes/CHG-001-mutation-fitness-loop/
   no_record: null
@@ -134,4 +155,4 @@ knowledge:
 team_fallback:
   current: single lead agent using explicit review checklist
   reason: initialization and approval-slice setup were bounded; no persistent agent team was invoked
-  lost_challenge: independent reviewer; mitigated by repo checks, architecture fitness check, ready gate and explicit approval stop
+  lost_challenge: independent PR reviewer and PR-gated CI; mitigated by branch isolation, local readiness checks, self-review and explicit user authorization to ship to main

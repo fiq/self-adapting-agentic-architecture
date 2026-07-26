@@ -164,6 +164,12 @@ boundary-first acceptance test, then implementation, review, validation,
 handoff and knowledge/wiki upkeep. Meaningful behavior changes must update the
 spec and validation evidence in the same change.
 
+Default integration is branch plus PR. If PR tooling is unavailable and the user
+explicitly authorizes skipping the PR, use the documented fallback: keep work on
+a bounded branch, run checks, self-review in code-review style, update handoff
+with the fallback reason and validation, merge to `main`, then push `main`
+without force-pushing.
+
 ## Important decisions and documentation links
 
 - `PROJECT_PROFILE.toon` records current evidence-backed architecture state.

@@ -158,6 +158,19 @@ agent owns merge. Direct commits to `main` require explicit user
 authorisation. Force-push requires explicit authorisation and never targets
 `main`. CI must pass before merge.
 
+If PR or GitHub tooling is unavailable, use the tool-unavailable integration
+fallback only when the user explicitly authorises skipping the PR:
+
+- keep the work on a bounded branch;
+- run `.agentic-template/bin/project check`, `.agentic-template/bin/project ready`
+  and relevant specialized tests;
+- perform a self-review in code-review style, naming findings or saying none
+  were found;
+- update `HANDOFF.toon` with the fallback reason, validation, branch, commit
+  and lost independent review challenge;
+- merge to `main` only after explicit user authorisation;
+- push `main` without force-pushing.
+
 ## Worktree rules
 
 Use one mutable worktree per agent under `.worktrees/`. Never remove a dirty
