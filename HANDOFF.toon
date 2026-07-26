@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: shipped_actor_review_fallback_policy
-  branch: main
+  status: ready_to_ship_actor_review_policy_followup
+  branch: codex/actor-review-policy-followup
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: pushed_main_after_actor_review_policy_handoff
-  dirty: false
+  head: 985e652
+  dirty: true
 
 goal:
-  current: ship risk-appropriate actor review in the tool-unavailable integration fallback
-  phase: delivered
+  current: address late actor-review findings on the PR-less fallback policy
+  phase: validation_complete
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -114,10 +114,18 @@ completed:
   - merged `codex/actor-review-fallback-policy` into `main` with merge commit `f3e2213`
   - deleted merged local branch `codex/actor-review-fallback-policy`
   - pushed `main` to origin after the final actor-review fallback policy handoff update
+  - closed reviewer actor `Linnaeus` and received late follow-up findings on substitute human-review findings and stale `tests_run` chronology
+  - created branch `codex/actor-review-policy-followup` from pushed `main`
+  - updated PR-less fallback policy sources so substitute human-review findings must be addressed before merge
+  - updated PR-less fallback policy sources so handoff evidence records actor-review or substituted human-review results
+  - split current `tests_run` evidence from historical validation archive so the active handoff no longer presents stale out-of-order history as current status
+  - lead self-review found no remaining actor-review or substituted-human-review loopholes after the late `Linnaeus` follow-up findings were addressed
+  - verified aggregate check and readiness gates for the actor-review policy follow-up branch
 
 in_progress: []
 
 next:
+  - validate, commit, merge, push and clean the actor-review policy follow-up branch if green
   - answer remaining high-impact questions: first real provider, first workflow patch format details, promotion target and fitness objective weights
 
 decisions:
@@ -197,6 +205,17 @@ files_changed:
   - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/BoundedMutationValidatorTest.java
 
 tests_run:
+  - 2026-07-27 `.agentic-template/bin/project startup`: pass; AGENTS.md read from disk
+  - 2026-07-27 actor review `Linnaeus` follow-up after close: found substitute human-review findings did not have to be resolved and active `tests_run` history was stale/out of order
+  - 2026-07-27 actor review `Banach`: completed earlier fallback-policy review and findings were addressed before the first policy merge
+  - 2026-07-27 `git push origin main`: pass, pushed actor-review fallback policy through `985e652`
+  - 2026-07-27 `git switch -c codex/actor-review-policy-followup`: pass from pushed `main`
+  - 2026-07-27 lead self-review: no remaining actor-review or substituted-human-review loopholes after late `Linnaeus` findings were addressed
+  - 2026-07-27 `git diff --check`: pass on actor-review policy follow-up branch
+  - 2026-07-27 `.agentic-template/bin/project check`: pass on actor-review policy follow-up branch
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass on actor-review policy follow-up branch, 13 passed / 2 not applicable / 0 failed
+
+historical_tests_archive:
   - 2026-07-26 `.agentic-template/bin/project init`: pass
   - 2026-07-26 `.agentic-template/bin/project inspect`: pass; detected Java Gradle evidence
   - 2026-07-26 `.agentic-template/bin/project check`: pass

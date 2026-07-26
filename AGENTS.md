@@ -166,18 +166,20 @@ fallback only when the user explicitly authorises skipping the PR:
   and relevant specialized tests;
 - request at least one risk-appropriate reviewer actor or subagent when agent
   tooling is available, send only bounded context and the focused diff, and
-  address findings before merge;
+  address actor-review findings before merge;
 - if a reviewer actor times out while actor tooling is still available, retry
-  with another actor or get explicit human review before merge; do not treat a
-  timeout as a completed review;
-- perform a lead self-review in code-review style after actor findings are
-  addressed, naming findings or saying none were found;
+  with another actor or get explicit human review, address any findings from
+  that substituted review before merge, and do not treat a timeout as a
+  completed review;
+- perform a lead self-review in code-review style after actor or human review
+  findings are addressed, naming findings or saying none were found;
 - if actor review tooling is unavailable, disclose the missing actor-review
   gate, get explicit user authorization for the degraded single-lead path, and
   record the degraded fallback level, lost independent challenge and
   compensating validation or human review needed;
 - update `HANDOFF.toon` with the fallback reason, validation, branch, commit,
-  actor-review result and lost independent review challenge;
+  actor-review or substituted human-review result and lost independent review
+  challenge;
 - merge to `main` only after explicit user authorisation;
 - push `main` without force-pushing.
 
