@@ -1,5 +1,5 @@
 project:
-  state: check_benchmark_adapter_slice_implemented
+  state: langchain4j_mutation_proposer_slice_implemented
   name: self-adapting-agentic-architecture
   confidence: medium
   concept_date: 2026-07-25
@@ -154,11 +154,12 @@ unknowns:
       - affects retrieval and tool-calling support
     evidence:
       - user specified LangChain4j but not a provider
-    working_assumption: define provider-neutral application ports and choose provider after architecture approval
-    consequence_if_wrong: early adapter code may overfit to the wrong provider
+    working_assumption: use provider-neutral LangChain4j `ChatModel` wiring first and choose provider-specific configuration later
+    consequence_if_wrong: live adapter configuration may need a provider-specific module or factory later
     blocking: false
     validation:
-      - choose provider before implementing adapters/langchain4j
+      - adapters/langchain4j/src/test/java/io/github/selfadaptingagenticarchitecture/adapters/langchain4j/LangChain4jMutationProposalAdapterTest.java
+      - choose provider before live model-backed CLI execution
     status: open
   - id: Q-002
     question: What is the first real workflow representation and mutation patch format?
@@ -255,7 +256,7 @@ architecture:
     - benchmarks
     - cli
   integrations:
-    model_access: LangChain4j through application ports
+    model_access: LangChain4j typed service through provider-neutral adapter construction
     git: local Git worktrees through adapter
     checks: deterministic command execution through adapter
     benchmarks: JMH evidence adapter
@@ -271,7 +272,7 @@ architecture:
 testing:
   harness: gradle_junit5_assertj_jqwik_jmh
   layers:
-    - unit: core records, deterministic validation and scoring policies
+    - unit: core records, deterministic validation, scoring policies and provider-neutral LangChain4j proposal mapping
     - component: mutation loop with fake model, Git, check and benchmark ports
     - integration: real Git worktree, SQLite, command-check and JMH adapter semantics
     - contract: future workflow and evidence file contracts

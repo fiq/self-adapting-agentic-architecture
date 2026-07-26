@@ -114,6 +114,41 @@ final class MutationEvaluationLoopAcceptanceTest {
         assertThat(decisions.promotedCandidate()).isEmpty();
     }
 
+    @Test
+    void stopsInvalidModelProposalBeforeCandidateCreationAndEvaluation() {
+        var baseline = new WorkflowGraph("baseline", "v1", "agent -> tool -> answer");
+        var mutation = new Mutation("mut-unsafe", "mutate outside boundary", WORKFLOW_DEFINITION, "rewrite everything");
+        var decisions = new RecordingDecisionSink();
+        var metadata = new RecordingMetadataStore();
+
+        var loop = new MutationEvaluationLoop(
+                ignored -> mutation,
+                (workflow, proposed) -> ValidationResult.invalid("patch exceeds bounded workflow mutation policy"),
+                (workflow, proposed) -> {
+                    throw new AssertionError("candidate workspace must not run for invalid mutations");
+                },
+                ignored -> {
+                    throw new AssertionError("checks must not run for invalid mutations");
+                },
+                ignored -> {
+                    throw new AssertionError("benchmarks must not run for invalid mutations");
+                },
+                (candidate, evidence) -> {
+                    throw new AssertionError("fitness scoring must not run for invalid mutations");
+                },
+                metadata,
+                decisions
+        );
+
+        assertThatThrownBy(() -> loop.evaluate(baseline))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("mutation validation failed: patch exceeds bounded workflow mutation policy");
+        assertThat(metadata.recordedCandidates()).isEmpty();
+        assertThat(metadata.recordedFitness()).isEmpty();
+        assertThat(decisions.discardedCandidate()).isEmpty();
+        assertThat(decisions.promotedCandidate()).isEmpty();
+    }
+
     private static final class RecordingMetadataStore implements ExperimentMetadataStore {
         private final List<Candidate> candidates = new ArrayList<>();
         private FitnessResult recordedFitness;
