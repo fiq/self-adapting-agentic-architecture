@@ -106,8 +106,9 @@ nix develop
 ```
 
 The CLI is scaffolded. The application mutation loop orchestration is
-implemented and covered by a component test with fake ports; real Git,
-SQLite and LangChain4j adapters remain deferred.
+implemented and covered by a component test. Git, SQLite, command-check and JMH
+evidence adapters have integration coverage; the LangChain4j model adapter
+remains deferred until the first provider is selected.
 
 ## Run with containers
 
@@ -125,8 +126,9 @@ the CLI needs reproducible distribution outside the Nix/Gradle environment.
 ```
 
 `component-test` runs the first outside-in acceptance test for the mutation and
-fitness loop. `integration-test` covers real Git worktree candidate creation
-and SQLite experiment metadata persistence.
+fitness loop. `integration-test` covers real Git worktree candidate creation,
+SQLite experiment metadata persistence, deterministic command checks and JMH
+benchmark evidence.
 
 ## Configuration and environment variables
 

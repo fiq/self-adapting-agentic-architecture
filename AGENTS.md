@@ -40,7 +40,7 @@ The canonical command surface is `.agentic-template/bin/project`.
 | `project lint` | Run architecture-boundary fitness checks |
 | `project component-test` | Run the first outside-in mutation-loop acceptance test |
 | `project contract-test` | Explicitly not applicable until external contracts stabilize |
-| `project integration-test` | Run real Git worktree and SQLite adapter integration tests |
+| `project integration-test` | Run real Git, SQLite, command-check and JMH adapter integration tests |
 | `project e2e-test` | Explicitly not applicable until the CLI command contract stabilizes |
 | `project run` | Run the picocli CLI skeleton |
 | `project image` | Not applicable for the local CLI slice |
