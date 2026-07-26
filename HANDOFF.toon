@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: shipped_to_main
-  branch: main
+  status: self_reviewed_check_benchmark_adapter_slice
+  branch: codex/checks-benchmark-evidence-slice
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: latest_main_commit_after_final_handoff
-  dirty: false
+  head: b767c69
+  dirty: true
 
 goal:
-  current: Git worktree and SQLite adapter integration slice shipped to main using the tool-unavailable integration fallback
-  phase: delivered
+  current: implement deterministic command check and JMH benchmark evidence adapters, then prepare PR-less main integration
+  phase: validation
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -58,12 +58,23 @@ completed:
   - committed adapter implementation branch as `f7a7557 Add Git and SQLite adapter integration slice`
   - merged `codex/git-sqlite-adapter-slice` into `main` with merge commit `0c0b545`
   - deleted merged local branch `codex/git-sqlite-adapter-slice`
+  - pushed final shipped main state at `b767c69`
+  - created branch `codex/checks-benchmark-evidence-slice` from clean `main`
+  - added command-check and JMH benchmark evidence integration tests before implementation
+  - wired `project integration-test` to Git, SQLite, command-check and JMH adapter tests
+  - implemented `CommandCheckRunner` for configured commands executed in candidate worktrees
+  - self-review found and fixed unbounded command execution by adding per-check timeouts
+  - implemented `JmhBenchmarkRunner` to convert JMH primary results into `BenchmarkEvidence`
+  - extended the architecture fitness check to reject JMH imports in `core` and `application`
+  - updated README, AGENTS, validation docs, module boundaries, testing wiki, PROJECT_PROFILE and CHG-001 for the check/benchmark adapter slice
 
 in_progress: []
 
 next:
+  - run final aggregate `.agentic-template/bin/project check` and `.agentic-template/bin/project ready`
+  - commit, merge to `main` and push using the explicitly authorized PR-less fallback if checks remain green
   - answer the smallest high-impact questions: first model provider, first workflow patch format, promotion target and fitness objective weights
-  - implement deterministic command checks and JMH benchmark evidence adapters after Git/SQLite slice ships
+  - select first LangChain4j provider and implement model-backed mutation proposal adapter
 
 decisions:
   - id: langchain4j_adapter_boundary
@@ -82,7 +93,8 @@ decisions:
     summary: PR-less main merge is allowed only when tools are unavailable, user explicitly authorizes it, checks pass and self-review/handoff evidence is recorded
 
 risks:
-  - fake ports still prove check and benchmark orchestration only; deterministic command check and JMH benchmark adapters remain deferred
+  - model-backed mutation proposal is still deferred pending first provider selection
+  - JMH runner currently records configured in-process benchmark definitions; candidate-worktree-specific benchmark execution policy remains deferred to a later slice
   - Gradle commands need Nix daemon access in this environment; sandboxed runs can fail even when project commands pass outside the sandbox
   - model provider, workflow patch format, promotion target and fitness weights are unresolved but not blocking architecture approval
   - contract and e2e commands currently report explicit not-applicable/deferred status until external and CLI contracts stabilize
@@ -119,8 +131,11 @@ files_changed:
   - docs/wiki/development.md
   - docs/wiki/domain.md
   - docs/wiki/testing.md
+  - adapters/checks/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/adapters/checks/CommandCheckRunnerIntegrationTest.java
   - adapters/git/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/adapters/git/GitCandidateWorkspaceIntegrationTest.java
   - adapters/sqlite/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/adapters/sqlite/SqliteExperimentMetadataStoreIntegrationTest.java
+  - benchmarks/src/main/java/io/github/selfadaptingagenticarchitecture/benchmarks/JmhBenchmarkRunner.java
+  - benchmarks/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/benchmarks/JmhBenchmarkRunnerIntegrationTest.java
   - .agents/knowledge/domains/DOM-001-agentic-workflow-evolution.md
   - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md
   - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
@@ -202,6 +217,22 @@ tests_run:
   - 2026-07-27 `git branch -d codex/git-sqlite-adapter-slice`: pass
   - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after final handoff update
   - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after final handoff update
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: expected compile fail after outside-in tests; missing `CommandCheckRunner.CommandCheck`
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after command-check and JMH adapter implementation
+  - 2026-07-27 self-review: fixed unbounded command execution by adding per-check timeout and regression assertion
+  - 2026-07-27 `.agentic-template/bin/project lint`: pass after adding JMH boundary fitness rule
+  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass
+  - 2026-07-27 `git diff --check`: pass
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: failed once because timeout output stream could be closed after process kill
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after tolerant timeout output handling
+  - 2026-07-27 `.agentic-template/bin/project component-test`: pass
+  - 2026-07-27 `.agentic-template/bin/project test`: pass
+  - 2026-07-27 `.agentic-template/bin/project check-handoff`: pass
+  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass
+  - 2026-07-27 `.agentic-template/bin/project check`: pass
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass with command-check and JMH integration tests included
+  - 2026-07-27 self-review: found and fixed command-check stdout pipe-drain risk, descendant cleanup on timeout and sub-millisecond timeout validation
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after command-check process-output regression coverage
 
 knowledge:
   consulted:
@@ -209,6 +240,8 @@ knowledge:
     - .agents/knowledge/TAXONOMY.md
     - .agents/knowledge/inbox/INBOX-008-repo-native-context-store.md
     - specs/templates/capability.toon
+  no_record:
+    - command-check process-output and timeout behavior is captured in adapter code/tests; no reusable knowledge node yet
     - specs/templates/change.toon
     - .agents/skills/init/SKILL.md
     - .agents/skills/knowledge/knowledge-search/SKILL.md

@@ -1,5 +1,5 @@
 project:
-  state: git_sqlite_adapter_slice_implemented
+  state: check_benchmark_adapter_slice_implemented
   name: self-adapting-agentic-architecture
   confidence: medium
   concept_date: 2026-07-25
@@ -266,14 +266,14 @@ architecture:
     kind: relational
     engine: sqlite
     provider: local_file
-    migrations: required_before_sqlite_adapter_delivery
+    migrations: initial_schema_migration_in_adapter
 
 testing:
   harness: gradle_junit5_assertj_jqwik_jmh
   layers:
     - unit: core records, deterministic validation and scoring policies
     - component: mutation loop with fake model, Git, check and benchmark ports
-    - integration: real Git worktree and SQLite adapter semantics
+    - integration: real Git worktree, SQLite, command-check and JMH adapter semantics
     - contract: future workflow and evidence file contracts
     - benchmark: JMH benchmark evidence used by scoring
   test_first: true

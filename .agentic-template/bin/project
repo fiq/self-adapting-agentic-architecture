@@ -26,7 +26,7 @@ COMMANDS = {
     "run": [[str(BIN / "gradle-command"), ":cli:run"]],
     "component-test": [[str(BIN / "gradle-command"), ":application:acceptanceTest"]],
     "contract-test": [[str(BIN / "project-not-applicable"), "contract-test", "No external API, event or file contract is stable in the approval slice; structured specs are checked by check-changes."]],
-    "integration-test": [[str(BIN / "gradle-command"), ":adapters:git:integrationTest", ":adapters:sqlite:integrationTest"]],
+    "integration-test": [[str(BIN / "gradle-command"), ":adapters:git:integrationTest", ":adapters:sqlite:integrationTest", ":adapters:checks:integrationTest", ":benchmarks:integrationTest"]],
     "e2e-test": [[str(BIN / "project-not-applicable"), "e2e-test", "The CLI command contract is not stable before the first implementation slice."]],
     "image": [[str(BIN / "project-not-applicable"), "image", "The current project is a local experimental CLI, not a deployable service or distributable container image."]],
     "image-test": [[str(BIN / "project-not-applicable"), "image-test", "Container image testing is not applicable until an application image decision changes."]],

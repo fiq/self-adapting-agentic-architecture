@@ -11,7 +11,7 @@ adapters/langchain4j -> application
 adapters/git        -> application
 adapters/sqlite     -> application
 adapters/checks     -> application
-benchmarks          -> core
+benchmarks          -> application
 ```
 
 ## Core
@@ -63,7 +63,7 @@ Run:
 .agentic-template/bin/project lint
 ```
 
-The current architecture check fails if LangChain4j, picocli or SQLite
+The current architecture check fails if LangChain4j, picocli, SQLite or JMH
 implementation dependencies leak into `core/` or `application/`.
 
 ## Deferred Boundaries

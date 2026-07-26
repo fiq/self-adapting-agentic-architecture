@@ -24,6 +24,8 @@ def main():
                 errors.append(f"{rel}: picocli import leaks outside cli")
             if "org.sqlite" in text or "org.flywaydb" in text:
                 errors.append(f"{rel}: SQLite or migration dependency leaks outside adapters/sqlite")
+            if "org.openjdk.jmh" in text:
+                errors.append(f"{rel}: JMH dependency leaks outside benchmarks")
 
     for path in java_files(ROOT / "core"):
         text = path.read_text(errors="ignore")
