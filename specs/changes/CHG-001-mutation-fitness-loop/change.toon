@@ -11,6 +11,7 @@ change:
     - RISK-001
     - Q-001
     - Q-002
+    - Q-003
 
 deltas:
   - op: ADDED
@@ -32,8 +33,19 @@ deltas:
         then: the candidate is discarded deterministically
         and:
           - rollback or cleanup remains outside model authority
+      - id: S4
+        when: the model proposes an invalid, unsupported or authority-bearing mutation
+        then: deterministic validation rejects the proposal before candidate creation or evaluation
+        and:
+          - model-provided approval, scoring, promotion or rollback authority is not exposed in the mutation proposal contract
 
 acceptance:
+  - scenario: S1
+    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.mapsTypedAiServiceProposalToCoreMutation
+    layer: unit
+  - scenario: S1
+    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.createsTypedAiServiceFromChatModelWithoutCommittingToProvider
+    layer: unit
   - scenario: S1
     test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
     layer: component
@@ -55,6 +67,21 @@ acceptance:
   - scenario: S3
     test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
     layer: component
+  - scenario: S4
+    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.rejectsModelOutputOutsideTheBoundedMutationContract
+    layer: unit
+  - scenario: S4
+    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.rejectsMalformedModelOutputDeterministically
+    layer: unit
+  - scenario: S4
+    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.rejectsOversizedModelOutputDeterministically
+    layer: unit
+  - scenario: S4
+    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.mutationProposalContractDoesNotExposeApprovalOrScoringAuthority
+    layer: unit
+  - scenario: S4
+    test_id: application/MutationEvaluationLoopAcceptanceTest.stopsInvalidModelProposalBeforeCandidateCreationAndEvaluation
+    layer: component
 
 tasks:
   - id: T1
@@ -73,7 +100,10 @@ tasks:
     slice: implement deterministic command check and JMH benchmark evidence adapters
     status: completed
   - id: T6
-    slice: select first LangChain4j provider and implement model-backed mutation proposal adapter
+    slice: implement provider-neutral LangChain4j typed-service mutation proposal adapter
+    status: completed
+  - id: T7
+    slice: select first live LangChain4j provider and CLI configuration path
     status: pending
 
 non_goals:
