@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: ready_to_ship_langchain4j_mutation_proposer_slice
-  branch: codex/langchain4j-mutation-proposer-slice
+  status: shipped_langchain4j_mutation_proposer_slice
+  branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: b432c90
-  dirty: true
+  head: pushed_main_after_langchain4j_handoff
+  dirty: false
 
 goal:
-  current: implement provider-neutral LangChain4j mutation proposal adapter with actor review and deterministic boundaries
-  phase: validation_complete
+  current: provider-neutral LangChain4j mutation proposal adapter shipped to main with actor review and deterministic boundaries
+  phase: delivered
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -84,11 +84,14 @@ completed:
   - updated README, testing wiki, PROJECT_PROFILE and CHG-001 for provider-neutral LangChain4j proposal support
   - requested a final actor review pass from `Carver`; it timed out twice, so final review degraded to lead self-review after first-pass actor findings were addressed
   - verified unit, component, architecture, knowledge, spec, aggregate check and readiness gates
+  - committed LangChain4j proposer branch as `32ae733 Add provider-neutral LangChain4j mutation proposer`
+  - merged `codex/langchain4j-mutation-proposer-slice` into `main` with merge commit `c92b00d`
+  - deleted merged local branch `codex/langchain4j-mutation-proposer-slice`
+  - pushed `main` to origin after final handoff update
 
 in_progress: []
 
 next:
-  - commit, merge to `main`, push and delete the merged branch using the explicitly authorized PR-less fallback
   - answer remaining high-impact questions: first real provider, first workflow patch format details, promotion target and fitness objective weights
 
 decisions:
@@ -275,8 +278,13 @@ tests_run:
   - 2026-07-27 `git diff --check`: pass
   - 2026-07-27 final actor review request to `Carver`: timed out twice; actor closed while still running
   - 2026-07-27 lead self-review: added adapter size bounds and spec acceptance mapping for malformed/oversized model output; no remaining findings before aggregate checks
+  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after merge handoff update
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after merge handoff update
   - 2026-07-27 `.agentic-template/bin/project check`: pass
   - 2026-07-27 `.agentic-template/bin/project ready`: pass, 13 passed / 2 not applicable / 0 failed
+  - 2026-07-27 `git commit -m "Add provider-neutral LangChain4j mutation proposer"`: pass, created `32ae733`
+  - 2026-07-27 `git merge --no-ff codex/langchain4j-mutation-proposer-slice`: pass, created `c92b00d`
+  - 2026-07-27 `git branch -d codex/langchain4j-mutation-proposer-slice`: pass
 
 knowledge:
   consulted:
