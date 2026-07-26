@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+from pathlib import Path
+
+
+ROOT = Path.cwd()
+
+
+def java_files(root):
+    if not root.exists():
+        return []
+    return [path for path in root.rglob("*.java") if "/build/" not in str(path)]
+
+
+def main():
+    errors = []
+
+    for module in ["core", "application"]:
+        for path in java_files(ROOT / module):
+            text = path.read_text(errors="ignore")
+            rel = path.relative_to(ROOT)
+            if "dev.langchain4j" in text:
+                errors.append(f"{rel}: LangChain4j import leaks outside adapters/langchain4j")
+            if "picocli." in text:
+                errors.append(f"{rel}: picocli import leaks outside cli")
+            if "org.sqlite" in text or "org.flywaydb" in text:
+                errors.append(f"{rel}: SQLite or migration dependency leaks outside adapters/sqlite")
+
+    for path in java_files(ROOT / "core"):
+        text = path.read_text(errors="ignore")
+        rel = path.relative_to(ROOT)
+        forbidden = [
+            "io.github.selfadaptingagenticarchitecture.application",
+            "io.github.selfadaptingagenticarchitecture.adapters",
+            "io.github.selfadaptingagenticarchitecture.cli",
+        ]
+        for package in forbidden:
+            if package in text:
+                errors.append(f"{rel}: core must not depend on {package}")
+
+    if errors:
+        print("ARCHITECTURE BOUNDARY CHECK FAILED")
+        print()
+        for error in errors:
+            print("- " + error)
+        return 1
+
+    print("ARCHITECTURE BOUNDARIES OK")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+import shutil
+import subprocess
+import sys
+
+
+def main():
+    args = sys.argv[1:]
+    gradle = shutil.which("gradle")
+    if gradle:
+        return subprocess.run([gradle, *args]).returncode
+
+    nix = shutil.which("nix")
+    if nix:
+        return subprocess.run([nix, "develop", "--command", "gradle", *args]).returncode
+
+    print("ERROR")
+    print()
+    print("Gradle is unavailable. Enter the Nix shell with:")
+    print("  nix develop")
+    return 127
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
