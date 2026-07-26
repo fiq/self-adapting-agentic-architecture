@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: shipped_bounded_mutation_validator_slice
-  branch: main
+  status: ready_to_ship_actor_review_fallback_policy
+  branch: codex/actor-review-fallback-policy
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: main_after_bounded_validator_handoff
-  dirty: false
+  head: 5c154ac
+  dirty: true
 
 goal:
-  current: ship deterministic bounded mutation validator policy after provider-neutral LangChain4j proposer shipment
-  phase: delivered
+  current: codify risk-appropriate actor review in the tool-unavailable integration fallback
+  phase: validation_complete
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -102,10 +102,19 @@ completed:
   - confirmed merged local and remote feature branch cleanup was already complete; retained unmerged backup branch `backup/main-before-template-rebase-a74a26a`
   - preserved actor-review process evidence from `Carver` and `Wegener`; degraded only unavailable PR-gated review to local checks plus lead self-review
   - pushed `main` to origin after the final bounded-validator handoff update
+  - created branch `codex/actor-review-fallback-policy` from pushed `main`
+  - updated AGENTS, README, development wiki, PROJECT_PROFILE and `PAT-001` so PR-less integration requires risk-appropriate actor review when available, lead self-review and explicit degradation evidence
+  - actor reviewer `Linnaeus` found a timeout loophole and stale handoff ordering in the actor-review fallback policy slice
+  - addressed `Linnaeus` findings by requiring retry or human review after reviewer timeout, requiring explicit user authorization for actor-tool-unavailable single-lead fallback, and moving current policy-branch evidence to the end of the handoff test history
+  - actor reviewer `Banach` found stale fallback summaries in HANDOFF and missing README coverage for actor-tool-unavailable degraded-path authorization
+  - addressed `Banach` findings by updating the HANDOFF decision and risk summaries and expanding the README lifecycle summary
+  - lead self-review found no remaining actor-review fallback policy contradictions after `Banach` findings were addressed
+  - verified aggregate check and readiness gates for the actor-review fallback policy slice
 
 in_progress: []
 
 next:
+  - commit, merge, push and clean the actor-review fallback policy branch if green
   - answer remaining high-impact questions: first real provider, first workflow patch format details, promotion target and fitness objective weights
 
 decisions:
@@ -122,7 +131,7 @@ decisions:
   - id: jqwik_1_9_3_pending_policy_review
     summary: jqwik is pinned to 1.9.3 because jqwik 1.10.x release notes include anti-AI-agent usage language
   - id: tool_unavailable_integration_fallback
-    summary: PR-less main merge is allowed only when tools are unavailable, user explicitly authorizes it, checks pass and self-review/handoff evidence is recorded
+    summary: PR-less main merge is allowed only when PR tooling is unavailable, the user explicitly authorizes it, checks pass, risk-appropriate actor review runs when available, lead self-review runs after findings are addressed and handoff evidence is recorded
 
 risks:
   - first live model provider remains unresolved; current slice intentionally uses provider-neutral LangChain4j `ChatModel` construction and fake services in tests
@@ -132,7 +141,7 @@ risks:
   - model provider, workflow patch format, promotion target and fitness weights are unresolved but not blocking architecture approval
   - contract and e2e commands currently report explicit not-applicable/deferred status until external and CLI contracts stabilize
   - jqwik dependency should be policy-reviewed before upgrading to 1.10.x or later
-  - skipping PR loses independent GitHub review and CI-before-merge; mitigated by local readiness checks, self-review and explicit user authorization
+  - skipping PR loses independent GitHub review and CI-before-merge; mitigated by actor review when available, local readiness checks, lead self-review and explicit user authorization; if actor tooling is unavailable, the degraded single-lead path requires explicit disclosure and user authorization
 
 files_changed:
   - .agentic-template/bin/check-architecture-boundaries
@@ -325,6 +334,21 @@ tests_run:
   - 2026-07-27 `git commit -m "Add provider-neutral LangChain4j mutation proposer"`: pass, created `32ae733`
   - 2026-07-27 `git merge --no-ff codex/langchain4j-mutation-proposer-slice`: pass, created `c92b00d`
   - 2026-07-27 `git branch -d codex/langchain4j-mutation-proposer-slice`: pass
+  - 2026-07-27 `git push origin main`: pass, pushed `d65f53c..5c154ac`
+  - 2026-07-27 `git status -sb`: clean `main` aligned with `origin/main`
+  - 2026-07-27 `git rev-parse --short HEAD` and `origin/main`: both `5c154ac`
+  - 2026-07-27 `git branch --merged main`: only `main`
+  - 2026-07-27 `git branch -r --merged origin/main`: only `origin/HEAD -> origin/main` and `origin/main`
+  - 2026-07-27 `git switch -c codex/actor-review-fallback-policy`: pass
+  - 2026-07-27 `git diff --check`: pass on actor-review fallback policy diff
+  - 2026-07-27 `.agentic-template/bin/project check`: pass before addressing actor review findings
+  - 2026-07-27 actor review `Linnaeus`: found timeout loophole and stale handoff ordering in the actor-review fallback policy slice
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass before `Banach` findings, 13 passed / 2 not applicable / 0 failed
+  - 2026-07-27 actor review `Banach`: found stale fallback summaries in HANDOFF and missing README coverage for actor-tool-unavailable degraded-path authorization
+  - 2026-07-27 lead self-review: no remaining actor-review fallback policy contradictions after `Banach` findings were addressed
+  - 2026-07-27 `git diff --check`: pass after actor review findings
+  - 2026-07-27 `.agentic-template/bin/project check`: pass after actor review findings
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass after actor review findings, 13 passed / 2 not applicable / 0 failed
 
 knowledge:
   consulted:
@@ -363,5 +387,5 @@ knowledge:
 
 team_fallback:
   current: independent subagent review plus lead self-review
-  reason: reviewer actor `Carver` completed first-pass findings for the LangChain4j slice; reviewer actor `Wegener` completed bounded-validator findings and they were addressed before merge
-  lost_challenge: PR-gated CI remains unavailable in the authorized fallback; mitigated by branch isolation, actor review, local readiness checks, lead self-review and explicit user authorization to ship to main
+  reason: reviewer actor `Carver` completed first-pass findings for the LangChain4j slice; reviewer actor `Wegener` completed bounded-validator findings and they were addressed before merge; reviewer actors `Linnaeus` and `Banach` completed findings for the actor-review fallback policy slice and they were addressed before merge
+  lost_challenge: PR-gated CI remains unavailable in the authorized fallback; mitigated by branch isolation, actor review when available, local readiness checks, lead self-review and explicit user authorization to ship to main
