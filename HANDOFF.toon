@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: ready_to_ship_actor_review_policy_followup
-  branch: codex/actor-review-policy-followup
+  status: shipped_actor_review_policy_followup
+  branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 985e652
-  dirty: true
+  head: pushed_main_after_actor_review_policy_followup
+  dirty: false
 
 goal:
-  current: address late actor-review findings on the PR-less fallback policy
-  phase: validation_complete
+  current: ship late actor-review findings on the PR-less fallback policy
+  phase: delivered
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -121,11 +121,14 @@ completed:
   - split current `tests_run` evidence from historical validation archive so the active handoff no longer presents stale out-of-order history as current status
   - lead self-review found no remaining actor-review or substituted-human-review loopholes after the late `Linnaeus` follow-up findings were addressed
   - verified aggregate check and readiness gates for the actor-review policy follow-up branch
+  - committed actor-review policy follow-up branch as `a96ca03 Address actor review fallback follow-up`
+  - merged `codex/actor-review-policy-followup` into `main` with merge commit `6b88714`
+  - deleted merged local branch `codex/actor-review-policy-followup`
+  - pushed `main` to origin after the final actor-review policy follow-up handoff update
 
 in_progress: []
 
 next:
-  - validate, commit, merge, push and clean the actor-review policy follow-up branch if green
   - answer remaining high-impact questions: first real provider, first workflow patch format details, promotion target and fitness objective weights
 
 decisions:
@@ -214,6 +217,14 @@ tests_run:
   - 2026-07-27 `git diff --check`: pass on actor-review policy follow-up branch
   - 2026-07-27 `.agentic-template/bin/project check`: pass on actor-review policy follow-up branch
   - 2026-07-27 `.agentic-template/bin/project ready`: pass on actor-review policy follow-up branch, 13 passed / 2 not applicable / 0 failed
+  - 2026-07-27 `git commit -m "Address actor review fallback follow-up"`: pass, created `a96ca03`
+  - 2026-07-27 `git merge --no-ff codex/actor-review-policy-followup`: pass, created `6b88714`
+  - 2026-07-27 `git branch -d codex/actor-review-policy-followup`: pass
+  - 2026-07-27 `git branch --merged main`: only `main`
+  - 2026-07-27 `git branch --no-merged main`: retained unmerged backup branch `backup/main-before-template-rebase-a74a26a`
+  - 2026-07-27 `git diff --check`: pass on `main` after final actor-review policy follow-up handoff update
+  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after final actor-review policy follow-up handoff update
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main`, 13 passed / 2 not applicable / 0 failed
 
 historical_tests_archive:
   - 2026-07-26 `.agentic-template/bin/project init`: pass
