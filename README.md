@@ -105,8 +105,9 @@ nix develop
 .agentic-template/bin/project run
 ```
 
-The CLI is only scaffolded in the approval slice; the mutation loop is not
-implemented yet.
+The CLI is scaffolded. The application mutation loop orchestration is
+implemented and covered by a component test with fake ports; real Git,
+SQLite and LangChain4j adapters remain deferred.
 
 ## Run with containers
 
@@ -123,8 +124,8 @@ the CLI needs reproducible distribution outside the Nix/Gradle environment.
 ```
 
 `component-test` runs the first outside-in acceptance test for the mutation and
-fitness loop. It is expected to fail until the architecture is approved and the
-thin slice is implemented.
+fitness loop. It currently proves the fake-port orchestration slice; real Git
+worktree and SQLite semantics will be covered by later integration tests.
 
 ## Configuration and environment variables
 
