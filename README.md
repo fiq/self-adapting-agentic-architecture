@@ -121,11 +121,12 @@ the CLI needs reproducible distribution outside the Nix/Gradle environment.
 .agentic-template/bin/project test
 .agentic-template/bin/project lint
 .agentic-template/bin/project component-test
+.agentic-template/bin/project integration-test
 ```
 
 `component-test` runs the first outside-in acceptance test for the mutation and
-fitness loop. It currently proves the fake-port orchestration slice; real Git
-worktree and SQLite semantics will be covered by later integration tests.
+fitness loop. `integration-test` covers real Git worktree candidate creation
+and SQLite experiment metadata persistence.
 
 ## Configuration and environment variables
 

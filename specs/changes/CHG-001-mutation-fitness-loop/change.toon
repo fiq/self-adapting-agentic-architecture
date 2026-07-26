@@ -37,9 +37,15 @@ acceptance:
   - scenario: S1
     test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
     layer: component
+  - scenario: S1
+    test_id: adapters/git/GitCandidateWorkspaceIntegrationTest.createsCommittedCandidateInIsolatedWorktreeWithoutTouchingCoordinationCheckout
+    layer: component-integration
   - scenario: S2
     test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
     layer: component
+  - scenario: S2
+    test_id: adapters/sqlite/SqliteExperimentMetadataStoreIntegrationTest.recordsCandidateFitnessAndEvaluationEvidence
+    layer: component-integration
   - scenario: S3
     test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
     layer: component
@@ -56,7 +62,7 @@ tasks:
     status: completed
   - id: T4
     slice: add real Git worktree and SQLite integration tests after approval
-    status: pending
+    status: completed
 
 non_goals:
   - OpenSearch or vector storage
