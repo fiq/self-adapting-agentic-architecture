@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: ready_for_final_self_review
-  branch: codex/git-sqlite-adapter-slice
+  status: shipped_to_main
+  branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 0cad8d1
-  dirty: true
+  head: latest_main_commit_after_final_handoff
+  dirty: false
 
 goal:
-  current: self-review shipped loop, implement real Git worktree and SQLite adapter integration slice, then prepare PR-less main integration
-  phase: self_review
+  current: Git worktree and SQLite adapter integration slice shipped to main using the tool-unavailable integration fallback
+  phase: delivered
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -55,12 +55,13 @@ completed:
   - self-review found and fixed SQLite candidate upsert behavior that could otherwise cascade-delete fitness evidence
   - final self-review found only a cosmetic SQLite trailing blank and fixed it; no remaining findings
   - updated AGENTS, README, testing wiki, PROJECT_PROFILE and CHG-001 for the integration-test slice
+  - committed adapter implementation branch as `f7a7557 Add Git and SQLite adapter integration slice`
+  - merged `codex/git-sqlite-adapter-slice` into `main` with merge commit `0c0b545`
+  - deleted merged local branch `codex/git-sqlite-adapter-slice`
 
 in_progress: []
 
 next:
-  - final self-review the adapter slice
-  - commit, merge to `main` and push using the explicitly authorized PR-less fallback if checks remain green
   - answer the smallest high-impact questions: first model provider, first workflow patch format, promotion target and fitness objective weights
   - implement deterministic command checks and JMH benchmark evidence adapters after Git/SQLite slice ships
 
@@ -196,6 +197,11 @@ tests_run:
   - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after final self-review cleanup
   - 2026-07-27 `.agentic-template/bin/project check`: pass after final self-review cleanup
   - 2026-07-27 `.agentic-template/bin/project ready`: pass after final self-review cleanup
+  - 2026-07-27 `git commit -m "Add Git and SQLite adapter integration slice"`: pass, created `f7a7557`
+  - 2026-07-27 `git merge --no-ff codex/git-sqlite-adapter-slice`: pass, created `0c0b545`
+  - 2026-07-27 `git branch -d codex/git-sqlite-adapter-slice`: pass
+  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after final handoff update
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after final handoff update
 
 knowledge:
   consulted:
