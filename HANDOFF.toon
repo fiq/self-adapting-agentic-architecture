@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: shipping_to_main_authorized
-  branch: codex/initialize-agentic-architecture
+  status: shipped_to_main_pending_push
+  branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 831ab17
-  dirty: true
+  head: 309fec7
+  dirty: false_after_handoff_commit
 
 goal:
-  current: self-review initialized project branch and ship to main using tool-unavailable integration fallback
-  phase: branch_self_review_and_main_merge
+  current: initialized self-adapting-agentic-architecture is merged to main using the tool-unavailable integration fallback
+  phase: main_push
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -31,12 +31,12 @@ completed:
   - user explicitly authorized skipping PR, self-reviewing and shipping to main
   - documented tool-unavailable integration fallback in AGENTS, README, development wiki and PROJECT_PROFILE
   - self-reviewed fallback diff; no findings
+  - merged `codex/initialize-agentic-architecture` into `main` with merge commit `309fec7`
 
 in_progress:
-  - main merge
+  - push `main` to origin
 
 next:
-  - merge `codex/initialize-agentic-architecture` to `main`
   - push `main`
   - after shipping, approve or revise the proposed architecture and module boundaries
   - answer the smallest high-impact questions: first model provider, first workflow patch format, promotion target and fitness objective weights
@@ -125,6 +125,8 @@ tests_run:
   - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after fallback docs
   - 2026-07-27 `git diff --check`: pass after fallback docs
   - 2026-07-27 `.agentic-template/bin/project ready`: runner session stale with no live OS process; prior ready passed before docs-only fallback update, and affected validators passed after update
+  - 2026-07-27 self-review: no findings
+  - 2026-07-27 `git merge --no-ff codex/initialize-agentic-architecture`: pass
 
 knowledge:
   consulted:
