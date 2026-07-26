@@ -1,5 +1,5 @@
 ---
-id: Q-002
+id: Q-003
 type: question
 title: Candidate promotion target
 status: open
@@ -12,6 +12,7 @@ risks:
   - RISK-001
 evidence:
   - CUSTOMIZE_THIS_PROJECT.toon
+  - PROJECT_PROFILE.toon
 review_after: 2026-10-26
 ---
 

@@ -107,8 +107,9 @@ nix develop
 
 The CLI is scaffolded. The application mutation loop orchestration is
 implemented and covered by a component test. Git, SQLite, command-check and JMH
-evidence adapters have integration coverage; the LangChain4j model adapter
-remains deferred until the first provider is selected.
+evidence adapters have integration coverage; the LangChain4j mutation proposer
+adapter has provider-neutral typed-service coverage. Live provider selection
+and credential configuration remain deferred.
 
 ## Run with containers
 
@@ -128,12 +129,14 @@ the CLI needs reproducible distribution outside the Nix/Gradle environment.
 `component-test` runs the first outside-in acceptance test for the mutation and
 fitness loop. `integration-test` covers real Git worktree candidate creation,
 SQLite experiment metadata persistence, deterministic command checks and JMH
-benchmark evidence.
+benchmark evidence. `test` covers the provider-neutral LangChain4j mutation
+proposal adapter without live provider credentials.
 
 ## Configuration and environment variables
 
-No required model-provider configuration is committed. Future LangChain4j
-adapters should read provider credentials from environment variables or local
+No required model-provider configuration is committed. The LangChain4j adapter
+can be constructed from a provider-neutral `ChatModel`; future provider
+configuration should read credentials from environment variables or local
 ignored config and keep provider-specific details out of the core domain.
 
 Initial expected variables, names still subject to approval:
