@@ -28,14 +28,15 @@ Required guardrails:
 - request at least one risk-appropriate reviewer actor or subagent when agent
   tooling is available;
 - if a reviewer actor times out while actor tooling is still available, retry
-  with another actor or get explicit human review before merge;
-- address actor findings before merge, then self-review the branch in
-  code-review style;
+  with another actor or get explicit human review, then address any findings
+  from that substituted review before merge;
+- address actor or human review findings before merge, then self-review the
+  branch in code-review style;
 - if actor review tooling is unavailable, disclose the missing actor-review
   gate, get explicit user authorization for the degraded single-lead path, and
   record the degraded fallback level, lost independent challenge and
   compensating validation or human review needed;
-- record the fallback reason, validation results, actor-review result, branch
-  and commit state in `HANDOFF.toon`;
+- record the fallback reason, validation results, actor-review or substituted
+  human-review result, branch and commit state in `HANDOFF.toon`;
 - merge to `main` only after explicit authorization;
 - push without force-pushing.
