@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: shipped_to_main
-  branch: main
+  status: ready_for_final_self_review
+  branch: codex/git-sqlite-adapter-slice
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: latest_main_commit_after_final_handoff
-  dirty: false
+  head: 0cad8d1
+  dirty: true
 
 goal:
-  current: fake-port mutation evaluation loop shipped to main using the tool-unavailable integration fallback
-  phase: delivered
+  current: self-review shipped loop, implement real Git worktree and SQLite adapter integration slice, then prepare PR-less main integration
+  phase: self_review
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -44,12 +44,25 @@ completed:
   - committed implementation branch as `f1f9161 Implement mutation evaluation loop`
   - merged `codex/implement-mutation-loop` into `main` with merge commit `6ff06ca`
   - deleted merged local branch `codex/implement-mutation-loop`
+  - pushed final shipped main state at `0cad8d1`
+  - self-review found stale CLI run text and fixed it
+  - created branch `codex/git-sqlite-adapter-slice` from clean `main`
+  - added Gradle `integrationTest` source-set convention and wired `project integration-test` to Git and SQLite adapters
+  - added real Git worktree integration test proving isolated candidate worktree creation and commit provenance
+  - implemented `GitCandidateWorkspace` for deterministic candidate branch, worktree file and commit creation
+  - added SQLite integration test proving candidate, fitness, objective, check and benchmark evidence persistence
+  - implemented `SqliteExperimentMetadataStore` with a versioned SQLite schema migration
+  - self-review found and fixed SQLite candidate upsert behavior that could otherwise cascade-delete fitness evidence
+  - final self-review found only a cosmetic SQLite trailing blank and fixed it; no remaining findings
+  - updated AGENTS, README, testing wiki, PROJECT_PROFILE and CHG-001 for the integration-test slice
 
 in_progress: []
 
 next:
+  - final self-review the adapter slice
+  - commit, merge to `main` and push using the explicitly authorized PR-less fallback if checks remain green
   - answer the smallest high-impact questions: first model provider, first workflow patch format, promotion target and fitness objective weights
-  - add real Git worktree and SQLite adapter integration tests after the fake-port slice passes
+  - implement deterministic command checks and JMH benchmark evidence adapters after Git/SQLite slice ships
 
 decisions:
   - id: langchain4j_adapter_boundary
@@ -68,10 +81,10 @@ decisions:
     summary: PR-less main merge is allowed only when tools are unavailable, user explicitly authorizes it, checks pass and self-review/handoff evidence is recorded
 
 risks:
-  - fake ports prove application orchestration only; real Git worktree and SQLite semantics are still deferred
+  - fake ports still prove check and benchmark orchestration only; deterministic command check and JMH benchmark adapters remain deferred
   - Gradle commands need Nix daemon access in this environment; sandboxed runs can fail even when project commands pass outside the sandbox
   - model provider, workflow patch format, promotion target and fitness weights are unresolved but not blocking architecture approval
-  - integration and contract commands currently report explicit not-applicable/deferred status until real adapter contracts stabilize
+  - contract and e2e commands currently report explicit not-applicable/deferred status until external and CLI contracts stabilize
   - jqwik dependency should be policy-reviewed before upgrading to 1.10.x or later
   - skipping PR loses independent GitHub review and CI-before-merge; mitigated by local readiness checks, self-review and explicit user authorization
 
@@ -105,6 +118,8 @@ files_changed:
   - docs/wiki/development.md
   - docs/wiki/domain.md
   - docs/wiki/testing.md
+  - adapters/git/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/adapters/git/GitCandidateWorkspaceIntegrationTest.java
+  - adapters/sqlite/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/adapters/sqlite/SqliteExperimentMetadataStoreIntegrationTest.java
   - .agents/knowledge/domains/DOM-001-agentic-workflow-evolution.md
   - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md
   - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
@@ -163,6 +178,24 @@ tests_run:
   - 2026-07-27 `git branch --merged main`: only `main`
   - 2026-07-27 `git branch -r --merged origin/main`: only `origin/HEAD -> origin/main` and `origin/main`
   - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after final handoff update
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: sandboxed run blocked by Nix readonly cache
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: expected compile fail after outside-in tests; missing `GitCandidateWorkspace(Path, Path)`
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after Git and SQLite adapter implementation
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after removing unnecessary SQLite JDBC-string constructor
+  - 2026-07-27 self-review: fixed SQLite `insert or replace` candidate upsert that could delete child fitness evidence
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after SQLite upsert regression assertion
+  - 2026-07-27 `.agentic-template/bin/project component-test`: pass
+  - 2026-07-27 `.agentic-template/bin/project test`: pass
+  - 2026-07-27 `.agentic-template/bin/project lint`: pass
+  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass
+  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass
+  - 2026-07-27 `git diff --check`: pass
+  - 2026-07-27 `.agentic-template/bin/project run`: pass; CLI reports orchestration available and adapters incremental
+  - 2026-07-27 `.agentic-template/bin/project check`: pass with adapter integration slice
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass with Git and SQLite integration tests included
+  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after final self-review cleanup
+  - 2026-07-27 `.agentic-template/bin/project check`: pass after final self-review cleanup
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass after final self-review cleanup
 
 knowledge:
   consulted:
@@ -175,9 +208,15 @@ knowledge:
     - .agents/skills/knowledge/knowledge-search/SKILL.md
     - .agents/skills/workflow/specify/SKILL.md
     - .agents/skills/workflow/outside-in-tdd/SKILL.md
+    - .agents/skills/workflow/review-loop/SKILL.md
+    - .agents/skills/workflow/implement-slice/SKILL.md
     - .agents/skills/specialise/runtime-java/SKILL.md
     - .agents/skills/specialise/test-harness/SKILL.md
     - .agents/skills/specialise/sql-migrations/SKILL.md
+    - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md
+    - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
+    - .agents/knowledge/risks/RISK-001-model-self-approval.md
+    - .agents/knowledge/questions/Q-002-promotion-target.md
   proposals:
     - .agents/knowledge/domains/DOM-001-agentic-workflow-evolution.md
     - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md

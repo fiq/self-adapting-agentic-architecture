@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.SourceSetContainer
+
 plugins {
     java
 }
@@ -23,6 +25,25 @@ subprojects {
 
     tasks.withType<Test>().configureEach {
         useJUnitPlatform()
+    }
+
+    val sourceSets = extensions.getByType<SourceSetContainer>()
+    val integrationTest = sourceSets.create("integrationTest") {
+        java.srcDir("src/integrationTest/java")
+        resources.srcDir("src/integrationTest/resources")
+        compileClasspath += sourceSets.named("main").get().output + configurations.testRuntimeClasspath.get()
+        runtimeClasspath += output + compileClasspath
+    }
+
+    configurations[integrationTest.implementationConfigurationName].extendsFrom(configurations.testImplementation.get())
+    configurations[integrationTest.runtimeOnlyConfigurationName].extendsFrom(configurations.testRuntimeOnly.get())
+
+    tasks.register<Test>("integrationTest") {
+        description = "Runs real-dependency integration tests for this module."
+        group = "verification"
+        testClassesDirs = integrationTest.output.classesDirs
+        classpath = integrationTest.runtimeClasspath
+        shouldRunAfter(tasks.named("test"))
     }
 
     dependencies {
