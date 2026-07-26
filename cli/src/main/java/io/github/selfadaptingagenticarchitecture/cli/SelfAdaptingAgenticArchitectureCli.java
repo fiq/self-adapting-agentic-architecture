@@ -18,7 +18,7 @@ public final class SelfAdaptingAgenticArchitectureCli implements Callable<Intege
 
     @Override
     public Integer call() {
-        System.out.println("mutation fitness loop pending architecture approval");
+        System.out.println("mutation fitness loop orchestration available; real adapters are being added incrementally");
         return 0;
     }
 }

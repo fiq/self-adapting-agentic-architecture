@@ -1,5 +1,5 @@
 project:
-  state: fake_port_loop_slice_implemented
+  state: git_sqlite_adapter_slice_implemented
   name: self-adapting-agentic-architecture
   confidence: medium
   concept_date: 2026-07-25
@@ -98,7 +98,7 @@ decisions:
     confidence: medium
     status: active
     validation:
-      - future migration test from an empty schema
+      - .agentic-template/bin/project integration-test
     consequence_if_changed: experiment lineage may need a heavier operational dependency
   - id: git_worktree_candidate_isolation
     decision: create mutation candidates in isolated Git worktrees and commit candidate state before evaluation
@@ -108,7 +108,7 @@ decisions:
     confidence: high
     status: active
     validation:
-      - future Git adapter integration test
+      - .agentic-template/bin/project integration-test
     consequence_if_changed: candidate evaluation could mutate shared working state
   - id: no_application_container_initially
     decision: do not build a container image for the first local CLI slice
@@ -273,7 +273,7 @@ testing:
   layers:
     - unit: core records, deterministic validation and scoring policies
     - component: mutation loop with fake model, Git, check and benchmark ports
-    - integration: future real Git worktree and SQLite adapter semantics
+    - integration: real Git worktree and SQLite adapter semantics
     - contract: future workflow and evidence file contracts
     - benchmark: JMH benchmark evidence used by scoring
   test_first: true
