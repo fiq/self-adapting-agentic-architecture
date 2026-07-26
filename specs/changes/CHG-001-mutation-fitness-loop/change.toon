@@ -46,6 +46,12 @@ acceptance:
   - scenario: S2
     test_id: adapters/sqlite/SqliteExperimentMetadataStoreIntegrationTest.recordsCandidateFitnessAndEvaluationEvidence
     layer: component-integration
+  - scenario: S2
+    test_id: adapters/checks/CommandCheckRunnerIntegrationTest.runsConfiguredCommandsInCandidateWorktreeAndRecordsExitStatus
+    layer: component-integration
+  - scenario: S2
+    test_id: benchmarks/JmhBenchmarkRunnerIntegrationTest.convertsJmhPrimaryResultToBenchmarkEvidence
+    layer: component-integration
   - scenario: S3
     test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
     layer: component
@@ -63,6 +69,12 @@ tasks:
   - id: T4
     slice: add real Git worktree and SQLite integration tests after approval
     status: completed
+  - id: T5
+    slice: implement deterministic command check and JMH benchmark evidence adapters
+    status: completed
+  - id: T6
+    slice: select first LangChain4j provider and implement model-backed mutation proposal adapter
+    status: pending
 
 non_goals:
   - OpenSearch or vector storage

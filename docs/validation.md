@@ -46,7 +46,7 @@ Current project-specific fitness function:
 ```
 
 It protects the deterministic model boundary by failing when LangChain4j,
-picocli or SQLite implementation dependencies leak into `core/` or
+picocli, SQLite or JMH implementation dependencies leak into `core/` or
 `application/`.
 
 ## Required Recording
