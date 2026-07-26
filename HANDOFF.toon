@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: self_reviewed_check_benchmark_adapter_slice
-  branch: codex/checks-benchmark-evidence-slice
+  status: merged_check_benchmark_adapter_slice_pending_push
+  branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: b767c69
+  head: b95932f
   dirty: true
 
 goal:
-  current: implement deterministic command check and JMH benchmark evidence adapters, then prepare PR-less main integration
-  phase: validation
+  current: ship deterministic command check and JMH benchmark evidence adapters to main using the authorized PR-less fallback
+  phase: post_merge_validation
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -67,12 +67,17 @@ completed:
   - implemented `JmhBenchmarkRunner` to convert JMH primary results into `BenchmarkEvidence`
   - extended the architecture fitness check to reject JMH imports in `core` and `application`
   - updated README, AGENTS, validation docs, module boundaries, testing wiki, PROJECT_PROFILE and CHG-001 for the check/benchmark adapter slice
+  - self-review found and fixed command-check stdout pipe-drain risk, descendant cleanup on timeout and sub-millisecond timeout validation
+  - committed check/benchmark adapter branch as `13ca21f Add command checks and JMH benchmark evidence`
+  - merged `codex/checks-benchmark-evidence-slice` into `main` with merge commit `b95932f`
+  - deleted merged local branch `codex/checks-benchmark-evidence-slice`
 
 in_progress: []
 
 next:
-  - run final aggregate `.agentic-template/bin/project check` and `.agentic-template/bin/project ready`
-  - commit, merge to `main` and push using the explicitly authorized PR-less fallback if checks remain green
+  - run final aggregate `.agentic-template/bin/project check` and `.agentic-template/bin/project ready` on `main`
+  - commit this final handoff update, push `main` and verify `origin/main`
+  - confirm no redundant merged branches remain
   - answer the smallest high-impact questions: first model provider, first workflow patch format, promotion target and fitness objective weights
   - select first LangChain4j provider and implement model-backed mutation proposal adapter
 
@@ -233,6 +238,12 @@ tests_run:
   - 2026-07-27 `.agentic-template/bin/project ready`: pass with command-check and JMH integration tests included
   - 2026-07-27 self-review: found and fixed command-check stdout pipe-drain risk, descendant cleanup on timeout and sub-millisecond timeout validation
   - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after command-check process-output regression coverage
+  - 2026-07-27 `.agentic-template/bin/project check`: pass before check/benchmark adapter branch commit
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass before check/benchmark adapter branch commit
+  - 2026-07-27 `git fetch origin`: pass; `main` and `origin/main` were aligned before merge
+  - 2026-07-27 `git commit -m "Add command checks and JMH benchmark evidence"`: pass, created `13ca21f`
+  - 2026-07-27 `git merge --no-ff codex/checks-benchmark-evidence-slice`: pass, created `b95932f`
+  - 2026-07-27 `git branch -d codex/checks-benchmark-evidence-slice`: pass
 
 knowledge:
   consulted:
@@ -240,8 +251,6 @@ knowledge:
     - .agents/knowledge/TAXONOMY.md
     - .agents/knowledge/inbox/INBOX-008-repo-native-context-store.md
     - specs/templates/capability.toon
-  no_record:
-    - command-check process-output and timeout behavior is captured in adapter code/tests; no reusable knowledge node yet
     - specs/templates/change.toon
     - .agents/skills/init/SKILL.md
     - .agents/skills/knowledge/knowledge-search/SKILL.md
@@ -266,7 +275,8 @@ knowledge:
     - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
     - specs/capabilities/CAP-001-mutation-fitness-loop.toon
     - specs/changes/CHG-001-mutation-fitness-loop/
-  no_record: null
+  no_record:
+    - command-check process-output and timeout behavior is captured in adapter code/tests; no reusable knowledge node yet
 
 team_fallback:
   current: single lead agent using explicit review checklist
