@@ -1,5 +1,5 @@
 project:
-  state: bounded_mutation_validator_slice_implemented
+  state: actor_review_fallback_policy_in_progress
   name: self-adapting-agentic-architecture
   confidence: medium
   concept_date: 2026-07-25
@@ -134,17 +134,17 @@ decisions:
       - future dependency policy review
     consequence_if_changed: using jqwik 1.10.x may conflict with the project's AI-assisted workflow
   - id: tool_unavailable_integration_fallback
-    decision: allow PR-less self-reviewed integration only when PR tooling is unavailable and the user explicitly authorizes shipping to main
+    decision: allow PR-less actor-reviewed integration only when PR tooling is unavailable and the user explicitly authorizes shipping to main
     reason:
       - GitHub app and gh PR creation were unavailable for this repository
-      - direct main integration still needs branch isolation, deterministic checks and explicit provenance
+      - direct main integration still needs branch isolation, deterministic checks, completed risk-appropriate actor review when available, lead self-review and explicit provenance
     confidence: high
     status: active
     validation:
       - AGENTS.md
       - docs/wiki/development.md
       - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
-    consequence_if_changed: future agents may either block unnecessarily on unavailable PR tooling or push to main without adequate review evidence
+    consequence_if_changed: future agents may either block unnecessarily on unavailable PR tooling or push to main without adequate actor-review evidence
 
 unknowns:
   - id: Q-001
