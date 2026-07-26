@@ -2,7 +2,8 @@
 
 The testing approach is boundary-in and ATDD-aligned.
 
-- Unit tests cover plain Java domain policies.
+- Unit tests cover plain Java domain policies and deterministic bounded
+  mutation validation.
 - Component tests drive the mutation loop with fake model, Git, check and
   benchmark ports.
 - Adapter unit tests cover the provider-neutral LangChain4j typed service

@@ -1,5 +1,5 @@
 project:
-  state: langchain4j_mutation_proposer_slice_implemented
+  state: bounded_mutation_validator_slice_implemented
   name: self-adapting-agentic-architecture
   confidence: medium
   concept_date: 2026-07-25
@@ -168,7 +168,7 @@ unknowns:
       - determines whether text patches are enough before AST mutation
     evidence:
       - user requested plain Java records for WorkflowGraph and Mutation
-    working_assumption: start with a serialized workflow definition plus bounded patch metadata
+    working_assumption: start with bounded text patch metadata plus deterministic length and authority checks before selecting a richer workflow patch format
     consequence_if_wrong: candidate mutations may be too vague to validate deterministically
     blocking: false
     validation:
@@ -272,7 +272,7 @@ architecture:
 testing:
   harness: gradle_junit5_assertj_jqwik_jmh
   layers:
-    - unit: core records, deterministic validation, scoring policies and provider-neutral LangChain4j proposal mapping
+    - unit: core records, deterministic mutation validation, scoring policies and provider-neutral LangChain4j proposal mapping
     - component: mutation loop with fake model, Git, check and benchmark ports
     - integration: real Git worktree, SQLite, command-check and JMH adapter semantics
     - contract: future workflow and evidence file contracts
