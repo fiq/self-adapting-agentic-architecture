@@ -1,0 +1,156 @@
+change:
+  id: CHG-002
+  title: Live mutation loop policy
+  status: proposed
+  intent: Resolve the first live provider, behavior-first mutation contract, S-expression internal representation, realization boundary, crossover stance, promotion target, reviewer evidence behavior and deterministic fitness policy before broad implementation.
+  audience_level: developer
+  relates_to:
+    - DOM-001
+    - SYS-001
+    - CON-001
+    - ARCH-001
+    - RISK-001
+    - Q-001
+    - Q-002
+    - Q-003
+    - Q-004
+    - Q-005
+    - Q-006
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: The system evaluates live model-proposed behavioral implementation mutations through explicit TOON contract envelopes, S-expression internal mutation IR, realization, review, promotion and scoring policies without allowing model approval authority.
+    scenarios:
+      - id: S1
+        when: live model proposal mode is configured for the CLI
+        then: provider-specific LangChain4j construction stays in adapters/langchain4j and application code receives only the MutationProposer port
+        and:
+          - no live model call is attempted unless provider, model and credentials are explicitly configured
+      - id: S2
+        when: the model proposes a targeted mutation contract with behavioral hypothesis, operator, loci, bounds and required evidence
+        then: deterministic validation canonicalizes it to S-expression mutation IR and accepts only bounded contracts before candidate creation
+        and:
+          - unsupported operators, unsafe loci, excessive change budgets and authority-bearing fields are rejected
+          - the mutation operator is one of the closed initial enum values
+      - id: S3
+        when: a candidate produces checks, benchmark evidence and optional reviewer evidence
+        then: deterministic scoring evaluates candidate phenotype evidence with hard gates and configured objective weights to produce FitnessResult
+        and:
+          - all required deterministic behavior cases must pass before weighted scoring can promote
+          - model-supplied approval, score, rollback or promotion fields are ignored or rejected before scoring
+      - id: S4
+        when: the deterministic policy promotes a candidate
+        then: promotion records SQLite metadata and updates a local promoted candidate Git ref without merging main or deploying
+        and:
+          - discarded candidates remain auditable until an explicit retention policy exists
+      - id: S5
+        when: actor review tooling is unavailable during evaluation
+        then: the loop records unavailable review evidence and follows deterministic required-or-advisory reviewer policy
+        and:
+          - unavailable review is never treated as a successful review
+      - id: S6
+        when: crossover is requested for evaluated parent candidates
+        then: the system creates a conceptual trait-recombination proposal whose child uses the closed mutation operator enum rather than merging raw diffs
+        and:
+          - parent traits are selected from recorded evidence and the child contract remains bounded to one primary locus
+      - id: S7
+        when: a mutation operator is selected for the next loop
+        then: the loop derives default bounds, required evidence and fitness dimensions from the operator contract
+        and:
+          - model output cannot redefine operator semantics during evaluation
+      - id: S8
+        when: hill-climb or exploratory-leap is selected
+        then: the loop records search posture, parent candidate, objective focus and risk budget before realization
+        and:
+          - both operators still use deterministic fitness gates for selection
+
+acceptance:
+  - scenario: S1
+    test_id: cli/LiveLoopConfigurationAcceptanceTest.rejectsLiveModeWithoutExplicitProviderModelAndCredentials
+    layer: acceptance
+  - scenario: S1
+    test_id: adapters/langchain4j/OpenAiMutationProposerFactoryTest.constructsOpenAiChatModelOnlyInsideAdapter
+    layer: unit
+  - scenario: S2
+    test_id: application/MutationContractCanonicalizerTest.emitsStableSExpressionMutationIr
+    layer: unit
+  - scenario: S2
+    test_id: application/MutationContractValidatorTest.acceptsBoundedTargetedMutationContract
+    layer: unit
+  - scenario: S2
+    test_id: application/MutationContractValidatorTest.rejectsUnsupportedOperatorUnsafeLociOrExcessiveBudget
+    layer: unit
+  - scenario: S3
+    test_id: application/PhenotypeFitnessScorerTest.appliesHardGatesBeforeWeightedObjectives
+    layer: unit
+  - scenario: S3
+    test_id: application/PhenotypeFitnessScorerTest.requiresAllRequiredBehaviorCasesBeforePromotion
+    layer: unit
+  - scenario: S3
+    test_id: application/MutationEvaluationLoopAcceptanceTest.rejectsModelSuppliedApprovalOrScoreBeforeEvaluation
+    layer: component
+  - scenario: S4
+    test_id: adapters/git/GitPromotionSinkIntegrationTest.promotesCandidateToLocalPromotedRefWithoutTouchingMain
+    layer: component-integration
+  - scenario: S5
+    test_id: application/ReviewerEvidencePolicyTest.recordsUnavailableActorReviewWithoutPassingReview
+    layer: unit
+  - scenario: S6
+    test_id: application/ConceptualCrossoverPolicyTest.createsChildContractWithClosedMutationOperatorFromEvidenceBackedTraits
+    layer: unit
+  - scenario: S7
+    test_id: application/MutationOperatorTypeTest.mapsOperatorToDefaultBoundsEvidenceAndFitnessDimensions
+    layer: unit
+  - scenario: S8
+    test_id: application/SearchPosturePolicyTest.recordsHillClimbAndExploratoryLeapControls
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: document source-backed live-loop policy proposal
+    status: completed
+  - id: T1b
+    slice: document mutation and crossover theory plus repository mutation-contract skill
+    status: completed
+  - id: T2
+    slice: add CLI live-provider configuration contract and OpenAI LangChain4j factory
+    status: pending
+  - id: T3
+    slice: add TOON mutation contract parser, S-expression canonicalizer and bounded contract validator tests
+    status: pending
+  - id: T3b
+    slice: add closed mutation operator enum and deterministic operator defaults
+    status: pending
+  - id: T3c
+    slice: add search posture policy for hill-climb and exploratory-leap operators
+    status: pending
+  - id: T4
+    slice: implement deterministic fitness scorer with hard gates and weights
+    status: pending
+  - id: T5
+    slice: implement local promoted Git ref plus SQLite promotion metadata
+    status: pending
+  - id: T6
+    slice: encode actor-review evidence fallback as deterministic evaluation evidence
+    status: pending
+  - id: T7
+    slice: add conceptual crossover contract generation behind deterministic parent evidence filters
+    status: deferred
+
+non_goals:
+  - OpenSearch or vector storage
+  - AST mutation
+  - LSP integration
+  - distributed workers
+  - automatic production deployment
+  - direct promotion to main
+  - model-authored fitness score or model approval channel
+  - raw code-diff crossover
+
+risks:
+  - RISK-001 model self-approval if live provider output can bypass deterministic validation or scoring
+  - treating realization shape as the mutation would bias the search toward edit mechanics instead of workflow behavior
+  - raw crossover over LLM-authored diffs can combine two nondeterministic edits into an unauditable child
+  - benchmark budgets may be too crude until baseline and candidate benchmarks are captured in one comparable run
+  - local promoted refs are auditable but may not satisfy future protected-branch governance

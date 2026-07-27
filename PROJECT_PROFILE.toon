@@ -1,5 +1,5 @@
 project:
-  state: actor_review_fallback_policy_shipped
+  state: live_loop_policy_proposed
   name: self-adapting-agentic-architecture
   confidence: medium
   concept_date: 2026-07-25
@@ -23,13 +23,13 @@ audience:
     smallest_sufficient: local Gradle Java CLI evaluating one Git-worktree candidate at a time through plain Java ports and deterministic policies
     deliberately_excluded:
       - OpenSearch and vector storage because the first slice has no large retrieval corpus or semantic search evidence
-      - AST mutation because bounded workflow mutations can start as validated workflow-definition patches
+      - AST mutation because bounded behavior-first mutation contracts can be realized through ordinary Git diffs before AST infrastructure is justified
       - LSP integration because repair diagnostics can start from deterministic validation output
       - distributed workers because local sequential evaluation is sufficient until benchmark throughput becomes a measured bottleneck
       - automatic production deployment because promotion policy and rollback must be proven manually first
     revisit_when:
       - experiment evidence requires semantic search across workflow or evaluation history
-      - text or structured workflow mutations cause repeated safety or correctness failures
+      - targeted mutation contracts and Git diff realization cause repeated safety or correctness failures
       - repairs repeatedly need language-server diagnostics
       - local benchmark throughput blocks research cadence
       - users request unattended promotion into protected integration branches or production
@@ -145,6 +145,19 @@ decisions:
       - docs/wiki/development.md
       - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
     consequence_if_changed: future agents may either block unnecessarily on unavailable PR tooling or push to main without adequate actor-review or substituted human-review evidence
+  - id: live_loop_policy_proposal
+    decision: propose OpenAI via LangChain4j official adapter, TOON mutation-contract envelopes, S-expression internal mutation IR, a closed mutation operator enum with hill-climb and exploratory-leap search posture operators, Git diff realization, conceptual crossover deferral, local promoted candidate refs and deterministic hard-gated phenotype fitness objectives for the next implementation slice
+    reason:
+      - resolves the remaining high-impact loop questions before live model execution
+      - treats the evolutionary process as loop engineering with semi-declarative operator input into the next loop
+      - keeps provider-specific code, review tooling and promotion side effects outside deterministic core decisions
+      - uses repo-native contracts and Git evidence instead of adding new infrastructure
+    confidence: medium
+    status: proposed
+    validation:
+      - specs/changes/CHG-002-live-loop-policy/
+      - .agentic-template/bin/project check-changes
+    consequence_if_changed: the next live loop slice should revise CHG-002 before implementation rather than embedding policy assumptions in code
 
 unknowns:
   - id: Q-001
@@ -154,25 +167,25 @@ unknowns:
       - affects retrieval and tool-calling support
     evidence:
       - user specified LangChain4j but not a provider
-    working_assumption: use provider-neutral LangChain4j `ChatModel` wiring first and choose provider-specific configuration later
-    consequence_if_wrong: live adapter configuration may need a provider-specific module or factory later
+    working_assumption: CHG-002 proposes OpenAI through LangChain4j's official OpenAI adapter, with provider and model selected by explicit CLI configuration
+    consequence_if_wrong: the provider factory can be replaced inside adapters/langchain4j without changing core or application ports
     blocking: false
     validation:
       - adapters/langchain4j/src/test/java/io/github/selfadaptingagenticarchitecture/adapters/langchain4j/LangChain4jMutationProposalAdapterTest.java
-      - choose provider before live model-backed CLI execution
+      - specs/changes/CHG-002-live-loop-policy/
     status: open
   - id: Q-002
-    question: What is the first real workflow representation and mutation patch format?
+    question: What is the first behavior-first mutation contract and internal representation format?
     why_it_matters:
       - determines validation semantics
-      - determines whether text patches are enough before AST mutation
+      - determines how targeted behavioral intent, loci, bounds and evidence are validated before implementation
     evidence:
       - user requested plain Java records for WorkflowGraph and Mutation
-    working_assumption: start with bounded text patch metadata plus deterministic length and authority checks before selecting a richer workflow patch format
-    consequence_if_wrong: candidate mutations may be too vague to validate deterministically
+    working_assumption: CHG-002 proposes TOON mutation-contract envelopes with canonical S-expression internal mutation IR; the realized candidate is recorded as a Git diff and commit
+    consequence_if_wrong: the envelope or IR format can be tightened without redefining mutation as edit mechanics
     blocking: false
     validation:
-      - approve or revise CAP-001 before implementation
+      - specs/changes/CHG-002-live-loop-policy/
     status: open
   - id: Q-003
     question: What branch or namespace should promoted candidates target?
@@ -181,11 +194,11 @@ unknowns:
       - rollback semantics depend on the target
     evidence:
       - user requested promoted or discarded but did not specify target branch policy
-    working_assumption: promote to a local reviewed candidate branch, not main or production
-    consequence_if_wrong: automation could affect protected history or integration flow
+    working_assumption: CHG-002 proposes local `refs/heads/promoted/<candidate-id>` plus SQLite promotion metadata, not main or production
+    consequence_if_wrong: promotion can retarget a protected integration branch later without changing candidate creation semantics
     blocking: false
     validation:
-      - decide promotion target before Git adapter implementation
+      - specs/changes/CHG-002-live-loop-policy/
     status: open
   - id: Q-004
     question: What initial objectives and weights should define multi-objective fitness?
@@ -194,11 +207,41 @@ unknowns:
       - benchmark evidence can dominate correctness if weights are wrong
     evidence:
       - user requested deterministic checks, benchmarks and multi-objective scoring
-    working_assumption: start with correctness as gate and benchmark change as weighted evidence
-    consequence_if_wrong: candidates may be promoted for speed while failing behavioral intent
+    working_assumption: CHG-002 proposes validation, checks and required phenotype evaluation evidence as hard gates, with task success, reliability, cost and latency budgets, behavioral safety and parsimony as weighted objectives
+    consequence_if_wrong: objective weights can change without permitting model-authored approval, weakening deterministic gates or optimizing for edit mechanics instead of behavior
     blocking: false
     validation:
-      - encode policy in the first implementation spec after approval
+      - specs/changes/CHG-002-live-loop-policy/
+    status: open
+  - id: Q-005
+    question: What first crossover policy captures diversity of thought without unauditable diff recombination?
+    why_it_matters:
+      - crossover can combine useful techniques from evaluated candidates
+      - raw LLM-authored diff merging would amplify nondeterminism and weaken auditability
+    evidence:
+      - user requested thinking about conceptual or technique crossover
+      - docs/architecture/evolutionary-operators.md
+    working_assumption: start with conceptual trait recombination over evidence-backed parents, producing a new targeted mutation contract with one primary locus
+    consequence_if_wrong: useful cross-candidate lessons may be lost or crossover may become too broad to validate
+    blocking: false
+    validation:
+      - specs/changes/CHG-002-live-loop-policy/
+      - docs/architecture/evolutionary-operators.md
+    status: open
+  - id: Q-006
+    question: What search posture policy should balance local hill climbing against bounded exploratory leaps?
+    why_it_matters:
+      - hill climbing can exploit promising parents efficiently
+      - moonshot variants can escape local plateaus but need explicit risk budgets
+    evidence:
+      - user requested hill climbing and fitness-aware moonshot variants
+      - docs/architecture/evolutionary-operators.md
+    working_assumption: add `hill-climb` and `exploratory-leap` operators that record parent candidate, objective focus, search posture and risk budget before realization
+    consequence_if_wrong: the loop may over-exploit local improvements or over-explore broad variants without comparable evidence
+    blocking: false
+    validation:
+      - specs/changes/CHG-002-live-loop-policy/
+      - docs/architecture/evolutionary-operators.md
     status: open
 
 rejected_options:
@@ -215,12 +258,12 @@ rejected_options:
   - id: ast_mutation_now
     option: mutate Java AST or workflow source using typed code transformations in the first slice
     reason_rejected:
-      - first loop can validate bounded workflow-definition mutations without AST infrastructure
+      - first loop can validate targeted behavior contracts and ordinary Git diff realizations without AST infrastructure
       - AST mutation increases blast radius before the loop is proven
     evidence:
       - user explicit non-goal
     revisit_when:
-      - text or structured workflow patches repeatedly fail deterministic validation
+      - targeted contracts repeatedly fail deterministic validation because code-aware structure is required
   - id: distributed_workers_now
     option: distribute candidate evaluation across workers
     reason_rejected:
@@ -262,7 +305,7 @@ architecture:
     benchmarks: JMH evidence adapter
     messaging: none
     external_services:
-      - model provider selected later
+      - OpenAI via LangChain4j official adapter proposed for first live provider
   persistence:
     kind: relational
     engine: sqlite
@@ -297,7 +340,7 @@ structured_data:
       - toon
       - s_expression
       - none
-    default_reason: compact deterministic policy predicates if scoring rules need a DSL later
+    default_reason: compact deterministic mutation/operator IR, fitness gates and policy predicates
   mixed_use_allowed: true
   rule: use one semantic format per artifact and record deliberate deviations
 
