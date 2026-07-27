@@ -4,40 +4,61 @@ from pathlib import Path
 
 ROOT = Path.cwd()
 
+DOMAIN = Path("modules/domain")
+DETERMINISTIC = Path("modules/deterministic")
+
+# Layers that must stay free of provider and infrastructure dependencies.
+PROVIDER_FREE = [DOMAIN, DETERMINISTIC]
+
+FORBIDDEN_DEPENDENCIES = [
+    ("dev.langchain4j", "LangChain4j import leaks outside modules/adapters"),
+    ("picocli.", "picocli import leaks outside modules/cli"),
+    ("org.sqlite", "SQLite dependency leaks outside modules/adapters"),
+    ("org.flywaydb", "migration dependency leaks outside modules/adapters"),
+    ("org.openjdk.jmh", "JMH dependency leaks outside modules/benchmarks"),
+]
+
+# The dependency rule points inward. Domain is the innermost layer and may know nothing.
+FORBIDDEN_INBOUND = [
+    "com.dreamthought.saaa.deterministic",
+    "com.dreamthought.saaa.adapters",
+    "com.dreamthought.saaa.cli",
+]
+
 
 def java_files(root):
-    if not root.exists():
-        return []
     return [path for path in root.rglob("*.java") if "/build/" not in str(path)]
 
 
 def main():
     errors = []
 
-    for module in ["core", "application"]:
+    # A scanned layer that has moved or been renamed must fail loudly. Returning an empty file
+    # list would let this check pass vacuously, which is worse than no check at all.
+    for module in [*PROVIDER_FREE]:
+        if not (ROOT / module).is_dir():
+            errors.append(f"{module}: scanned module directory is missing; update this check")
+    if errors:
+        print("ARCHITECTURE BOUNDARY CHECK FAILED")
+        print()
+        for error in errors:
+            print("- " + error)
+        return 1
+
+    for module in PROVIDER_FREE:
         for path in java_files(ROOT / module):
             text = path.read_text(errors="ignore")
             rel = path.relative_to(ROOT)
-            if "dev.langchain4j" in text:
-                errors.append(f"{rel}: LangChain4j import leaks outside adapters/langchain4j")
-            if "picocli." in text:
-                errors.append(f"{rel}: picocli import leaks outside cli")
-            if "org.sqlite" in text or "org.flywaydb" in text:
-                errors.append(f"{rel}: SQLite or migration dependency leaks outside adapters/sqlite")
-            if "org.openjdk.jmh" in text:
-                errors.append(f"{rel}: JMH dependency leaks outside benchmarks")
+            for needle, message in FORBIDDEN_DEPENDENCIES:
+                if needle in text:
+                    errors.append(f"{rel}: {message}")
 
-    for path in java_files(ROOT / "core"):
+    for path in java_files(ROOT / DOMAIN):
         text = path.read_text(errors="ignore")
         rel = path.relative_to(ROOT)
-        forbidden = [
-            "com.dreamthought.saaa.application",
-            "com.dreamthought.saaa.adapters",
-            "com.dreamthought.saaa.cli",
-        ]
-        for package in forbidden:
+        for package in FORBIDDEN_INBOUND:
             if package in text:
-                errors.append(f"{rel}: core must not depend on {package}")
+                errors.append(f"{rel}: domain must not depend on {package}")
 
     if errors:
         print("ARCHITECTURE BOUNDARY CHECK FAILED")

@@ -14,13 +14,17 @@ dependencyResolutionManagement {
 
 rootProject.name = "self-adapting-agentic-architecture"
 
+// Layers are ordered inward-to-outward. Each one may depend only on the layers above it.
+//
+//   domain         the vocabulary being evolved; no dependencies at all
+//   deterministic  validation, scoring, promotion and ports; nothing provider-aware or random
+//   adapters       the model, Git, SQLite and command execution
+//   cli            entry point
+//   benchmarks     JMH evidence used by scoring
 include(
-    "core",
-    "application",
-    "adapters:langchain4j",
-    "adapters:git",
-    "adapters:sqlite",
-    "adapters:checks",
-    "benchmarks",
-    "cli",
+    "modules:domain",
+    "modules:deterministic",
+    "modules:adapters",
+    "modules:benchmarks",
+    "modules:cli",
 )
