@@ -13,11 +13,12 @@ risks:
 evidence:
   - CUSTOMIZE_THIS_PROJECT.toon
   - PROJECT_PROFILE.toon
+  - specs/changes/CHG-002-live-loop-policy/design.md
 review_after: 2026-10-26
 ---
 
 # Candidate Promotion Target
 
-Promotion is deterministic, but the destination is not yet fixed. The working
-assumption is local reviewed candidate branches only, with no direct writes to
-`main` or production.
+Promotion is deterministic, but the destination is not yet approved. `CHG-002`
+proposes local `refs/heads/promoted/<candidate-id>` plus SQLite metadata only,
+with no direct writes to `main` or production.

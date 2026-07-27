@@ -132,6 +132,10 @@ skills:
     path: workflow/narrative-intake/SKILL.md
     trigger: narrative_provided_inline_or_file
 
+  mutation_contract:
+    path: workflow/mutation-contract/SKILL.md
+    trigger: freeform_mutation_or_crossover_input_needs_bounded_behavior_contract
+
   runtime_node:
     path: specialise/runtime-node/SKILL.md
     trigger: node_or_typescript_detected

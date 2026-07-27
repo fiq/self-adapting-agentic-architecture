@@ -67,6 +67,31 @@ The canonical command surface is `.agentic-template/bin/project`.
   distributed workers or automatic production deployment without a recorded
   decision and revisit evidence.
 
+## Evolutionary operator model
+
+Mutation is a targeted behavioral variation, not a patch. A patch or Git diff
+is only the realization produced inside an isolated candidate worktree.
+
+Use TOON for the reviewable mutation-contract envelope: rationale, evidence,
+source refs, assumptions and audit metadata. Use S-expressions as the internal
+mutation/operator representation because they are tree-shaped, canonicalizable
+and natural for targeted mutation and later crossover. When given human or LLM
+input like "mutate the method that calculates interest", use the repo skill
+`.agents/skills/workflow/mutation-contract` to turn it into a bounded contract
+and canonical S-expression before implementation.
+
+The first operator family is targeted mutation: one primary locus, one
+behavioral hypothesis, explicit bounds and deterministic evidence. Crossover is
+deferred to conceptual trait recombination over evaluated parents; do not merge
+raw LLM-authored diffs as crossover without a later approved policy.
+
+Treat the evolutionary process as loop engineering. Each mutation targets a
+bounded part of the agentic loop, such as model routing, prompt policy, tool
+strategy, validation, memory retrieval, checks or scoring behavior. The mutation
+operator enum is semi-declarative input into that next loop. Use `hill-climb`
+for local fitness-aware exploitation and `exploratory-leap` for bounded
+moonshot variants with explicit risk budgets.
+
 ## Quality and technical debt
 
 - Follow the boy-scout rule in the path of each change.
@@ -104,10 +129,11 @@ confirmation test also exists.
 
 ## Structured data formats
 
-Use TOON for state and contracts: `PROJECT_PROFILE.toon`, `HANDOFF.toon`,
-`CUSTOMIZE_THIS_PROJECT.toon` and structured specs. Use S-expressions only for
-explicit deterministic rule or policy artifacts where compact predicates are
-useful. Keep one semantic format per artifact and record deviations.
+Use TOON for state and reviewable contracts: `PROJECT_PROFILE.toon`,
+`HANDOFF.toon`, `CUSTOMIZE_THIS_PROJECT.toon`, structured specs and mutation
+contract envelopes. Use S-expressions for internal mutation/operator IR,
+fitness gates and deterministic policy predicates. Keep one semantic format per
+artifact and record deviations.
 
 ## Spec system
 
