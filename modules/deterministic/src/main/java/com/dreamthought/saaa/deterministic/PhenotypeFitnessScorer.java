@@ -58,6 +58,9 @@ public final class PhenotypeFitnessScorer {
                 .allMatch(id -> isFraction(phenotype.objectiveScores().get(id)));
     }
 
+    // Scoring reads DEFAULT_OBJECTIVES directly rather than an operator's defaults because it never
+    // receives the contract. RISK-002 and task T4b track closing that gap.
+
     private static boolean isFraction(Double score) {
         return score != null && Double.isFinite(score) && score >= 0.0 && score <= 1.0;
     }

@@ -27,6 +27,7 @@ completed:
   - merged the four two-file adapter modules into one `modules/adapters` module
   - made `check-architecture-boundaries` fail loudly when a scanned layer directory is missing instead of passing vacuously
   - recorded the `invariant_named_module_layout` decision in `PROJECT_PROFILE.toon`
+  - removed redundancy: renamed `SelfAdaptingAgenticArchitectureCli` to `MutationLoopCli`, pointed objective validation at the operator's own defaults instead of a duplicated constant, and dropped a duplicated enum assertion from the crossover test
 
 in_progress:
   - none
@@ -35,7 +36,7 @@ next:
   - grant the `gh` token pull-request scope so future slices use a PR instead of the recorded fallback
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
-  - consider renaming `SelfAdaptingAgenticArchitectureCli`, now redundant inside `com.dreamthought.saaa.cli`
+  - migrate `MutationEvaluationLoop` from the transitional `Mutation`/`MutationValidator`/`FitnessScorer` stack onto `MutationContract` and `PhenotypeFitnessScorer`; both stacks exist today and only the old one is wired
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
   - implement `T2`, `T5`, `T6` before any live provider run
@@ -108,6 +109,8 @@ tests_run:
   - 2026-07-28 boundary probe after rename: injected a forbidden package reference into a domain file and confirmed `project lint` failed, then reverted
   - 2026-07-28 after module restructure: 39 tests across unit, component and integration suites pass; run, lint, check and ready pass
   - 2026-07-28 vacuous-pass probe: renamed `modules/domain` away and confirmed `project lint` failed with a missing-directory error, then restored
+  - 2026-07-28 confinement probe: added a `dev.langchain4j` reference to the git adapter and confirmed `project lint` failed, then reverted
+  - 2026-07-28 after redundancy removal: clean rebuild, 39 tests, run, lint, check and ready all pass
 
 fitness_functions:
   - changed: `check-architecture-boundaries` now fails loudly when a scanned layer directory is missing, instead of returning an empty file list and reporting OK
