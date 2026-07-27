@@ -31,9 +31,9 @@ def main():
         text = path.read_text(errors="ignore")
         rel = path.relative_to(ROOT)
         forbidden = [
-            "io.github.selfadaptingagenticarchitecture.application",
-            "io.github.selfadaptingagenticarchitecture.adapters",
-            "io.github.selfadaptingagenticarchitecture.cli",
+            "com.dreamthought.saaa.application",
+            "com.dreamthought.saaa.adapters",
+            "com.dreamthought.saaa.cli",
         ]
         for package in forbidden:
             if package in text:

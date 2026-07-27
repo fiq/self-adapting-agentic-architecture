@@ -65,30 +65,30 @@ files_changed:
   - specs/changes/CHG-002-live-loop-policy/change.toon
   - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
   - .agents/knowledge/questions/Q-007-canonical-ir-ordering.md
-  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/FitnessObjective.java
-  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/MutationBounds.java
-  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/MutationContract.java
-  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/MutationOperatorType.java
-  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/MutationTarget.java
-  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/ParentTrait.java
-  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/SearchPosture.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/AuthorityLanguage.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/BehaviorCaseEvidence.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/BoundedMutationValidator.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/ConceptualCrossoverPolicy.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/ConceptualCrossoverRequest.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationContractCanonicalizer.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationContractValidator.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationOperatorDefaults.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationOperatorPolicy.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/PhenotypeEvidence.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/PhenotypeFitnessScorer.java
-  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/ConceptualCrossoverPolicyTest.java
-  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/MutationContractCanonicalizerTest.java
-  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/MutationContractValidatorTest.java
-  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/MutationOperatorTypeTest.java
-  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/PhenotypeFitnessScorerTest.java
-  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/SearchPosturePolicyTest.java
+  - core/src/main/java/com/dreamthought/saaa/core/FitnessObjective.java
+  - core/src/main/java/com/dreamthought/saaa/core/MutationBounds.java
+  - core/src/main/java/com/dreamthought/saaa/core/MutationContract.java
+  - core/src/main/java/com/dreamthought/saaa/core/MutationOperatorType.java
+  - core/src/main/java/com/dreamthought/saaa/core/MutationTarget.java
+  - core/src/main/java/com/dreamthought/saaa/core/ParentTrait.java
+  - core/src/main/java/com/dreamthought/saaa/core/SearchPosture.java
+  - application/src/main/java/com/dreamthought/saaa/application/AuthorityLanguage.java
+  - application/src/main/java/com/dreamthought/saaa/application/BehaviorCaseEvidence.java
+  - application/src/main/java/com/dreamthought/saaa/application/BoundedMutationValidator.java
+  - application/src/main/java/com/dreamthought/saaa/application/ConceptualCrossoverPolicy.java
+  - application/src/main/java/com/dreamthought/saaa/application/ConceptualCrossoverRequest.java
+  - application/src/main/java/com/dreamthought/saaa/application/MutationContractCanonicalizer.java
+  - application/src/main/java/com/dreamthought/saaa/application/MutationContractValidator.java
+  - application/src/main/java/com/dreamthought/saaa/application/MutationOperatorDefaults.java
+  - application/src/main/java/com/dreamthought/saaa/application/MutationOperatorPolicy.java
+  - application/src/main/java/com/dreamthought/saaa/application/PhenotypeEvidence.java
+  - application/src/main/java/com/dreamthought/saaa/application/PhenotypeFitnessScorer.java
+  - application/src/test/java/com/dreamthought/saaa/application/ConceptualCrossoverPolicyTest.java
+  - application/src/test/java/com/dreamthought/saaa/application/MutationContractCanonicalizerTest.java
+  - application/src/test/java/com/dreamthought/saaa/application/MutationContractValidatorTest.java
+  - application/src/test/java/com/dreamthought/saaa/application/MutationOperatorTypeTest.java
+  - application/src/test/java/com/dreamthought/saaa/application/PhenotypeFitnessScorerTest.java
+  - application/src/test/java/com/dreamthought/saaa/application/SearchPosturePolicyTest.java
 
 tests_run:
   - 2026-07-28 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
