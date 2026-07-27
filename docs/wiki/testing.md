@@ -13,7 +13,7 @@ The testing approach is boundary-in and ATDD-aligned.
 - Benchmarks use JMH and feed `EvaluationEvidence`.
 
 The first approval-driving test is
-`application/src/acceptanceTest/java/io/github/selfadaptingagenticarchitecture/application/MutationEvaluationLoopAcceptanceTest.java`.
+`application/src/acceptanceTest/java/com/dreamthought/saaa/application/MutationEvaluationLoopAcceptanceTest.java`.
 It currently passes against fake ports and proves the deterministic application
 orchestration. Adapter integration tests prove real Git worktree creation,
 candidate commit provenance, SQLite metadata persistence, command-check

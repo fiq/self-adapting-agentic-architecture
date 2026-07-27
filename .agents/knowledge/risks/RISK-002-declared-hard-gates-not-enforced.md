@@ -13,8 +13,8 @@ relates_to:
 risks:
   - RISK-001
 evidence:
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationContractValidator.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/PhenotypeFitnessScorer.java
+  - application/src/main/java/com/dreamthought/saaa/application/MutationContractValidator.java
+  - application/src/main/java/com/dreamthought/saaa/application/PhenotypeFitnessScorer.java
   - specs/changes/CHG-002-live-loop-policy/change.toon
 review_after: 2026-10-26
 ---

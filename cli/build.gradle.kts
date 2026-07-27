@@ -8,5 +8,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("io.github.selfadaptingagenticarchitecture.cli.SelfAdaptingAgenticArchitectureCli")
+    mainClass.set("com.dreamthought.saaa.cli.SelfAdaptingAgenticArchitectureCli")
 }

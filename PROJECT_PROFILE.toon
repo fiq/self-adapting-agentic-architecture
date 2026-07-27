@@ -87,7 +87,7 @@ decisions:
     status: active
     validation:
       - specs/capabilities/CAP-001-mutation-fitness-loop.toon
-      - application/src/acceptanceTest/java/io/github/selfadaptingagenticarchitecture/application/MutationEvaluationLoopAcceptanceTest.java
+      - application/src/acceptanceTest/java/com/dreamthought/saaa/application/MutationEvaluationLoopAcceptanceTest.java
     consequence_if_changed: experiments could self-reinforce model-preferred candidates without independent fitness evidence
   - id: sqlite_experiment_metadata
     decision: persist experiment metadata in SQLite through an adapter
@@ -171,7 +171,7 @@ unknowns:
     consequence_if_wrong: the provider factory can be replaced inside adapters/langchain4j without changing core or application ports
     blocking: false
     validation:
-      - adapters/langchain4j/src/test/java/io/github/selfadaptingagenticarchitecture/adapters/langchain4j/LangChain4jMutationProposalAdapterTest.java
+      - adapters/langchain4j/src/test/java/com/dreamthought/saaa/adapters/langchain4j/LangChain4jMutationProposalAdapterTest.java
       - specs/changes/CHG-002-live-loop-policy/
     status: open
   - id: Q-002
@@ -322,7 +322,7 @@ testing:
     - benchmark: JMH benchmark evidence used by scoring
   test_first: true
   philosophy: testing_trophy
-  first_acceptance_test: application/src/acceptanceTest/java/io/github/selfadaptingagenticarchitecture/application/MutationEvaluationLoopAcceptanceTest.java
+  first_acceptance_test: application/src/acceptanceTest/java/com/dreamthought/saaa/application/MutationEvaluationLoopAcceptanceTest.java
 
 structured_data:
   control_files:

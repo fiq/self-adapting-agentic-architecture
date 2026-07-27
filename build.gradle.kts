@@ -5,7 +5,7 @@ plugins {
 }
 
 allprojects {
-    group = "io.github.selfadaptingagenticarchitecture"
+    group = "com.dreamthought.saaa"
     version = "0.1.0-SNAPSHOT"
 }
 

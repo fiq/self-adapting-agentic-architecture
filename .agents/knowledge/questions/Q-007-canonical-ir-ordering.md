@@ -10,8 +10,8 @@ relates_to:
   - CON-001
   - Q-002
 evidence:
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationContractCanonicalizer.java
-  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/MutationContractCanonicalizerTest.java
+  - application/src/main/java/com/dreamthought/saaa/application/MutationContractCanonicalizer.java
+  - application/src/test/java/com/dreamthought/saaa/application/MutationContractCanonicalizerTest.java
   - specs/changes/CHG-002-live-loop-policy/design.md
 review_after: 2026-10-26
 ---
