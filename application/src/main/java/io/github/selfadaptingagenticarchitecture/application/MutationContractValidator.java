@@ -32,10 +32,8 @@ public final class MutationContractValidator {
         requireOperatorEvidenceAndGates(messages, contract);
         requireDeterministicObjectives(messages, contract);
         requireSearchPosture(messages, contract);
+        requirePrimaryLocus(messages, contract);
 
-        if (contract.loci().isEmpty()) {
-            messages.add("mutation contract must declare at least one locus");
-        }
         if (messages.isEmpty()) {
             return ValidationResult.passed();
         }
@@ -126,6 +124,12 @@ public final class MutationContractValidator {
         if (MutationOperatorPolicy.requiresSearchPosture(contract.operator()) && contract.searchPosture().isEmpty()) {
             messages.add(contract.operator().wireName()
                     + " requires search posture with parent candidate, objective focus and risk budget");
+        }
+    }
+
+    private static void requirePrimaryLocus(List<String> messages, MutationContract contract) {
+        if (contract.loci().isEmpty()) {
+            messages.add("mutation contract must declare at least one locus");
         }
     }
 }
