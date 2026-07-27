@@ -29,12 +29,12 @@ completed:
   - validated proposal artifacts with whitespace, spec, knowledge, handoff, profile, aggregate check and readiness gates
   - revised the policy after user correction so S-expressions are the internal mutation/operator IR and Git diffs are candidate realizations, not the mutation itself
   - revalidated after removing stale edit-transport language from active proposal, profile and handoff state
+  - pushed `main` with the shipped loop-engineering proposal
+  - deleted merged branch `codex/define-loop-policy-proposal` locally and on origin
 
 in_progress: []
 
 next:
-  - push `main`
-  - delete merged branch `codex/define-loop-policy-proposal` locally and on origin
   - implement the smallest next slice from `CHG-002` tasks T2, T3 and T3b after confirming policy direction
 
 decisions:
@@ -122,6 +122,10 @@ tests_run:
   - 2026-07-27 `git diff --check`: pass on `main` after merge
   - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after merge
   - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after merge, 13 passed / 2 not applicable / 0 failed
+  - 2026-07-27 `git commit -m "Record shipped loop policy handoff"`: pass, created `0895910`
+  - 2026-07-27 `git push origin main`: pass, pushed `9076dc1..0895910`
+  - 2026-07-27 `git branch -d codex/define-loop-policy-proposal`: pass
+  - 2026-07-27 `git push origin --delete codex/define-loop-policy-proposal`: pass
 
 knowledge:
   consulted:
