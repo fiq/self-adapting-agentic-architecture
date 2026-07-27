@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-28
-  status: package_rename_and_invariant_named_module_layout_applied
-  branch: chore/rename-package-com-dreamthought-saaa
+  status: chg_002_policy_slice_rename_and_layer_restructure_integrated_on_main
+  branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 43dc73d
+  head: 3b60fae
   dirty: false
 
 goal:
   current: restructure the repository into invariant-named layers under `modules/` after integrating the `CHG-002` policy slice
-  phase: restructure_applied_pending_main_push
+  phase: integrated
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -32,8 +32,10 @@ in_progress:
   - none
 
 next:
-  - push `main` and this branch; the harness permission classifier blocked `git push origin main` from the agent session
-  - grant the `gh` token pull-request scope so future slices can use a PR instead of the fallback
+  - grant the `gh` token pull-request scope so future slices use a PR instead of the recorded fallback
+  - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
+  - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
+  - consider renaming `SelfAdaptingAgenticArchitectureCli`, now redundant inside `com.dreamthought.saaa.cli`
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
   - implement `T2`, `T5`, `T6` before any live provider run
@@ -137,7 +139,7 @@ team_fallback:
     result: failed
     error: "GraphQL: Resource not accessible by personal access token (createPullRequest)"
     note: gh is installed and authenticated as `fiq`, but the active personal access token lacks pull-request write scope; branch push succeeded
-  actor_review: completed; one independent reviewer actor examined the full slice against `CHG-002` design, `CON-001` and `CLAUDE.md` and reported eight findings
+  actor_review: completed twice; one reviewer examined the `CHG-002` policy slice and reported eight findings, a second examined the rename and restructure and reported six
   actor_review_outcome:
     - fixed: empty deterministic-check evidence no longer passes its hard gate
     - fixed: gate outcomes are recorded after measured scores so evidence cannot overwrite them in the audit record
@@ -147,5 +149,12 @@ team_fallback:
     - fixed: conceptual crossover requires two distinct evaluated parents and validates its own child contract
     - recorded_not_fixed: declared contract hard gates are not enforced by the scorer (RISK-002, task T4b)
     - recorded_not_fixed: canonical IR is declaration-order sensitive for set-like fields (Q-007)
-  lead_self_review: pending until commit; no merge to `main` has been performed and none is authorized
-  lost_challenge: no second independent reviewer and no human code review yet
+  lead_self_review: completed before each merge; the policy slice review found one inline rule worth extracting, the restructure review found no further issues after actor findings were addressed
+  restructure_review_outcome:
+    - fixed: provider dependencies are now confined per package, closing the containment the adapter-module merge gave up
+    - fixed: `settings.gradle.kts` no longer creates an empty `:modules` container project
+    - fixed: stale `core/` and `application/` references in `docs/validation.md` and `docs/wiki/architecture.md`
+    - fixed: `HANDOFF.toon` recorded the fitness function as unchanged in the same change that hardened it, and asserted a push that had not happened
+    - fixed: `CHG-002` acceptance `test_id`s pointed at modules that no longer exist
+    - fixed: deleted the consumed `CLAUDE_HANDOVER.toon` packet rather than maintaining its stale paths
+  lost_challenge: no human code review; both reviews were agent actors, and PR review was unavailable because the `gh` token lacks pull-request scope
