@@ -8,5 +8,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("com.dreamthought.saaa.cli.SelfAdaptingAgenticArchitectureCli")
+    mainClass.set("com.dreamthought.saaa.cli.MutationLoopCli")
 }
