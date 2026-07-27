@@ -3,7 +3,7 @@ session:
   status: chg_002_policy_slice_rename_and_layer_restructure_integrated_on_main
   branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 3b60fae
+  head: 298cf5b
   dirty: false
 
 goal:
