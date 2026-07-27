@@ -36,9 +36,7 @@ next:
   - grant the `gh` token pull-request scope so future slices use a PR instead of the recorded fallback
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
-  - migrate `MutationEvaluationLoop` from the transitional `Mutation`/`MutationValidator`/`FitnessScorer` stack onto `MutationContract` and `PhenotypeFitnessScorer`; both stacks exist today and only the old one is wired
-  - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
-  - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
+  - migrate `MutationEvaluationLoop` from the transitional `Mutation`/`MutationValidator`/`FitnessScorer` stack onto `MutationContract` and `PhenotypeFitnessScorer`; both stacks exist today, only the old one is wired, and `FitnessScorer` has no production implementation
   - implement `T2`, `T5`, `T6` before any live provider run
 
 decisions:

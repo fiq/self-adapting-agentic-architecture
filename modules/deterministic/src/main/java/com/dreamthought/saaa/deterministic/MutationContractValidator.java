@@ -18,8 +18,7 @@ public final class MutationContractValidator {
             "mutation contract must not contain approval, scoring, promotion, discard or rollback authority";
     private static final String TARGET_FILE_MESSAGE =
             "target file must be repo-relative and must not traverse parent directories";
-    private static final String OBJECTIVES_MESSAGE =
-            "fitness objectives must match the deterministic default objectives";
+    private static final String OBJECTIVES_MESSAGE = "fitness objectives must match the deterministic defaults";
     private static final String PARENT_SEGMENT = "..";
 
     public ValidationResult validate(MutationContract contract) {
@@ -117,7 +116,7 @@ public final class MutationContractValidator {
     /** Compares against the operator's own defaults, so the per-operator seam stays the single source. */
     private static void requireDeterministicObjectives(List<String> messages, MutationContract contract) {
         if (!contract.objectives().equals(MutationOperatorPolicy.defaultsFor(contract.operator()).objectives())) {
-            messages.add(OBJECTIVES_MESSAGE);
+            messages.add(OBJECTIVES_MESSAGE + " for " + contract.operator().wireName());
         }
     }
 
