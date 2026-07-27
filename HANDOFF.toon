@@ -1,10 +1,11 @@
 session:
   updated: 2026-07-28
-  status: mutation_contract_policy_slice_implemented_and_validated
+  status: mutation_contract_policy_slice_committed_and_pushed_awaiting_integration_authorization
   branch: codex/mutation-contract-test-slice
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: ba9697e
-  dirty: true
+  head: 43dc73d
+  pushed: origin/codex/mutation-contract-test-slice
+  dirty: false
 
 goal:
   current: implement the smallest deterministic test-first slice for `CHG-002` mutation-contract/operator policy and phenotype fitness scoring
@@ -26,7 +27,7 @@ in_progress:
   - none
 
 next:
-  - commit the bounded branch and push it
+  - decide integration route: either grant the `gh` token pull-request scope and open a PR, or authorize the recorded PR-less fallback merge
   - obtain explicit user authorization before any merge to `main`; no merge has been performed
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
@@ -118,7 +119,12 @@ knowledge:
 
 team_fallback:
   current: lead_plus_one_independent_actor_review
-  reason: PR tooling remains unavailable for this repository; the tool-unavailable integration fallback was previously authorized
+  reason: PR creation is still unavailable for this repository, so the previously authorized tool-unavailable integration fallback still applies
+  pr_attempt:
+    command: gh pr create --base main --head codex/mutation-contract-test-slice
+    result: failed
+    error: "GraphQL: Resource not accessible by personal access token (createPullRequest)"
+    note: gh is installed and authenticated as `fiq`, but the active personal access token lacks pull-request write scope; branch push succeeded
   actor_review: completed; one independent reviewer actor examined the full slice against `CHG-002` design, `CON-001` and `CLAUDE.md` and reported eight findings
   actor_review_outcome:
     - fixed: empty deterministic-check evidence no longer passes its hard gate
