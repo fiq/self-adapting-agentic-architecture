@@ -41,55 +41,55 @@ deltas:
 
 acceptance:
   - scenario: S1
-    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.mapsTypedAiServiceProposalToCoreMutation
+    test_id: adapters/LangChain4jMutationProposalAdapterTest.mapsTypedAiServiceProposalToCoreMutation
     layer: unit
   - scenario: S1
-    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.createsTypedAiServiceFromChatModelWithoutCommittingToProvider
+    test_id: adapters/LangChain4jMutationProposalAdapterTest.createsTypedAiServiceFromChatModelWithoutCommittingToProvider
     layer: unit
   - scenario: S1
-    test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
+    test_id: deterministic/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
     layer: component
   - scenario: S1
-    test_id: adapters/git/GitCandidateWorkspaceIntegrationTest.createsCommittedCandidateInIsolatedWorktreeWithoutTouchingCoordinationCheckout
+    test_id: adapters/GitCandidateWorkspaceIntegrationTest.createsCommittedCandidateInIsolatedWorktreeWithoutTouchingCoordinationCheckout
     layer: component-integration
   - scenario: S2
-    test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
+    test_id: deterministic/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
     layer: component
   - scenario: S2
-    test_id: adapters/sqlite/SqliteExperimentMetadataStoreIntegrationTest.recordsCandidateFitnessAndEvaluationEvidence
+    test_id: adapters/SqliteExperimentMetadataStoreIntegrationTest.recordsCandidateFitnessAndEvaluationEvidence
     layer: component-integration
   - scenario: S2
-    test_id: adapters/checks/CommandCheckRunnerIntegrationTest.runsConfiguredCommandsInCandidateWorktreeAndRecordsExitStatus
+    test_id: adapters/CommandCheckRunnerIntegrationTest.runsConfiguredCommandsInCandidateWorktreeAndRecordsExitStatus
     layer: component-integration
   - scenario: S2
     test_id: benchmarks/JmhBenchmarkRunnerIntegrationTest.convertsJmhPrimaryResultToBenchmarkEvidence
     layer: component-integration
   - scenario: S3
-    test_id: application/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
+    test_id: deterministic/MutationEvaluationLoopAcceptanceTest.evaluatesOneCandidateAndDiscardsWhenFitnessFailsThreshold
     layer: component
   - scenario: S4
-    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.rejectsModelOutputOutsideTheBoundedMutationContract
+    test_id: adapters/LangChain4jMutationProposalAdapterTest.rejectsModelOutputOutsideTheBoundedMutationContract
     layer: unit
   - scenario: S4
-    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.rejectsMalformedModelOutputDeterministically
+    test_id: adapters/LangChain4jMutationProposalAdapterTest.rejectsMalformedModelOutputDeterministically
     layer: unit
   - scenario: S4
-    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.rejectsOversizedModelOutputDeterministically
+    test_id: adapters/LangChain4jMutationProposalAdapterTest.rejectsOversizedModelOutputDeterministically
     layer: unit
   - scenario: S4
-    test_id: application/BoundedMutationValidatorTest.rejectsOversizedMutationFields
+    test_id: deterministic/BoundedMutationValidatorTest.rejectsOversizedMutationFields
     layer: unit
   - scenario: S4
-    test_id: application/BoundedMutationValidatorTest.rejectsAuthorityBearingMutationText
+    test_id: deterministic/BoundedMutationValidatorTest.rejectsAuthorityBearingMutationText
     layer: unit
   - scenario: S4
-    test_id: adapters/langchain4j/LangChain4jMutationProposalAdapterTest.mutationProposalContractDoesNotExposeApprovalOrScoringAuthority
+    test_id: adapters/LangChain4jMutationProposalAdapterTest.mutationProposalContractDoesNotExposeApprovalOrScoringAuthority
     layer: unit
   - scenario: S4
-    test_id: application/MutationEvaluationLoopAcceptanceTest.stopsInvalidModelProposalBeforeCandidateCreationAndEvaluation
+    test_id: deterministic/MutationEvaluationLoopAcceptanceTest.stopsInvalidModelProposalBeforeCandidateCreationAndEvaluation
     layer: component
   - scenario: S4
-    test_id: application/MutationEvaluationLoopAcceptanceTest.realValidatorStopsAuthorityBearingProposalBeforeCandidateCreationAndEvaluation
+    test_id: deterministic/MutationEvaluationLoopAcceptanceTest.realValidatorStopsAuthorityBearingProposalBeforeCandidateCreationAndEvaluation
     layer: component
 
 tasks:

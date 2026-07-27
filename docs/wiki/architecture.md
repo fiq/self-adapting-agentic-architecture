@@ -3,12 +3,18 @@
 self-adapting-agentic-architecture is a local Java CLI with Clean Architecture
 module boundaries.
 
+All Java lives under `modules/`, and layers are named for what they may know.
+
 ```text
-cli -> application -> core
-           ^
-           |
+cli -> deterministic -> domain
+             ^
+             |
   adapters and benchmarks implement ports
 ```
+
+`domain` declares no dependencies at all, so the inward rule is a compile error.
+`deterministic` holds validation, scoring, promotion and ports; nothing
+provider-aware or nondeterministic belongs there.
 
 The key architecture rule is `ARCH-001`: LangChain4j is an adapter detail, and
 validation, fitness scoring, promotion and rollback remain deterministic Java

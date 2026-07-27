@@ -26,7 +26,7 @@ deltas:
     scenarios:
       - id: S1
         when: live model proposal mode is configured for the CLI
-        then: provider-specific LangChain4j construction stays in adapters/langchain4j and application code receives only the MutationProposer port
+        then: provider-specific LangChain4j construction stays in the adapters/langchain4j package and deterministic code receives only the MutationProposer port
         and:
           - no live model call is attempted unless provider, model and credentials are explicitly configured
       - id: S2
@@ -72,40 +72,40 @@ acceptance:
     test_id: cli/LiveLoopConfigurationAcceptanceTest.rejectsLiveModeWithoutExplicitProviderModelAndCredentials
     layer: acceptance
   - scenario: S1
-    test_id: adapters/langchain4j/OpenAiMutationProposerFactoryTest.constructsOpenAiChatModelOnlyInsideAdapter
+    test_id: adapters/OpenAiMutationProposerFactoryTest.constructsOpenAiChatModelOnlyInsideAdapter
     layer: unit
   - scenario: S2
-    test_id: application/MutationContractCanonicalizerTest.emitsStableSExpressionMutationIr
+    test_id: deterministic/MutationContractCanonicalizerTest.emitsStableSExpressionMutationIr
     layer: unit
   - scenario: S2
-    test_id: application/MutationContractValidatorTest.acceptsBoundedTargetedMutationContract
+    test_id: deterministic/MutationContractValidatorTest.acceptsBoundedTargetedMutationContract
     layer: unit
   - scenario: S2
-    test_id: application/MutationContractValidatorTest.rejectsUnsupportedOperatorUnsafeLociOrExcessiveBudget
+    test_id: deterministic/MutationContractValidatorTest.rejectsUnsupportedOperatorUnsafeLociOrExcessiveBudget
     layer: unit
   - scenario: S3
-    test_id: application/PhenotypeFitnessScorerTest.appliesHardGatesBeforeWeightedObjectives
+    test_id: deterministic/PhenotypeFitnessScorerTest.appliesHardGatesBeforeWeightedObjectives
     layer: unit
   - scenario: S3
-    test_id: application/PhenotypeFitnessScorerTest.requiresAllRequiredBehaviorCasesBeforePromotion
+    test_id: deterministic/PhenotypeFitnessScorerTest.requiresAllRequiredBehaviorCasesBeforePromotion
     layer: unit
   - scenario: S3
-    test_id: application/MutationEvaluationLoopAcceptanceTest.rejectsModelSuppliedApprovalOrScoreBeforeEvaluation
+    test_id: deterministic/MutationEvaluationLoopAcceptanceTest.rejectsModelSuppliedApprovalOrScoreBeforeEvaluation
     layer: component
   - scenario: S4
-    test_id: adapters/git/GitPromotionSinkIntegrationTest.promotesCandidateToLocalPromotedRefWithoutTouchingMain
+    test_id: adapters/GitPromotionSinkIntegrationTest.promotesCandidateToLocalPromotedRefWithoutTouchingMain
     layer: component-integration
   - scenario: S5
-    test_id: application/ReviewerEvidencePolicyTest.recordsUnavailableActorReviewWithoutPassingReview
+    test_id: deterministic/ReviewerEvidencePolicyTest.recordsUnavailableActorReviewWithoutPassingReview
     layer: unit
   - scenario: S6
-    test_id: application/ConceptualCrossoverPolicyTest.createsChildContractWithClosedMutationOperatorFromEvidenceBackedTraits
+    test_id: deterministic/ConceptualCrossoverPolicyTest.createsChildContractWithClosedMutationOperatorFromEvidenceBackedTraits
     layer: unit
   - scenario: S7
-    test_id: application/MutationOperatorTypeTest.mapsOperatorToDefaultBoundsEvidenceAndFitnessDimensions
+    test_id: deterministic/MutationOperatorTypeTest.mapsOperatorToDefaultBoundsEvidenceAndFitnessDimensions
     layer: unit
   - scenario: S8
-    test_id: application/SearchPosturePolicyTest.recordsHillClimbAndExploratoryLeapControls
+    test_id: deterministic/SearchPosturePolicyTest.recordsHillClimbAndExploratoryLeapControls
     layer: unit
 
 tasks:

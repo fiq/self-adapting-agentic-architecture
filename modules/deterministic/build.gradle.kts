@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-    api(project(":modules:domain"))
+    api(project(":domain"))
 }
 
 val acceptanceTest by sourceSets.creating {

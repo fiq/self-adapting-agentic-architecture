@@ -3,8 +3,8 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":modules:deterministic"))
-    implementation(project(":modules:domain"))
+    implementation(project(":deterministic"))
+    implementation(project(":domain"))
     implementation(libs.jmh.core)
     annotationProcessor(libs.jmh.generator.annprocess)
 }

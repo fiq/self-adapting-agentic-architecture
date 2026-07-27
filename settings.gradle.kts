@@ -21,10 +21,9 @@ rootProject.name = "self-adapting-agentic-architecture"
 //   adapters       the model, Git, SQLite and command execution
 //   cli            entry point
 //   benchmarks     JMH evidence used by scoring
-include(
-    "modules:domain",
-    "modules:deterministic",
-    "modules:adapters",
-    "modules:benchmarks",
-    "modules:cli",
-)
+// Each layer is included by its own name and mapped to its directory, so `subprojects {}` means
+// exactly these five and no empty `:modules` container project is created.
+listOf("domain", "deterministic", "adapters", "benchmarks", "cli").forEach { layer ->
+    include(layer)
+    project(":$layer").projectDir = file("modules/$layer")
+}

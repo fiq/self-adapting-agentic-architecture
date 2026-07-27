@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":modules:deterministic"))
+    implementation(project(":deterministic"))
     implementation(libs.picocli)
 }
 
