@@ -1,14 +1,14 @@
 session:
   updated: 2026-07-27
-  status: live_loop_policy_proposal_committed
-  branch: codex/define-loop-policy-proposal
+  status: live_loop_policy_proposal_shipped
+  branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: latest_branch_commit
+  head: latest_main_commit
   dirty: false
 
 goal:
   current: define a source-backed proposal for the first live mutation and fitness loop policy
-  phase: proposal_review
+  phase: delivered
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
@@ -25,17 +25,17 @@ completed:
   - created `Q-006` to track search posture policy
   - documented evolutionary operator theory in `docs/architecture/evolutionary-operators.md`
   - added repo-local skill `.agents/skills/workflow/mutation-contract/SKILL.md`
-  - updated `AGENTS.md`, docs and `PROJECT_PROFILE.toon` with the proposed live-loop policy and revised working assumptions for Q-001 through Q-005
+  - updated `AGENTS.md`, docs and `PROJECT_PROFILE.toon` with the proposed live-loop policy and revised working assumptions for Q-001 through Q-006
   - validated proposal artifacts with whitespace, spec, knowledge, handoff, profile, aggregate check and readiness gates
   - revised the policy after user correction so S-expressions are the internal mutation/operator IR and Git diffs are candidate realizations, not the mutation itself
   - revalidated after removing stale edit-transport language from active proposal, profile and handoff state
 
-in_progress:
-  - push the bounded branch
+in_progress: []
 
 next:
-  - request risk-appropriate actor review before any PR-less merge to main
-  - after approval, implement the smallest next slice from `CHG-002` tasks T2 through T6
+  - push `main`
+  - delete merged branch `codex/define-loop-policy-proposal` locally and on origin
+  - implement the smallest next slice from `CHG-002` tasks T2, T3 and T3b after confirming policy direction
 
 decisions:
   - id: langchain4j_adapter_boundary
@@ -43,7 +43,7 @@ decisions:
   - id: deterministic_approval_boundary
     summary: model output may propose or repair but validation, scoring, promotion and rollback are deterministic
   - id: live_loop_policy_proposal
-    summary: CHG-002 proposes OpenAI via LangChain4j official adapter, TOON mutation-contract envelopes, S-expression internal mutation IR, Git diff realization, conceptual crossover deferral, local promoted Git refs plus SQLite metadata and hard-gated phenotype fitness scoring
+    summary: CHG-002 proposes OpenAI via LangChain4j official adapter, TOON mutation-contract envelopes, S-expression internal mutation IR, closed mutation operator enum with hill-climb and exploratory-leap search posture operators, Git diff realization, conceptual crossover deferral, local promoted Git refs plus SQLite metadata and hard-gated phenotype fitness scoring
   - id: actor_review_evidence_policy
     summary: reviewer actors produce evidence only; unavailable actor review is recorded and never treated as passed
   - id: tool_unavailable_integration_fallback
@@ -116,6 +116,12 @@ tests_run:
   - 2026-07-27 final `.agentic-template/bin/project check`: pass
   - 2026-07-27 final `.agentic-template/bin/project ready`: pass, 13 passed / 2 not applicable / 0 failed
   - 2026-07-27 `git commit -m "Define loop engineering mutation policy"`: pass, created `e9c4d71`
+  - 2026-07-27 `git commit -m "Record loop policy proposal handoff"`: pass, created `aae62a8`
+  - 2026-07-27 `git push -u origin codex/define-loop-policy-proposal`: pass
+  - 2026-07-27 `git merge --no-ff codex/define-loop-policy-proposal`: pass on `main`, created merge commit `7a4dc01`
+  - 2026-07-27 `git diff --check`: pass on `main` after merge
+  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after merge
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after merge, 13 passed / 2 not applicable / 0 failed
 
 knowledge:
   consulted:
@@ -125,7 +131,7 @@ knowledge:
     - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
     - .agents/knowledge/risks/RISK-001-model-self-approval.md
     - .agents/knowledge/questions/Q-001-model-provider.md
-  - .agents/knowledge/questions/Q-002-mutation-contract-ir-format.md
+    - .agents/knowledge/questions/Q-002-mutation-contract-ir-format.md
     - .agents/knowledge/questions/Q-003-promotion-target.md
     - specs/capabilities/CAP-001-mutation-fitness-loop.toon
     - specs/changes/CHG-001-mutation-fitness-loop/change.toon
@@ -153,5 +159,5 @@ knowledge:
 
 team_fallback:
   current: independent actor review plus lead self-review
-  reason: actor reviewer `Laplace` completed first-pass findings and they were addressed; follow-up reviewers `Erdos` and `Peirce` timed out and were not counted; narrowed follow-up reviewer `Faraday` completed with no findings
-  lost_challenge: broad follow-up actor review timed out twice, mitigated by a completed narrowed follow-up actor review focused on the final risk points plus lead self-review
+  reason: actor reviewer `Laplace` completed first-pass findings and they were addressed; follow-up reviewers `Erdos` and `Peirce` timed out and were not counted; narrowed follow-up reviewer `Faraday` completed with no findings before the PR-less merge
+  lost_challenge: PR-gated GitHub review and CI remained unavailable; broad follow-up actor review timed out twice, mitigated by completed narrowed follow-up actor review, local readiness gates and lead self-review
