@@ -7,18 +7,8 @@ import io.github.selfadaptingagenticarchitecture.core.WorkflowGraph;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 public final class BoundedMutationValidator implements MutationValidator {
-    private static final String AUTHORITY_TARGET = "(candidate|mutation|result)";
-    private static final String SCORING_TERM = "(score|scoring|fitness)";
-    private static final String UP_TO_THREE_WORDS = "(?:\\W+\\w+){0,3}\\W+";
-    private static final Pattern AUTHORITY_TEXT = Pattern.compile(
-            "\\b(approve|approval|promote|promotion|discard|rollback)\\b"
-                    + "|\\b" + SCORING_TERM + "\\b" + UP_TO_THREE_WORDS + "\\b" + AUTHORITY_TARGET + "\\b"
-                    + "|\\b" + AUTHORITY_TARGET + "\\b" + UP_TO_THREE_WORDS + "\\b" + SCORING_TERM + "\\b",
-            Pattern.CASE_INSENSITIVE
-    );
     private static final String AUTHORITY_MESSAGE =
             "mutation must not contain approval, scoring, promotion, discard or rollback authority";
 
@@ -48,7 +38,7 @@ public final class BoundedMutationValidator implements MutationValidator {
 
     private static void rejectAuthority(List<String> messages, Mutation mutation) {
         String text = mutation.id() + "\n" + mutation.summary() + "\n" + mutation.patch();
-        if (AUTHORITY_TEXT.matcher(text).find()) {
+        if (AuthorityLanguage.isPresentIn(text)) {
             messages.add(AUTHORITY_MESSAGE);
         }
     }
