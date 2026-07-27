@@ -46,8 +46,13 @@ Current project-specific fitness function:
 ```
 
 It protects the deterministic model boundary by failing when LangChain4j,
-picocli, SQLite or JMH implementation dependencies leak into `core/` or
-`application/`.
+picocli, SQLite, Flyway or JMH implementation dependencies appear in
+`modules/domain/` or `modules/deterministic/`.
+
+It also confines each provider dependency to one package, so the git, sqlite and
+checks adapters cannot import LangChain4j even though they now share a compile
+classpath with it, and it fails when a scanned layer directory is missing rather
+than reporting OK while scanning nothing.
 
 ## Required Recording
 

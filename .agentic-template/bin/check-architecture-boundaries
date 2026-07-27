@@ -6,16 +6,24 @@ ROOT = Path.cwd()
 
 DOMAIN = Path("modules/domain")
 DETERMINISTIC = Path("modules/deterministic")
+ADAPTERS = Path("modules/adapters")
+CLI = Path("modules/cli")
+BENCHMARKS = Path("modules/benchmarks")
 
-# Layers that must stay free of provider and infrastructure dependencies.
+LAYERS = [DOMAIN, DETERMINISTIC, ADAPTERS, CLI, BENCHMARKS]
+
+# Layers that must stay free of provider and infrastructure dependencies entirely.
 PROVIDER_FREE = [DOMAIN, DETERMINISTIC]
 
-FORBIDDEN_DEPENDENCIES = [
-    ("dev.langchain4j", "LangChain4j import leaks outside modules/adapters"),
-    ("picocli.", "picocli import leaks outside modules/cli"),
-    ("org.sqlite", "SQLite dependency leaks outside modules/adapters"),
-    ("org.flywaydb", "migration dependency leaks outside modules/adapters"),
-    ("org.openjdk.jmh", "JMH dependency leaks outside modules/benchmarks"),
+# Every provider dependency is confined to one place. Merging the four adapter modules into one
+# put langchain4j, sqlite and flyway on a single compile classpath, so Gradle no longer keeps the
+# adapters apart from each other. This check does, at package granularity.
+CONFINED_DEPENDENCIES = [
+    ("dev.langchain4j", "/adapters/langchain4j/", "LangChain4j is confined to the adapters/langchain4j package"),
+    ("org.sqlite", "/adapters/sqlite/", "SQLite is confined to the adapters/sqlite package"),
+    ("org.flywaydb", "/adapters/sqlite/", "Flyway is confined to the adapters/sqlite package"),
+    ("picocli.", "modules/cli/", "picocli is confined to modules/cli"),
+    ("org.openjdk.jmh", "modules/benchmarks/", "JMH is confined to modules/benchmarks"),
 ]
 
 # The dependency rule points inward. Domain is the innermost layer and may know nothing.
@@ -31,26 +39,29 @@ def java_files(root):
 
 
 def main():
-    errors = []
-
     # A scanned layer that has moved or been renamed must fail loudly. Returning an empty file
     # list would let this check pass vacuously, which is worse than no check at all.
-    for module in [*PROVIDER_FREE]:
-        if not (ROOT / module).is_dir():
-            errors.append(f"{module}: scanned module directory is missing; update this check")
-    if errors:
-        print("ARCHITECTURE BOUNDARY CHECK FAILED")
-        print()
-        for error in errors:
-            print("- " + error)
-        return 1
+    missing = [f"{layer}: scanned layer directory is missing; update this check"
+               for layer in LAYERS if not (ROOT / layer).is_dir()]
+    if missing:
+        return report(missing)
 
-    for module in PROVIDER_FREE:
-        for path in java_files(ROOT / module):
+    errors = []
+
+    for layer in PROVIDER_FREE:
+        for path in java_files(ROOT / layer):
             text = path.read_text(errors="ignore")
             rel = path.relative_to(ROOT)
-            for needle, message in FORBIDDEN_DEPENDENCIES:
+            for needle, _, message in CONFINED_DEPENDENCIES:
                 if needle in text:
+                    errors.append(f"{rel}: {message}, not {layer}")
+
+    for layer in LAYERS:
+        for path in java_files(ROOT / layer):
+            text = path.read_text(errors="ignore")
+            rel = path.relative_to(ROOT)
+            for needle, allowed, message in CONFINED_DEPENDENCIES:
+                if needle in text and allowed not in str(rel):
                     errors.append(f"{rel}: {message}")
 
     for path in java_files(ROOT / DOMAIN):
@@ -60,6 +71,10 @@ def main():
             if package in text:
                 errors.append(f"{rel}: domain must not depend on {package}")
 
+    return report(sorted(set(errors)))
+
+
+def report(errors):
     if errors:
         print("ARCHITECTURE BOUNDARY CHECK FAILED")
         print()

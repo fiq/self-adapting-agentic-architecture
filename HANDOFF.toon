@@ -4,7 +4,6 @@ session:
   branch: chore/rename-package-com-dreamthought-saaa
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
   head: 43dc73d
-  pushed: origin/codex/mutation-contract-test-slice
   dirty: false
 
 goal:
@@ -66,7 +65,7 @@ risks:
   - direct main shipping still requires branch isolation, deterministic checks, actor review or recorded fallback, lead self-review and explicit user authorization
 
 files_changed:
-  - CLAUDE_HANDOVER.toon
+  - CLAUDE_HANDOVER.toon (deleted; the handover packet was consumed and only carried stale paths forward)
   - HANDOFF.toon
   - specs/changes/CHG-002-live-loop-policy/change.toon
   - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
@@ -109,7 +108,10 @@ tests_run:
   - 2026-07-28 vacuous-pass probe: renamed `modules/domain` away and confirmed `project lint` failed with a missing-directory error, then restored
 
 fitness_functions:
-  - unchanged: the LangChain4j boundary check still passes and no new fitness function was needed; core and application import only `java.*` and repository packages
+  - changed: `check-architecture-boundaries` now fails loudly when a scanned layer directory is missing, instead of returning an empty file list and reporting OK
+  - changed: each provider dependency is confined to one package, so the git, sqlite and checks adapters cannot import LangChain4j even though merging the adapter modules put those libraries on one compile classpath
+  - changed: Flyway was split into its own rule rather than sharing the SQLite message
+  - unchanged: `modules/domain` and `modules/deterministic` still import only `java.*` and repository packages
 
 knowledge:
   consulted:
