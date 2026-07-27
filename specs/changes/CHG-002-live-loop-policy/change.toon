@@ -1,7 +1,7 @@
 change:
   id: CHG-002
   title: Live mutation loop policy
-  status: proposed
+  status: accepted
   intent: Resolve the first live provider, behavior-first mutation contract, S-expression internal representation, realization boundary, crossover stance, promotion target, reviewer evidence behavior and deterministic fitness policy before broad implementation.
   audience_level: developer
   relates_to:
@@ -10,12 +10,14 @@ change:
     - CON-001
     - ARCH-001
     - RISK-001
+    - RISK-002
     - Q-001
     - Q-002
     - Q-003
     - Q-004
     - Q-005
     - Q-006
+    - Q-007
 
 deltas:
   - op: MODIFIED
@@ -117,17 +119,24 @@ tasks:
     slice: add CLI live-provider configuration contract and OpenAI LangChain4j factory
     status: pending
   - id: T3
-    slice: add TOON mutation contract parser, S-expression canonicalizer and bounded contract validator tests
-    status: pending
+    slice: add S-expression mutation contract canonicalizer and bounded contract validator
+    status: completed
   - id: T3b
     slice: add closed mutation operator enum and deterministic operator defaults
-    status: pending
+    status: completed
   - id: T3c
     slice: add search posture policy for hill-climb and exploratory-leap operators
+    status: completed
+  - id: T3d
+    slice: add TOON mutation contract envelope parser feeding the canonicalizer
     status: pending
   - id: T4
     slice: implement deterministic fitness scorer with hard gates and weights
+    status: completed
+  - id: T4b
+    slice: pass the accepted mutation contract and a required-evidence channel into the scorer so declared hard gates are enforced, not just declared
     status: pending
+    note: see RISK-002; today the scorer enforces its own fixed gates and never sees the contract
   - id: T5
     slice: implement local promoted Git ref plus SQLite promotion metadata
     status: pending
@@ -136,7 +145,8 @@ tasks:
     status: pending
   - id: T7
     slice: add conceptual crossover contract generation behind deterministic parent evidence filters
-    status: deferred
+    status: completed
+    note: deterministic child-contract generation only; loop integration and diff crossover remain deferred
 
 non_goals:
   - OpenSearch or vector storage
