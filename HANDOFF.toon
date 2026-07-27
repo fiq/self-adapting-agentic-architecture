@@ -1,432 +1,156 @@
 session:
   updated: 2026-07-27
-  status: shipped_actor_review_policy_followup
-  branch: main
+  status: live_loop_policy_proposed
+  branch: codex/define-loop-policy-proposal
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: pushed_main_after_actor_review_policy_followup
-  dirty: false
+  head: uncommitted_proposal_branch
+  dirty: true
 
 goal:
-  current: ship late actor-review findings on the PR-less fallback policy
-  phase: delivered
+  current: define a source-backed proposal for the first live mutation and fitness loop policy
+  phase: proposal_review
 
 completed:
   - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
-  - read `CUSTOMIZE_THIS_PROJECT.toon`, `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md` and `.agents/knowledge/index.md`
-  - ran `.agentic-template/bin/project init`; command completed and confirmed agent workflow owns specialization edits
-  - populated `CUSTOMIZE_THIS_PROJECT.toon` with the Java-first project intent and marked it consumed
-  - rewrote README and AGENTS as project-facing documents
-  - updated PROJECT_PROFILE with resolved audience, architecture, runtime, persistence, container and infrastructure decisions
-  - created initial knowledge nodes for domain, system, deterministic boundary, self-approval risk and open questions
-  - created capability spec `CAP-001` and change proposal `CHG-001`
-  - added Gradle Java module scaffold for `core`, `application`, adapters, `benchmarks` and `cli`
-  - defined plain Java records for WorkflowGraph, Mutation, Candidate, FitnessResult and EvaluationEvidence
-  - defined application ports and `MutationEvaluationLoop` placeholder
-  - added first outside-in component acceptance test for a candidate being evaluated and discarded
-  - added architecture-boundary fitness check preventing LangChain4j/picocli/SQLite leaks into core/application
-  - updated docs, wiki, CI, Nix shell, compose name and gitignore
-  - committed initialization branch as `d68e087 Initialize self-adapting-agentic-architecture`
-  - pushed branch `codex/initialize-agentic-architecture`
-  - attempted PR creation through GitHub app and gh; both failed due token or integration permissions
-  - user explicitly authorized skipping PR, self-reviewing and shipping to main
-  - documented tool-unavailable integration fallback in AGENTS, README, development wiki and PROJECT_PROFILE
-  - self-reviewed fallback diff; no findings
-  - merged `codex/initialize-agentic-architecture` into `main` with merge commit `309fec7`
-  - pushed `main` to origin through `1851775`
-  - deleted merged redundant branch `codex/initialize-agentic-architecture` locally and on origin
-  - created branch `codex/implement-mutation-loop` from clean `main`
-  - implemented deterministic `MutationEvaluationLoop` orchestration through application ports
-  - injected `Clock` into the loop and pinned the component test timestamp
-  - self-review found and fixed scorer-candidate mismatch validation in `MutationEvaluationLoop`
-  - added a component regression test for mismatched `FitnessResult.candidate`
-  - updated README, testing wiki, project profile and `CHG-001` task state for the fake-port slice
-  - verified the component acceptance test now passes
-  - committed implementation branch as `f1f9161 Implement mutation evaluation loop`
-  - merged `codex/implement-mutation-loop` into `main` with merge commit `6ff06ca`
-  - deleted merged local branch `codex/implement-mutation-loop`
-  - pushed final shipped main state at `0cad8d1`
-  - self-review found stale CLI run text and fixed it
-  - created branch `codex/git-sqlite-adapter-slice` from clean `main`
-  - added Gradle `integrationTest` source-set convention and wired `project integration-test` to Git and SQLite adapters
-  - added real Git worktree integration test proving isolated candidate worktree creation and commit provenance
-  - implemented `GitCandidateWorkspace` for deterministic candidate branch, worktree file and commit creation
-  - added SQLite integration test proving candidate, fitness, objective, check and benchmark evidence persistence
-  - implemented `SqliteExperimentMetadataStore` with a versioned SQLite schema migration
-  - self-review found and fixed SQLite candidate upsert behavior that could otherwise cascade-delete fitness evidence
-  - final self-review found only a cosmetic SQLite trailing blank and fixed it; no remaining findings
-  - updated AGENTS, README, testing wiki, PROJECT_PROFILE and CHG-001 for the integration-test slice
-  - committed adapter implementation branch as `f7a7557 Add Git and SQLite adapter integration slice`
-  - merged `codex/git-sqlite-adapter-slice` into `main` with merge commit `0c0b545`
-  - deleted merged local branch `codex/git-sqlite-adapter-slice`
-  - pushed final shipped main state at `b767c69`
-  - created branch `codex/checks-benchmark-evidence-slice` from clean `main`
-  - added command-check and JMH benchmark evidence integration tests before implementation
-  - wired `project integration-test` to Git, SQLite, command-check and JMH adapter tests
-  - implemented `CommandCheckRunner` for configured commands executed in candidate worktrees
-  - self-review found and fixed unbounded command execution by adding per-check timeouts
-  - implemented `JmhBenchmarkRunner` to convert JMH primary results into `BenchmarkEvidence`
-  - extended the architecture fitness check to reject JMH imports in `core` and `application`
-  - updated README, AGENTS, validation docs, module boundaries, testing wiki, PROJECT_PROFILE and CHG-001 for the check/benchmark adapter slice
-  - self-review found and fixed command-check stdout pipe-drain risk, descendant cleanup on timeout and sub-millisecond timeout validation
-  - committed check/benchmark adapter branch as `13ca21f Add command checks and JMH benchmark evidence`
-  - merged `codex/checks-benchmark-evidence-slice` into `main` with merge commit `b95932f`
-  - deleted merged local branch `codex/checks-benchmark-evidence-slice`
-  - pushed `main` to origin after the check/benchmark merge
-  - verified local `HEAD` and `origin/main` aligned after push
-  - confirmed no merged local feature branches or merged remote feature branches remained
-  - created branch `codex/langchain4j-mutation-proposer-slice` from clean `main`
-  - spawned architecture/test reviewer actor `Carver` for the LangChain4j proposer slice
-  - added failing outside-in adapter tests for typed service mapping, provider-neutral ChatModel wiring, unknown-scope rejection and no approval/scoring channel
-  - reviewer found Q-002 knowledge/profile mismatch; replaced stale `Q-002` promotion-target entry with `Q-002` workflow patch-format and `Q-003` promotion-target knowledge entries
-  - added application acceptance regression proving invalid model proposals stop before candidate creation, checks, benchmarks, scoring, metadata and promotion/discard side effects
-  - implemented provider-neutral `LangChain4jMutationProposalAdapter` using LangChain4j typed AI service annotations and `ChatModel` factory construction
-  - added deterministic adapter guards for blank, unknown-scope and oversized model proposals
-  - updated README, testing wiki, PROJECT_PROFILE and CHG-001 for provider-neutral LangChain4j proposal support
-  - requested a final actor review pass from `Carver`; it timed out twice, so final review degraded to lead self-review after first-pass actor findings were addressed
-  - verified unit, component, architecture, knowledge, spec, aggregate check and readiness gates
-  - committed LangChain4j proposer branch as `32ae733 Add provider-neutral LangChain4j mutation proposer`
-  - merged `codex/langchain4j-mutation-proposer-slice` into `main` with merge commit `c92b00d`
-  - deleted merged local branch `codex/langchain4j-mutation-proposer-slice`
-  - pushed `main` to origin after final handoff update
-  - created branch `codex/bounded-mutation-validator-slice` from pushed `main`
-  - spawned validator reviewer actor `Wegener`; initial wait timed out, then reviewer returned findings before aggregate validation
-  - added failing unit test for deterministic bounded mutation validation
-  - implemented `MutationLimits` in core and `BoundedMutationValidator` in application
-  - updated LangChain4j proposer adapter to share core mutation limits
-  - addressed `Wegener` findings by scanning id/summary/patch for authority, adding discard authority, narrowing the matcher so workflow decision-node text can pass, covering id/summary/patch size limits and adding a real-validator loop regression
-  - updated README, testing wiki, PROJECT_PROFILE and CHG-001 for deterministic bounded mutation validation
-  - self-review found and tightened scoring authority phrase matching while preserving valid workflow decision-node text
-  - verified aggregate check and readiness gates
-  - committed bounded validator branch as `8dedc88 Add deterministic bounded mutation validator`
-  - merged `codex/bounded-mutation-validator-slice` into `main` with merge commit `46389a8`
-  - confirmed merged local and remote feature branch cleanup was already complete; retained unmerged backup branch `backup/main-before-template-rebase-a74a26a`
-  - preserved actor-review process evidence from `Carver` and `Wegener`; degraded only unavailable PR-gated review to local checks plus lead self-review
-  - pushed `main` to origin after the final bounded-validator handoff update
-  - created branch `codex/actor-review-fallback-policy` from pushed `main`
-  - updated AGENTS, README, development wiki, PROJECT_PROFILE and `PAT-001` so PR-less integration requires risk-appropriate actor review when available, lead self-review and explicit degradation evidence
-  - actor reviewer `Linnaeus` found a timeout loophole and stale handoff ordering in the actor-review fallback policy slice
-  - addressed `Linnaeus` findings by requiring retry or human review after reviewer timeout, requiring explicit user authorization for actor-tool-unavailable single-lead fallback, and moving current policy-branch evidence to the end of the handoff test history
-  - actor reviewer `Banach` found stale fallback summaries in HANDOFF and missing README coverage for actor-tool-unavailable degraded-path authorization
-  - addressed `Banach` findings by updating the HANDOFF decision and risk summaries and expanding the README lifecycle summary
-  - lead self-review found no remaining actor-review fallback policy contradictions after `Banach` findings were addressed
-  - verified aggregate check and readiness gates for the actor-review fallback policy slice
-  - committed actor-review fallback policy branch as `58d2643 Require actor review in PR-less fallback`
-  - merged `codex/actor-review-fallback-policy` into `main` with merge commit `f3e2213`
-  - deleted merged local branch `codex/actor-review-fallback-policy`
-  - pushed `main` to origin after the final actor-review fallback policy handoff update
-  - closed reviewer actor `Linnaeus` and received late follow-up findings on substitute human-review findings and stale `tests_run` chronology
-  - created branch `codex/actor-review-policy-followup` from pushed `main`
-  - updated PR-less fallback policy sources so substitute human-review findings must be addressed before merge
-  - updated PR-less fallback policy sources so handoff evidence records actor-review or substituted human-review results
-  - split current `tests_run` evidence from historical validation archive so the active handoff no longer presents stale out-of-order history as current status
-  - lead self-review found no remaining actor-review or substituted-human-review loopholes after the late `Linnaeus` follow-up findings were addressed
-  - verified aggregate check and readiness gates for the actor-review policy follow-up branch
-  - committed actor-review policy follow-up branch as `a96ca03 Address actor review fallback follow-up`
-  - merged `codex/actor-review-policy-followup` into `main` with merge commit `6b88714`
-  - deleted merged local branch `codex/actor-review-policy-followup`
-  - pushed `main` to origin after the final actor-review policy follow-up handoff update
+  - read `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md` and `.agents/knowledge/index.md`
+  - used the `specify` skill to shape a repo-native change proposal
+  - used the `architecture-review` skill to check provider boundaries, deterministic authority, promotion side effects and reversibility
+  - consulted primary external docs and literature for LangChain4j AI Services, LangChain4j OpenAI integration, LangChain4j structured outputs, OpenAI structured outputs, genetic algorithms, genetic programming, genetic improvement of software, stochastic optimization evaluation, LLM program repair and Git worktrees
+  - created `CHG-002` as a proposal-only live-loop policy covering provider selection, TOON mutation-contract envelopes, S-expression internal mutation IR, Git diff realization, conceptual crossover, promotion target, fitness weights and reviewer evidence fallback
+  - created `Q-004` knowledge entry for initial fitness objectives and weights
+  - updated existing open questions `Q-001`, `Q-002` and `Q-003` to point at the proposed answers in `CHG-002`
+  - created `Q-005` to track crossover policy
+  - created `CON-001` to define the closed initial mutation operator enum
+  - added `hill-climb` and `exploratory-leap` search posture operators for fitness-aware local exploitation and bounded moonshot exploration
+  - created `Q-006` to track search posture policy
+  - documented evolutionary operator theory in `docs/architecture/evolutionary-operators.md`
+  - added repo-local skill `.agents/skills/workflow/mutation-contract/SKILL.md`
+  - updated `AGENTS.md`, docs and `PROJECT_PROFILE.toon` with the proposed live-loop policy and revised working assumptions for Q-001 through Q-005
+  - validated proposal artifacts with whitespace, spec, knowledge, handoff, profile, aggregate check and readiness gates
+  - revised the policy after user correction so S-expressions are the internal mutation/operator IR and Git diffs are candidate realizations, not the mutation itself
+  - revalidated after removing stale edit-transport language from active proposal, profile and handoff state
 
-in_progress: []
+in_progress:
+  - commit and push the bounded branch after final checks
 
 next:
-  - answer remaining high-impact questions: first real provider, first workflow patch format details, promotion target and fitness objective weights
+  - request risk-appropriate actor review before any PR-less merge to main
+  - after approval, implement the smallest next slice from `CHG-002` tasks T2 through T6
 
 decisions:
   - id: langchain4j_adapter_boundary
     summary: LangChain4j stays behind `adapters/langchain4j`; core and application stay provider-free
   - id: deterministic_approval_boundary
     summary: model output may propose or repair but validation, scoring, promotion and rollback are deterministic
-  - id: cli_first_local_shape
-    summary: first system shape is a local Gradle Java CLI, not a service
-  - id: sqlite_experiment_metadata
-    summary: SQLite is the local metadata store through an adapter; migrations are required before adapter delivery
-  - id: no_application_container_initially
-    summary: container image is not applicable until distribution or remote execution is selected
-  - id: jqwik_1_9_3_pending_policy_review
-    summary: jqwik is pinned to 1.9.3 because jqwik 1.10.x release notes include anti-AI-agent usage language
+  - id: live_loop_policy_proposal
+    summary: CHG-002 proposes OpenAI via LangChain4j official adapter, TOON mutation-contract envelopes, S-expression internal mutation IR, Git diff realization, conceptual crossover deferral, local promoted Git refs plus SQLite metadata and hard-gated phenotype fitness scoring
+  - id: actor_review_evidence_policy
+    summary: reviewer actors produce evidence only; unavailable actor review is recorded and never treated as passed
   - id: tool_unavailable_integration_fallback
-    summary: PR-less main merge is allowed only when PR tooling is unavailable, the user explicitly authorizes it, checks pass, risk-appropriate actor review runs when available, lead self-review runs after findings are addressed and handoff evidence is recorded
+    summary: PR-less main merge remains allowed only under explicit user authorization, branch isolation, deterministic checks, actor or substituted human review and lead self-review
 
 risks:
-  - first live model provider remains unresolved; current slice intentionally uses provider-neutral LangChain4j `ChatModel` construction and fake services in tests
-  - first rich workflow patch format remains unresolved; current validator only enforces bounded text, size limits and no model authority-bearing text
-  - JMH runner currently records configured in-process benchmark definitions; candidate-worktree-specific benchmark execution policy remains deferred to a later slice
+  - CHG-002 is not yet approved; implementation should not hard-code these policies until the user accepts or revises them
+  - first live provider choice can affect dependency and credential handling, so provider construction must remain adapter-local
+  - the S-expression mutation IR needs a small parser/canonicalizer before implementation can rely on it
+  - conceptual crossover is deliberately deferred until evaluated parent evidence exists
+  - `exploratory-leap` needs strict risk budgets so moonshot variants do not become broad unreviewable changes
+  - benchmark budgets may be too crude until baseline and candidate benchmarks are captured in one comparable run
+  - local promoted refs are auditable but may not satisfy future protected-branch governance
   - Gradle commands need Nix daemon access in this environment; sandboxed runs can fail even when project commands pass outside the sandbox
-  - model provider, workflow patch format, promotion target and fitness weights are unresolved but not blocking architecture approval
-  - contract and e2e commands currently report explicit not-applicable/deferred status until external and CLI contracts stabilize
-  - jqwik dependency should be policy-reviewed before upgrading to 1.10.x or later
-  - skipping PR loses independent GitHub review and CI-before-merge; mitigated by actor review when available, local readiness checks, lead self-review and explicit user authorization; if actor tooling is unavailable, the degraded single-lead path requires explicit disclosure and user authorization
 
 files_changed:
-  - .agentic-template/bin/check-architecture-boundaries
-  - .agentic-template/bin/gradle-command
-  - .agentic-template/bin/project
-  - .agentic-template/bin/project-not-applicable
-  - .github/workflows/ci.yml
-  - .gitignore
-  - AGENTS.md
-  - CUSTOMIZE_THIS_PROJECT.toon
   - HANDOFF.toon
   - PROJECT_PROFILE.toon
-  - README.md
-  - build.gradle.kts
-  - settings.gradle.kts
-  - gradle/libs.versions.toml
-  - compose.yaml
-  - flake.nix
-  - core/
-  - application/
-  - adapters/
-  - benchmarks/
-  - cli/
-  - specs/capabilities/CAP-001-mutation-fitness-loop.toon
-  - specs/changes/CHG-001-mutation-fitness-loop/
-  - docs/architecture/module-boundaries.md
-  - docs/validation.md
-  - docs/wiki/architecture.md
-  - docs/wiki/development.md
-  - docs/wiki/domain.md
-  - docs/wiki/testing.md
-  - adapters/checks/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/adapters/checks/CommandCheckRunnerIntegrationTest.java
-  - adapters/git/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/adapters/git/GitCandidateWorkspaceIntegrationTest.java
-  - adapters/sqlite/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/adapters/sqlite/SqliteExperimentMetadataStoreIntegrationTest.java
-  - benchmarks/src/main/java/io/github/selfadaptingagenticarchitecture/benchmarks/JmhBenchmarkRunner.java
-  - benchmarks/src/integrationTest/java/io/github/selfadaptingagenticarchitecture/benchmarks/JmhBenchmarkRunnerIntegrationTest.java
-  - .agents/knowledge/domains/DOM-001-agentic-workflow-evolution.md
-  - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md
-  - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
-  - .agents/knowledge/risks/RISK-001-model-self-approval.md
   - .agents/knowledge/questions/Q-001-model-provider.md
-  - .agents/knowledge/questions/Q-002-workflow-patch-format.md
+  - .agents/knowledge/questions/Q-002-mutation-contract-ir-format.md
   - .agents/knowledge/questions/Q-003-promotion-target.md
-  - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
-  - adapters/langchain4j/src/main/java/io/github/selfadaptingagenticarchitecture/adapters/langchain4j/LangChain4jMutationProposalAdapter.java
-  - adapters/langchain4j/src/test/java/io/github/selfadaptingagenticarchitecture/adapters/langchain4j/LangChain4jMutationProposalAdapterTest.java
-  - application/src/acceptanceTest/java/io/github/selfadaptingagenticarchitecture/application/MutationEvaluationLoopAcceptanceTest.java
-  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/MutationLimits.java
-  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/BoundedMutationValidator.java
-  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/BoundedMutationValidatorTest.java
+  - .agents/knowledge/questions/Q-004-fitness-objectives.md
+  - .agents/knowledge/questions/Q-005-crossover-policy.md
+  - .agents/knowledge/questions/Q-006-search-posture-policy.md
+  - .agents/knowledge/contracts/CON-001-mutation-operator-enum.md
+  - .agents/skills/CATALOG.toon
+  - .agents/skills/workflow/mutation-contract/SKILL.md
+  - AGENTS.md
+  - docs/architecture/README.md
+  - docs/architecture/evolutionary-operators.md
+  - docs/wiki/architecture.md
+  - specs/changes/CHG-002-live-loop-policy/proposal.md
+  - specs/changes/CHG-002-live-loop-policy/design.md
+  - specs/changes/CHG-002-live-loop-policy/change.toon
 
 tests_run:
   - 2026-07-27 `.agentic-template/bin/project startup`: pass; AGENTS.md read from disk
-  - 2026-07-27 actor review `Linnaeus` follow-up after close: found substitute human-review findings did not have to be resolved and active `tests_run` history was stale/out of order
-  - 2026-07-27 actor review `Banach`: completed earlier fallback-policy review and findings were addressed before the first policy merge
-  - 2026-07-27 `git push origin main`: pass, pushed actor-review fallback policy through `985e652`
-  - 2026-07-27 `git switch -c codex/actor-review-policy-followup`: pass from pushed `main`
-  - 2026-07-27 lead self-review: no remaining actor-review or substituted-human-review loopholes after late `Linnaeus` findings were addressed
-  - 2026-07-27 `git diff --check`: pass on actor-review policy follow-up branch
-  - 2026-07-27 `.agentic-template/bin/project check`: pass on actor-review policy follow-up branch
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass on actor-review policy follow-up branch, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 `git commit -m "Address actor review fallback follow-up"`: pass, created `a96ca03`
-  - 2026-07-27 `git merge --no-ff codex/actor-review-policy-followup`: pass, created `6b88714`
-  - 2026-07-27 `git branch -d codex/actor-review-policy-followup`: pass
-  - 2026-07-27 `git branch --merged main`: only `main`
-  - 2026-07-27 `git branch --no-merged main`: retained unmerged backup branch `backup/main-before-template-rebase-a74a26a`
-  - 2026-07-27 `git diff --check`: pass on `main` after final actor-review policy follow-up handoff update
-  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after final actor-review policy follow-up handoff update
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main`, 13 passed / 2 not applicable / 0 failed
-
-historical_tests_archive:
-  - 2026-07-26 `.agentic-template/bin/project init`: pass
-  - 2026-07-26 `.agentic-template/bin/project inspect`: pass; detected Java Gradle evidence
-  - 2026-07-26 `.agentic-template/bin/project check`: pass
-  - 2026-07-26 `git diff --check`: pass
-  - 2026-07-26 `.agentic-template/bin/project test`: initially blocked by sandboxed Nix cache write, then compile failed on ValidationResult factory name, fixed and passed
-  - 2026-07-26 `.agentic-template/bin/project component-test`: expected fail at `MutationEvaluationLoop.evaluate` UnsupportedOperationException
-  - 2026-07-26 `.agentic-template/bin/project lint`: pass
-  - 2026-07-26 `.agentic-template/bin/project ready`: sandboxed run failed on Nix daemon access, escalated run passed
-  - 2026-07-26 `.agentic-template/bin/project run`: sandboxed run failed on Nix daemon access, escalated run passed and printed pending-approval CLI message
-  - 2026-07-26 `.agentic-template/bin/project test`: pass after pinning jqwik to 1.9.3
-  - 2026-07-26 `.agentic-template/bin/project ready`: pass after pinning jqwik to 1.9.3
-  - 2026-07-27 PR creation through GitHub app: failed with Resource not accessible by integration
-  - 2026-07-27 PR creation through gh: failed with Resource not accessible by personal access token
-  - 2026-07-27 `.agentic-template/bin/project check`: pass after fallback docs
-  - 2026-07-27 `.agentic-template/bin/project lint`: pass after fallback docs
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after fallback docs
-  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after fallback docs
-  - 2026-07-27 `git diff --check`: pass after fallback docs
-  - 2026-07-27 `.agentic-template/bin/project ready`: runner session stale with no live OS process; prior ready passed before docs-only fallback update, and affected validators passed after update
-  - 2026-07-27 self-review: no findings
-  - 2026-07-27 `git merge --no-ff codex/initialize-agentic-architecture`: pass
-  - 2026-07-27 `git push origin main`: pass, pushed `831ab17..1851775`
-  - 2026-07-27 `git branch -d codex/initialize-agentic-architecture`: pass
-  - 2026-07-27 `git push origin --delete codex/initialize-agentic-architecture`: pass
-  - 2026-07-27 `.agentic-template/bin/project component-test`: pass after `MutationEvaluationLoop` fake-port implementation
-  - 2026-07-27 `.agentic-template/bin/project test`: pass
-  - 2026-07-27 `.agentic-template/bin/project lint`: pass
+  - 2026-07-27 `git diff --check`: pass
   - 2026-07-27 `.agentic-template/bin/project check-changes`: pass
   - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass
-  - 2026-07-27 `git diff --check`: pass
-  - 2026-07-27 `.agentic-template/bin/project check`: pass
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass
-  - 2026-07-27 self-review: fixed scorer-candidate mismatch guard; no remaining findings
-  - 2026-07-27 `.agentic-template/bin/project component-test`: pass after self-review fix
-  - 2026-07-27 `.agentic-template/bin/project test`: pass after self-review fix
-  - 2026-07-27 `.agentic-template/bin/project lint`: pass after self-review fix
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after self-review fix
-  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after self-review fix
-  - 2026-07-27 `git diff --check`: pass after self-review fix
-  - 2026-07-27 `.agentic-template/bin/project check`: pass after self-review fix
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass after self-review fix
-  - 2026-07-27 `git commit -m "Implement mutation evaluation loop"`: pass, created `f1f9161`
-  - 2026-07-27 `git merge --no-ff codex/implement-mutation-loop`: pass, created `6ff06ca`
-  - 2026-07-27 `git branch -d codex/implement-mutation-loop`: pass
-  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after final handoff update
-  - 2026-07-27 `git diff --check`: pass on `main` after final handoff update
-  - 2026-07-27 `git branch --merged main`: only `main`
-  - 2026-07-27 `git branch -r --merged origin/main`: only `origin/HEAD -> origin/main` and `origin/main`
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after final handoff update
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: sandboxed run blocked by Nix readonly cache
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: expected compile fail after outside-in tests; missing `GitCandidateWorkspace(Path, Path)`
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after Git and SQLite adapter implementation
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after removing unnecessary SQLite JDBC-string constructor
-  - 2026-07-27 self-review: fixed SQLite `insert or replace` candidate upsert that could delete child fitness evidence
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after SQLite upsert regression assertion
-  - 2026-07-27 `.agentic-template/bin/project component-test`: pass
-  - 2026-07-27 `.agentic-template/bin/project test`: pass
-  - 2026-07-27 `.agentic-template/bin/project lint`: pass
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass
-  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass
-  - 2026-07-27 `git diff --check`: pass
-  - 2026-07-27 `.agentic-template/bin/project run`: pass; CLI reports orchestration available and adapters incremental
-  - 2026-07-27 `.agentic-template/bin/project check`: pass with adapter integration slice
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass with Git and SQLite integration tests included
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after final self-review cleanup
-  - 2026-07-27 `.agentic-template/bin/project check`: pass after final self-review cleanup
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass after final self-review cleanup
-  - 2026-07-27 `git commit -m "Add Git and SQLite adapter integration slice"`: pass, created `f7a7557`
-  - 2026-07-27 `git merge --no-ff codex/git-sqlite-adapter-slice`: pass, created `0c0b545`
-  - 2026-07-27 `git branch -d codex/git-sqlite-adapter-slice`: pass
-  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after final handoff update
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after final handoff update
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: expected compile fail after outside-in tests; missing `CommandCheckRunner.CommandCheck`
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after command-check and JMH adapter implementation
-  - 2026-07-27 self-review: fixed unbounded command execution by adding per-check timeout and regression assertion
-  - 2026-07-27 `.agentic-template/bin/project lint`: pass after adding JMH boundary fitness rule
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass
-  - 2026-07-27 `git diff --check`: pass
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: failed once because timeout output stream could be closed after process kill
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after tolerant timeout output handling
-  - 2026-07-27 `.agentic-template/bin/project component-test`: pass
-  - 2026-07-27 `.agentic-template/bin/project test`: pass
   - 2026-07-27 `.agentic-template/bin/project check-handoff`: pass
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass
-  - 2026-07-27 `.agentic-template/bin/project check`: pass
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass with command-check and JMH integration tests included
-  - 2026-07-27 self-review: found and fixed command-check stdout pipe-drain risk, descendant cleanup on timeout and sub-millisecond timeout validation
-  - 2026-07-27 `.agentic-template/bin/project integration-test`: pass after command-check process-output regression coverage
-  - 2026-07-27 `.agentic-template/bin/project check`: pass before check/benchmark adapter branch commit
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass before check/benchmark adapter branch commit
-  - 2026-07-27 `git fetch origin`: pass; `main` and `origin/main` were aligned before merge
-  - 2026-07-27 `git commit -m "Add command checks and JMH benchmark evidence"`: pass, created `13ca21f`
-  - 2026-07-27 `git merge --no-ff codex/checks-benchmark-evidence-slice`: pass, created `b95932f`
-  - 2026-07-27 `git branch -d codex/checks-benchmark-evidence-slice`: pass
-  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after merge handoff update
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after merge handoff update
-  - 2026-07-27 `.agentic-template/bin/project test`: expected compile fail after outside-in bounded validator test; missing `MutationLimits` and `BoundedMutationValidator`
-  - 2026-07-27 `.agentic-template/bin/project test`: pass after bounded validator implementation and shared mutation limits
-  - 2026-07-27 actor review `Wegener`: found incomplete authority filtering, missing real-validator component test, thin field-boundary coverage and over-broad decision/fitness matching
-  - 2026-07-27 `.agentic-template/bin/project test`: pass after addressing `Wegener` findings
-  - 2026-07-27 `.agentic-template/bin/project component-test`: pass after real-validator loop regression
-  - 2026-07-27 `.agentic-template/bin/project lint`: pass
-  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after real-validator S4 acceptance mapping
-  - 2026-07-27 `git diff --check`: pass
-  - 2026-07-27 self-review: tightened scoring authority phrase matching and preserved valid workflow decision-node text; no remaining findings
-  - 2026-07-27 `.agentic-template/bin/project test`: pass after final matcher cleanup
-  - 2026-07-27 `.agentic-template/bin/project component-test`: pass after final matcher cleanup
+  - 2026-07-27 `.agentic-template/bin/project check-profile`: pass
   - 2026-07-27 `.agentic-template/bin/project check`: pass
   - 2026-07-27 `.agentic-template/bin/project ready`: pass, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 `git commit -m "Add deterministic bounded mutation validator"`: pass, created `8dedc88`
-  - 2026-07-27 `git merge --no-ff codex/bounded-mutation-validator-slice`: pass, created `46389a8`
-  - 2026-07-27 `git status -sb`: clean `main` ahead of `origin/main` by 2 before final handoff update
-  - 2026-07-27 `git branch --merged main`: only `main`
-  - 2026-07-27 `git branch -r --merged origin/main`: only `origin/HEAD -> origin/main` and `origin/main`
-  - 2026-07-27 `git branch --no-merged main`: retained unmerged backup branch `backup/main-before-template-rebase-a74a26a`
-  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after bounded-validator handoff update
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main`, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 `git push origin main`: pass, pushed `b767c69..d090f28`
-  - 2026-07-27 `git status -sb`: clean `main` aligned with `origin/main` after push
-  - 2026-07-27 `git branch --merged main`: only `main`
-  - 2026-07-27 `git branch -r --merged origin/main`: only `origin/HEAD -> origin/main` and `origin/main`
-  - 2026-07-27 `git branch --no-merged main`: retained unmerged backup branch `backup/main-before-template-rebase-a74a26a`
-  - 2026-07-27 `.agentic-template/bin/project test`: expected compile fail after outside-in LangChain4j adapter tests; missing typed service contract and factory
-  - 2026-07-27 actor review `Carver`: findings on boundary containment, patch schema, self-approval channel, missing invalid-proposal loop test and Q-002 mismatch
-  - 2026-07-27 `.agentic-template/bin/project test`: pass after provider-neutral LangChain4j adapter implementation
-  - 2026-07-27 `.agentic-template/bin/project component-test`: pass after invalid-proposal acceptance regression
-  - 2026-07-27 `.agentic-template/bin/project lint`: pass; LangChain4j imports remain adapter-local
-  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after Q-002/Q-003 reconciliation
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after S4/T6/T7 spec update
-  - 2026-07-27 `git diff --check`: pass
-  - 2026-07-27 final actor review request to `Carver`: timed out twice; actor closed while still running
-  - 2026-07-27 lead self-review: added adapter size bounds and spec acceptance mapping for malformed/oversized model output; no remaining findings before aggregate checks
-  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after merge handoff update
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after merge handoff update
-  - 2026-07-27 `.agentic-template/bin/project check`: pass
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 `git commit -m "Add provider-neutral LangChain4j mutation proposer"`: pass, created `32ae733`
-  - 2026-07-27 `git merge --no-ff codex/langchain4j-mutation-proposer-slice`: pass, created `c92b00d`
-  - 2026-07-27 `git branch -d codex/langchain4j-mutation-proposer-slice`: pass
-  - 2026-07-27 `git push origin main`: pass, pushed `d65f53c..5c154ac`
-  - 2026-07-27 `git status -sb`: clean `main` aligned with `origin/main`
-  - 2026-07-27 `git rev-parse --short HEAD` and `origin/main`: both `5c154ac`
-  - 2026-07-27 `git branch --merged main`: only `main`
-  - 2026-07-27 `git branch -r --merged origin/main`: only `origin/HEAD -> origin/main` and `origin/main`
-  - 2026-07-27 `git switch -c codex/actor-review-fallback-policy`: pass
-  - 2026-07-27 `git diff --check`: pass on actor-review fallback policy diff
-  - 2026-07-27 `.agentic-template/bin/project check`: pass before addressing actor review findings
-  - 2026-07-27 actor review `Linnaeus`: found timeout loophole and stale handoff ordering in the actor-review fallback policy slice
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass before `Banach` findings, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 actor review `Banach`: found stale fallback summaries in HANDOFF and missing README coverage for actor-tool-unavailable degraded-path authorization
-  - 2026-07-27 lead self-review: no remaining actor-review fallback policy contradictions after `Banach` findings were addressed
-  - 2026-07-27 `git diff --check`: pass after actor review findings
-  - 2026-07-27 `.agentic-template/bin/project check`: pass after actor review findings
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass after actor review findings, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 `git commit -m "Require actor review in PR-less fallback"`: pass, created `58d2643`
-  - 2026-07-27 `git merge --no-ff codex/actor-review-fallback-policy`: pass, created `f3e2213`
-  - 2026-07-27 `git branch -d codex/actor-review-fallback-policy`: pass
-  - 2026-07-27 `git branch --merged main`: only `main`
-  - 2026-07-27 `git branch --no-merged main`: retained unmerged backup branch `backup/main-before-template-rebase-a74a26a`
-  - 2026-07-27 `git diff --check`: pass on `main` after final actor-review fallback policy handoff update
-  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after final actor-review fallback policy handoff update
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main`, 13 passed / 2 not applicable / 0 failed
+  - 2026-07-27 stale edit-transport vocabulary scan across AGENTS, profile, handoff, docs, specs, knowledge and mutation-contract skill: pass, no active stale terminology found
+  - 2026-07-27 `git diff --check`: pass after S-expression IR correction
+  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after S-expression IR correction
+  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after adding Q-005
+  - 2026-07-27 `.agentic-template/bin/project check-handoff`: pass after handoff correction
+  - 2026-07-27 `.agentic-template/bin/project check-profile`: pass after profile correction
+  - 2026-07-27 `.agentic-template/bin/project check`: pass after S-expression IR correction
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass after S-expression IR correction, 13 passed / 2 not applicable / 0 failed
+  - 2026-07-27 `git diff --check`: pass after operator enum and loop-engineering additions
+  - 2026-07-27 `.agentic-template/bin/project check`: pass after operator enum and loop-engineering additions
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass after operator enum and loop-engineering additions, 13 passed / 2 not applicable / 0 failed
+  - 2026-07-27 actor review `Laplace`: found required behavior was only weighted, not hard-gated, and conceptual-crossover was incorrectly modeled as a mutation enum value
+  - 2026-07-27 addressed `Laplace` findings by making all required deterministic behavior cases a hard gate and separating conceptual crossover into a recombination policy whose child uses the closed mutation enum
+  - 2026-07-27 `git diff --check`: pass after addressing actor findings and adding search posture operators
+  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after addressing actor findings and adding Q-006
+  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after addressing actor findings and adding Q-006
+  - 2026-07-27 `.agentic-template/bin/project check-profile`: pass after addressing actor findings and adding Q-006
+  - 2026-07-27 `.agentic-template/bin/project check-handoff`: pass after recording current evidence
+  - 2026-07-27 `.agentic-template/bin/project check`: pass after addressing actor findings and adding search posture operators
+  - 2026-07-27 `.agentic-template/bin/project ready`: pass after addressing actor findings and adding search posture operators, 13 passed / 2 not applicable / 0 failed
+  - 2026-07-27 follow-up actor review `Erdos`: timed out and was not counted as completed review
+  - 2026-07-27 follow-up actor review `Peirce`: timed out and was not counted as completed review
+  - 2026-07-27 narrowed follow-up actor review `Faraday`: no findings on behavior hard gate, crossover separation, hill-climb/exploratory-leap, loop-engineering framing and model self-approval boundary
+  - 2026-07-27 lead self-review: no remaining architecture/spec consistency findings after `Laplace` findings were addressed and `Faraday` returned no findings
+  - 2026-07-27 final `git diff --check`: pass
+  - 2026-07-27 final `.agentic-template/bin/project check`: pass
+  - 2026-07-27 final `.agentic-template/bin/project ready`: pass, 13 passed / 2 not applicable / 0 failed
 
 knowledge:
   consulted:
     - .agents/knowledge/index.md
-    - .agents/knowledge/TAXONOMY.md
-    - .agents/knowledge/inbox/INBOX-008-repo-native-context-store.md
-    - specs/templates/capability.toon
-    - specs/templates/change.toon
-    - .agents/skills/init/SKILL.md
-    - .agents/skills/knowledge/knowledge-search/SKILL.md
-    - .agents/skills/workflow/specify/SKILL.md
-    - .agents/skills/workflow/outside-in-tdd/SKILL.md
-    - .agents/skills/workflow/review-loop/SKILL.md
-    - .agents/skills/workflow/implement-slice/SKILL.md
-    - .agents/skills/specialise/runtime-java/SKILL.md
-    - .agents/skills/specialise/test-harness/SKILL.md
-    - .agents/skills/specialise/sql-migrations/SKILL.md
-    - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md
-    - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
-    - .agents/knowledge/risks/RISK-001-model-self-approval.md
-    - .agents/knowledge/questions/Q-002-workflow-patch-format.md
-    - .agents/knowledge/questions/Q-003-promotion-target.md
-  proposals:
     - .agents/knowledge/domains/DOM-001-agentic-workflow-evolution.md
     - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md
     - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
     - .agents/knowledge/risks/RISK-001-model-self-approval.md
     - .agents/knowledge/questions/Q-001-model-provider.md
-    - .agents/knowledge/questions/Q-002-workflow-patch-format.md
+  - .agents/knowledge/questions/Q-002-mutation-contract-ir-format.md
     - .agents/knowledge/questions/Q-003-promotion-target.md
-    - .agents/knowledge/patterns/PAT-001-tool-unavailable-integration-fallback.md
     - specs/capabilities/CAP-001-mutation-fitness-loop.toon
-    - specs/changes/CHG-001-mutation-fitness-loop/
+    - specs/changes/CHG-001-mutation-fitness-loop/change.toon
+    - https://docs.langchain4j.dev/tutorials/ai-services/
+    - https://docs.langchain4j.dev/integrations/language-models/open-ai-official/
+    - https://docs.langchain4j.dev/tutorials/structured-outputs/
+    - https://platform.openai.com/docs/guides/structured-outputs
+    - https://doi.org/10.4161/bioe.23041
+    - https://www.genetic-programming.org/gpbook1toc.html
+    - https://doi.org/10.1109/TEVC.2017.2693219
+    - https://doi.org/10.1162/evco_a_00312
+    - https://doi.org/10.1162/EVCO_a_00025
+    - https://www2.sigsoft.org/EmpiricalStandards/docs/standards
+    - https://doi.org/10.1109/MC.2025.3527407
+    - https://git-scm.com/docs/git-worktree
+  proposals:
+    - specs/changes/CHG-002-live-loop-policy/
+    - .agents/knowledge/questions/Q-004-fitness-objectives.md
+    - .agents/knowledge/questions/Q-005-crossover-policy.md
+    - .agents/knowledge/questions/Q-006-search-posture-policy.md
+    - .agents/knowledge/contracts/CON-001-mutation-operator-enum.md
+    - .agents/skills/workflow/mutation-contract/SKILL.md
   no_record:
-    - command-check process-output and timeout behavior is captured in adapter code/tests; no reusable knowledge node yet
+    - no ADR promoted yet because CHG-002 remains a proposal awaiting approval
 
 team_fallback:
-  current: independent subagent review plus lead self-review
-  reason: reviewer actor `Carver` completed first-pass findings for the LangChain4j slice; reviewer actor `Wegener` completed bounded-validator findings and they were addressed before merge; reviewer actors `Linnaeus` and `Banach` completed findings for the actor-review fallback policy slice and they were addressed before merge
-  lost_challenge: PR-gated CI remains unavailable in the authorized fallback; mitigated by branch isolation, actor review when available, local readiness checks, lead self-review and explicit user authorization to ship to main
+  current: independent actor review plus lead self-review
+  reason: actor reviewer `Laplace` completed first-pass findings and they were addressed; follow-up reviewers `Erdos` and `Peirce` timed out and were not counted; narrowed follow-up reviewer `Faraday` completed with no findings
+  lost_challenge: broad follow-up actor review timed out twice, mitigated by a completed narrowed follow-up actor review focused on the final risk points plus lead self-review
