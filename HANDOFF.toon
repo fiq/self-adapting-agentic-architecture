@@ -1,167 +1,133 @@
 session:
-  updated: 2026-07-27
-  status: live_loop_policy_proposal_shipped
-  branch: main
+  updated: 2026-07-28
+  status: mutation_contract_policy_slice_implemented_and_validated
+  branch: codex/mutation-contract-test-slice
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: latest_main_commit
-  dirty: false
+  head: ba9697e
+  dirty: true
 
 goal:
-  current: define a source-backed proposal for the first live mutation and fitness loop policy
-  phase: delivered
+  current: implement the smallest deterministic test-first slice for `CHG-002` mutation-contract/operator policy and phenotype fitness scoring
+  phase: implementation_complete_pending_commit_and_merge_authorization
 
 completed:
-  - ran `.agentic-template/bin/project startup` and read AGENTS.md from disk
-  - read `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md` and `.agents/knowledge/index.md`
-  - used the `specify` skill to shape a repo-native change proposal
-  - used the `architecture-review` skill to check provider boundaries, deterministic authority, promotion side effects and reversibility
-  - consulted primary external docs and literature for LangChain4j AI Services, LangChain4j OpenAI integration, LangChain4j structured outputs, OpenAI structured outputs, genetic algorithms, genetic programming, genetic improvement of software, stochastic optimization evaluation, LLM program repair and Git worktrees
-  - created `CHG-002` as a proposal-only live-loop policy covering provider selection, TOON mutation-contract envelopes, S-expression internal mutation IR, Git diff realization, conceptual crossover, promotion target, fitness weights and reviewer evidence fallback
-  - created `Q-004` knowledge entry for initial fitness objectives and weights
-  - updated existing open questions `Q-001`, `Q-002` and `Q-003` to point at the proposed answers in `CHG-002`
-  - created `Q-005` to track crossover policy
-  - created `CON-001` to define the closed initial mutation operator enum
-  - added `hill-climb` and `exploratory-leap` search posture operators for fitness-aware local exploitation and bounded moonshot exploration
-  - created `Q-006` to track search posture policy
-  - documented evolutionary operator theory in `docs/architecture/evolutionary-operators.md`
-  - added repo-local skill `.agents/skills/workflow/mutation-contract/SKILL.md`
-  - updated `AGENTS.md`, docs and `PROJECT_PROFILE.toon` with the proposed live-loop policy and revised working assumptions for Q-001 through Q-006
-  - validated proposal artifacts with whitespace, spec, knowledge, handoff, profile, aggregate check and readiness gates
-  - revised the policy after user correction so S-expressions are the internal mutation/operator IR and Git diffs are candidate realizations, not the mutation itself
-  - revalidated after removing stale edit-transport language from active proposal, profile and handoff state
-  - pushed `main` with the shipped loop-engineering proposal
-  - deleted merged branch `codex/define-loop-policy-proposal` locally and on origin
+  - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
+  - read `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md`, `.agents/knowledge/index.md`, `CON-001` and the `CHG-002` spec/design
+  - added core value types `MutationOperatorType`, `FitnessObjective`, `MutationBounds`, `MutationTarget`, `SearchPosture`, `ParentTrait` and `MutationContract`
+  - added application policies `MutationOperatorPolicy`, `MutationOperatorDefaults`, `MutationContractCanonicalizer`, `MutationContractValidator`, `PhenotypeFitnessScorer`, `PhenotypeEvidence`, `BehaviorCaseEvidence`, `ConceptualCrossoverPolicy` and `ConceptualCrossoverRequest`
+  - extracted the shared authority-language regex from `BoundedMutationValidator` into `AuthorityLanguage` at its second use
+  - made all six handed-over unit test classes pass without changing their assertions
+  - obtained one independent actor review and fixed six of eight findings
+  - added seven regression tests covering each applied review fix
+  - recorded the two unfixed findings as `RISK-002`, `Q-007` and spec task `T4b`
+  - updated `specs/changes/CHG-002-live-loop-policy/change.toon` task statuses and change status
 
-in_progress: []
+in_progress:
+  - none
 
 next:
-  - implement the smallest next slice from `CHG-002` tasks T2, T3 and T3b after confirming policy direction
+  - commit the bounded branch and push it
+  - obtain explicit user authorization before any merge to `main`; no merge has been performed
+  - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
+  - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
+  - implement `T2`, `T5`, `T6` before any live provider run
 
 decisions:
   - id: langchain4j_adapter_boundary
     summary: LangChain4j stays behind `adapters/langchain4j`; core and application stay provider-free
   - id: deterministic_approval_boundary
     summary: model output may propose or repair but validation, scoring, promotion and rollback are deterministic
-  - id: live_loop_policy_proposal
-    summary: CHG-002 proposes OpenAI via LangChain4j official adapter, TOON mutation-contract envelopes, S-expression internal mutation IR, closed mutation operator enum with hill-climb and exploratory-leap search posture operators, Git diff realization, conceptual crossover deferral, local promoted Git refs plus SQLite metadata and hard-gated phenotype fitness scoring
-  - id: actor_review_evidence_policy
-    summary: reviewer actors produce evidence only; unavailable actor review is recorded and never treated as passed
-  - id: tool_unavailable_integration_fallback
-    summary: PR-less main merge remains allowed only under explicit user authorization, branch isolation, deterministic checks, actor or substituted human review and lead self-review
+  - id: mutation_contract_ir_policy
+    summary: TOON is the reviewable mutation-contract envelope; canonical S-expression is the internal mutation/operator IR; Git diffs are candidate realization evidence
+  - id: closed_operator_enum
+    summary: ten closed operator values; `conceptual-crossover` is deliberately absent and negatively tested
+  - id: conceptual_crossover_boundary
+    summary: conceptual crossover is a recombination policy producing a bounded child mutation contract; the policy now validates its own child before emitting it
+  - id: phenotype_fitness_policy
+    summary: hard gates run before weighted objectives and are not tradeable; promotion threshold is `0.80` compared against the raw sum, with rounding applied to the reported score only
+  - id: canonical_ir_safety
+    summary: unquoted IR positions are checked against a safe atom/identifier shape so model-authored text cannot forge nodes such as an extra gate
+  - id: gate_outcomes_win_in_audit_record
+    summary: gate outcomes are written after measured scores in `FitnessResult.objectives` so evidence content cannot overwrite a recorded gate result
 
 risks:
-  - CHG-002 is not yet approved; implementation should not hard-code these policies until the user accepts or revises them
-  - first live provider choice can affect dependency and credential handling, so provider construction must remain adapter-local
-  - the S-expression mutation IR needs a small parser/canonicalizer before implementation can rely on it
-  - conceptual crossover is deliberately deferred until evaluated parent evidence exists
-  - `exploratory-leap` needs strict risk budgets so moonshot variants do not become broad unreviewable changes
-  - benchmark budgets may be too crude until baseline and candidate benchmarks are captured in one comparable run
-  - local promoted refs are auditable but may not satisfy future protected-branch governance
-  - Gradle commands need Nix daemon access in this environment; sandboxed runs can fail even when project commands pass outside the sandbox
+  - RISK-002: the scorer enforces its own fixed gates and never sees the contract, so a declared `required_evidence_present` gate can pass without the evidence it names; tracked as `T4b`
+  - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
+  - the new `MutationContract` / `MutationContractValidator` / `PhenotypeFitnessScorer` stack is parallel to the wired `Mutation` / `MutationValidator` / `FitnessScorer` ports and is reachable only from tests; the design records `Mutation.patch` as transitional but no migration step is scheduled yet
+  - `PhenotypeFitnessScorer` does not implement the `FitnessScorer` port, so `MutationEvaluationLoop` cannot use it until the contract is threaded through
+  - benchmark presence is not yet a hard gate because "required benchmark evidence" is contract-dependent and the scorer has no contract input
+  - direct main shipping still requires branch isolation, deterministic checks, actor review or recorded fallback, lead self-review and explicit user authorization
 
 files_changed:
+  - CLAUDE_HANDOVER.toon
   - HANDOFF.toon
-  - PROJECT_PROFILE.toon
-  - .agents/knowledge/questions/Q-001-model-provider.md
-  - .agents/knowledge/questions/Q-002-mutation-contract-ir-format.md
-  - .agents/knowledge/questions/Q-003-promotion-target.md
-  - .agents/knowledge/questions/Q-004-fitness-objectives.md
-  - .agents/knowledge/questions/Q-005-crossover-policy.md
-  - .agents/knowledge/questions/Q-006-search-posture-policy.md
-  - .agents/knowledge/contracts/CON-001-mutation-operator-enum.md
-  - .agents/skills/CATALOG.toon
-  - .agents/skills/workflow/mutation-contract/SKILL.md
-  - AGENTS.md
-  - docs/architecture/README.md
-  - docs/architecture/evolutionary-operators.md
-  - docs/wiki/architecture.md
-  - specs/changes/CHG-002-live-loop-policy/proposal.md
-  - specs/changes/CHG-002-live-loop-policy/design.md
   - specs/changes/CHG-002-live-loop-policy/change.toon
+  - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
+  - .agents/knowledge/questions/Q-007-canonical-ir-ordering.md
+  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/FitnessObjective.java
+  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/MutationBounds.java
+  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/MutationContract.java
+  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/MutationOperatorType.java
+  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/MutationTarget.java
+  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/ParentTrait.java
+  - core/src/main/java/io/github/selfadaptingagenticarchitecture/core/SearchPosture.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/AuthorityLanguage.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/BehaviorCaseEvidence.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/BoundedMutationValidator.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/ConceptualCrossoverPolicy.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/ConceptualCrossoverRequest.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationContractCanonicalizer.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationContractValidator.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationOperatorDefaults.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/MutationOperatorPolicy.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/PhenotypeEvidence.java
+  - application/src/main/java/io/github/selfadaptingagenticarchitecture/application/PhenotypeFitnessScorer.java
+  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/ConceptualCrossoverPolicyTest.java
+  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/MutationContractCanonicalizerTest.java
+  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/MutationContractValidatorTest.java
+  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/MutationOperatorTypeTest.java
+  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/PhenotypeFitnessScorerTest.java
+  - application/src/test/java/io/github/selfadaptingagenticarchitecture/application/SearchPosturePolicyTest.java
 
 tests_run:
-  - 2026-07-27 `.agentic-template/bin/project startup`: pass; AGENTS.md read from disk
-  - 2026-07-27 `git diff --check`: pass
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass
-  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass
-  - 2026-07-27 `.agentic-template/bin/project check-handoff`: pass
-  - 2026-07-27 `.agentic-template/bin/project check-profile`: pass
-  - 2026-07-27 `.agentic-template/bin/project check`: pass
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 stale edit-transport vocabulary scan across AGENTS, profile, handoff, docs, specs, knowledge and mutation-contract skill: pass, no active stale terminology found
-  - 2026-07-27 `git diff --check`: pass after S-expression IR correction
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after S-expression IR correction
-  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after adding Q-005
-  - 2026-07-27 `.agentic-template/bin/project check-handoff`: pass after handoff correction
-  - 2026-07-27 `.agentic-template/bin/project check-profile`: pass after profile correction
-  - 2026-07-27 `.agentic-template/bin/project check`: pass after S-expression IR correction
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass after S-expression IR correction, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 `git diff --check`: pass after operator enum and loop-engineering additions
-  - 2026-07-27 `.agentic-template/bin/project check`: pass after operator enum and loop-engineering additions
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass after operator enum and loop-engineering additions, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 actor review `Laplace`: found required behavior was only weighted, not hard-gated, and conceptual-crossover was incorrectly modeled as a mutation enum value
-  - 2026-07-27 addressed `Laplace` findings by making all required deterministic behavior cases a hard gate and separating conceptual crossover into a recombination policy whose child uses the closed mutation enum
-  - 2026-07-27 `git diff --check`: pass after addressing actor findings and adding search posture operators
-  - 2026-07-27 `.agentic-template/bin/project check-changes`: pass after addressing actor findings and adding Q-006
-  - 2026-07-27 `.agentic-template/bin/project check-knowledge`: pass after addressing actor findings and adding Q-006
-  - 2026-07-27 `.agentic-template/bin/project check-profile`: pass after addressing actor findings and adding Q-006
-  - 2026-07-27 `.agentic-template/bin/project check-handoff`: pass after recording current evidence
-  - 2026-07-27 `.agentic-template/bin/project check`: pass after addressing actor findings and adding search posture operators
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass after addressing actor findings and adding search posture operators, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 follow-up actor review `Erdos`: timed out and was not counted as completed review
-  - 2026-07-27 follow-up actor review `Peirce`: timed out and was not counted as completed review
-  - 2026-07-27 narrowed follow-up actor review `Faraday`: no findings on behavior hard gate, crossover separation, hill-climb/exploratory-leap, loop-engineering framing and model self-approval boundary
-  - 2026-07-27 lead self-review: no remaining architecture/spec consistency findings after `Laplace` findings were addressed and `Faraday` returned no findings
-  - 2026-07-27 final `git diff --check`: pass
-  - 2026-07-27 final `.agentic-template/bin/project check`: pass
-  - 2026-07-27 final `.agentic-template/bin/project ready`: pass, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 `git commit -m "Define loop engineering mutation policy"`: pass, created `e9c4d71`
-  - 2026-07-27 `git commit -m "Record loop policy proposal handoff"`: pass, created `aae62a8`
-  - 2026-07-27 `git push -u origin codex/define-loop-policy-proposal`: pass
-  - 2026-07-27 `git merge --no-ff codex/define-loop-policy-proposal`: pass on `main`, created merge commit `7a4dc01`
-  - 2026-07-27 `git diff --check`: pass on `main` after merge
-  - 2026-07-27 `.agentic-template/bin/project check`: pass on `main` after merge
-  - 2026-07-27 `.agentic-template/bin/project ready`: pass on `main` after merge, 13 passed / 2 not applicable / 0 failed
-  - 2026-07-27 `git commit -m "Record shipped loop policy handoff"`: pass, created `0895910`
-  - 2026-07-27 `git push origin main`: pass, pushed `9076dc1..0895910`
-  - 2026-07-27 `git branch -d codex/define-loop-policy-proposal`: pass
-  - 2026-07-27 `git push origin --delete codex/define-loop-policy-proposal`: pass
+  - 2026-07-28 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
+  - 2026-07-28 `.agentic-template/bin/project test`: pass; 24 application unit tests, 0 failures, 0 errors, including the jqwik canonicalization property
+  - 2026-07-28 `.agentic-template/bin/project lint`: pass; ARCHITECTURE BOUNDARIES OK
+  - 2026-07-28 `.agentic-template/bin/project component-test`: pass
+  - 2026-07-28 `.agentic-template/bin/project check`: pass; repo contract, profile, handoff, knowledge, changes and boundaries all OK
+  - 2026-07-28 `.agentic-template/bin/project ready`: READY PASS; 13 pass, 2 not applicable, 0 fail
+
+fitness_functions:
+  - unchanged: the LangChain4j boundary check still passes and no new fitness function was needed; core and application import only `java.*` and repository packages
 
 knowledge:
   consulted:
     - .agents/knowledge/index.md
-    - .agents/knowledge/domains/DOM-001-agentic-workflow-evolution.md
-    - .agents/knowledge/systems/SYS-001-mutation-evaluation-platform.md
-    - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
-    - .agents/knowledge/risks/RISK-001-model-self-approval.md
-    - .agents/knowledge/questions/Q-001-model-provider.md
-    - .agents/knowledge/questions/Q-002-mutation-contract-ir-format.md
-    - .agents/knowledge/questions/Q-003-promotion-target.md
-    - specs/capabilities/CAP-001-mutation-fitness-loop.toon
-    - specs/changes/CHG-001-mutation-fitness-loop/change.toon
-    - https://docs.langchain4j.dev/tutorials/ai-services/
-    - https://docs.langchain4j.dev/integrations/language-models/open-ai-official/
-    - https://docs.langchain4j.dev/tutorials/structured-outputs/
-    - https://platform.openai.com/docs/guides/structured-outputs
-    - https://doi.org/10.4161/bioe.23041
-    - https://www.genetic-programming.org/gpbook1toc.html
-    - https://doi.org/10.1109/TEVC.2017.2693219
-    - https://doi.org/10.1162/evco_a_00312
-    - https://doi.org/10.1162/EVCO_a_00025
-    - https://www2.sigsoft.org/EmpiricalStandards/docs/standards
-    - https://doi.org/10.1109/MC.2025.3527407
-    - https://git-scm.com/docs/git-worktree
-  proposals:
-    - specs/changes/CHG-002-live-loop-policy/
+    - .agents/knowledge/contracts/CON-001-mutation-operator-enum.md
     - .agents/knowledge/questions/Q-004-fitness-objectives.md
     - .agents/knowledge/questions/Q-005-crossover-policy.md
     - .agents/knowledge/questions/Q-006-search-posture-policy.md
-    - .agents/knowledge/contracts/CON-001-mutation-operator-enum.md
-    - .agents/skills/workflow/mutation-contract/SKILL.md
+    - .agents/knowledge/risks/RISK-001-model-self-approval.md
+    - specs/changes/CHG-002-live-loop-policy/change.toon
+    - specs/changes/CHG-002-live-loop-policy/design.md
+  proposals:
+    - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
+    - .agents/knowledge/questions/Q-007-canonical-ir-ordering.md
   no_record:
-    - no ADR promoted yet because CHG-002 remains a proposal awaiting approval
+    - the six applied review fixes are covered by regression tests and need no separate knowledge entry
 
 team_fallback:
-  current: independent actor review plus lead self-review
-  reason: actor reviewer `Laplace` completed first-pass findings and they were addressed; follow-up reviewers `Erdos` and `Peirce` timed out and were not counted; narrowed follow-up reviewer `Faraday` completed with no findings before the PR-less merge
-  lost_challenge: PR-gated GitHub review and CI remained unavailable; broad follow-up actor review timed out twice, mitigated by completed narrowed follow-up actor review, local readiness gates and lead self-review
+  current: lead_plus_one_independent_actor_review
+  reason: PR tooling remains unavailable for this repository; the tool-unavailable integration fallback was previously authorized
+  actor_review: completed; one independent reviewer actor examined the full slice against `CHG-002` design, `CON-001` and `CLAUDE.md` and reported eight findings
+  actor_review_outcome:
+    - fixed: empty deterministic-check evidence no longer passes its hard gate
+    - fixed: gate outcomes are recorded after measured scores so evidence cannot overwrite them in the audit record
+    - fixed: canonicalizer rejects unsafe atoms and identifiers, closing IR node forgery and whitespace collisions
+    - fixed: threshold comparison uses the raw score; rounding is reporting only
+    - fixed: authority-language scan now covers search posture, parent traits, evidence and gate fields
+    - fixed: conceptual crossover requires two distinct evaluated parents and validates its own child contract
+    - recorded_not_fixed: declared contract hard gates are not enforced by the scorer (RISK-002, task T4b)
+    - recorded_not_fixed: canonical IR is declaration-order sensitive for set-like fields (Q-007)
+  lead_self_review: pending until commit; no merge to `main` has been performed and none is authorized
+  lost_challenge: no second independent reviewer and no human code review yet
