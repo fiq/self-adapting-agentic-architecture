@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dreamthought.saaa.domain.MutationBounds;
-import com.dreamthought.saaa.domain.MutationOperatorType;
 import com.dreamthought.saaa.domain.MutationTarget;
 import com.dreamthought.saaa.domain.ParentTrait;
 import java.util.List;
@@ -47,12 +46,10 @@ final class ConceptualCrossoverPolicyTest {
                 );
     }
 
+    // That `conceptual-crossover` is not an operator enum value is asserted once, in
+    // MutationOperatorTypeTest. This test owns the recombination behaviour instead.
     @Test
-    void refusesToTreatCrossoverAsAMutationOperatorOrUnboundedDiffMerge() {
-        assertThatThrownBy(() -> MutationOperatorType.fromWireName("conceptual-crossover"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("unsupported mutation operator: conceptual-crossover");
-
+    void refusesToSpliceMultipleLociAsAnUnboundedDiffMerge() {
         assertThatThrownBy(() -> crossoverPolicy.createChildContract(new ConceptualCrossoverRequest(
                 "MUT-X2",
                 TARGETED_BEHAVIOR_CHANGE,

@@ -10,9 +10,9 @@ import picocli.CommandLine.Command;
         version = "self-adapting-agentic-architecture 0.1.0-SNAPSHOT",
         description = "Experimental workflow mutation and fitness evaluation CLI."
 )
-public final class SelfAdaptingAgenticArchitectureCli implements Callable<Integer> {
+public final class MutationLoopCli implements Callable<Integer> {
     public static void main(String[] args) {
-        int exitCode = new CommandLine(new SelfAdaptingAgenticArchitectureCli()).execute(args);
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(args);
         System.exit(exitCode);
     }
 

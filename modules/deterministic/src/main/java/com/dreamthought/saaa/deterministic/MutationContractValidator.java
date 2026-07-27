@@ -114,8 +114,9 @@ public final class MutationContractValidator {
         }
     }
 
+    /** Compares against the operator's own defaults, so the per-operator seam stays the single source. */
     private static void requireDeterministicObjectives(List<String> messages, MutationContract contract) {
-        if (!contract.objectives().equals(MutationOperatorPolicy.DEFAULT_OBJECTIVES)) {
+        if (!contract.objectives().equals(MutationOperatorPolicy.defaultsFor(contract.operator()).objectives())) {
             messages.add(OBJECTIVES_MESSAGE);
         }
     }
