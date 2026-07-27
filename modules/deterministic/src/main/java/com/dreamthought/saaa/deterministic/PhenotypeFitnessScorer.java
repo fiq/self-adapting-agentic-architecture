@@ -52,6 +52,11 @@ public final class PhenotypeFitnessScorer {
         return new FitnessResult(candidate, phenotype.evidence(), objectives, round(rawScore), decision);
     }
 
+    /**
+     * Reads {@code DEFAULT_OBJECTIVES} rather than the operator's defaults because {@link #score} never
+     * receives the contract, so it cannot know the operator. Safe only while every operator shares one
+     * objective set, which {@code PhenotypeFitnessScorerTest} asserts. See RISK-002 and task T4b.
+     */
     private static boolean hasEveryObjectiveScore(PhenotypeEvidence phenotype) {
         return MutationOperatorPolicy.DEFAULT_OBJECTIVES.stream()
                 .map(FitnessObjective::id)
@@ -62,6 +67,7 @@ public final class PhenotypeFitnessScorer {
         return score != null && Double.isFinite(score) && score >= 0.0 && score <= 1.0;
     }
 
+    /** Weights come from {@code DEFAULT_OBJECTIVES} for the same reason as {@link #hasEveryObjectiveScore}. */
     private static double weightedScore(PhenotypeEvidence phenotype) {
         return MutationOperatorPolicy.DEFAULT_OBJECTIVES.stream()
                 .mapToDouble(objective -> objective.weight() * phenotype.objectiveScores().get(objective.id()))

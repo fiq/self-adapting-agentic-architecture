@@ -53,6 +53,36 @@ final class MutationContractValidatorTest {
         );
     }
 
+    @Test
+    void rejectsObjectivesThatDoNotMatchTheOperatorDefaults() {
+        var contract = new MutationContract(
+                "MUT-reweighted",
+                TARGETED_BEHAVIOR_CHANGE,
+                "change interest rounding only at money boundaries",
+                new MutationTarget(
+                        "method",
+                        "src/main/java/example/billing/InterestCalculator.java",
+                        "calculateInterest"
+                ),
+                List.of("method_body"),
+                new MutationBounds(2, 80, false, false, false),
+                List.of("unit_tests_pass", "property_tests_pass", "benchmark_not_worse_than_baseline"),
+                List.of("deterministic_checks_pass", "required_evidence_present"),
+                List.of(
+                        new FitnessObjective("task_success", 0.90),
+                        new FitnessObjective("reliability", 0.10)
+                ),
+                Optional.empty(),
+                List.of()
+        );
+
+        var result = validator.validate(contract);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.messages())
+                .contains("fitness objectives must match the deterministic defaults for targeted-behavior-change");
+    }
+
     private static MutationContract validContract() {
         return new MutationContract(
                 "MUT-001",

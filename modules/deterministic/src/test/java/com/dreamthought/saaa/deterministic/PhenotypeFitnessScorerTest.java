@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
+import com.dreamthought.saaa.domain.MutationOperatorType;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashMap;
@@ -121,6 +122,19 @@ final class PhenotypeFitnessScorerTest {
 
         assertThat(result.aggregateScore()).isEqualTo(0.80);
         assertThat(result.decision()).isEqualTo(DISCARD);
+    }
+
+    /**
+     * The validator checks a contract's objectives against its operator's defaults, but the scorer
+     * gates and weights against the shared constant because it never receives the contract. That is
+     * only sound while the two cannot disagree. When this test fails, an operator has been given its
+     * own objectives and the scorer must take the contract before that ships — see RISK-002 and T4b.
+     */
+    @Test
+    void everyOperatorSharesTheObjectiveSetTheScorerAssumes() {
+        assertThat(MutationOperatorType.values())
+                .allSatisfy(operator -> assertThat(MutationOperatorPolicy.defaultsFor(operator).objectives())
+                        .isEqualTo(MutationOperatorPolicy.DEFAULT_OBJECTIVES));
     }
 
     private static Map<String, Double> perfectObjectiveScores() {
