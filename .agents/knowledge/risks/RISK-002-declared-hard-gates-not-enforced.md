@@ -34,11 +34,20 @@ Consequence: a `repair` contract declaring `failing_case_reproduced` and
 passing behavior case plus good objective scores. The declared gate is
 currently descriptive, not enforced.
 
+The same missing contract input causes a second, narrower gap. `MutationContractValidator`
+checks a contract's fitness objectives against its operator's defaults, but the
+scorer gates and weights against the shared `DEFAULT_OBJECTIVES` constant because
+it cannot know the operator. That is sound only while every operator shares one
+objective set. `PhenotypeFitnessScorerTest.everyOperatorSharesTheObjectiveSetTheScorerAssumes`
+asserts exactly that, so giving any operator its own objectives fails the build
+rather than silently producing a wrong weighted score and a wrong promotion
+decision.
+
 Closing this needs two things that are outside the first policy slice:
 
 - a typed evidence channel keyed by the contract's `required_evidence` ids;
 - a scorer entry point that receives the accepted `MutationContract` alongside
-  the phenotype evidence.
+  the phenotype evidence, which also closes the objective-set gap above.
 
 Tracked as task `T4b` in `specs/changes/CHG-002-live-loop-policy/change.toon`.
 Until it lands, promotion evidence is weaker than the contract implies, so
