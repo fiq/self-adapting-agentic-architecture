@@ -4,41 +4,77 @@ from pathlib import Path
 
 ROOT = Path.cwd()
 
+DOMAIN = Path("modules/domain")
+DETERMINISTIC = Path("modules/deterministic")
+ADAPTERS = Path("modules/adapters")
+CLI = Path("modules/cli")
+BENCHMARKS = Path("modules/benchmarks")
+
+LAYERS = [DOMAIN, DETERMINISTIC, ADAPTERS, CLI, BENCHMARKS]
+
+# Layers that must stay free of provider and infrastructure dependencies entirely.
+PROVIDER_FREE = [DOMAIN, DETERMINISTIC]
+
+# Every provider dependency is confined to one place. Merging the four adapter modules into one
+# put langchain4j, sqlite and flyway on a single compile classpath, so Gradle no longer keeps the
+# adapters apart from each other. This check does, at package granularity.
+CONFINED_DEPENDENCIES = [
+    ("dev.langchain4j", "/adapters/langchain4j/", "LangChain4j is confined to the adapters/langchain4j package"),
+    ("org.sqlite", "/adapters/sqlite/", "SQLite is confined to the adapters/sqlite package"),
+    ("org.flywaydb", "/adapters/sqlite/", "Flyway is confined to the adapters/sqlite package"),
+    ("picocli.", "modules/cli/", "picocli is confined to modules/cli"),
+    ("org.openjdk.jmh", "modules/benchmarks/", "JMH is confined to modules/benchmarks"),
+]
+
+# The dependency rule points inward. Domain is the innermost layer and may know nothing.
+FORBIDDEN_INBOUND = [
+    "com.dreamthought.saaa.deterministic",
+    "com.dreamthought.saaa.adapters",
+    "com.dreamthought.saaa.cli",
+]
+
 
 def java_files(root):
-    if not root.exists():
-        return []
     return [path for path in root.rglob("*.java") if "/build/" not in str(path)]
 
 
 def main():
+    # A scanned layer that has moved or been renamed must fail loudly. Returning an empty file
+    # list would let this check pass vacuously, which is worse than no check at all.
+    missing = [f"{layer}: scanned layer directory is missing; update this check"
+               for layer in LAYERS if not (ROOT / layer).is_dir()]
+    if missing:
+        return report(missing)
+
     errors = []
 
-    for module in ["core", "application"]:
-        for path in java_files(ROOT / module):
+    for layer in PROVIDER_FREE:
+        for path in java_files(ROOT / layer):
             text = path.read_text(errors="ignore")
             rel = path.relative_to(ROOT)
-            if "dev.langchain4j" in text:
-                errors.append(f"{rel}: LangChain4j import leaks outside adapters/langchain4j")
-            if "picocli." in text:
-                errors.append(f"{rel}: picocli import leaks outside cli")
-            if "org.sqlite" in text or "org.flywaydb" in text:
-                errors.append(f"{rel}: SQLite or migration dependency leaks outside adapters/sqlite")
-            if "org.openjdk.jmh" in text:
-                errors.append(f"{rel}: JMH dependency leaks outside benchmarks")
+            for needle, _, message in CONFINED_DEPENDENCIES:
+                if needle in text:
+                    errors.append(f"{rel}: {message}, not {layer}")
 
-    for path in java_files(ROOT / "core"):
+    for layer in LAYERS:
+        for path in java_files(ROOT / layer):
+            text = path.read_text(errors="ignore")
+            rel = path.relative_to(ROOT)
+            for needle, allowed, message in CONFINED_DEPENDENCIES:
+                if needle in text and allowed not in str(rel):
+                    errors.append(f"{rel}: {message}")
+
+    for path in java_files(ROOT / DOMAIN):
         text = path.read_text(errors="ignore")
         rel = path.relative_to(ROOT)
-        forbidden = [
-            "io.github.selfadaptingagenticarchitecture.application",
-            "io.github.selfadaptingagenticarchitecture.adapters",
-            "io.github.selfadaptingagenticarchitecture.cli",
-        ]
-        for package in forbidden:
+        for package in FORBIDDEN_INBOUND:
             if package in text:
-                errors.append(f"{rel}: core must not depend on {package}")
+                errors.append(f"{rel}: domain must not depend on {package}")
 
+    return report(sorted(set(errors)))
+
+
+def report(errors):
     if errors:
         print("ARCHITECTURE BOUNDARY CHECK FAILED")
         print()

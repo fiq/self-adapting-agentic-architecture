@@ -55,11 +55,18 @@ The canonical command surface is `.agentic-template/bin/project`.
 
 - Use Java, Gradle, picocli, LangChain4j, SQLite, JUnit 5, AssertJ, jqwik and
   JMH.
-- Keep the core domain plain Java records and deterministic policies.
-- Keep LangChain4j behind `adapters/langchain4j`; `core` and `application`
-  must not import `dev.langchain4j`.
-- Keep Git, SQLite, command execution and benchmark tooling behind application
-  ports.
+- All Java lives under `modules/`. Layers are named for what they may know:
+  `domain` (no dependencies at all), `deterministic` (validation, scoring,
+  promotion and ports), `adapters`, `cli` and `benchmarks`. Dependencies point
+  inward and Gradle enforces it, so a violation is a compile error.
+- Keep the `domain` layer plain Java records and deterministic value types.
+- Keep LangChain4j inside the `adapters/langchain4j` package of
+  `modules/adapters`; `modules/domain` and `modules/deterministic` must not
+  import `dev.langchain4j`.
+- Keep Git, SQLite, command execution and benchmark tooling behind
+  `deterministic` ports.
+- Nothing provider-aware, network-bound or otherwise nondeterministic belongs
+  in `modules/deterministic`. The layer name is the rule.
 - The model may propose mutations and repairs, but it must never approve its
   own result.
 - Validation, fitness scoring, promotion and rollback must remain deterministic.
@@ -160,9 +167,11 @@ The repository is the context store:
 - Conformance: project checks, CI and architecture fitness functions.
 
 The first fitness function protects the LangChain4j boundary: model-provider
-imports may not appear outside `adapters/langchain4j`. Change handoffs must
-record spec references, fitness-function deltas, validation runs and knowledge
-updates or no-record rationale.
+imports may not appear in `modules/domain` or `modules/deterministic`. It also
+fails when a scanned layer directory is missing, so a rename cannot make the
+check pass vacuously. Change handoffs must record spec references,
+fitness-function deltas, validation runs and knowledge updates or no-record
+rationale.
 
 ## Container and infrastructure rules
 

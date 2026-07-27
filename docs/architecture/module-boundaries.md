@@ -1,59 +1,72 @@
 # Module Boundaries
 
-self-adapting-agentic-architecture uses a small Clean Architecture shape:
+self-adapting-agentic-architecture uses a small Clean Architecture shape. All
+Java lives under `modules/`, and each layer is named for what it is allowed to
+know rather than for its position in a stack.
 
 ```text
-cli
-  -> application
-        -> core
+modules/cli
+  -> modules/deterministic
+        -> modules/domain
 
-adapters/langchain4j -> application
-adapters/git        -> application
-adapters/sqlite     -> application
-adapters/checks     -> application
-benchmarks          -> application
+modules/adapters    -> modules/deterministic
+modules/benchmarks  -> modules/deterministic, modules/domain
 ```
 
-## Core
+Dependencies point inward. `domain` is the innermost layer and depends on
+nothing at all — its Gradle build file declares no dependencies, so the rule is
+a compile error rather than a convention.
 
-`core/` contains plain Java records and deterministic value types:
+## Domain
+
+`modules/domain/` contains plain Java records and deterministic value types —
+the vocabulary of what is being evolved, not the machinery that evolves it:
 
 - `WorkflowGraph`
-- `Mutation`
+- `Mutation`, `MutationContract`, `MutationOperatorType`
 - `Candidate`
-- `FitnessResult`
+- `FitnessResult`, `FitnessObjective`
 - `EvaluationEvidence`
 
-Core must not import LangChain4j, picocli, SQLite, Flyway, Git command
-implementation details or adapter/application packages.
+Domain must not import LangChain4j, picocli, SQLite, Flyway, Git command
+implementation details, or any `deterministic`, `adapters` or `cli` package.
 
-## Application
+## Deterministic
 
-`application/` owns the mutation evaluation use case and ports:
+`modules/deterministic/` owns the mutation evaluation use case, its ports, and
+every decision that must be repeatable:
 
-- model proposal
-- mutation validation
-- candidate worktree creation
-- deterministic check execution
-- benchmark execution
-- fitness scoring
+- mutation contract canonicalization and validation
+- deterministic check execution and benchmark orchestration ports
+- phenotype fitness scoring and hard gates
+- promotion or discard selection
 - metadata recording
-- candidate promotion or discard
 
-Application code defines orchestration contracts but does not choose model
-providers, Git commands, SQLite schemas or benchmark implementations.
+The name is the rule. Nothing provider-aware, network-bound, clock-dependent or
+otherwise nondeterministic belongs in this layer. A model may propose or repair
+a mutation, but validation, scoring, promotion and rollback are decided here and
+only here. That is what keeps `RISK-001` — model self-approval — closed.
+
+This layer defines orchestration contracts but does not choose model providers,
+Git commands, SQLite schemas or benchmark implementations.
 
 ## Adapters
 
-Adapters implement ports:
+`modules/adapters/` implements the ports, one package per concern:
 
-- `adapters/langchain4j/` owns LangChain4j model access, typed AI services,
+- `adapters/langchain4j` owns LangChain4j model access, typed AI services,
   tool calling, retrieval integration and agent coordination.
-- `adapters/git/` owns isolated Git worktree and commit behavior.
-- `adapters/sqlite/` owns experiment metadata persistence and migrations.
-- `adapters/checks/` owns deterministic command execution.
-- `benchmarks/` owns JMH benchmarks and benchmark evidence.
-- `cli/` owns picocli command parsing and user-facing command contracts.
+- `adapters/git` owns isolated Git worktree and commit behavior.
+- `adapters/sqlite` owns experiment metadata persistence and migrations.
+- `adapters/checks` owns deterministic command execution.
+
+These are packages inside one Gradle module rather than four modules. The
+boundary that carries weight is `deterministic <- adapters`; adapter-versus-
+adapter isolation was four build files protecting eight files, which
+`PROJECT_PROFILE.toon` right-sizing treats as pre-abstraction.
+
+`modules/benchmarks/` owns JMH benchmarks and benchmark evidence.
+`modules/cli/` owns picocli command parsing and user-facing command contracts.
 
 ## Fitness Function
 
@@ -63,8 +76,13 @@ Run:
 .agentic-template/bin/project lint
 ```
 
-The current architecture check fails if LangChain4j, picocli, SQLite or JMH
-implementation dependencies leak into `core/` or `application/`.
+The check fails if LangChain4j, picocli, SQLite, Flyway or JMH implementation
+dependencies appear in `modules/domain/` or `modules/deterministic/`, or if
+`domain` references an outward package.
+
+It also fails if a scanned layer directory is missing. A rename or move that
+outruns this check must break the build loudly; returning an empty file list and
+reporting OK would be worse than having no check at all.
 
 ## Deferred Boundaries
 

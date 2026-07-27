@@ -17,7 +17,7 @@ Common commands:
 ```
 
 `component-test` is the first failing outside-in test for `CHG-001`. Keep
-LangChain4j behind `adapters/langchain4j` and keep deterministic decisions out
+LangChain4j behind the `adapters/langchain4j` package and keep deterministic decisions out
 of model authority.
 
 ## Tool-unavailable Integration Fallback

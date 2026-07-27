@@ -20,6 +20,7 @@ review_after: 2026-10-26
 
 # Deterministic Model Boundary
 
-LangChain4j belongs in `adapters/langchain4j`. Core and application code define
+LangChain4j belongs in the `adapters/langchain4j` package of `modules/adapters`.
+Domain and deterministic code define
 ports and deterministic policies. The model can propose or repair a mutation,
 but it cannot validate, score, promote or roll back its own result.
