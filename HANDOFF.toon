@@ -1,15 +1,15 @@
 session:
   updated: 2026-07-28
-  status: mutation_contract_policy_slice_committed_and_pushed_awaiting_integration_authorization
-  branch: codex/mutation-contract-test-slice
+  status: package_rename_and_invariant_named_module_layout_applied
+  branch: chore/rename-package-com-dreamthought-saaa
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
   head: 43dc73d
   pushed: origin/codex/mutation-contract-test-slice
   dirty: false
 
 goal:
-  current: implement the smallest deterministic test-first slice for `CHG-002` mutation-contract/operator policy and phenotype fitness scoring
-  phase: implementation_complete_pending_commit_and_merge_authorization
+  current: restructure the repository into invariant-named layers under `modules/` after integrating the `CHG-002` policy slice
+  phase: restructure_applied_pending_main_push
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -22,20 +22,26 @@ completed:
   - added seven regression tests covering each applied review fix
   - recorded the two unfixed findings as `RISK-002`, `Q-007` and spec task `T4b`
   - updated `specs/changes/CHG-002-live-loop-policy/change.toon` task statuses and change status
+  - merged the slice into `main` locally under the recorded PR-less fallback with explicit user authorization
+  - renamed the package base from `io.github.selfadaptingagenticarchitecture` to `com.dreamthought.saaa`
+  - moved all Java under `modules/` and renamed layers to `domain`, `deterministic`, `adapters`, `cli` and `benchmarks`
+  - merged the four two-file adapter modules into one `modules/adapters` module
+  - made `check-architecture-boundaries` fail loudly when a scanned layer directory is missing instead of passing vacuously
+  - recorded the `invariant_named_module_layout` decision in `PROJECT_PROFILE.toon`
 
 in_progress:
   - none
 
 next:
-  - decide integration route: either grant the `gh` token pull-request scope and open a PR, or authorize the recorded PR-less fallback merge
-  - obtain explicit user authorization before any merge to `main`; no merge has been performed
+  - push `main` and this branch; the harness permission classifier blocked `git push origin main` from the agent session
+  - grant the `gh` token pull-request scope so future slices can use a PR instead of the fallback
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
   - implement `T2`, `T5`, `T6` before any live provider run
 
 decisions:
   - id: langchain4j_adapter_boundary
-    summary: LangChain4j stays behind `adapters/langchain4j`; core and application stay provider-free
+    summary: LangChain4j stays in the `adapters/langchain4j` package of `modules/adapters`; `modules/domain` and `modules/deterministic` stay provider-free
   - id: deterministic_approval_boundary
     summary: model output may propose or repair but validation, scoring, promotion and rollback are deterministic
   - id: mutation_contract_ir_policy
@@ -65,30 +71,30 @@ files_changed:
   - specs/changes/CHG-002-live-loop-policy/change.toon
   - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
   - .agents/knowledge/questions/Q-007-canonical-ir-ordering.md
-  - core/src/main/java/com/dreamthought/saaa/core/FitnessObjective.java
-  - core/src/main/java/com/dreamthought/saaa/core/MutationBounds.java
-  - core/src/main/java/com/dreamthought/saaa/core/MutationContract.java
-  - core/src/main/java/com/dreamthought/saaa/core/MutationOperatorType.java
-  - core/src/main/java/com/dreamthought/saaa/core/MutationTarget.java
-  - core/src/main/java/com/dreamthought/saaa/core/ParentTrait.java
-  - core/src/main/java/com/dreamthought/saaa/core/SearchPosture.java
-  - application/src/main/java/com/dreamthought/saaa/application/AuthorityLanguage.java
-  - application/src/main/java/com/dreamthought/saaa/application/BehaviorCaseEvidence.java
-  - application/src/main/java/com/dreamthought/saaa/application/BoundedMutationValidator.java
-  - application/src/main/java/com/dreamthought/saaa/application/ConceptualCrossoverPolicy.java
-  - application/src/main/java/com/dreamthought/saaa/application/ConceptualCrossoverRequest.java
-  - application/src/main/java/com/dreamthought/saaa/application/MutationContractCanonicalizer.java
-  - application/src/main/java/com/dreamthought/saaa/application/MutationContractValidator.java
-  - application/src/main/java/com/dreamthought/saaa/application/MutationOperatorDefaults.java
-  - application/src/main/java/com/dreamthought/saaa/application/MutationOperatorPolicy.java
-  - application/src/main/java/com/dreamthought/saaa/application/PhenotypeEvidence.java
-  - application/src/main/java/com/dreamthought/saaa/application/PhenotypeFitnessScorer.java
-  - application/src/test/java/com/dreamthought/saaa/application/ConceptualCrossoverPolicyTest.java
-  - application/src/test/java/com/dreamthought/saaa/application/MutationContractCanonicalizerTest.java
-  - application/src/test/java/com/dreamthought/saaa/application/MutationContractValidatorTest.java
-  - application/src/test/java/com/dreamthought/saaa/application/MutationOperatorTypeTest.java
-  - application/src/test/java/com/dreamthought/saaa/application/PhenotypeFitnessScorerTest.java
-  - application/src/test/java/com/dreamthought/saaa/application/SearchPosturePolicyTest.java
+  - modules/domain/src/main/java/com/dreamthought/saaa/domain/FitnessObjective.java
+  - modules/domain/src/main/java/com/dreamthought/saaa/domain/MutationBounds.java
+  - modules/domain/src/main/java/com/dreamthought/saaa/domain/MutationContract.java
+  - modules/domain/src/main/java/com/dreamthought/saaa/domain/MutationOperatorType.java
+  - modules/domain/src/main/java/com/dreamthought/saaa/domain/MutationTarget.java
+  - modules/domain/src/main/java/com/dreamthought/saaa/domain/ParentTrait.java
+  - modules/domain/src/main/java/com/dreamthought/saaa/domain/SearchPosture.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/AuthorityLanguage.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/BehaviorCaseEvidence.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/BoundedMutationValidator.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/ConceptualCrossoverPolicy.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/ConceptualCrossoverRequest.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationContractCanonicalizer.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationContractValidator.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationOperatorDefaults.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationOperatorPolicy.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeEvidence.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorer.java
+  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/ConceptualCrossoverPolicyTest.java
+  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/MutationContractCanonicalizerTest.java
+  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/MutationContractValidatorTest.java
+  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/MutationOperatorTypeTest.java
+  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorerTest.java
+  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/SearchPosturePolicyTest.java
 
 tests_run:
   - 2026-07-28 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
@@ -97,6 +103,10 @@ tests_run:
   - 2026-07-28 `.agentic-template/bin/project component-test`: pass
   - 2026-07-28 `.agentic-template/bin/project check`: pass; repo contract, profile, handoff, knowledge, changes and boundaries all OK
   - 2026-07-28 `.agentic-template/bin/project ready`: READY PASS; 13 pass, 2 not applicable, 0 fail
+  - 2026-07-28 after package rename: test, component-test, integration-test, run, lint, check and ready all pass
+  - 2026-07-28 boundary probe after rename: injected a forbidden package reference into a domain file and confirmed `project lint` failed, then reverted
+  - 2026-07-28 after module restructure: 39 tests across unit, component and integration suites pass; run, lint, check and ready pass
+  - 2026-07-28 vacuous-pass probe: renamed `modules/domain` away and confirmed `project lint` failed with a missing-directory error, then restored
 
 fitness_functions:
   - unchanged: the LangChain4j boundary check still passes and no new fitness function was needed; core and application import only `java.*` and repository packages

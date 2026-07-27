@@ -33,9 +33,9 @@ result.
 CLI (picocli)
   |
   v
-Application use case: MutationEvaluationLoop
+Deterministic use case: MutationEvaluationLoop
   |
-  +--> core records and deterministic policies
+  +--> domain records and deterministic policies
   |
   +--> ports
         |-- MutationProposer          -> adapters/langchain4j
@@ -45,21 +45,23 @@ Application use case: MutationEvaluationLoop
         |-- BenchmarkRunner           -> benchmarks/JMH
 ```
 
-LangChain4j is intentionally isolated behind adapter ports. The core domain is
+LangChain4j is intentionally isolated behind adapter ports. The domain layer is
 plain Java and must not import model-provider libraries.
 
 ## Repository structure
 
+Layers are named for what they are allowed to know. Dependencies point inward:
+`cli` and `adapters` may reach `deterministic`, `deterministic` may reach
+`domain`, and `domain` may reach nothing. Gradle enforces this, so a violation
+is a compile error rather than a review comment.
+
 | Path | Purpose |
 |---|---|
-| `core/` | Plain Java records and deterministic domain types |
-| `application/` | Use-case orchestration and ports |
-| `adapters/langchain4j/` | Model access, typed AI services, tool calling and retrieval integration |
-| `adapters/git/` | Git worktree and commit isolation |
-| `adapters/sqlite/` | SQLite experiment metadata persistence |
-| `adapters/checks/` | Deterministic command execution for checks |
-| `benchmarks/` | JMH benchmarks and benchmark evidence adapters |
-| `cli/` | picocli command entrypoint |
+| `modules/domain/` | Plain Java records and value types; no dependencies at all |
+| `modules/deterministic/` | Validation, scoring, promotion and ports; nothing provider-aware or nondeterministic lives here |
+| `modules/adapters/` | Model access, Git worktrees, SQLite persistence and command execution, one package each |
+| `modules/benchmarks/` | JMH benchmarks and benchmark evidence adapters |
+| `modules/cli/` | picocli command entrypoint |
 | `specs/` | Capability and change specs |
 | `docs/` | Architecture, validation, decisions, runbooks and wiki |
 
