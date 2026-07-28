@@ -108,7 +108,42 @@ All five derivations are deterministic and evidence-only.
 | `reliability` | 1.0 when no check timed out or errored, otherwise 0.0 |
 | `cost_latency_budget` | the lowest `budget / measured` across all benchmarks, clamped to the unit interval, so being twice the budget scores 0.5 and being under budget scores 1.0 |
 | `behavioral_safety` | fixed at 1.0 |
-| `parsimony` | `1 - (linesChanged / bounds.maxLinesChanged)`, clamped to the unit interval, from `git diff --numstat` against the candidate's parent |
+| `parsimony` | `1 - (linesChanged / maxLinesChanged)`, clamped to the unit interval |
+
+### Where the diff size comes from
+
+`parsimony` needs the realized diff size, which only Git knows. The scorer must
+not shell out to Git: that would put infrastructure inside the deterministic
+layer. So realization size arrives as evidence, through a port:
+
+```java
+public interface RealizationInspector {
+    RealizationSummary inspect(Candidate candidate);
+}
+
+public record RealizationSummary(int filesChanged, int linesChanged) {}
+```
+
+`GitRealizationInspector` in the adapters layer runs `git diff --numstat` against
+the candidate commit's parent. `PhenotypeBridgeScorer` takes the inspector as a
+collaborator, so the deterministic layer asks a question and never learns how it
+is answered.
+
+The remaining derivation inputs are configuration, bundled so the scorer keeps
+one constructor argument for policy:
+
+```java
+public record ScoringConfig(
+        Set<String> behaviorCaseNames,
+        int maxLinesChanged,
+        Map<String, Double> benchmarkBudgets
+) {}
+```
+
+`maxLinesChanged` is supplied at wiring time from the operator defaults, because
+this slice still runs the transitional `Mutation` stack and no `MutationContract`
+flows through the loop. That is a known seam, not an oversight; it closes when
+`CHG-002` task `T4b` threads the contract through.
 
 `parsimony` is the one that makes candidates genuinely differ, because it reads
 the realized diff. A mutation that changes eighty lines to achieve what another
@@ -204,12 +239,31 @@ composition concern, not a deterministic policy.
 
 ```text
 fixtures/toy-workflow/
-  workflow.txt              the artifact being evolved
-  check.sh                  a real command, real exit code
-  .saaa/evolve.toon         which checks are behaviour cases, benchmark budgets
-  .saaa/fixture-mutation.toon   the canned mutation for the fixture profile
-  journal.md                written by the run
+  workflow.txt                 the artifact being evolved
+  check.sh                     a real command, real exit code
+  .saaa/fixture-mutation.txt   the canned mutation for the fixture profile
+  journal.md                   written by the run
 ```
+
+### Why the fixture mutation is not TOON
+
+The repository standard is TOON for reviewable contracts, and there is no TOON
+reader in Java yet — the existing TOON files are read by Python tooling. Writing
+one is a slice of its own and is not what this change is about.
+
+So `.saaa/fixture-mutation.txt` uses a deliberately trivial format: the first
+line is the summary, everything after it is the proposed new content of
+`workflow.txt`.
+
+```text
+tighten the publish guard to reject empty drafts
+<new contents of workflow.txt from here down>
+```
+
+This is a recorded deviation from the structured-data rule, scoped to the
+fixture proposer, and it disappears when `CHG-002` task `T3d` adds the TOON
+envelope reader. Scoring configuration is passed as CLI flags for the same
+reason, rather than inventing a second unparsed file format.
 
 The target folder must sit inside a Git repository, because candidate isolation
 uses `git worktree`. For the shipped fixture that repository is this one, so the
