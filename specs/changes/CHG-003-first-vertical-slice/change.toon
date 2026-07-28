@@ -1,0 +1,117 @@
+change:
+  id: CHG-003
+  title: First runnable vertical slice
+  status: proposed
+  intent: Assemble the existing ports and adapters into one command a person can run end to end, from proposal to promote-or-discard decision, and make the mutation actually change something so selection pressure is real.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - ARCH-001
+    - CON-001
+    - RISK-001
+    - RISK-002
+    - Q-004
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: The system runs one complete mutation evaluation from a single command, applies the proposed mutation to the candidate worktree, scores the observed result deterministically, and records the journey in a form a human can read.
+    scenarios:
+      - id: S1
+        when: a candidate worktree is created for an accepted mutation
+        then: the mutation is realized into the target file inside that worktree before the candidate commit
+        and:
+          - the candidate commit contains the realized change, not only a description of it
+          - two different mutations produce two different candidate commits
+      - id: S2
+        when: a person runs the evolve command against a target folder with the fixture profile
+        then: the loop proposes, validates, creates a candidate, runs checks, scores and reports promote or discard without any model credentials
+        and:
+          - the command exits non-zero only when the run itself fails, not when a candidate is discarded
+      - id: S3
+        when: the loop finishes collecting check and benchmark evidence
+        then: a deterministic bridge derives phenotype evidence from that evidence and delegates to the hard-gated phenotype scorer
+        and:
+          - required behavior cases hard-gate promotion before any weighted objective is considered
+          - parsimony is derived from the realized diff size against the contract bounds, so a tighter mutation scores higher
+      - id: S4
+        when: the loop makes progress through its stages
+        then: it reports each stage through a port rather than writing to standard output
+        and:
+          - no deterministic layer class writes to standard output
+          - a console reporter and a journal reporter both consume the same events
+      - id: S5
+        when: a run completes against a target folder
+        then: a human-readable entry is appended to journal.md in that folder describing what was tried, what was measured and what was decided
+        and:
+          - the journal records the candidate commit so every entry is traceable to Git
+          - the journal is a narrative view and is never the source of truth for a decision
+      - id: S6
+        when: a proposer profile is selected by name
+        then: the named proposer is constructed from a registry and an unknown name fails with the list of known profiles
+        and:
+          - adding a provider later requires a new registry entry, not a change to the loop
+
+acceptance:
+  - scenario: S1
+    test_id: adapters/GitCandidateWorkspaceIntegrationTest.realizesMutationIntoCandidateCommit
+    layer: component-integration
+  - scenario: S2
+    test_id: cli/EvolveCommandAcceptanceTest.runsOneGenerationWithFixtureProfileAndReportsADecision
+    layer: acceptance
+  - scenario: S3
+    test_id: deterministic/PhenotypeBridgeScorerTest.derivesPhenotypeEvidenceAndHardGatesBeforeWeighting
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/PhenotypeBridgeScorerTest.scoresParsimonyFromRealizedDiffSizeAgainstBounds
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/MutationEvaluationLoopReportingTest.reportsEveryStageThroughThePort
+    layer: unit
+  - scenario: S5
+    test_id: adapters/JournalReporterTest.appendsATraceableEntryForOneRun
+    layer: unit
+  - scenario: S6
+    test_id: cli/ProposerProfileRegistryTest.resolvesKnownProfileAndListsKnownNamesOnFailure
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: add the MutationRealizer port and realize mutations into the candidate worktree before commit
+    status: pending
+    note: without this every candidate is byte-identical to HEAD and no candidate can outscore another
+  - id: T2
+    slice: add the EvolutionReporter port and make the loop report instead of print
+    status: pending
+  - id: T3
+    slice: add PhenotypeBridgeScorer implementing the FitnessScorer port over PhenotypeFitnessScorer
+    status: pending
+  - id: T4
+    slice: add the fixture proposer and the profile registry seam
+    status: pending
+  - id: T5
+    slice: add the journal reporter and decision sink writing journal.md into the target folder
+    status: pending
+  - id: T6
+    slice: add the evolve CLI command wiring the loop together
+    status: pending
+  - id: T7
+    slice: add the toy-workflow fixture folder with a real check command
+    status: pending
+
+non_goals:
+  - evaluating more than one candidate per generation, which is the next slice and the point at which this project starts to differ from a capable agent with tests
+  - live model providers, which follow the population slice because they matter most as a population dimension rather than as vendor breadth
+  - HTML report rendering and graphs
+  - model-authored narration of the journal
+  - journal compaction
+  - promoted Git refs, which remain CHG-002 task T5
+  - multiple generations in one run beyond a simple loop count
+  - AST-aware mutation; realization stays whole-file text replacement
+
+risks:
+  - the fixture proposer is deterministic by design, so it cannot demonstrate that a real model produces useful mutations; it only proves the pipe
+  - deriving objective scores from check and benchmark evidence is new policy, and the first derivation will be crude
+  - behavioral_safety has no independent evidence source in this slice and is fixed at 1.0, leaving one of five objectives inert
+  - RISK-002 is unchanged; the scorer still never sees the contract, so declared required evidence remains unenforced
+  - journal.md is written into the user's target folder, so the command writes outside its own repository
