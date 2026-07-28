@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":deterministic"))
+    implementation(project(":adapters"))
     implementation(libs.picocli)
 }
 
