@@ -19,6 +19,7 @@ public final class MutationEvaluationLoop {
     private final FitnessScorer fitnessScorer;
     private final ExperimentMetadataStore metadataStore;
     private final CandidateDecisionSink decisionSink;
+    private final EvolutionReporter reporter;
     private final Clock clock;
 
     public MutationEvaluationLoop(
@@ -40,6 +41,7 @@ public final class MutationEvaluationLoop {
                 fitnessScorer,
                 metadataStore,
                 decisionSink,
+                EvolutionReporter.NO_OP,
                 Clock.systemUTC()
         );
     }
@@ -55,6 +57,32 @@ public final class MutationEvaluationLoop {
             CandidateDecisionSink decisionSink,
             Clock clock
     ) {
+        this(
+                mutationProposer,
+                mutationValidator,
+                candidateWorkspace,
+                checkRunner,
+                benchmarkRunner,
+                fitnessScorer,
+                metadataStore,
+                decisionSink,
+                EvolutionReporter.NO_OP,
+                clock
+        );
+    }
+
+    public MutationEvaluationLoop(
+            MutationProposer mutationProposer,
+            MutationValidator mutationValidator,
+            CandidateWorkspace candidateWorkspace,
+            CheckRunner checkRunner,
+            BenchmarkRunner benchmarkRunner,
+            FitnessScorer fitnessScorer,
+            ExperimentMetadataStore metadataStore,
+            CandidateDecisionSink decisionSink,
+            EvolutionReporter reporter,
+            Clock clock
+    ) {
         this.mutationProposer = Objects.requireNonNull(mutationProposer, "mutationProposer");
         this.mutationValidator = Objects.requireNonNull(mutationValidator, "mutationValidator");
         this.candidateWorkspace = Objects.requireNonNull(candidateWorkspace, "candidateWorkspace");
@@ -63,6 +91,7 @@ public final class MutationEvaluationLoop {
         this.fitnessScorer = Objects.requireNonNull(fitnessScorer, "fitnessScorer");
         this.metadataStore = Objects.requireNonNull(metadataStore, "metadataStore");
         this.decisionSink = Objects.requireNonNull(decisionSink, "decisionSink");
+        this.reporter = Objects.requireNonNull(reporter, "reporter");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -70,6 +99,7 @@ public final class MutationEvaluationLoop {
         Objects.requireNonNull(baseline, "baseline");
 
         Mutation mutation = Objects.requireNonNull(mutationProposer.proposeFor(baseline), "mutation");
+        reporter.proposed(mutation);
         ValidationResult validation = Objects.requireNonNull(
                 mutationValidator.validate(baseline, mutation),
                 "validation"
@@ -85,17 +115,20 @@ public final class MutationEvaluationLoop {
                 "candidate"
         );
         metadataStore.recordCandidate(candidate);
+        reporter.candidateCreated(candidate);
 
         EvaluationEvidence evidence = new EvaluationEvidence(
                 checkRunner.runChecks(candidate),
                 benchmarkRunner.runBenchmarks(candidate),
                 Instant.now(clock)
         );
+        reporter.evidenceCollected(evidence);
         FitnessResult result = Objects.requireNonNull(fitnessScorer.score(candidate, evidence), "result");
         if (!result.candidate().equals(candidate)) {
             throw new IllegalStateException("fitness result candidate does not match evaluated candidate");
         }
         metadataStore.recordFitness(result);
+        reporter.scored(result);
 
         switch (result.decision()) {
             case PROMOTE -> decisionSink.promote(candidate, result);
