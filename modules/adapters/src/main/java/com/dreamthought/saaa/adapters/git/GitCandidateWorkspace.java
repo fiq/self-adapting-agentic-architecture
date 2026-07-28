@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.adapters.git;
 
 import com.dreamthought.saaa.deterministic.CandidateWorkspace;
+import com.dreamthought.saaa.deterministic.MutationRealizer;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.WorkflowGraph;
@@ -20,6 +21,7 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
 
     private final Path repositoryRoot;
     private final Path worktreesRoot;
+    private final MutationRealizer realizer;
 
     public GitCandidateWorkspace() {
         this(Path.of(".").toAbsolutePath().normalize());
@@ -30,8 +32,13 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
     }
 
     public GitCandidateWorkspace(Path repositoryRoot, Path worktreesRoot) {
+        this(repositoryRoot, worktreesRoot, (worktree, baseline, mutation) -> { });
+    }
+
+    public GitCandidateWorkspace(Path repositoryRoot, Path worktreesRoot, MutationRealizer realizer) {
         this.repositoryRoot = Objects.requireNonNull(repositoryRoot, "repositoryRoot").toAbsolutePath().normalize();
         this.worktreesRoot = Objects.requireNonNull(worktreesRoot, "worktreesRoot").toAbsolutePath().normalize();
+        this.realizer = Objects.requireNonNull(realizer, "realizer");
     }
 
     @Override
@@ -60,8 +67,9 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
         createDirectories(candidateFile.getParent());
         writeString(candidateFile, candidateDocument(candidateId, branchName, baseline, mutation));
 
-        String relativeCandidateFile = worktreePath.relativize(candidateFile).toString();
-        git(worktreePath, "add", relativeCandidateFile).requireSuccess("stage candidate file");
+        realizer.realize(worktreePath, baseline, mutation);
+
+        git(worktreePath, "add", "-A").requireSuccess("stage candidate changes");
         git(
                 worktreePath,
                 "-c",
