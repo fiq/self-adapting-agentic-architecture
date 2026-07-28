@@ -1441,12 +1441,59 @@ public final class JournalDecisionSink implements CandidateDecisionSink {
 }
 ```
 
-- [ ] **Step 5: Run tests and lint**
+- [ ] **Step 5: Test the decision sink**
+
+The `decisions()` accessor needs a consumer or it is dead public surface. Add to
+`modules/adapters/src/test/java/com/dreamthought/saaa/adapters/journal/JournalDecisionSinkTest.java`:
+
+```java
+package com.dreamthought.saaa.adapters.journal;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.dreamthought.saaa.domain.Candidate;
+import com.dreamthought.saaa.domain.EvaluationEvidence;
+import com.dreamthought.saaa.domain.FitnessDecision;
+import com.dreamthought.saaa.domain.FitnessResult;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+
+final class JournalDecisionSinkTest {
+    private static final Candidate CANDIDATE =
+            new Candidate("cand-1", "MUT-1", "candidate/toy-MUT-1", Path.of("/tmp/wt"), "abc1234");
+
+    @Test
+    void recordsBothOutcomesInOrder() {
+        var sink = new JournalDecisionSink();
+
+        sink.promote(CANDIDATE, result(FitnessDecision.PROMOTE, 0.87));
+        sink.discard(CANDIDATE, result(FitnessDecision.DISCARD, 0.10));
+
+        assertThat(sink.decisions()).containsExactly(
+                "PROMOTE cand-1 0.87",
+                "DISCARD cand-1 0.1");
+    }
+
+    private static FitnessResult result(FitnessDecision decision, double score) {
+        var evidence = new EvaluationEvidence(List.of(), List.of(), Instant.parse("2026-07-28T00:00:00Z"));
+        return new FitnessResult(CANDIDATE, evidence, Map.of(), score, decision);
+    }
+}
+```
+
+Note `0.1` not `0.10` — `Double.toString(0.10)` is `"0.1"`. Run the test and match
+the implementation's string format to whatever it actually produces rather than
+guessing; if the format differs, fix the assertion, not the production code.
+
+- [ ] **Step 6: Run tests and lint**
 
 Run: `.agentic-template/bin/project test && .agentic-template/bin/project lint`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add modules/adapters/src/main/java/com/dreamthought/saaa/adapters/journal/ \
