@@ -1,0 +1,3 @@
+enforce the draft check before publishing
+publish-policy: allow
+draft-check: enforce
