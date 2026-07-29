@@ -16,9 +16,19 @@ Common commands:
 .agentic-template/bin/project component-test
 ```
 
-`component-test` is the first failing outside-in test for `CHG-001`. Keep
-LangChain4j behind the `adapters/langchain4j` package and keep deterministic decisions out
-of model authority.
+`component-test` runs the outside-in acceptance tests for the mutation and
+fitness loop (`CHG-001`) and the `evolve` CLI command (`CHG-003`). Keep
+LangChain4j behind the `adapters/langchain4j` package and keep deterministic
+decisions out of model authority.
+
+The `evolve` command runs one mutation evaluation end to end with no model
+credentials using the `fixture` proposer profile against a target folder inside
+a Git repository; see the README "Evolve a workflow" section.
+
+Each `--behaviour-case <name>` is verified by `<name>.sh` in the target folder,
+and every declared case must pass before promotion. Declaring a case without
+wiring its check would let the required-behaviour hard gate pass without the
+evidence it names, so the mapping is total by construction.
 
 ## Tool-unavailable Integration Fallback
 

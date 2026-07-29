@@ -34,9 +34,17 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         Objects.requireNonNull(candidate, "candidate");
         Objects.requireNonNull(evidence, "evidence");
 
-        List<BehaviorCaseEvidence> behaviorCases = evidence.checks().stream()
+        Map<String, BehaviorCaseEvidence> observed = new LinkedHashMap<>();
+        evidence.checks().stream()
                 .filter(check -> config.behaviorCaseNames().contains(check.name()))
-                .map(PhenotypeBridgeScorer::toBehaviorCase)
+                .forEach(check -> observed.put(check.name(), toBehaviorCase(check)));
+
+        // Fail closed on any declared case that produced no evidence. Filtering alone would drop it
+        // silently and let the gate pass on the cases that did report, which is the same weakness as
+        // a declared-but-unenforced contract gate: the required behaviour was never shown to hold.
+        List<BehaviorCaseEvidence> behaviorCases = config.behaviorCaseNames().stream()
+                .map(name -> observed.getOrDefault(
+                        name, BehaviorCaseEvidence.failed(name, "no check evidence was produced for this case")))
                 .toList();
 
         RealizationSummary realization = Objects.requireNonNull(

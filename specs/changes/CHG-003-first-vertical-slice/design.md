@@ -240,10 +240,18 @@ composition concern, not a deterministic policy.
 ```text
 fixtures/toy-workflow/
   workflow.txt                 the artifact being evolved
-  check.sh                     a real command, real exit code
+  workflow-check.sh            a real command, real exit code
   .saaa/fixture-mutation.txt   the canned mutation for the fixture profile
   journal.md                   written by the run
 ```
+
+One script per declared behaviour case, named after the case: `--behaviour-case
+workflow-check` runs `workflow-check.sh`. The mapping is total, so a declared
+case can never reach the required-behaviour hard gate without check evidence of
+its own. The command is always emitted with a `./` prefix, because a program
+name without a path separator is resolved against `PATH` rather than the
+candidate worktree, which would let something outside the candidate satisfy a
+required behaviour.
 
 ### Why the fixture mutation is not TOON
 

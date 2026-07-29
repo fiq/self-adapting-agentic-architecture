@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.cli;
 
 import com.dreamthought.saaa.adapters.checks.CommandCheckRunner;
+import com.dreamthought.saaa.adapters.checks.CommandCheckRunner.CommandCheck;
 import com.dreamthought.saaa.adapters.git.GitCandidateWorkspace;
 import com.dreamthought.saaa.adapters.git.GitRealizationInspector;
 import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
@@ -20,7 +21,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,6 +66,8 @@ public final class EvolveCommand implements Callable<Integer> {
         if (!Files.isRegularFile(workflowPath)) {
             throw new IllegalArgumentException("workflow file not found: " + workflowPath);
         }
+        var checks = BehaviourCaseChecks.forCases(behaviourCases, gitRoot.relativize(folder));
+        requireRunnableCheckScripts(gitRoot, checks);
 
         String relativeWorkflow = gitRoot.relativize(workflowPath).toString();
         var baseline = new WorkflowGraph(folder.getFileName().toString(), "baseline", readString(workflowPath));
@@ -81,14 +83,7 @@ public final class EvolveCommand implements Callable<Integer> {
                 new BoundedMutationValidator(),
                 new GitCandidateWorkspace(
                         gitRoot, gitRoot.resolve(".worktrees"), new TextMutationRealizer(relativeWorkflow)),
-                new CommandCheckRunner(List.of(new CommandCheckRunner.CommandCheck(
-                        behaviourCases.get(0),
-                        // Relative to gitRoot: CommandCheckRunner execs this with the candidate
-                        // worktree as its working directory, so a relative path resolves inside the
-                        // candidate and reads the realized file. An absolute path here would resolve
-                        // against the coordination checkout instead and silently score the wrong content.
-                        List.of(gitRoot.relativize(folder).resolve("check.sh").toString()),
-                        Duration.ofMinutes(1)))),
+                new CommandCheckRunner(checks),
                 candidate -> List.of(),
                 new PhenotypeBridgeScorer(
                         new GitRealizationInspector(),
@@ -102,6 +97,29 @@ public final class EvolveCommand implements Callable<Integer> {
         out.printf("  journal    %s%n", folder.resolve("journal.md"));
         out.flush();
         return 0;
+    }
+
+    /**
+     * A check that cannot start is reported as a failed check, which reads identically to a
+     * candidate that genuinely broke the behaviour. Refusing to run at all keeps a typo or a
+     * missing script from being recorded as evidence about the mutation.
+     *
+     * <p>Each command is resolved against the coordination checkout rather than the candidate
+     * worktree, which does not exist yet. The candidate is created from {@code HEAD}, so a script
+     * present here but uncommitted still will not be there when the check runs.
+     */
+    private static void requireRunnableCheckScripts(Path gitRoot, List<CommandCheck> checks) {
+        for (CommandCheck check : checks) {
+            Path script = gitRoot.resolve(check.command().get(0)).normalize();
+            if (!Files.isRegularFile(script)) {
+                throw new IllegalArgumentException(
+                        "behaviour case " + check.name() + " has no script: " + script);
+            }
+            if (!Files.isExecutable(script)) {
+                throw new IllegalArgumentException(
+                        "behaviour case " + check.name() + " has a script that is not executable: " + script);
+            }
+        }
     }
 
     private static Path findGitRoot(Path folder) {

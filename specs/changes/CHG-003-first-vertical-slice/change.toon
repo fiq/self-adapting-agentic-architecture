@@ -1,7 +1,7 @@
 change:
   id: CHG-003
   title: First runnable vertical slice
-  status: proposed
+  status: delivered
   intent: Assemble the existing ports and adapters into one command a person can run end to end, from proposal to promote-or-discard decision, and make the mutation actually change something so selection pressure is real.
   audience_level: developer
   relates_to:
@@ -51,6 +51,13 @@ deltas:
         then: the named proposer is constructed from a registry and an unknown name fails with the list of known profiles
         and:
           - adding a provider later requires a new registry entry, not a change to the loop
+      - id: S7
+        when: more than one behaviour case is declared on the evolve command
+        then: every declared case is verified by its own named script and all of them must pass before promotion
+        and:
+          - a candidate is discarded when any declared case fails, not only when the first one fails
+          - a declared case can never be gated as passing without check evidence of its own
+          - a case name that is not a single safe file-name segment is rejected rather than sanitized, so the gate name in the journal always matches the script that ran
 
 acceptance:
   - scenario: S1
@@ -74,30 +81,57 @@ acceptance:
   - scenario: S6
     test_id: cli/ProposerProfileRegistryTest.resolvesKnownProfileAndListsKnownNamesOnFailure
     layer: unit
+  - scenario: S7
+    test_id: cli/EvolveCommandAcceptanceTest.runsEveryDeclaredBehaviourCaseNotOnlyTheFirst
+    layer: acceptance
+  - scenario: S7
+    test_id: cli/EvolveCommandAcceptanceTest.discardsWhenALaterDeclaredBehaviourCaseFails
+    layer: acceptance
+  - scenario: S7
+    test_id: cli/BehaviourCaseChecksTest.mapsEveryCaseNameToItsOwnScriptRelativeToTheGitRoot
+    layer: unit
+  - scenario: S7
+    test_id: cli/BehaviourCaseChecksTest.rejectsCaseNamesThatWouldEscapeTheTargetFolder
+    layer: unit
+  - scenario: S7
+    test_id: cli/BehaviourCaseChecksTest.rejectsDuplicateCaseNamesBecauseTheGateWouldCountOneCaseTwice
+    layer: unit
 
 tasks:
   - id: T1
     slice: add the MutationRealizer port and realize mutations into the candidate worktree before commit
-    status: pending
+    status: completed
     note: without this every candidate is byte-identical to HEAD and no candidate can outscore another
   - id: T2
     slice: add the EvolutionReporter port and make the loop report instead of print
-    status: pending
+    status: completed
   - id: T3
     slice: add PhenotypeBridgeScorer implementing the FitnessScorer port over PhenotypeFitnessScorer
-    status: pending
+    status: completed
   - id: T4
     slice: add the fixture proposer and the profile registry seam
-    status: pending
+    status: completed
   - id: T5
     slice: add the journal reporter and decision sink writing journal.md into the target folder
-    status: pending
+    status: completed
   - id: T6
     slice: add the evolve CLI command wiring the loop together
-    status: pending
+    status: completed
   - id: T7
     slice: add the toy-workflow fixture folder with a real check command
+    status: completed
+  - id: T8
+    slice: run a check per declared behaviour case instead of only the first, mapping each case to its own named script
+    status: completed
+    note: the command declared every case name to the scorer but wired only behaviourCases.get(0) into the check runner, so extra declared cases were never verified while the required-behaviour-cases hard gate still reported pass; found in lead review of the CHG-003 branch before merge
+  - id: T9
+    slice: surface check evidence summaries through the reporters so a failed behaviour case shows why it failed
     status: pending
+    note: reporters print only name and status, so a script that exits non-zero for its own reasons is indistinguishable from a candidate that broke the behaviour; the missing and non-executable script cases are already refused before the run, so what remains is diagnostics rather than a gate weakness
+  - id: T10
+    slice: hard-gate a non-empty realization so a candidate that changed nothing cannot be promoted
+    status: pending
+    note: excluding .saaa bookkeeping from the measured diff means a realization that wrote nothing now measures zero lines and scores parsimony 1.0; no gate requires the realization to be non-empty, and a no-op candidate was already promotable before that exclusion because parsimony carries 0.10 against 0.20 of headroom below the threshold
 
 non_goals:
   - evaluating more than one candidate per generation, which is the next slice and the point at which this project starts to differ from a capable agent with tests
@@ -115,3 +149,6 @@ risks:
   - behavioral_safety has no independent evidence source in this slice and is fixed at 1.0, leaving one of five objectives inert
   - RISK-002 is unchanged; the scorer still never sees the contract, so declared required evidence remains unenforced
   - journal.md is written into the user's target folder, so the command writes outside its own repository
+  - RISK-003 records that candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until .worktrees/candidate-* is removed
+  - behaviour case names double as script file names, so a case name is constrained to a safe file-name segment and a case cannot be verified by a script named anything else
+  - the per-case check timeout is fixed at one minute and multiplies by the number of declared cases
