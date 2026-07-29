@@ -13,24 +13,13 @@ final class EvolveCommandAcceptanceTest {
     void runsOneGenerationWithFixtureProfileAndReportsADecision(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
         Path target = repo.resolve("toy");
-        Files.createDirectories(target.resolve(".saaa"));
-
-        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
-        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
-                "enforce the draft check\ndraft-check: enforce\n");
-        Path check = target.resolve("check.sh");
-        Files.writeString(check, """
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
                 #!/usr/bin/env bash
                 set -euo pipefail
                 grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
                 """);
-        check.toFile().setExecutable(true);
-
-        git(repo, "init", "--initial-branch=main");
-        git(repo, "config", "user.name", "Test");
-        git(repo, "config", "user.email", "test@example.invalid");
-        git(repo, "add", "-A");
-        git(repo, "commit", "-m", "baseline");
+        initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
                 "evolve", target.toString(),
@@ -42,6 +31,136 @@ final class EvolveCommandAcceptanceTest {
         assertThat(Files.readString(target.resolve("journal.md")))
                 .contains("enforce the draft check")
                 .contains("PROMOTE");
+    }
+
+    @Test
+    void runsEveryDeclaredBehaviourCaseNotOnlyTheFirst(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        writeCheck(target, "second-check", """
+                #!/usr/bin/env bash
+                exit 0
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", target.toString(),
+                "--behaviour-case", "workflow-check",
+                "--behaviour-case", "second-check");
+
+        assertThat(exitCode).isZero();
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .contains("workflow-check PASSED")
+                .contains("second-check PASSED")
+                .contains("PROMOTE");
+    }
+
+    /**
+     * The gate must not pass on the strength of the first case alone. Wiring only
+     * behaviourCases.get(0) into the check runner while declaring every name to the scorer would
+     * leave this candidate promoted with a declared required behaviour never verified.
+     */
+    @Test
+    void discardsWhenALaterDeclaredBehaviourCaseFails(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        writeCheck(target, "second-check", """
+                #!/usr/bin/env bash
+                echo "second behaviour case is not satisfied"
+                exit 1
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", target.toString(),
+                "--behaviour-case", "workflow-check",
+                "--behaviour-case", "second-check");
+
+        assertThat(exitCode).isZero();
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .contains("workflow-check PASSED")
+                .contains("second-check FAILED")
+                .contains("DISCARD");
+    }
+
+    /**
+     * The relative check directory is empty when the target folder is the Git root. A command with
+     * no path separator would be resolved against PATH instead of the candidate worktree, so this
+     * run would score whatever PATH happened to provide, or fail every candidate when it provided
+     * nothing.
+     */
+    @Test
+    void runsTheCheckFromTheCandidateWhenTheTargetFolderIsTheGitRoot(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        writeFixture(repo);
+        writeCheck(repo, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", repo.toString(),
+                "--behaviour-case", "workflow-check");
+
+        assertThat(exitCode).isZero();
+        assertThat(Files.readString(repo.resolve("journal.md")))
+                .contains("workflow-check PASSED")
+                .contains("PROMOTE");
+    }
+
+    @Test
+    void failsFastWhenADeclaredBehaviourCaseHasNoScript(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                exit 0
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", target.toString(),
+                "--behaviour-case", "workflow-check",
+                "--behaviour-case", "absent-check");
+
+        assertThat(exitCode).isNotZero();
+        assertThat(Files.exists(target.resolve("journal.md"))).isFalse();
+    }
+
+    private static void writeFixture(Path target) throws Exception {
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
+                "enforce the draft check\ndraft-check: enforce\n");
+    }
+
+    private static void writeCheck(Path target, String caseName, String script) throws Exception {
+        Path check = target.resolve(caseName + ".sh");
+        Files.writeString(check, script);
+        check.toFile().setExecutable(true);
+    }
+
+    private static void initRepo(Path repo) throws Exception {
+        git(repo, "init", "--initial-branch=main");
+        git(repo, "config", "user.name", "Test");
+        git(repo, "config", "user.email", "test@example.invalid");
+        git(repo, "add", "-A");
+        git(repo, "commit", "-m", "baseline");
     }
 
     private static void git(Path dir, String... args) throws Exception {

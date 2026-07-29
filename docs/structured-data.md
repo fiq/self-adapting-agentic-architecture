@@ -30,3 +30,11 @@ Use for logic that answers "given these facts, what should happen?"
 - Keep template control files as TOON unless project tooling is specialised.
 - Use one semantic format per artifact.
 - Record deliberate deviations in `PROJECT_PROFILE.toon.decisions`.
+
+## Recorded deviations
+
+- `.saaa/fixture-mutation.txt` (the fixture proposer's canned mutation) is plain
+  text, not TOON. The format is deliberately trivial — first line is the summary,
+  the remainder is the proposed new file content — because there is no TOON
+  reader in Java yet. This deviation is scoped to the fixture proposer and
+  retires when `CHG-002` task `T3d` adds the TOON envelope reader.

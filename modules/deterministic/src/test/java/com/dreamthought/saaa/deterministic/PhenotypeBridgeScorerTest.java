@@ -49,6 +49,28 @@ final class PhenotypeBridgeScorerTest {
         assertThat(result.objectives()).containsEntry("task_success", 1.0);
     }
 
+    /**
+     * The bridge filters evidence down to the declared behaviour case names, so a declared case
+     * that produced no evidence at all would simply vanish and the gate would pass on the remaining
+     * cases. The gate must fail closed instead: a required behaviour with no evidence has not been
+     * shown to hold, whatever the caller wired up.
+     */
+    @Test
+    void failsTheGateWhenADeclaredBehaviourCaseProducedNoEvidence() {
+        var scorer = new PhenotypeBridgeScorer(
+                candidate -> new RealizationSummary(1, 8),
+                new ScoringConfig(Set.of("publish-guard", "never-ran"), 80, Map.of()));
+
+        var result = scorer.score(CANDIDATE, new EvaluationEvidence(
+                List.of(passed("build", "ok"), passed("publish-guard", "ok")),
+                List.of(),
+                Instant.parse("2026-07-28T00:00:00Z")));
+
+        assertThat(result.decision()).isEqualTo(DISCARD);
+        assertThat(result.objectives())
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE, 0.0);
+    }
+
     @Test
     void scoresParsimonyFromRealizedDiffSizeAgainstBounds() {
         var tight = scorer(new RealizationSummary(1, 8), 80);

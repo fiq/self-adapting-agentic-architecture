@@ -10,9 +10,15 @@ public final class GitRealizationInspector implements RealizationInspector {
     @Override
     public RealizationSummary inspect(Candidate candidate) {
         Objects.requireNonNull(candidate, "candidate");
+        // GitCandidateWorkspace commits .saaa/candidates/<id>.toon alongside the realized mutation
+        // in the same commit; exclude that bookkeeping so only the real change is measured.
+        // Both pathspecs are anchored at the repository root with :/ and (top,...) rather than left
+        // relative to the working directory, so the measurement does not change if this ever runs
+        // from a subdirectory of the candidate worktree.
         String output = GitCommand.run(
                         candidate.worktreePath(),
-                        "diff", "--numstat", candidate.commitSha() + "^", candidate.commitSha())
+                        "diff", "--numstat", candidate.commitSha() + "^", candidate.commitSha(),
+                        "--", ":/", ":(top,exclude).saaa")
                 .requireSuccess("inspect candidate " + candidate.id());
 
         int files = 0;
