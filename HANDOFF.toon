@@ -3,8 +3,10 @@ session:
   status: chg_003_first_vertical_slice_reviewed_and_committed_on_branch_awaiting_merge_authorization
   branch: feat/first-vertical-slice
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: see git log; the CHG-003 review-fix commit is the branch tip
+  head: 32c0f31
+  head_note: 32c0f31 is the reviewed `CHG-003` behaviour-case fix; this handoff record is committed directly on top of it, so the branch tip is one commit ahead
   dirty: false
+  pushed: false
 
 goal:
   current: deliver the first runnable vertical slice (`CHG-003`) so `saaa evolve <folder>` runs one complete mutation evaluation end to end with no model credentials
