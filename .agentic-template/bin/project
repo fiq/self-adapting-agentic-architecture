@@ -24,7 +24,7 @@ COMMANDS = {
     "test": [[str(BIN / "gradle-command"), "test"]],
     "lint": [[str(BIN / "check-architecture-boundaries")]],
     "run": [[str(BIN / "gradle-command"), ":cli:run"]],
-    "component-test": [[str(BIN / "gradle-command"), ":deterministic:acceptanceTest"]],
+    "component-test": [[str(BIN / "gradle-command"), ":deterministic:acceptanceTest", ":cli:acceptanceTest"]],
     "contract-test": [[str(BIN / "project-not-applicable"), "contract-test", "No external API, event or file contract is stable in the approval slice; structured specs are checked by check-changes."]],
     "integration-test": [[str(BIN / "gradle-command"), ":adapters:integrationTest", ":benchmarks:integrationTest"]],
     "e2e-test": [[str(BIN / "project-not-applicable"), "e2e-test", "The CLI command contract is not stable before the first implementation slice."]],

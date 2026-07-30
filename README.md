@@ -114,6 +114,48 @@ have integration coverage; the LangChain4j mutation proposer adapter has
 provider-neutral typed-service coverage. Live provider selection and credential
 configuration remain deferred.
 
+### Evolve a workflow
+
+The `evolve` command runs one complete mutation evaluation end to end — propose,
+realize into a Git candidate, check, score, decide, journal — with no model
+credentials:
+
+```sh
+.agentic-template/bin/gradle-command :cli:installDist
+./modules/cli/build/install/cli/bin/cli evolve fixtures/toy-workflow \
+    --behaviour-case workflow-check --max-lines 80
+cat fixtures/toy-workflow/journal.md
+```
+
+| Option | Default | Purpose |
+|---|---|---|
+| `--profile` | `fixture` | Proposer profile name; `fixture` needs no credentials |
+| `--workflow-file` | `workflow.txt` | File inside the target folder being evolved |
+| `--behaviour-case` | required | Check name that hard-gates promotion; repeatable |
+| `--max-lines` | `80` | Change budget parsimony is scored against |
+
+Each `--behaviour-case <name>` runs `<name>.sh` in the target folder, with a
+one-minute timeout per case, and every declared case must pass before promotion,
+so the gate cannot pass on the strength of the first case alone. The name is used
+as a file-name segment and must match `[a-zA-Z0-9][a-zA-Z0-9._-]*`; duplicates
+are rejected. The command refuses to run unless every declared case has an
+executable script, so a typo is never recorded as evidence about the mutation.
+
+Checks run inside a worktree created from `HEAD`, so a new check script must be
+committed before it can gate a run. A check script must be a regular file, not a
+symlink: a program named by path has to resolve inside the candidate worktree, so
+a script pointing outside it cannot satisfy a required behaviour. The convention
+is POSIX-shaped (`<name>.sh`, executable bit), so `evolve` targets Linux and
+macOS.
+
+The target folder must sit inside a Git repository, because candidate isolation
+uses `git worktree`. A discarded candidate is a successful run; the command
+exits non-zero only when the run itself fails.
+
+Candidate worktree names derive from the mutation id, so re-running the fixture
+profile against a folder that already has a candidate worktree fails until
+`.worktrees/candidate-*` is removed.
+
 ## Run with containers
 
 Not applicable for the initial architecture. This is a local experimental CLI,

@@ -4,10 +4,12 @@ import com.dreamthought.saaa.deterministic.CheckRunner;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.CheckEvidence;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -34,9 +36,44 @@ public final class CommandCheckRunner implements CheckRunner {
         if (!Files.isDirectory(candidate.worktreePath())) {
             throw new IllegalArgumentException("candidate worktreePath must be an existing directory");
         }
+        checks.forEach(check -> requireContainedProgram(candidate.worktreePath(), check));
         return checks.stream()
                 .map(check -> runCheck(candidate, check))
                 .toList();
+    }
+
+    /**
+     * A command whose program name is a path must resolve inside the candidate. Symlinks are
+     * followed before the comparison, because a tracked symlink out of the tree is recreated
+     * faithfully by {@code git worktree add} and would otherwise let a script that is not in the
+     * candidate produce evidence about a required behaviour.
+     *
+     * <p>A program name with no path separator is left alone: it is resolved by the operating system
+     * against {@code PATH}, which is how an interpreter such as {@code sh} is named, and is the
+     * caller's explicit choice rather than something the candidate can influence.
+     *
+     * <p>This throws rather than recording a failed check. An escaping command is a broken setup,
+     * not an observation about the mutation, and recording it as evidence would read as a candidate
+     * that regressed the behaviour.
+     */
+    private static void requireContainedProgram(Path worktreePath, CommandCheck check) {
+        String program = check.command().get(0);
+        if (!program.contains("/") && !program.contains(File.separator)) {
+            return;
+        }
+        Path resolved = worktreePath.resolve(program);
+        try {
+            Path realProgram = resolved.toRealPath();
+            Path realWorktree = worktreePath.toRealPath();
+            if (!realProgram.startsWith(realWorktree)) {
+                throw new IllegalStateException("check " + check.name() + " resolves to a program outside the "
+                        + "candidate worktree: " + program + " -> " + realProgram);
+            }
+        } catch (IOException exception) {
+            throw new IllegalStateException(
+                    "check " + check.name() + " names a program that cannot be resolved inside the "
+                            + "candidate worktree: " + program, exception);
+        }
     }
 
     private static CheckEvidence runCheck(Candidate candidate, CommandCheck check) {

@@ -1,0 +1,183 @@
+change:
+  id: CHG-003
+  title: First runnable vertical slice
+  status: delivered
+  intent: Assemble the existing ports and adapters into one command a person can run end to end, from proposal to promote-or-discard decision, and make the mutation actually change something so selection pressure is real.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - ARCH-001
+    - CON-001
+    - RISK-001
+    - RISK-002
+    - Q-004
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: The system runs one complete mutation evaluation from a single command, applies the proposed mutation to the candidate worktree, scores the observed result deterministically, and records the journey in a form a human can read.
+    scenarios:
+      - id: S1
+        when: a candidate worktree is created for an accepted mutation
+        then: the mutation is realized into the target file inside that worktree before the candidate commit
+        and:
+          - the candidate commit contains the realized change, not only a description of it
+          - two different mutations produce two different candidate commits
+      - id: S2
+        when: a person runs the evolve command against a target folder with the fixture profile
+        then: the loop proposes, validates, creates a candidate, runs checks, scores and reports promote or discard without any model credentials
+        and:
+          - the command exits non-zero only when the run itself fails, not when a candidate is discarded
+      - id: S3
+        when: the loop finishes collecting check and benchmark evidence
+        then: a deterministic bridge derives phenotype evidence from that evidence and delegates to the hard-gated phenotype scorer
+        and:
+          - required behavior cases hard-gate promotion before any weighted objective is considered
+          - parsimony is derived from the realized diff size against the contract bounds, so a tighter mutation scores higher
+      - id: S4
+        when: the loop makes progress through its stages
+        then: it reports each stage through a port rather than writing to standard output
+        and:
+          - no deterministic layer class writes to standard output
+          - a console reporter and a journal reporter both consume the same events
+      - id: S5
+        when: a run completes against a target folder
+        then: a human-readable entry is appended to journal.md in that folder describing what was tried, what was measured and what was decided
+        and:
+          - the journal records the candidate commit so every entry is traceable to Git
+          - the journal is a narrative view and is never the source of truth for a decision
+      - id: S6
+        when: a proposer profile is selected by name
+        then: the named proposer is constructed from a registry and an unknown name fails with the list of known profiles
+        and:
+          - adding a provider later requires a new registry entry, not a change to the loop
+      - id: S7
+        when: more than one behaviour case is declared on the evolve command
+        then: every declared case is verified by its own named script and all of them must pass before promotion
+        and:
+          - a candidate is discarded when any declared case fails, not only when the first one fails
+          - a declared case can never be gated as passing without check evidence of its own
+          - a case name that is not a single safe file-name segment is rejected rather than sanitized, so the gate name in the journal always matches the script that ran
+      - id: S8
+        when: a check command names a program by path
+        then: the program must resolve inside the candidate worktree, with symlinks followed before the comparison
+        and:
+          - a committed symlink pointing out of the tree is refused rather than allowed to satisfy a required behaviour, because git worktree add recreates it faithfully in the candidate
+          - the refusal aborts the run instead of being recorded as a failed behaviour case, because an escaping command is a broken setup rather than an observation about the mutation
+          - a program named without a path separator is left to PATH resolution, which is how an interpreter such as sh is named and is the caller's choice rather than something the candidate can influence
+
+acceptance:
+  - scenario: S1
+    test_id: adapters/GitCandidateWorkspaceIntegrationTest.realizesMutationIntoCandidateCommit
+    layer: component-integration
+  - scenario: S2
+    test_id: cli/EvolveCommandAcceptanceTest.runsOneGenerationWithFixtureProfileAndReportsADecision
+    layer: acceptance
+  - scenario: S3
+    test_id: deterministic/PhenotypeBridgeScorerTest.derivesPhenotypeEvidenceAndHardGatesBeforeWeighting
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/PhenotypeBridgeScorerTest.scoresParsimonyFromRealizedDiffSizeAgainstBounds
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/MutationEvaluationLoopReportingTest.reportsEveryStageThroughThePort
+    layer: unit
+  - scenario: S5
+    test_id: adapters/JournalReporterTest.appendsATraceableEntryForOneRun
+    layer: unit
+  - scenario: S6
+    test_id: cli/ProposerProfileRegistryTest.resolvesKnownProfileAndListsKnownNamesOnFailure
+    layer: unit
+  - scenario: S7
+    test_id: cli/EvolveCommandAcceptanceTest.runsEveryDeclaredBehaviourCaseNotOnlyTheFirst
+    layer: acceptance
+  - scenario: S7
+    test_id: cli/EvolveCommandAcceptanceTest.discardsWhenALaterDeclaredBehaviourCaseFails
+    layer: acceptance
+  - scenario: S7
+    test_id: cli/BehaviourCaseChecksTest.mapsEveryCaseNameToItsOwnScriptRelativeToTheGitRoot
+    layer: unit
+  - scenario: S7
+    test_id: cli/BehaviourCaseChecksTest.rejectsCaseNamesThatWouldEscapeTheTargetFolder
+    layer: unit
+  - scenario: S7
+    test_id: cli/BehaviourCaseChecksTest.rejectsDuplicateCaseNamesBecauseTheGateWouldCountOneCaseTwice
+    layer: unit
+  - scenario: S8
+    test_id: adapters/CommandCheckRunnerIntegrationTest.refusesToRunAPathCommandThatResolvesOutsideTheCandidate
+    layer: integration
+  - scenario: S8
+    test_id: adapters/CommandCheckRunnerIntegrationTest.runsAPathCommandThatStaysInsideTheCandidate
+    layer: integration
+  - scenario: S8
+    test_id: cli/EvolveCommandAcceptanceTest.refusesASymlinkedCheckScriptPointingOutsideTheRepository
+    layer: acceptance
+  - scenario: S8
+    test_id: deterministic/PhenotypeBridgeScorerTest.failsTheGateWhenADeclaredBehaviourCaseFailedInAnyOfItsCheckEntries
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: add the MutationRealizer port and realize mutations into the candidate worktree before commit
+    status: completed
+    note: without this every candidate is byte-identical to HEAD and no candidate can outscore another
+  - id: T2
+    slice: add the EvolutionReporter port and make the loop report instead of print
+    status: completed
+  - id: T3
+    slice: add PhenotypeBridgeScorer implementing the FitnessScorer port over PhenotypeFitnessScorer
+    status: completed
+  - id: T4
+    slice: add the fixture proposer and the profile registry seam
+    status: completed
+  - id: T5
+    slice: add the journal reporter and decision sink writing journal.md into the target folder
+    status: completed
+  - id: T6
+    slice: add the evolve CLI command wiring the loop together
+    status: completed
+  - id: T7
+    slice: add the toy-workflow fixture folder with a real check command
+    status: completed
+  - id: T8
+    slice: run a check per declared behaviour case instead of only the first, mapping each case to its own named script
+    status: completed
+    note: the command declared every case name to the scorer but wired only behaviourCases.get(0) into the check runner, so extra declared cases were never verified while the required-behaviour-cases hard gate still reported pass; found in lead review of the CHG-003 branch before merge
+  - id: T11
+    slice: contain check programs inside the candidate worktree and stop a passing check entry hiding a failing one for the same declared case
+    status: completed
+    note: found by a second independent review of the T8 fix; a committed symlink out of the tree let a script that is not in the candidate satisfy a required behaviour and promote, and the bridge's evidence map was last-wins so a passing entry could overwrite a failing one for the same name
+  - id: T12
+    slice: validate check scripts against HEAD rather than the coordination checkout so pre-flight agrees with what the candidate will contain
+    status: pending
+    note: the pre-flight refusal inspects the working tree, but checks run in a worktree created from HEAD; a script that is uncommitted, or executable locally and mode 100644 in HEAD, passes pre-flight and then fails to start inside the candidate, which reads as a behaviour regression until T9 surfaces the summary
+  - id: T9
+    slice: surface check evidence summaries through the reporters so a failed behaviour case shows why it failed
+    status: pending
+    note: reporters print only name and status, so a script that exits non-zero for its own reasons is indistinguishable from a candidate that broke the behaviour; the missing and non-executable script cases are already refused before the run, so what remains is diagnostics rather than a gate weakness
+  - id: T10
+    slice: hard-gate a non-empty realization so a candidate that changed nothing cannot be promoted
+    status: pending
+    note: excluding .saaa bookkeeping from the measured diff means a realization that wrote nothing now measures zero lines and scores parsimony 1.0; no gate requires the realization to be non-empty, and a no-op candidate was already promotable before that exclusion because parsimony carries 0.10 against 0.20 of headroom below the threshold
+
+non_goals:
+  - evaluating more than one candidate per generation, which is the next slice and the point at which this project starts to differ from a capable agent with tests
+  - live model providers, which follow the population slice because they matter most as a population dimension rather than as vendor breadth
+  - HTML report rendering and graphs
+  - model-authored narration of the journal
+  - journal compaction
+  - promoted Git refs, which remain CHG-002 task T5
+  - multiple generations in one run beyond a simple loop count
+  - AST-aware mutation; realization stays whole-file text replacement
+
+risks:
+  - the fixture proposer is deterministic by design, so it cannot demonstrate that a real model produces useful mutations; it only proves the pipe
+  - deriving objective scores from check and benchmark evidence is new policy, and the first derivation will be crude
+  - behavioral_safety has no independent evidence source in this slice and is fixed at 1.0, leaving one of five objectives inert
+  - RISK-002 is unchanged; the scorer still never sees the contract, so declared required evidence remains unenforced
+  - journal.md is written into the user's target folder, so the command writes outside its own repository
+  - RISK-003 records that candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until .worktrees/candidate-* is removed
+  - behaviour case names double as script file names, so a case name is constrained to a safe file-name segment and a case cannot be verified by a script named anything else
+  - the per-case check timeout is fixed at one minute and multiplies by the number of declared cases
+  - the behaviour case convention is POSIX-shaped: `<name>.sh`, a `./` prefix and an executable bit. On Windows `ProcessBuilder` cannot exec a `.sh` directly and `Files.isExecutable` does not mean runnable, so `evolve` is effectively Linux and macOS only
+  - on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`, so the journal can record a case as verified by a differently-cased script; only same-run duplicates differing by case are rejected
