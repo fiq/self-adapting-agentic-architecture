@@ -142,7 +142,11 @@ are rejected. The command refuses to run unless every declared case has an
 executable script, so a typo is never recorded as evidence about the mutation.
 
 Checks run inside a worktree created from `HEAD`, so a new check script must be
-committed before it can gate a run.
+committed before it can gate a run. A check script must be a regular file, not a
+symlink: a program named by path has to resolve inside the candidate worktree, so
+a script pointing outside it cannot satisfy a required behaviour. The convention
+is POSIX-shaped (`<name>.sh`, executable bit), so `evolve` targets Linux and
+macOS.
 
 The target folder must sit inside a Git repository, because candidate isolation
 uses `git worktree`. A discarded candidate is a successful run; the command

@@ -60,6 +60,48 @@ final class CommandCheckRunnerIntegrationTest {
         assertThat(evidence.get(3).summary()).contains("timed out");
     }
 
+    /**
+     * A check command that is a path must name something inside the candidate. A tracked symlink
+     * pointing out of the tree is recreated faithfully by {@code git worktree add}, so without this
+     * guard a committed symlink lets a script that is not in the candidate satisfy a required
+     * behaviour and the candidate promotes on evidence about the wrong file.
+     */
+    @Test
+    void refusesToRunAPathCommandThatResolvesOutsideTheCandidate() throws Exception {
+        Path worktree = tempDir.resolve("escaping");
+        Files.createDirectories(worktree);
+        Path outside = tempDir.resolve("outside.sh");
+        Files.writeString(outside, "#!/usr/bin/env bash\nexit 0\n");
+        outside.toFile().setExecutable(true);
+        Files.createSymbolicLink(worktree.resolve("check.sh"), outside);
+        var candidate = new Candidate(
+                "candidate-mut-002", "mut-002", "candidate/baseline-mut-002", worktree,
+                "0123456789abcdef0123456789abcdef01234567");
+        var runner = new CommandCheckRunner(List.of(
+                new CommandCheckRunner.CommandCheck("escaping-check", List.of("./check.sh"))));
+
+        assertThatThrownBy(() -> runner.runChecks(candidate))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("escaping-check")
+                .hasMessageContaining("outside the candidate");
+    }
+
+    @Test
+    void runsAPathCommandThatStaysInsideTheCandidate() throws Exception {
+        Path worktree = tempDir.resolve("contained");
+        Files.createDirectories(worktree.resolve("toy"));
+        Path script = worktree.resolve("toy/check.sh");
+        Files.writeString(script, "#!/usr/bin/env bash\nexit 0\n");
+        script.toFile().setExecutable(true);
+        var candidate = new Candidate(
+                "candidate-mut-003", "mut-003", "candidate/baseline-mut-003", worktree,
+                "0123456789abcdef0123456789abcdef01234567");
+        var runner = new CommandCheckRunner(List.of(
+                new CommandCheckRunner.CommandCheck("contained-check", List.of("./toy/check.sh"))));
+
+        assertThat(runner.runChecks(candidate).get(0).status()).isEqualTo(CheckStatus.PASSED);
+    }
+
     @Test
     void rejectsTimeoutsBelowProcessWaitGranularity() {
         assertThatThrownBy(() -> new CommandCheckRunner.CommandCheck(

@@ -30,6 +30,13 @@ and every declared case must pass before promotion. Declaring a case without
 wiring its check would let the required-behaviour hard gate pass without the
 evidence it names, so the mapping is total by construction.
 
+A check command that names a program by path must resolve inside the candidate
+worktree, symlinks followed. A committed symlink out of the tree is recreated
+faithfully by `git worktree add`, so without that guard a script that is not in
+the candidate could satisfy a required behaviour. An escaping command aborts the
+run rather than being recorded as a failed behaviour case, because it is a broken
+setup and not an observation about the mutation.
+
 ## Tool-unavailable Integration Fallback
 
 Default integration is branch plus PR. If PR or GitHub tooling is unavailable,

@@ -122,6 +122,33 @@ final class EvolveCommandAcceptanceTest {
                 .contains("PROMOTE");
     }
 
+    /**
+     * A committed symlink is recreated faithfully in the candidate worktree, so without containment
+     * a script that is not in the candidate at all satisfies a required behaviour and the candidate
+     * promotes on evidence about the wrong file.
+     */
+    @Test
+    void refusesASymlinkedCheckScriptPointingOutsideTheRepository(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        Path outside = tempDir.resolve("outside.sh");
+        Files.writeString(outside, """
+                #!/usr/bin/env bash
+                exit 0
+                """);
+        outside.toFile().setExecutable(true);
+        Files.createSymbolicLink(target.resolve("workflow-check.sh"), outside);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", target.toString(),
+                "--behaviour-case", "workflow-check");
+
+        assertThat(exitCode).isNotZero();
+        assertThat(Files.exists(target.resolve("journal.md"))).isFalse();
+    }
+
     @Test
     void failsFastWhenADeclaredBehaviourCaseHasNoScript(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");

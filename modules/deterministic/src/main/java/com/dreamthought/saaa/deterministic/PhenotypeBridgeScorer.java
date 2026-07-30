@@ -34,10 +34,15 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         Objects.requireNonNull(candidate, "candidate");
         Objects.requireNonNull(evidence, "evidence");
 
+        // Merge rather than overwrite: two check entries can share a name, and keeping the last one
+        // seen would let a passing entry hide a failing one for the same declared case.
         Map<String, BehaviorCaseEvidence> observed = new LinkedHashMap<>();
         evidence.checks().stream()
                 .filter(check -> config.behaviorCaseNames().contains(check.name()))
-                .forEach(check -> observed.put(check.name(), toBehaviorCase(check)));
+                .forEach(check -> observed.merge(
+                        check.name(),
+                        toBehaviorCase(check),
+                        (existing, latest) -> existing.status() == CheckStatus.FAILED ? existing : latest));
 
         // Fail closed on any declared case that produced no evidence. Filtering alone would drop it
         // silently and let the gate pass on the cases that did report, which is the same weakness as
