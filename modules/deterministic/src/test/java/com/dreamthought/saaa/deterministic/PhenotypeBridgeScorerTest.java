@@ -71,6 +71,27 @@ final class PhenotypeBridgeScorerTest {
                 .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE, 0.0);
     }
 
+    /**
+     * Two check entries can share a name. Keeping the last one seen would let a passing entry
+     * overwrite a failing one, recording the behaviour gate as satisfied for a case that failed.
+     * A failure for a name must win regardless of the order the evidence arrives in.
+     */
+    @Test
+    void failsTheGateWhenADeclaredBehaviourCaseFailedInAnyOfItsCheckEntries() {
+        var scorer = new PhenotypeBridgeScorer(
+                candidate -> new RealizationSummary(1, 8),
+                new ScoringConfig(Set.of("publish-guard"), 80, Map.of()));
+
+        var result = scorer.score(CANDIDATE, new EvaluationEvidence(
+                List.of(failed("publish-guard", "regressed"), passed("publish-guard", "ok")),
+                List.of(),
+                Instant.parse("2026-07-28T00:00:00Z")));
+
+        assertThat(result.objectives())
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE, 0.0);
+        assertThat(result.decision()).isEqualTo(DISCARD);
+    }
+
     @Test
     void scoresParsimonyFromRealizedDiffSizeAgainstBounds() {
         var tight = scorer(new RealizationSummary(1, 8), 80);

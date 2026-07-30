@@ -19,6 +19,11 @@ public record ScoringConfig(Set<String> behaviorCaseNames, int maxLinesChanged, 
         if (behaviorCaseNames.isEmpty()) {
             throw new IllegalArgumentException("at least one check must be declared a behaviour case");
         }
+        // A blank name cannot be matched against any check evidence, so it would be a declared
+        // required behaviour that no check can ever satisfy.
+        if (behaviorCaseNames.stream().anyMatch(name -> name == null || name.isBlank())) {
+            throw new IllegalArgumentException("behaviour case names must not be blank");
+        }
         if (maxLinesChanged <= 0) {
             throw new IllegalArgumentException("maxLinesChanged must be positive");
         }

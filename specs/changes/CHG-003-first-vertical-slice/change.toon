@@ -58,6 +58,13 @@ deltas:
           - a candidate is discarded when any declared case fails, not only when the first one fails
           - a declared case can never be gated as passing without check evidence of its own
           - a case name that is not a single safe file-name segment is rejected rather than sanitized, so the gate name in the journal always matches the script that ran
+      - id: S8
+        when: a check command names a program by path
+        then: the program must resolve inside the candidate worktree, with symlinks followed before the comparison
+        and:
+          - a committed symlink pointing out of the tree is refused rather than allowed to satisfy a required behaviour, because git worktree add recreates it faithfully in the candidate
+          - the refusal aborts the run instead of being recorded as a failed behaviour case, because an escaping command is a broken setup rather than an observation about the mutation
+          - a program named without a path separator is left to PATH resolution, which is how an interpreter such as sh is named and is the caller's choice rather than something the candidate can influence
 
 acceptance:
   - scenario: S1
@@ -96,6 +103,18 @@ acceptance:
   - scenario: S7
     test_id: cli/BehaviourCaseChecksTest.rejectsDuplicateCaseNamesBecauseTheGateWouldCountOneCaseTwice
     layer: unit
+  - scenario: S8
+    test_id: adapters/CommandCheckRunnerIntegrationTest.refusesToRunAPathCommandThatResolvesOutsideTheCandidate
+    layer: integration
+  - scenario: S8
+    test_id: adapters/CommandCheckRunnerIntegrationTest.runsAPathCommandThatStaysInsideTheCandidate
+    layer: integration
+  - scenario: S8
+    test_id: cli/EvolveCommandAcceptanceTest.refusesASymlinkedCheckScriptPointingOutsideTheRepository
+    layer: acceptance
+  - scenario: S8
+    test_id: deterministic/PhenotypeBridgeScorerTest.failsTheGateWhenADeclaredBehaviourCaseFailedInAnyOfItsCheckEntries
+    layer: unit
 
 tasks:
   - id: T1
@@ -124,6 +143,14 @@ tasks:
     slice: run a check per declared behaviour case instead of only the first, mapping each case to its own named script
     status: completed
     note: the command declared every case name to the scorer but wired only behaviourCases.get(0) into the check runner, so extra declared cases were never verified while the required-behaviour-cases hard gate still reported pass; found in lead review of the CHG-003 branch before merge
+  - id: T11
+    slice: contain check programs inside the candidate worktree and stop a passing check entry hiding a failing one for the same declared case
+    status: completed
+    note: found by a second independent review of the T8 fix; a committed symlink out of the tree let a script that is not in the candidate satisfy a required behaviour and promote, and the bridge's evidence map was last-wins so a passing entry could overwrite a failing one for the same name
+  - id: T12
+    slice: validate check scripts against HEAD rather than the coordination checkout so pre-flight agrees with what the candidate will contain
+    status: pending
+    note: the pre-flight refusal inspects the working tree, but checks run in a worktree created from HEAD; a script that is uncommitted, or executable locally and mode 100644 in HEAD, passes pre-flight and then fails to start inside the candidate, which reads as a behaviour regression until T9 surfaces the summary
   - id: T9
     slice: surface check evidence summaries through the reporters so a failed behaviour case shows why it failed
     status: pending
@@ -152,3 +179,5 @@ risks:
   - RISK-003 records that candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until .worktrees/candidate-* is removed
   - behaviour case names double as script file names, so a case name is constrained to a safe file-name segment and a case cannot be verified by a script named anything else
   - the per-case check timeout is fixed at one minute and multiplies by the number of declared cases
+  - the behaviour case convention is POSIX-shaped: `<name>.sh`, a `./` prefix and an executable bit. On Windows `ProcessBuilder` cannot exec a `.sh` directly and `Files.isExecutable` does not mean runnable, so `evolve` is effectively Linux and macOS only
+  - on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`, so the journal can record a case as verified by a differently-cased script; only same-run duplicates differing by case are rejected

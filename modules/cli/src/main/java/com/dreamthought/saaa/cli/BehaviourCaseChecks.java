@@ -38,10 +38,11 @@ final class BehaviourCaseChecks {
         if (caseNames.isEmpty()) {
             throw new IllegalArgumentException("at least one behaviour case is required");
         }
-        if (checkDirectory.isAbsolute()) {
+        if (checkDirectory.isAbsolute() || checkDirectory.normalize().startsWith("..")) {
             throw new IllegalArgumentException(
-                    "checkDirectory must be relative to the Git root, so the command resolves inside "
-                            + "the candidate worktree rather than the coordination checkout: " + checkDirectory);
+                    "checkDirectory must be a relative path that descends from the Git root, so the "
+                            + "command resolves inside the candidate worktree rather than escaping it: "
+                            + checkDirectory);
         }
 
         var seen = new HashSet<String>();
@@ -63,10 +64,14 @@ final class BehaviourCaseChecks {
     }
 
     /**
-     * Always carries a {@code ./} prefix. A program name with no path separator is resolved against
-     * {@code PATH} rather than the child process working directory, so a bare {@code <name>.sh} — which
-     * is what an empty check directory produces when the target folder is the Git root — would run
-     * whatever {@code PATH} provides instead of the script inside the candidate worktree.
+     * Always carries a {@code ./} prefix, which keeps the program out of {@code PATH} resolution: a
+     * program name with no path separator is resolved against {@code PATH} rather than the child
+     * process working directory, and an empty check directory — what the target folder being the Git
+     * root produces — would otherwise yield a bare {@code <name>.sh}.
+     *
+     * <p>This makes the command worktree-relative; it does not by itself prove the program lies
+     * inside the worktree, because a path can still traverse or follow a symlink out of it.
+     * {@code CommandCheckRunner} enforces containment at the point of execution.
      */
     private static String scriptPath(Path checkDirectory, String caseName) {
         return Path.of(".").resolve(checkDirectory).resolve(caseName + ".sh").toString();

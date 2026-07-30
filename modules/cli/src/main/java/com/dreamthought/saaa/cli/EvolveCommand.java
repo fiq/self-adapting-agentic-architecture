@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
@@ -100,20 +101,26 @@ public final class EvolveCommand implements Callable<Integer> {
     }
 
     /**
-     * A check that cannot start is reported as a failed check, which reads identically to a
-     * candidate that genuinely broke the behaviour. Refusing to run at all keeps a typo or a
-     * missing script from being recorded as evidence about the mutation.
+     * Catches the common setup mistakes early, because a check that cannot start is reported as a
+     * failed check and reads identically to a candidate that genuinely broke the behaviour.
      *
-     * <p>Each command is resolved against the coordination checkout rather than the candidate
-     * worktree, which does not exist yet. The candidate is created from {@code HEAD}, so a script
-     * present here but uncommitted still will not be there when the check runs.
+     * <p>This inspects the coordination checkout, not the candidate worktree, which does not exist
+     * yet. The two can disagree: the candidate is created from {@code HEAD}, so a script that is
+     * present here but uncommitted, or executable here but mode 100644 in {@code HEAD}, still passes
+     * this check and then fails to start inside the candidate. It is a fast typo catcher rather than
+     * a guarantee. Containment of the program that finally runs is enforced by
+     * {@code CommandCheckRunner} against the candidate itself.
      */
     private static void requireRunnableCheckScripts(Path gitRoot, List<CommandCheck> checks) {
         for (CommandCheck check : checks) {
             Path script = gitRoot.resolve(check.command().get(0)).normalize();
-            if (!Files.isRegularFile(script)) {
+            // NOFOLLOW_LINKS so a symlinked script is named here rather than surfacing later as a
+            // containment failure from inside the candidate.
+            if (!Files.isRegularFile(script, LinkOption.NOFOLLOW_LINKS)) {
                 throw new IllegalArgumentException(
-                        "behaviour case " + check.name() + " has no script: " + script);
+                        "behaviour case " + check.name() + " needs a regular script file, which "
+                                + script + " is not; a symlinked check script is refused because it can "
+                                + "point outside the candidate");
             }
             if (!Files.isExecutable(script)) {
                 throw new IllegalArgumentException(

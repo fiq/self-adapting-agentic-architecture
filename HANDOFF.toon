@@ -44,13 +44,22 @@ completed:
   - anchored the `GitRealizationInspector` pathspecs at the repository root with `:/` and `(top,exclude)` so the measurement no longer depends on the caller's working directory
   - recorded `RISK-003` for candidate worktree name collisions across runs
   - recorded `CHG-003` tasks `T9` and `T10` for the deferred reporter-diagnostics and non-empty-realization gate findings
+  - obtained a second independent actor review covering only the self-cleared fixes, which returned a do-not-merge verdict and found a surviving promotion-integrity hole
+  - fixed it as `CHG-003` task `T11`: a committed symlink pointing out of the tree is recreated faithfully by `git worktree add`, so a script that was not in the candidate satisfied a required behaviour and promoted; `CommandCheckRunner` now requires a path-named program to resolve inside the candidate worktree with symlinks followed, and aborts rather than recording an escaping command as failed behaviour evidence
+  - declined the reviewer's suggested guard location as written: a blanket containment check on every command would have broken the legitimate `sh -c` pattern the existing integration test relies on, so containment applies only to programs named by path and `PATH`-resolved interpreters are left alone
+  - fixed the bridge's evidence map being last-wins, so a passing check entry can no longer overwrite a failing one for the same declared case
+  - made `ScoringConfig` reject blank behaviour case names, which previously crashed mid-scoring instead of failing the gate closed
+  - refused symlinked check scripts in the CLI pre-flight and rejected an upward-traversing check directory
+  - corrected two javadocs that claimed containment guarantees the code did not provide
 
 in_progress:
   - `CHG-003` branch `feat/first-vertical-slice` is implemented, reviewed and committed but not yet merged to `main`
 
 next:
-  - merge `feat/first-vertical-slice` to `main` under the PR-less fallback (requires explicit user authorization) or after `gh` token scope is granted
-  - implement `T9` so a failed behaviour case shows why it failed, and `T10` so a no-op realization cannot be promoted
+  - open a pull request for `feat/first-vertical-slice`; the user reported on 2026-07-31 that PR tooling now works, so the PR-less fallback no longer applies and human review is the merge gate
+  - implement `T10` before the population slice: parsimony rewards a smaller diff, so a no-op candidate scores 1.0 on that objective, and ranking N candidates would actively select for candidates that change nothing
+  - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
+  - implement `T12` so pre-flight validates `HEAD` rather than the working tree, and `T9` so a failed behaviour case shows why it failed
   - grant the `gh` token pull-request scope so future slices use a PR instead of the recorded fallback
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
@@ -94,6 +103,8 @@ risks:
   - no gate requires a non-empty realization, so a candidate that changed nothing scores parsimony 1.0; tracked as `CHG-003` task `T10`
   - behaviour case names double as script file names, so a case name is constrained to `[a-zA-Z0-9][a-zA-Z0-9._-]*` and the per-case check timeout is fixed at one minute
   - check scripts run in a worktree created from `HEAD`, so a new check script must be committed before it can gate a run
+  - the CLI pre-flight inspects the working tree while checks run against `HEAD`, so an uncommitted or mode-mismatched script passes pre-flight and then fails to start inside the candidate; tracked as `CHG-003` task `T12`
+  - the behaviour case convention is POSIX-shaped, so `evolve` is effectively Linux and macOS only; on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`
 
 files_changed:
   - CLAUDE_HANDOVER.toon (deleted; the handover packet was consumed and only carried stale paths forward)
@@ -171,6 +182,9 @@ files_changed:
   - .agents/knowledge/risks/RISK-003-candidate-worktree-name-collision.md
   - modules/cli/src/main/java/com/dreamthought/saaa/cli/BehaviourCaseChecks.java
   - modules/cli/src/test/java/com/dreamthought/saaa/cli/BehaviourCaseChecksTest.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/checks/CommandCheckRunner.java
+  - modules/adapters/src/integrationTest/java/com/dreamthought/saaa/adapters/checks/CommandCheckRunnerIntegrationTest.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/ScoringConfig.java
 
 tests_run:
   - 2026-07-28 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
@@ -194,6 +208,11 @@ tests_run:
   - 2026-07-30 after all review fixes: 71 tests, 0 failures, 0 errors across unit, component, acceptance and integration suites with `--rerun-tasks`; check, lint, check-wiki (WIKI OK) and ready (READY: PASS) all pass
   - 2026-07-30 real-binary probe of the PATH blocker: with a hostile `workflow-check.sh` on `PATH` and the real script failing inside the candidate, the run reported DISCARD, proving the candidate's own script ran; with no script in the repository at all the run refused to start and wrote no journal
   - 2026-07-30 real-binary probe of multi-case wiring: nested target folder with two declared cases reported `workflow-check PASSED`, `second-check FAILED`, DISCARD, exit 0; a non-executable script was refused before any candidate was created
+  - 2026-07-31 reproduced the second reviewer's symlink escape before fixing it: a tracked symlink (mode 120000) to a script outside the repository reported `workflow-check PASSED`, score 1.00, PROMOTE, while the script never read the workflow file
+  - 2026-07-31 `T11` red before green: `refusesToRunAPathCommandThatResolvesOutsideTheCandidate` and `failsTheGateWhenADeclaredBehaviourCaseFailedInAnyOfItsCheckEntries` both failed; `runsAPathCommandThatStaysInsideTheCandidate` passed before the change, confirming the guard did not have to be invented to make contained paths work
+  - 2026-07-31 after `T11`: 75 tests, 0 failures, 0 errors with `--rerun-tasks`; check, lint, check-wiki and ready all pass
+  - 2026-07-31 real-binary verification of `T11` in fresh repositories: a symlink present in the working tree is refused by pre-flight, and a symlink present only in `HEAD` — which passes pre-flight — is refused at execution with "resolves to a program outside the candidate worktree"; neither wrote a journal nor executed the outside script, and a legitimate run still reported PASSED and PROMOTE
+  - 2026-07-31 note on an earlier probe: an intermediate run of this verification reported a misleading pass because `journal.md` and a candidate branch survived from a previous run in the same scratch repository; re-run in fresh repositories, which is also direct evidence of RISK-003
 
 fitness_functions:
   - changed: `check-architecture-boundaries` now fails loudly when a scanned layer directory is missing, instead of returning an empty file list and reporting OK
@@ -202,6 +221,7 @@ fitness_functions:
   - unchanged: `modules/domain` and `modules/deterministic` still import only `java.*` and repository packages
   - unchanged: no boundary rule changed in `CHG-003`; the slice adds ports, adapters and a CLI command within existing layer boundaries
   - strengthened without a new check: `PhenotypeBridgeScorer` now fails the required-behaviour gate closed when a declared case produced no evidence, so the deterministic layer enforces the invariant rather than trusting the CLI to wire one check per declared case
+  - added: `CommandCheckRunner` refuses a path-named check program that resolves outside the candidate worktree, which is a containment fitness function on evidence provenance rather than on imports; it is enforced by test rather than by the boundary script
 
 knowledge:
   consulted:
@@ -244,6 +264,18 @@ team_fallback:
     - recorded_not_fixed: reporters print only check name and status, so a failing behaviour case shows no diagnostics (task `T9`)
     - recorded_not_fixed: no gate requires a non-empty realization (task `T10`)
     - confirmed_not_a_defect: path traversal, leading-dash flag injection and check timeouts already failed closed, and the first-commit `<sha>^` case is unreachable because a candidate always commits on top of `HEAD`
+  chg_003_second_actor_review: completed 2026-07-31 over only the fixes the lead had cleared itself; verdict do-not-merge
+  chg_003_second_actor_review_outcome:
+    - fixed: a tracked symlink out of the tree let a script that was not in the candidate satisfy a required behaviour and promote; containment is now enforced at execution against the candidate worktree
+    - fixed: the bridge's evidence map was last-wins, so a passing check entry could overwrite a failing one for the same declared case and record the gate as satisfied
+    - fixed: a blank declared behaviour case name crashed mid-scoring rather than failing the gate closed
+    - fixed: two javadocs asserted containment guarantees the code did not provide
+    - fixed: `forCases` guarded absolute check directories but not upward traversal
+    - fixed: the blocker's regression test asserted the symptom rather than the property; an end-to-end symlink refusal test now covers it
+    - recorded_not_fixed: the pre-flight validates the working tree while checks run against `HEAD` (task `T12`)
+    - recorded_not_fixed: the POSIX-shaped convention and case-insensitive filesystem behaviour, recorded as `CHG-003` risks
+    - adjusted_rather_than_applied: the suggested containment location would have broken the legitimate `sh -c` pattern, so containment covers only programs named by path
+    - confirmed_not_a_defect: the pathspec change is byte-identical to the previous form from the repository root and strictly more robust from a subdirectory; `Set` iteration order is not observable in the recorded result; the pre-flight ordering is correct
   actor_review_outcome:
     - fixed: empty deterministic-check evidence no longer passes its hard gate
     - fixed: gate outcomes are recorded after measured scores so evidence cannot overwrite them in the audit record
@@ -265,4 +297,4 @@ team_fallback:
     - fixed: `HANDOFF.toon` recorded the fitness function as unchanged in the same change that hardened it, and asserted a push that had not happened
     - fixed: `CHG-002` acceptance `test_id`s pointed at modules that no longer exist
     - fixed: deleted the consumed `CLAUDE_HANDOVER.toon` packet rather than maintaining its stale paths
-  lost_challenge: no human code review; `CHG-002` and `CHG-003` reviews were agent actors, and PR review was unavailable because the `gh` token lacks pull-request scope. The `CHG-003` actor review returned a block-the-merge verdict whose blocker was fixed and verified against the real binary, but no independent party has re-reviewed the fixes to that blocker; the lead both wrote and cleared them.
+  lost_challenge: no human code review; `CHG-002` and `CHG-003` reviews were agent actors. The first `CHG-003` review returned block-the-merge; its fixes were then re-reviewed independently, which found a surviving promotion-integrity hole, so the second review was load-bearing rather than confirmatory. The `T11` fixes answering that second review have themselves had only lead self-review, though they are covered by tests and verified against the real binary in fresh repositories. The user reported PR tooling is now available, so `CHG-003` goes through a pull request and human review rather than the PR-less fallback.
