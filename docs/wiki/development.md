@@ -16,14 +16,37 @@ Common commands:
 .agentic-template/bin/project component-test
 ```
 
-`component-test` is the first failing outside-in test for `CHG-001`. Keep
-LangChain4j behind the `adapters/langchain4j` package and keep deterministic decisions out
-of model authority.
+`component-test` runs the outside-in acceptance tests for the mutation and
+fitness loop (`CHG-001`) and the `evolve` CLI command (`CHG-003`). Keep
+LangChain4j behind the `adapters/langchain4j` package and keep deterministic
+decisions out of model authority.
+
+The `evolve` command runs one mutation evaluation end to end with no model
+credentials using the `fixture` proposer profile against a target folder inside
+a Git repository; see the README "Evolve a workflow" section.
+
+Each `--behaviour-case <name>` is verified by `<name>.sh` in the target folder,
+and every declared case must pass before promotion. Declaring a case without
+wiring its check would let the required-behaviour hard gate pass without the
+evidence it names, so the mapping is total by construction.
+
+A check command that names a program by path must resolve inside the candidate
+worktree, symlinks followed. A committed symlink out of the tree is recreated
+faithfully by `git worktree add`, so without that guard a script that is not in
+the candidate could satisfy a required behaviour. An escaping command aborts the
+run rather than being recorded as a failed behaviour case, because it is a broken
+setup and not an observation about the mutation.
 
 ## Tool-unavailable Integration Fallback
 
 Default integration is branch plus PR. If PR or GitHub tooling is unavailable,
 the lead agent may skip the PR only when the user explicitly authorizes it.
+
+PR creation works as of 2026-07-31, so the fallback does not currently apply;
+`CHG-003` went through PR #1. Pushing over SSH can still fail with
+`agent refused operation` when the SSH agent will not sign. Either unlock the key
+with `ssh-add`, or run `gh auth setup-git` once and push over HTTPS with the `gh`
+token; the stored remote can stay on SSH.
 
 Required fallback steps:
 

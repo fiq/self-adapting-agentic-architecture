@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.adapters.git;
 
 import com.dreamthought.saaa.deterministic.CandidateWorkspace;
+import com.dreamthought.saaa.deterministic.MutationRealizer;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.WorkflowGraph;
@@ -8,8 +9,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -20,6 +19,7 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
 
     private final Path repositoryRoot;
     private final Path worktreesRoot;
+    private final MutationRealizer realizer;
 
     public GitCandidateWorkspace() {
         this(Path.of(".").toAbsolutePath().normalize());
@@ -30,8 +30,13 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
     }
 
     public GitCandidateWorkspace(Path repositoryRoot, Path worktreesRoot) {
+        this(repositoryRoot, worktreesRoot, (worktree, baseline, mutation) -> { });
+    }
+
+    public GitCandidateWorkspace(Path repositoryRoot, Path worktreesRoot, MutationRealizer realizer) {
         this.repositoryRoot = Objects.requireNonNull(repositoryRoot, "repositoryRoot").toAbsolutePath().normalize();
         this.worktreesRoot = Objects.requireNonNull(worktreesRoot, "worktreesRoot").toAbsolutePath().normalize();
+        this.realizer = Objects.requireNonNull(realizer, "realizer");
     }
 
     @Override
@@ -60,8 +65,9 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
         createDirectories(candidateFile.getParent());
         writeString(candidateFile, candidateDocument(candidateId, branchName, baseline, mutation));
 
-        String relativeCandidateFile = worktreePath.relativize(candidateFile).toString();
-        git(worktreePath, "add", relativeCandidateFile).requireSuccess("stage candidate file");
+        realizer.realize(worktreePath, baseline, mutation);
+
+        git(worktreePath, "add", "-A").requireSuccess("stage candidate changes");
         git(
                 worktreePath,
                 "-c",
@@ -154,32 +160,7 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
                 .collect(Collectors.joining("\n"));
     }
 
-    private static GitResult git(Path directory, String... arguments) {
-        List<String> command = new ArrayList<>();
-        command.add("git");
-        command.add("-C");
-        command.add(directory.toString());
-        command.addAll(List.of(arguments));
-        try {
-            Process process = new ProcessBuilder(command)
-                    .redirectErrorStream(true)
-                    .start();
-            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            return new GitResult(process.waitFor(), output);
-        } catch (IOException exception) {
-            throw new IllegalStateException("failed to run git", exception);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("interrupted while running git", exception);
-        }
-    }
-
-    private record GitResult(int exitCode, String output) {
-        String requireSuccess(String operation) {
-            if (exitCode != 0) {
-                throw new IllegalStateException(operation + " failed: " + output);
-            }
-            return output;
-        }
+    private static GitCommand.Result git(Path directory, String... arguments) {
+        return GitCommand.run(directory, arguments);
     }
 }

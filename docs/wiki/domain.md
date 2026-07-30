@@ -18,3 +18,13 @@ candidate's evidence is weaker than its contract implies.
 `Q-007` records that canonical mutation IR preserves declared order for
 set-like fields, so two contracts differing only in evidence order canonicalize
 differently.
+
+`RISK-003` records that candidate worktree names derive only from the workflow
+and mutation ids, so a repeat run of the same mutation fails instead of
+evaluating a new candidate. It becomes blocking at the population slice, which
+needs many live candidate worktrees at once.
+
+No gate requires a realization to be non-empty, so a candidate that changed
+nothing scores parsimony 1.0 rather than being rejected outright; `CHG-003` task
+`T10` tracks it. Required behaviour cases do fail closed: a declared case with no
+check evidence is scored as failed rather than dropped.

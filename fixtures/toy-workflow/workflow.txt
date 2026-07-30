@@ -1,0 +1,2 @@
+publish-policy: allow
+draft-check: skip

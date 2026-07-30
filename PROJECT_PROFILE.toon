@@ -140,6 +140,7 @@ decisions:
       - direct main integration still needs branch isolation, deterministic checks, completed risk-appropriate actor review when available or explicit human review when substituted after actor timeout, lead self-review and explicit provenance
     confidence: high
     status: active
+    precondition_currently_false: PR creation works as of 2026-07-31, so the fallback does not apply; CHG-003 was integrated through PR #1 with human review as the merge gate. The policy stays active because the precondition can recur, but an agent must verify PR tooling is genuinely unavailable before invoking it rather than assuming the earlier failure still holds.
     validation:
       - AGENTS.md
       - docs/wiki/development.md

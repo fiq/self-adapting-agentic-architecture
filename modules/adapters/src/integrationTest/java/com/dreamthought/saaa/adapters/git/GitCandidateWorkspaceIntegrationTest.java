@@ -3,6 +3,7 @@ package com.dreamthought.saaa.adapters.git;
 import static com.dreamthought.saaa.domain.MutationScope.WORKFLOW_DEFINITION;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.io.IOException;
@@ -51,6 +52,36 @@ final class GitCandidateWorkspaceIntegrationTest {
         assertThat(runOutput(candidate.worktreePath(), "rev-parse", "HEAD")).isEqualTo(candidate.commitSha());
         assertThat(runOutput(candidate.worktreePath(), "log", "-1", "--pretty=%s"))
                 .isEqualTo("Create candidate candidate-mut-001");
+    }
+
+    @Test
+    void realizesMutationIntoCandidateCommit() throws IOException {
+        Path repository = initRepositoryWithWorkflowFile();
+        Path worktrees = tempDir.resolve("worktrees");
+
+        var workspace = new GitCandidateWorkspace(
+                repository,
+                worktrees,
+                new TextMutationRealizer("workflow.txt"));
+
+        var candidate = workspace.createCommittedCandidate(
+                new WorkflowGraph("toy", "v1", "old content"),
+                new Mutation("MUT-1", "tighten guard", WORKFLOW_DEFINITION, "new content"));
+
+        assertThat(candidate.worktreePath().resolve("workflow.txt")).hasContent("new content");
+
+        String committed = runOutput(candidate.worktreePath(), "show", candidate.commitSha() + ":workflow.txt");
+        assertThat(committed).isEqualTo("new content");
+    }
+
+    private Path initRepositoryWithWorkflowFile() throws IOException {
+        Path repository = tempDir.resolve("repo");
+        Files.createDirectories(repository);
+        run(repository, "init", "--initial-branch=main");
+        Files.writeString(repository.resolve("workflow.txt"), "old content", StandardCharsets.UTF_8);
+        run(repository, "add", "workflow.txt");
+        run(repository, "-c", "user.name=Test User", "-c", "user.email=test@example.invalid", "commit", "-m", "baseline");
+        return repository;
     }
 
     private Path initializedRepository() throws IOException {
