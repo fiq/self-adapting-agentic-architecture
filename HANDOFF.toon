@@ -56,7 +56,7 @@ in_progress:
   - `CHG-003` branch `feat/first-vertical-slice` is implemented, reviewed and committed but not yet merged to `main`
 
 next:
-  - open a pull request for `feat/first-vertical-slice`; the user reported on 2026-07-31 that PR tooling now works, so the PR-less fallback no longer applies and human review is the merge gate
+  - review and merge PR #1 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/1); human review is the merge gate and merge still needs explicit user action
   - implement `T10` before the population slice: parsimony rewards a smaller diff, so a no-op candidate scores 1.0 on that objective, and ranking N candidates would actively select for candidates that change nothing
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T12` so pre-flight validates `HEAD` rather than the working tree, and `T9` so a failed behaviour case shows why it failed
@@ -245,13 +245,13 @@ knowledge:
     - the `.saaa/fixture-mutation.txt` plain-text deviation is recorded in `docs/structured-data.md` rather than as a knowledge entry
 
 team_fallback:
-  current: actor_reviewed_and_lead_self_reviewed_for_chg_003_pending_merge_authorization
-  reason: PR creation is still unavailable for this repository, so the previously authorized tool-unavailable integration fallback still applies; `CHG-003` is now reviewed and committed but not merged
+  current: chg_003_integrated_through_pr_1_awaiting_human_review_and_merge
+  reason: PR creation works as of 2026-07-31, so the tool-unavailable integration fallback no longer applies and `CHG-003` went through a pull request instead. Pushing over SSH failed with `agent refused operation` because the SSH agent would not sign; `gh auth setup-git` plus an HTTPS push worked, and the stored remote stayed on SSH.
   pr_attempt:
-    command: gh pr create --base main --head codex/mutation-contract-test-slice
-    result: failed
-    error: "GraphQL: Resource not accessible by personal access token (createPullRequest)"
-    note: gh is installed and authenticated as `fiq`, but the active personal access token lacks pull-request write scope; branch push succeeded
+    command: gh pr create --base main --head feat/first-vertical-slice
+    result: succeeded
+    url: https://github.com/fiq/self-adapting-agentic-architecutre/pull/1
+    note: the earlier failure on `codex/mutation-contract-test-slice` was "GraphQL: Resource not accessible by personal access token (createPullRequest)"; the token now carries pull-request write scope, so that record is superseded
   actor_review: completed twice for `CHG-002`; completed once for the `CHG-003` `T8` fix on 2026-07-30, which returned a block-the-merge verdict
   chg_003_actor_review_outcome:
     - fixed: a command with no path separator was resolved against `PATH` rather than the candidate worktree when the target folder was the Git root, so something outside the candidate could satisfy a required behaviour; commands now always carry a `./` prefix

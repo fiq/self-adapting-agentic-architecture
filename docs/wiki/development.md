@@ -42,6 +42,12 @@ setup and not an observation about the mutation.
 Default integration is branch plus PR. If PR or GitHub tooling is unavailable,
 the lead agent may skip the PR only when the user explicitly authorizes it.
 
+PR creation works as of 2026-07-31, so the fallback does not currently apply;
+`CHG-003` went through PR #1. Pushing over SSH can still fail with
+`agent refused operation` when the SSH agent will not sign. Either unlock the key
+with `ssh-add`, or run `gh auth setup-git` once and push over HTTPS with the `gh`
+token; the stored remote can stay on SSH.
+
 Required fallback steps:
 
 - keep the work on a bounded branch;
