@@ -1,16 +1,16 @@
 session:
   updated: 2026-07-31
-  status: chg_003_merged_via_pr_1; t10_non_empty_realization_gate_merged_via_pr_2; readme_plain_english_rework_merged_directly_to_main
-  branch: main
+  status: adr_0002_three_layer_vision_drafted_on_branch_docs_adr_three_layer_vision
+  branch: docs/adr-three-layer-vision
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: d1b9a71
-  head_note: d1b9a71 is the README plain-English rework, pushed directly to main under explicit user authorization; 36d01f8 immediately below is the PR #2 merge for the T10 gate
-  dirty: false
-  pushed: true
+  head: b124dbd
+  head_note: b124dbd is the refreshed handoff on main; the ADR-0002 changes are on the branch above, not yet committed
+  dirty: true
+  pushed: false
 
 goal:
-  current: close the promotion-integrity gaps left open by `CHG-003` so the population slice can rank candidates without selecting for the wrong thing
-  phase: chg_003_follow_ups_t9_and_t12_pending
+  current: state the three-layer SAAA direction and the vertical-slice delivery pattern durably, so subsequent slices land against one source and the README stops mixing shipped-vs-planned
+  phase: adr_0002_drafted_awaiting_review
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -22,10 +22,16 @@ completed:
   - PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2) merged 2026-07-31 as `36d01f8` after human review; CI was 4/4 green; the branch was deleted on remote and locally
   - reworked the README opening in plain English: renamed the title to SAAA, added a problem/because/usage triptych, added a Contents TOC and surfaced the InfoQ context-store citation; merged directly to `main` as `d1b9a71` under explicit user authorization
   - noticed and recorded that the SSH remote fails auth in this environment (`Permission denied (publickey)`), so both PR #2's post-merge cleanup and the README push used the HTTPS remote URL
+  - drafted `ADR-0002: Three-layer vision for SAAA` (`docs/decisions/0002-three-layer-vision.md` and `.agents/knowledge/decisions/ADR-0002-three-layer-vision.md`) after a design conversation: three concentric layers (workflow, tool surface for outer agent, product code), delivery pattern is vertical slices across all three with population and crossover as foundation slices
+  - added a "Where this is going" summary to the README linking to the ADR, and recorded the decision in `PROJECT_PROFILE.toon` as `three_layer_vision_with_vertical_slices` (status proposed)
 
-in_progress: []
+in_progress:
+  - `ADR-0002` and the README/profile updates are drafted on branch `docs/adr-three-layer-vision`, uncommitted; will open a PR for visibility rather than push direct because the ADR sets project direction
 
 next:
+  - review, merge and push `ADR-0002` (three-layer vision, vertical-slice delivery); human review is the merge gate
+  - propose `CHG-004` as the first vertical slice across all three layers per the ADR: LangChain4j live proposer at L1, `evolve` exposed as an MCP tool at L2, one Java file inside this repository as the L3 target gated by an existing unit test
+  - `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree) are still open `CHG-003` follow-ups; they can land ahead of `CHG-004` if reviewer diagnostics or pre-flight fidelity blocks the first vertical slice
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
@@ -88,6 +94,9 @@ files_changed:
   - specs/changes/CHG-003-first-vertical-slice/design.md
   - docs/wiki/domain.md
   - README.md
+  - docs/decisions/0002-three-layer-vision.md
+  - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
+  - PROJECT_PROFILE.toon
 
 tests_run:
   - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
@@ -109,7 +118,10 @@ knowledge:
     - .agents/knowledge/risks/RISK-003-candidate-worktree-name-collision.md
     - specs/changes/CHG-003-first-vertical-slice/change.toon
     - specs/changes/CHG-003-first-vertical-slice/design.md
-  proposals: []
+  proposals:
+    - docs/decisions/0002-three-layer-vision.md
+    - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
+    - PROJECT_PROFILE.toon (added `three_layer_vision_with_vertical_slices` under `decisions`, status `proposed`)
   no_record: |
     `T10` closes a gap already recorded as a `CHG-003` task and a design section, so the durable
     record is the scenario `S9` and the design rationale rather than a new knowledge entry.
