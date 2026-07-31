@@ -1,16 +1,16 @@
 session:
   updated: 2026-08-01
-  status: chg_004_t8_merged_via_pr_9; chg_004_t7_merged_via_pr_8; chg_004_t9_open_as_pr_7_merging_after_pr_8
-  branch: feat/chg-004-t9-compiler-failure-as-failed-check
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 8e35756
-  head_note: 8e35756 is the PR #8 merge for T7; this T9 branch is merging it to resolve the remaining PR #7 conflict
+  status: chg_004_t7_t8_t9_merged; chg_004_t1_openai_compatible_wiring_in_progress
+  branch: feat/chg-004-t1-openai-compatible-wiring
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t1-openai-compatible-wiring
+  head: 559744f
+  head_note: 559744f is the PR #7 merge; this branch starts CHG-004 T1 from current main
   dirty: true
   pushed: false
 
 goal:
-  current: implement CHG-004 vertically per the staging order; T8 and T7 merged, T9 open awaiting merge, then L1
-  phase: chg_004_t9_merge_after_t7_merge_conflict_resolution
+  current: implement CHG-004 vertically per the staging order; L1 first, then L2, then L3
+  phase: chg_004_t1_openai_compatible_chat_model_wiring
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -41,13 +41,16 @@ completed:
   - rebased T9 (`feat/chg-004-t9-compiler-failure-as-failed-check`) onto `origin/main` after PR #9 merged, resolving `HANDOFF.toon` conflicts with the union of both sides (T9, T7, T8 status all reflected; T8 marked merged)
   - rebased T7 (`feat/chg-004-t7-scorer-property-tests`) onto `origin/main` after PR #9 merged, resolving `HANDOFF.toon` and `specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon` conflicts with the union of both sides (both status flips kept, both note sets kept, both sets of acceptance-mapping entries kept)
   - PR #8 merged 2026-08-01 as `8e35756` after human review; this PR #7 branch is merging that result to resolve the remaining GitHub conflict
+  - PR #7 merged 2026-08-01 as `559744f`; `main` was fast-forwarded to that merge locally
+  - audited worktrees after PR #7 merge: only the main checkout and `.worktrees/feat-chg-004-t1-openai-compatible-wiring` exist; no abandoned worktree directories remain; all old local branches are merged into `main`
+  - started CHG-004 T1 on `feat/chg-004-t1-openai-compatible-wiring`: added `OpenAiCompatibleChatModelFactory` in `modules/adapters/langchain4j`, added the `langchain4j-open-ai` dependency, and covered the SAAA environment contract with local construction/configuration tests that do not call a live endpoint
 
 in_progress:
-  - PR #7 (T9) open; T8 and T7 already merged
+  - CHG-004 T1 branch is dirty with OpenAI-compatible chat-model wiring and handoff/spec updates
 
 next:
-  - CI recheck on PR #7 after this merge push
-  - once T9 and T7 merge, start L1: `T1`/`T2`/`T2b`/`T3` (OpenAiCompatible adapter + proposer + prompt/response bookkeeping + profile registration). T1 is the smallest and most independent; T2 depends on T1
+  - finish validation for T1, commit, push and open a PR
+  - then continue L1 with `T2`/`T2b`/`T3` (OpenAiCompatible proposer + prompt/response bookkeeping + profile registration). T2 endpoint tests should use a local stub server rather than a live provider so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
@@ -101,6 +104,11 @@ risks:
 
 files_changed:
   - HANDOFF.toon
+  - gradle/libs.versions.toml
+  - modules/adapters/build.gradle.kts
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleChatModelFactory.java
+  - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleChatModelFactoryTest.java
+  - specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon
   - README.md
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeEvidence.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorer.java
@@ -117,6 +125,17 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-01 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
+  - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `559744f91afdd7e5e27cae92cfd12d5f6639637c`
+  - 2026-08-01 `git worktree list --porcelain`: main checkout plus `.worktrees/feat-chg-004-t1-openai-compatible-wiring`; no abandoned worktree directories
+  - 2026-08-01 `git branch --merged main` / `git branch --no-merged main`: all old local branches merged into `main`; no unmerged local branches besides the active T1 worktree branch
+  - 2026-08-01 `.agentic-template/bin/project test`: first run failed at compile because the nested record canonical constructor was too private; fixed by using package visibility
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after T1 wiring; 14 Gradle tasks, 12 executed, 2 up-to-date
+  - 2026-08-01 `.agentic-template/bin/project check-changes`: CHANGES OK
+  - 2026-08-01 `.agentic-template/bin/project lint`: ARCHITECTURE BOUNDARIES OK
+  - 2026-08-01 `.agentic-template/bin/project check`: pass; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `git diff --check`: pass
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS; 13 passed, 2 not applicable, 0 failed
   - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-07-31 `T10` red before green at the boundary: `EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing` failed with the journal reporting `PROMOTE` for a candidate whose realization wrote the workflow file back unchanged
   - 2026-07-31 `T10` red before green in the deterministic layer: `PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate` and `PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing` failed to compile against the pre-gate API, then failed on the gate value once it existed
@@ -125,6 +144,7 @@ tests_run:
   - 2026-07-31 `.agentic-template/bin/project lint`: ARCHITECTURE BOUNDARIES OK
 
 fitness_functions:
+  - unchanged: T1 adds LangChain4j OpenAI provider wiring only inside `modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j`; the boundary fitness function remains the guard that provider imports do not leak into `modules/domain` or `modules/deterministic`
   - added: `hard_gate_non_empty_realization` in `PhenotypeFitnessScorer` fails promotion closed when the realization changed no file; enforced by test rather than by the boundary script, like the `CommandCheckRunner` containment rule
   - unchanged: `check-architecture-boundaries` still fails loudly when a scanned layer directory is missing, and `modules/domain` and `modules/deterministic` still import only `java.*` and repository packages
   - unchanged: no layer boundary moved; the change stays inside `deterministic` plus one acceptance test
@@ -132,6 +152,7 @@ fitness_functions:
 knowledge:
   consulted:
     - .agents/knowledge/index.md
+    - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
     - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
     - .agents/knowledge/risks/RISK-003-candidate-worktree-name-collision.md
     - specs/changes/CHG-003-first-vertical-slice/change.toon
@@ -141,8 +162,8 @@ knowledge:
     - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
     - PROJECT_PROFILE.toon (added `three_layer_vision_with_vertical_slices` under `decisions`, status `proposed`)
   no_record: |
-    `T10` closes a gap already recorded as a `CHG-003` task and a design section, so the durable
-    record is the scenario `S9` and the design rationale rather than a new knowledge entry.
+    `T1` implements a task already recorded in `CHG-004`; the durable record is the task status,
+    the new adapter tests and this handoff rather than a new knowledge entry.
 
 team_fallback:
   current: single_lead_with_pr_review_gate

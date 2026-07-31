@@ -215,8 +215,8 @@ acceptance:
 tasks:
   - id: T1
     slice: add an OpenAI-compatible LangChain4j chat-model wiring with configurable `SAAA_MODEL_BASE_URL`, `SAAA_MODEL_API_KEY`, `SAAA_MODEL_NAME`, kept inside `modules/adapters/langchain4j`
-    status: pending
-    note: uses `OpenAiChatModel` with a custom `baseUrl` so OpenAI, NeuralWatt, together.ai, groq and Ollama's `/v1` shim all fit one adapter; provider-neutral so credentials are never seen by the deterministic layer
+    status: completed
+    note: uses `OpenAiChatModel` with a custom `baseUrl` so OpenAI, NeuralWatt, together.ai, groq and Ollama's `/v1` shim all fit one adapter; provider-neutral so credentials are never seen by the deterministic layer. Shipped as `OpenAiCompatibleChatModelFactory`, which reads only `SAAA_MODEL_BASE_URL`, `SAAA_MODEL_API_KEY` and `SAAA_MODEL_NAME`, validates missing/blank values without echoing credential values, and returns a LangChain4j `OpenAiChatModel`; tests are local construction/configuration tests and make no live endpoint call.
   - id: T2
     slice: implement `OpenAiCompatibleMutationProposer` behind the existing `MutationProposer` port, producing exactly one `Mutation` whose `patch` is a whole-file replacement whose *diff* against the baseline respects the operator's `maxLinesChanged` bound
     status: pending
