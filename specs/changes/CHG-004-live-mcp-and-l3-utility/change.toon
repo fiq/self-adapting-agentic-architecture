@@ -26,13 +26,18 @@ deltas:
         and:
           - the model reads the baseline definition and produces a single-file replacement whose length respects the operator's `maxLinesChanged`
           - a proposal that fails validation is discarded before any candidate worktree is created
-          - the run works against any OpenAI-compatible endpoint by configuring only `SAAA_MODEL_BASE_URL`, `SAAA_MODEL_API_KEY` and `SAAA_MODEL_NAME`
+          - the run works against any endpoint that accepts Bearer auth and the OpenAI Chat Completions API shape by configuring `SAAA_MODEL_BASE_URL`, `SAAA_MODEL_API_KEY` and `SAAA_MODEL_NAME`; providers that require additional headers or a different auth mechanism are out of scope for this slice
       - id: S2
-        when: the endpoint is unreachable or the API key is rejected
-        then: the run exits non-zero without creating a candidate worktree or writing to `journal.md`
+        when: the endpoint is unreachable
+        then: the run exits non-zero without creating a candidate worktree or writing to `journal.md`, and the error names the endpoint and a network-level failure mode
         and:
-          - the error names the endpoint and the failure mode, not the API key
           - a transient network error is not retried automatically in this slice; retries are a future operator concern
+      - id: S2b
+        when: the endpoint rejects the API key with an auth failure
+        then: the run exits non-zero without creating a candidate worktree or writing to `journal.md`, and the error names the endpoint and the auth failure without echoing any part of the API key
+        and:
+          - the error message does not contain the value of `SAAA_MODEL_API_KEY` anywhere, including in a redacted or truncated form other than the fixed string `<redacted>`
+          - log output at any level respects the same rule as the error message
       - id: S3
         when: an outer agent invokes SAAA through the MCP tool `evolve`
         then: the response is a structured object matching the `FitnessResult` shape rather than parsed text
@@ -69,6 +74,19 @@ deltas:
         and:
           - the target file is a single file per run
           - a mutation that does not compile is a failed check, not a crash, so the loop still records a `DISCARD` with the compiler output as the check summary
+      - id: S9
+        when: any code path or configuration attempts to auto-merge a Layer-3 candidate branch into `main`
+        then: the attempt fails at the type or contract level, not at run time under a specific score
+        and:
+          - the CLI has no flag that turns any candidate score into a merge
+          - the MCP tool schema has no input field that turns any candidate score into a merge, and any unrecognised input field is a schema violation rather than a permissive pass-through
+          - a promoted candidate lands as a branch pointer under `refs/heads/candidate/*`; producing a merge commit is the caller's separate action, taken by hand
+      - id: S10
+        when: the target folder resolves inside the SAAA repository itself
+        then: the run's `journal.md` does not become an accidental commit
+        and:
+          - the SAAA repository's `.gitignore` covers `journal.md` at the depth the run writes it, or the run redirects the journal to a path already ignored
+          - the acceptance test that evolves a file inside `modules/` asserts the working tree is clean of an untracked `journal.md` after the run
 
 acceptance:
   - scenario: S1
@@ -79,6 +97,9 @@ acceptance:
     layer: acceptance
   - scenario: S2
     test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.failsCleanlyWhenTheEndpointIsUnreachable
+    layer: integration
+  - scenario: S2b
+    test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.failsCleanlyWhenTheEndpointRejectsTheApiKeyAndDoesNotEchoTheKey
     layer: integration
   - scenario: S3
     test_id: mcp/EvolveMcpToolTest.returnsAStructuredFitnessResultRatherThanText
@@ -116,6 +137,18 @@ acceptance:
   - scenario: S8
     test_id: adapters/checks/CommandCheckRunnerIntegrationTest.recordsCompilerFailureAsAFailedCheckRatherThanCrashing
     layer: integration
+  - scenario: S9
+    test_id: mcp/EvolveMcpToolTest.mcpInputCannotEnableAnAutoMerge
+    layer: unit
+  - scenario: S9
+    test_id: cli/EvolveCommandAcceptanceTest.hasNoFlagThatTurnsAnyScoreIntoAMerge
+    layer: acceptance
+  - scenario: S9
+    test_id: cli/EvolveCommandAcceptanceTest.promotedCandidateLandsAsABranchPointerAndNotAMerge
+    layer: acceptance
+  - scenario: S10
+    test_id: cli/EvolveCommandAcceptanceTest.evolvingAFileInsideThisRepositoryLeavesNoUntrackedJournalMd
+    layer: acceptance
 
 tasks:
   - id: T1
@@ -130,37 +163,41 @@ tasks:
     slice: register the live proposer as `openai-compatible` in `ProposerProfileRegistry` so `--profile openai-compatible` is a first-class choice alongside `fixture`
     status: pending
   - id: T4
-    slice: add `modules/mcp` (new module) exposing an MCP server that wraps the existing CLI's `evolve` command as an MCP tool, with input schema, output schema and a stdio transport that any MCP client can drive
+    slice: add a new `mcp` package inside `modules/adapters` exposing an MCP server that wraps the existing CLI's `evolve` command as an MCP tool, with input schema, output schema and a stdio transport that any MCP client can drive
     status: pending
-    note: this module is an adapter, sits outside deterministic, and must not import model-provider libraries; treat the CLI as the boundary rather than reimplementing the loop
+    note: placed inside `modules/adapters` per the `invariant_named_module_layout` decision in `PROJECT_PROFILE.toon`; the MCP module is an adapter, must not import model-provider libraries, and treats the picocli CLI class as the boundary rather than reimplementing the loop; invokes the CLI in-process via its picocli command class rather than as a subprocess, so a JVM is not started per MCP call
   - id: T5
-    slice: define the MCP tool response contract as a stable JSON serialisation of `FitnessResult` where gate outcomes are written after measured objective scores so audit-trail invariant survives serialisation
+    slice: define the MCP tool response contract as a stable JSON serialisation of `FitnessResult` where gate outcomes are written after measured objective scores so the audit-trail invariant survives serialisation, `aggregateScore` is emitted both as the raw double under `aggregateScore` and as a two-decimal string under `aggregateScoreDisplay`, and `journalPath` is an absolute path so an outer agent process with a different cwd can still read it
     status: pending
   - id: T6
-    slice: enforce that MCP input can never carry a field that overrides a gate outcome or forces a promotion; reject any unrecognised input key with a schema violation
+    slice: enforce that MCP input can never carry a field that overrides a gate outcome, forces a promotion, enables an auto-merge, or transports credentials; the schema is closed (unknown keys are a schema violation) and any candidate input field must resolve to an existing CLI flag with the same meaning
     status: pending
-    note: the load-bearing rule from ADR-0002 lives here at the wire; a permissive schema would reintroduce the original problem one level up
+    note: the load-bearing rule from ADR-0002 lives here at the wire; a permissive schema would reintroduce the original problem one level up; credentials arrive only via the MCP server's environment, never as tool arguments
   - id: T7
     slice: add jqwik property-based tests over `PhenotypeFitnessScorer` covering the invariants named in S6; run inside the existing `:deterministic:test` task
     status: pending
     note: guardrail against future scorer-as-target slices; the properties describe intent rather than specific cases so a mutation cannot accidentally satisfy them while breaking meaning
   - id: T8
-    slice: check in a golden-verdict corpus as immutable JSON or TOON fixtures under `modules/deterministic/src/test/resources/golden-corpus/` and a test that iterates them
+    slice: check in a golden-verdict corpus as immutable TOON fixtures under `modules/deterministic/src/test/resources/golden-corpus/` and a test that iterates them
     status: pending
-    note: at minimum one entry per gate demonstrating the gate firing plus two `PROMOTE` entries; changes to a fixture require a spec change with rationale rather than a silent commit
+    note: TOON per the repository's `state_and_contracts` structured-data rule; at minimum one entry per gate demonstrating the gate firing plus two `PROMOTE` entries; changes to a fixture require a spec change with rationale rather than a silent commit
   - id: T9
     slice: make `CommandCheckRunner` treat a compiler failure inside the candidate as a failed check with the compiler output as the summary, so a non-compiling mutation is discarded rather than crashing the run
     status: pending
-    note: without this a Layer-3 target that fails to compile turns into an unhelpful stack trace instead of an ordinary `DISCARD`
+    note: independently valuable for any target that could fail to compile, and a prerequisite before any Layer-3 target
   - id: T10
     slice: add the Layer-3 acceptance test evolving `modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/AuthorityLanguage.java` in a scratch worktree, gated by the existing `BoundedMutationValidator` tests
     status: pending
-    note: the test asserts that a promotion produces a candidate branch pointer and no merge to `main`, so the blast-radius constraints from ADR-0002 are enforced by test rather than by convention
+    note: the test asserts that a promotion produces a candidate branch pointer under `refs/heads/candidate/*` and no merge to `main`; a companion acceptance test asserts the CLI has no flag that turns any score into a merge; the blast-radius constraints from ADR-0002 are enforced by test rather than by convention
+  - id: T10b
+    slice: extend `.gitignore` to cover `journal.md` at every path a Layer-3 run could write it, and add an acceptance test that evolves a file inside `modules/` and asserts the working tree is clean of an untracked `journal.md` after the run
+    status: pending
+    note: without this, running SAAA against a target inside the SAAA repo can produce an accidental `journal.md` commit; the acceptance test would catch a regression that stops the gitignore matching
   - id: T11
-    slice: update `README.md`, `docs/wiki/development.md` and `docs/wiki/domain.md` to describe the `openai-compatible` profile, the MCP tool surface, the classical guards and the Layer-3 constraints
+    slice: update `README.md`, `docs/wiki/development.md` and `docs/wiki/domain.md` to describe the `openai-compatible` profile, the MCP tool surface, the classical guards, the Layer-3 constraints, and the "endpoint accepts Bearer auth and the OpenAI Chat Completions API shape" scope
     status: pending
   - id: T12
-    slice: update `PROJECT_PROFILE.toon` with any new decisions (endpoint-neutral provider adapter, MCP as first L2 surface, staged-hybrid guardrails) and `HANDOFF.toon` on merge
+    slice: update `PROJECT_PROFILE.toon` with any new decisions (endpoint-neutral provider adapter constrained to Bearer + Chat Completions shape, MCP as first L2 surface with a closed schema, in-process CLI invocation, staged-hybrid guardrails) and `HANDOFF.toon` on merge; flip `Q-001` from `open` to `answered-by-CHG-004` and add a brief rationale linking to this change
     status: pending
 
 non_goals:
@@ -174,6 +211,10 @@ non_goals:
   - promoted refs to `refs/heads/promoted/*` from `CHG-002 T5` — a candidate branch pointer is enough for this slice and does not depend on that scheme
   - multiple L3 target files per run — one file per candidate per ADR-0002 blast-radius constraints
   - auto-merge of any Layer-3 candidate under any score — hard rule; no CLI flag or MCP input weakens this
+  - MCP discovery / listing tools (e.g. `list-runs`, `list-behaviour-cases`, `read-journal`) — the outer agent knows behaviour case names and target paths out-of-band for this slice; discovery is a follow-on
+  - MCP tool arguments carrying credentials — credentials arrive only via the MCP server's environment; the schema refuses to accept them as inputs
+  - subprocess-per-invocation MCP transport — the MCP server invokes the CLI's picocli class in-process to avoid JVM startup per call
+  - support for providers requiring auth mechanisms beyond Bearer or API shapes beyond OpenAI Chat Completions — a subsequent adapter would handle those
 
 risks:
   - a live model can produce output that parses cleanly but is semantically nonsense; `BoundedMutationValidator` and the deterministic scorer are the only guards; expect noisy discards on early runs
@@ -182,6 +223,6 @@ risks:
   - the golden-verdict corpus is only as strong as its coverage; a scorer mutation that changes behaviour on evidence shapes absent from the corpus will not be caught
   - environment-variable configuration for the endpoint means a misconfigured endpoint fails at run time rather than at build time; documentation and pre-flight need to make this obvious
   - `SAAA_MODEL_API_KEY` in the environment is a credential in an environment variable; agents driving this via MCP must respect that and not echo it in any tool response
-  - `AuthorityLanguage` is small; a mutation that removes the regex entirely may still pass compilation and only fail one test, which reads as an unrealistically easy `DISCARD`; the acceptance test needs to include a mutation that must actually respect meaning
+  - `AuthorityLanguage` is small; a mutation that removes the regex entirely may still pass compilation and only fail one test, which reads as an unrealistically easy `DISCARD`; the acceptance test cannot force the live model to try a specific mutation shape, so the concrete constraint is that the fixture-driven L3 acceptance test asserts at least one `PROMOTE` and one `DISCARD` across a small deterministic run set, keeping the "loop actually differentiates" claim honest even when the live model is not exercised in CI
   - the MCP module adds a new dependency surface and a new transport (stdio); expect operational rough edges on early integrations
   - LangChain4j provider-neutral typed-service coverage exists today, but running against a real endpoint in CI requires either recorded responses or a locally reachable model; the integration test must not require live secrets to pass
