@@ -28,16 +28,19 @@ completed:
   - repointed `origin` from SSH to HTTPS after `git reset --hard origin/main` reset to a stale `10ce37f` because push-via-HTTPS-URL had left `origin/main` un-fetched; state recovered by resetting to the known merge sha and the remote URL change stops this bug class recurring
   - drafted the bookkeeping PR #4 (`chore/promote-adr-0002`) promoting ADR-0002 to `Accepted` / `canonical` / `active` after the PR #3 merge; open for review
   - had a design conversation on staged-hybrid scorer targeting: A (small utility) first, guardrails in-slice, B (scorer itself) only after the guardrails have real evidence of holding
-  - drafted `CHG-004: First vertical slice across L1/L2/L3 with classical scorer guards` on branch `spec/chg-004-first-vertical-live-mcp`: LangChain4j `OpenAiChatModel` with configurable `baseUrl` at L1, `evolve` as MCP tool at L2, `AuthorityLanguage.java` as the L3 target, plus jqwik property tests over `PhenotypeFitnessScorer` and a golden-verdict corpus as in-slice guards
+  - drafted `CHG-004: First vertical slice across L1/L2/L3 with classical scorer guards` on branch `spec/chg-004-first-vertical-live-mcp`: LangChain4j `OpenAiChatModel` with configurable `baseUrl` at L1, `evolve` as MCP tool at L2, `AuthorityLanguage.java` as the L3 target, plus jqwik property tests over `PhenotypeFitnessScorer` and a golden-verdict corpus as in-slice guards; PR #5 opened
+  - PR #4 (`chore/promote-adr-0002`) merged 2026-07-31 as `32cb223` after human review; the promotion is on `main`, and the spec branch was merged with `main` to pick it up (merge commit `9b7913f`)
+  - lead-review pass over PR #5 (two passes) surfaced four blockers, six should-fixes and a handful of nits; rolled the findings into a spec-tightening commit on the same branch rather than a separate PR
+  - CHG-004 spec tightening: MCP module moved from `modules/mcp` to a package inside `modules/adapters` restoring the `invariant_named_module_layout` boundary; `S2` split into `S2` (network unreachable) and `S2b` (auth failure, no-key-echo assertion); `S9` added for the auto-merge prohibition; `S10` added for `journal.md` pollution risk; MCP response gained `aggregateScoreDisplay` and `journalPath` pinned as absolute; golden corpus format pinned to TOON per the structured-data rule; MCP invocation pinned to in-process; provider scope narrowed to Bearer + OpenAI Chat Completions; `AuthorityLanguage`-too-easy risk mitigation replaced with a concrete L3 test constraint; the false claim about ADR-0002's revisit triggers removed; `T9` reworded, `T10b` added, `T12` extended to flip `Q-001`; three additional non-goals
 
 in_progress:
-  - PR #4 (`chore/promote-adr-0002`) is open and awaiting merge; likely to conflict on `HANDOFF.toon` with this branch, resolvable at merge time
-  - CHG-004 spec drafted (`change.toon` + `design.md`) on `spec/chg-004-first-vertical-live-mcp`; ready to open a review PR
+  - CHG-004 spec (`change.toon` + `design.md`) plus the lead-review tightening are on `spec/chg-004-first-vertical-live-mcp`; PR #5 will get an additional commit for the tightening
 
 next:
-  - open the CHG-004 spec-review PR and get scope/design signed off before any implementation begins
-  - after CHG-004 review lands, plan implementation staging per the design document (T9 unblocker → guards → L1 → L2 → L3 vertical)
-  - `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree) are still open `CHG-003` follow-ups; T9 sits on the CHG-004 critical path via T9 in this spec (compiler-failure-as-failed-check)
+  - push the tightening commit and note it on PR #5 for review
+  - after PR #5 merges, open a small follow-on PR to `ADR-0002` adding the revisit trigger the design document now defers to it: "any attempt to make `PhenotypeFitnessScorer` a mutation target requires a superseding ADR that names the guardrails proven to be in place"
+  - once the ADR revision lands, plan implementation staging per the design document (T9 + T7 + T8 in parallel → T1/T2/T3 → T4/T5/T6 → T10/T10b → T11/T12)
+  - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer

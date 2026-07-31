@@ -40,10 +40,20 @@ profile.
 
 ### Layer 2 — `evolve` as an MCP tool
 
-A new `modules/mcp` module exposes `evolve` as an MCP tool over stdio. It
-wraps the CLI rather than re-implementing the loop, so there is one code
-path from proposal to decision. Input schema mirrors CLI flags; output
-schema is a stable JSON serialisation of `FitnessResult`:
+A new `mcp` package **inside `modules/adapters`** exposes `evolve` as an MCP
+tool over stdio. Its placement follows the `invariant_named_module_layout`
+decision recorded in `PROJECT_PROFILE.toon`: all adapters live inside
+`modules/adapters/`, and the MCP module is an adapter to the MCP protocol
+just as the git and langchain4j modules are adapters to their respective
+concerns.
+
+It wraps the CLI rather than re-implementing the loop, so there is one code
+path from proposal to decision. Invocation is **in-process** via the picocli
+`MutationLoopCli` command class, not a subprocess, so a JVM is not started
+per MCP call.
+
+Input schema mirrors CLI flags. Output schema is a stable JSON serialisation
+of `FitnessResult`:
 
 ```
 {
@@ -60,20 +70,32 @@ schema is a stable JSON serialisation of `FitnessResult`:
     "hard_gate_non_empty_realization": 1.0
   },
   "aggregateScore": 0.99,
+  "aggregateScoreDisplay": "0.99",
   "decision": "PROMOTE",
-  "journalPath": "./target/journal.md"
+  "journalPath": "/absolute/path/to/target/journal.md"
 }
 ```
 
-Two invariants ride on the wire:
+`aggregateScore` is the raw `double` so outer agents can compare candidates
+numerically; `aggregateScoreDisplay` is the same two-decimal rounding the CLI
+emits, so a human reading the tool response and a human reading the CLI
+output see the same number. `journalPath` is absolute so an outer agent
+process with a different cwd can still read it.
+
+Three invariants ride on the wire:
 
 1. **Ordering.** Hard-gate outcomes come *after* measured objective scores in
    the serialised map, mirroring `FitnessResult.objectives`. Evidence content
    cannot overwrite a recorded gate result in the serialised form either.
-2. **Unidirectional.** No MCP input can force a promotion or override a gate.
-   Unrecognised input keys are a schema violation, not a permissive
-   pass-through. This is where the ADR-0002 rule ("outer loop plans, inner
-   loop scores") is enforced at the wire.
+2. **Unidirectional.** No MCP input can force a promotion, override a gate,
+   enable an auto-merge, or carry credentials. Unrecognised input keys are a
+   schema violation, not a permissive pass-through. This is where the ADR-0002
+   rule ("outer loop plans, inner loop scores") is enforced at the wire.
+3. **Credentials pass through the environment, not the arguments.** The MCP
+   server reads `SAAA_MODEL_API_KEY` from its own environment. The outer
+   agent is responsible for setting that environment when it spawns the MCP
+   server; the tool schema refuses to accept a credential-shaped input.
+   `S2b` and `T6` together enforce this.
 
 ### Layer 3 — `AuthorityLanguage.java` as target, existing tests as gate
 
@@ -85,19 +107,27 @@ without opening the recursive can of worms.
 The behaviour case is a shell script that runs
 `./gradlew :deterministic:test --tests '*BoundedMutationValidator*'` inside
 the candidate worktree. Blast-radius constraints from ADR-0002 are enforced
-by test rather than by convention:
+by test rather than by convention (`S9`, `S10`, `T10`, `T10b`):
 
 - one target file per candidate;
 - the candidate worktree is discardable;
-- no auto-merge to `main` under any score;
-- promotion produces a candidate branch pointer, not a merge;
-- the `journal.md` writes into the target folder, not into the candidate
-  branch history.
+- no auto-merge to `main` under any score — enforced at the type/contract
+  level, not at run time; the CLI has no such flag and the MCP schema has
+  no such input;
+- promotion produces a branch pointer under `refs/heads/candidate/*`; a
+  merge is a separate action taken by a human;
+- the `journal.md` writes into the target folder, but the SAAA repository's
+  `.gitignore` covers that path so a run inside this repository never
+  produces an accidental commit; the acceptance test asserts a clean working
+  tree after the run so a regression that stops the gitignore matching is
+  caught.
 
 A mutation that fails to compile becomes a failed check with the compiler
 output as the check summary, so the loop records a `DISCARD` rather than
 crashing. Without that, the first non-compiling proposal from the live model
 would turn into a stack trace instead of an ordinary evolutionary outcome.
+`T9` is independently valuable for any target that could fail to compile,
+not only Layer 3.
 
 ## Classical scorer guards (in this slice)
 
@@ -252,9 +282,16 @@ conversation history:
 >    test suite; independent-judge scorer for the promotion decision. Only
 >    then is Option B (mutating the scorer) allowed.
 
-The prohibition is expressed as a spec non-goal and repeated in the ADR's
-revisit triggers, so a later agent cannot quietly enable scorer targeting
-by editing configuration.
+The prohibition lives in three places so a later agent cannot quietly
+enable scorer targeting by editing configuration alone:
+
+- a non-goal in this spec's `change.toon`;
+- a durable statement in this design document;
+- a revisit trigger to be added to `ADR-0002` in a follow-up ADR revision
+  ("any attempt to make `PhenotypeFitnessScorer` a mutation target requires
+  a superseding ADR that names the guardrails proven to be in place"). That
+  revision is not part of this change to avoid two ADR PRs racing; it is
+  named in the handoff `next` list.
 
 ## What is deliberately out of scope
 
@@ -269,7 +306,16 @@ Named as non-goals in `change.toon` and repeated here for emphasis:
 - promoted refs to `refs/heads/promoted/*` — a candidate branch pointer is
   enough for this slice;
 - multiple L3 target files per run;
-- any code path that could auto-merge a Layer-3 candidate under any score.
+- any code path that could auto-merge a Layer-3 candidate under any score;
+- MCP discovery / listing tools — the outer agent knows behaviour case
+  names and target paths out-of-band for this slice; discovery is a
+  follow-on;
+- MCP tool arguments carrying credentials — credentials arrive only via
+  the MCP server's environment;
+- subprocess-per-invocation MCP transport — the MCP server invokes the
+  CLI's picocli class in-process;
+- providers requiring auth mechanisms beyond Bearer or API shapes beyond
+  OpenAI Chat Completions — a subsequent adapter would handle those.
 
 ## Testing plan
 
@@ -291,14 +337,16 @@ This is a big slice by design — vertical across all three layers plus two
 guards. Sensible staging within the slice, from most-to-least
 prerequisite:
 
-1. T9 (compiler failure as failed check) — unblocks everything else L3.
+1. T9 (compiler failure as failed check) — general robustness fix that also
+   unblocks L3.
 2. T7 + T8 (property tests + golden corpus) — the guards, low-risk, land
-   independently.
-3. T1 + T2 + T3 (live proposer + profile registration) — L1 live.
+   independently and can run in parallel with T9.
+3. T1 + T2 + T3 (live proposer + profile registration) — L1 live. T2 may
+   iterate on prompt shape more than expected (see risks); budget for it.
 4. T4 + T5 + T6 (MCP module + schema + input hardening) — L2 live.
-5. T10 (L3 acceptance test evolving `AuthorityLanguage`) — the vertical
-   demonstration.
-6. T11 + T12 (docs + profile/handoff updates) — landing.
+5. T10 + T10b (L3 acceptance test evolving `AuthorityLanguage` plus the
+   journal-pollution gitignore + assertion) — the vertical demonstration.
+6. T11 + T12 (docs + profile/handoff updates, Q-001 flip) — landing.
 
 Steps can land as multiple PRs against `spec/chg-004-*` if the review appetite
 is one-PR-per-concern rather than one-PR-per-spec.
@@ -316,3 +364,41 @@ is one-PR-per-concern rather than one-PR-per-spec.
   either trivially wrong or trivially right) → replace with a slightly
   larger target in a follow-up slice before scorer-as-target is
   contemplated.
+
+## Review history
+
+This spec went through a lead self-review after the initial draft. The
+findings that landed as spec-level tightening rather than as implementation
+notes:
+
+- MCP module placement moved from `modules/mcp` to a package inside
+  `modules/adapters`, restoring the `invariant_named_module_layout`
+  invariant.
+- `S2` split into `S2` (endpoint unreachable) and `S2b` (API key rejected,
+  with an explicit no-echo assertion) so the "does not leak the key"
+  invariant has a dedicated test.
+- `S9` added for the auto-merge prohibition, which was previously carried
+  only by an "and" bullet inside `S5` and a non-goal.
+- `S10` added for the `journal.md` pollution risk when the target folder
+  is inside the SAAA repository itself; paired with `T10b` (`.gitignore`
+  update plus assertion).
+- MCP response shape gained `aggregateScoreDisplay` alongside the raw
+  `aggregateScore`, and `journalPath` was clarified as absolute.
+- Golden-verdict corpus format pinned to TOON per the repository's
+  structured-data rule.
+- MCP invocation of the CLI pinned to in-process rather than subprocess.
+- Provider adapter scope narrowed to "endpoints that accept Bearer auth
+  and the OpenAI Chat Completions API shape", with providers outside that
+  scope declared out-of-slice.
+- The "AuthorityLanguage may be too easy" mitigation replaced with a
+  concrete constraint on the L3 acceptance test.
+- The prior claim that the scorer-as-target prohibition was "repeated in
+  the ADR's revisit triggers" removed; the follow-on ADR revision named
+  in the handoff instead.
+
+Second-pass finds that were addressed:
+
+- `T9` reworded to reflect independent value, not only L3 unblocking.
+- `T12` extended to flip `Q-001` from `open` to `answered-by-CHG-004`.
+- New non-goals for MCP discovery tooling, credential-in-arguments, and
+  subprocess transport.
