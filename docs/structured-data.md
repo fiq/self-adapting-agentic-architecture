@@ -38,3 +38,13 @@ Use for logic that answers "given these facts, what should happen?"
   the remainder is the proposed new file content — because there is no TOON
   reader in Java yet. This deviation is scoped to the fixture proposer and
   retires when `CHG-002` task `T3d` adds the TOON envelope reader.
+- `modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/GoldenCorpus.java`
+  (the golden-verdict corpus for `PhenotypeBridgeScorer`, CHG-004 T8) is a
+  Java constant list of records rather than TOON fixture files. Same reason:
+  no Java TOON reader yet. The persona-review pass on CHG-004 pinned the corpus
+  format to TOON, so this deviation is intended to retire when `CHG-002` task
+  `T3d` lands the envelope reader — the entry list migrates to
+  `modules/deterministic/src/test/resources/golden-corpus/*.toon` and the test
+  iterates the loaded files. Until then the "checked in, treated as immutable,
+  editing requires a spec change with rationale" invariants apply to the Java
+  source file, same as they would to a TOON fixture.
