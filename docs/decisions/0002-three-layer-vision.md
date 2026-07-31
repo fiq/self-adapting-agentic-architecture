@@ -202,12 +202,28 @@ AST-aware realization. AST-aware realization triggers a right-sizing revisit.
 - Layer 3 investigation shows AST-aware mutation does not repay its complexity
   → keep hunks-only, or defer AST-aware realization indefinitely and cap
   Layer 3 targets accordingly.
+- Anyone proposes making `PhenotypeFitnessScorer` (or another core scoring
+  policy in `modules/deterministic`) a mutation target →
+  **a superseding ADR is required** that names the guardrails proven to
+  be in place. `CHG-004`'s staged-hybrid design defers this by choosing
+  a small utility (`AuthorityLanguage`) as the first Layer-3 target and
+  landing property tests plus a golden-verdict corpus as prerequisites;
+  taking the next step needs an ADR that shows those prerequisites have
+  real evidence of holding (typically: mutation-testing sweep against the
+  scorer's test suite, an independent-judge scorer for the promotion
+  decision, elitism against best-so-far on the golden corpus) rather than
+  a spec change that quietly enables it. This trigger exists so a later
+  agent cannot switch scorer-as-target on by editing configuration alone.
 
 ## Evidence
 
 - `README.md` links here for the vision.
 - `PROJECT_PROFILE.toon` records the current right-sizing decision.
 - `specs/changes/CHG-003-first-vertical-slice/` is what Layer 1 ships today.
+- `specs/changes/CHG-004-live-mcp-and-l3-utility/` is the first vertical
+  slice per this ADR; its design document depends on the scorer-as-target
+  revisit trigger above and its `change.toon` names scorer-as-target as a
+  non-goal for the same reason.
 - `.agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md`
   is the invariant this ADR extends across layers.
 - `.agents/knowledge/questions/Q-005-crossover-policy.md` records the deferred
