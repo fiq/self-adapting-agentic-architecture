@@ -247,8 +247,34 @@ tasks:
     note: guardrail against future scorer-as-target slices; the properties describe intent rather than specific cases so a mutation cannot accidentally satisfy them while breaking meaning
   - id: T8
     slice: check in a golden-verdict corpus as immutable TOON fixtures under `modules/deterministic/src/test/resources/golden-corpus/` and a test that iterates them
-    status: pending
-    note: TOON per the repository's `state_and_contracts` structured-data rule; coverage floor is (a) one entry per hard gate demonstrating the gate firing, (b) two `PROMOTE` entries with different objective profiles, (c) one entry that scores exactly `PROMOTION_THRESHOLD` and promotes, (d) one entry that scores just under `PROMOTION_THRESHOLD` and discards, and (e) at least one entry captured from a real CHG-004 acceptance run so the corpus is grounded in observed evidence and not only in constructed cases; changes to a fixture require a spec change with rationale rather than a silent commit
+    status: completed
+    note: |
+      TOON per the repository's `state_and_contracts` structured-data rule; coverage floor is
+      (a) one entry per hard gate demonstrating the gate firing, (b) two `PROMOTE` entries with
+      different objective profiles, (c) one entry that scores exactly `PROMOTION_THRESHOLD` and
+      promotes, (d) one entry that scores just under `PROMOTION_THRESHOLD` and discards, and
+      (e) at least one entry captured from a real acceptance run so the corpus is grounded in
+      observed evidence and not only in constructed cases; changes to a fixture require a spec
+      change with rationale rather than a silent commit.
+
+      Shipped state: the corpus is nine entries in
+      `modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/GoldenCorpus.java`
+      as programmatic Java constants rather than TOON files, and
+      `PhenotypeGoldenVerdictCorpusTest` iterates them via `@ParameterizedTest`. The Java
+      constant format is a recorded deviation from the TOON pin — there is no Java TOON reader
+      yet — scoped to this file and documented in `docs/structured-data.md`; it retires when
+      `CHG-002` task `T3d` adds the envelope reader, at which point the entries migrate to
+      resource files.
+
+      Coverage: three of four hard gates fire through the bridge in the corpus
+      (`checks`, `required_behavior_cases`, `non_empty_realization`); the fourth
+      (`required_objective_scores`) cannot fire through the bridge because the bridge always
+      produces all five objective values, so it is covered instead by
+      `PhenotypeFitnessScorerTest` and property `noObjectiveCombinationCanPromoteWhileAGateFails`
+      in `PhenotypeFitnessScorerPropertyTest`. The floor also picks up two entries at the
+      promotion boundary (one PROMOTE at exactly 0.80, one DISCARD at 0.7976 that displays as
+      0.80 — the latter also covers property `P8` at the corpus level) and one entry captured
+      from the CHG-003 fixture `toy-workflow` acceptance run.
   - id: T9
     slice: make `CommandCheckRunner` treat a compiler failure inside the candidate as a failed check with the compiler output as the summary, so a non-compiling mutation is discarded rather than crashing the run
     status: completed
