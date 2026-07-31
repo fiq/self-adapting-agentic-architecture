@@ -159,11 +159,13 @@ acceptance:
     test_id: deterministic/PhenotypeFitnessScorerPropertyTest.evidenceKeysCannotOverwriteRecordedGateOutcomes
     layer: unit
   - scenario: S6
-    test_id: deterministic/PhenotypeFitnessScorerPropertyTest.parsimonyIsMonotonicInRealizationSize
+    test_id: deterministic/PhenotypeFitnessScorerPropertyTest.aggregateIsMonotonicInParsimonyObjectiveScore
     layer: unit
+    note: scorer-level test — invariant is monotonicity in the parsimony objective input, since the scorer never sees realization size directly; a bridge-level "monotonic in realization size" test may follow
   - scenario: S6
-    test_id: deterministic/PhenotypeFitnessScorerPropertyTest.taskSuccessIsMonotonicInPassingCaseCount
+    test_id: deterministic/PhenotypeFitnessScorerPropertyTest.aggregateIsMonotonicInTaskSuccessObjectiveScore
     layer: unit
+    note: scorer-level test — invariant is monotonicity in the task_success objective input, since the scorer never sees the behaviour case list directly for scoring purposes (only for gating); a bridge-level "monotonic in passing case count" test may follow
   - scenario: S6
     test_id: deterministic/PhenotypeFitnessScorerPropertyTest.decisionMatchesRawSumAtTheThresholdBoundary
     layer: unit
@@ -243,8 +245,8 @@ tasks:
     note: defence-in-depth against the proposer adapter, LangChain4j, or a serialisation library echoing a header or body containing the key; the primary defence is still "don't put it into the error in the first place"
   - id: T7
     slice: add jqwik property-based tests over `PhenotypeFitnessScorer` covering the invariants named in S6; run inside the existing `:deterministic:test` task
-    status: pending
-    note: guardrail against future scorer-as-target slices; the properties describe intent rather than specific cases so a mutation cannot accidentally satisfy them while breaking meaning
+    status: completed
+    note: guardrail against future scorer-as-target slices; the properties describe intent rather than specific cases so a mutation cannot accidentally satisfy them while breaking meaning; `PhenotypeFitnessScorerPropertyTest` covers all eight properties from S6 (`anyFailedCheckProducesDiscard`, `anyMissingDeclaredBehaviourCaseProducesDiscard`, `noObjectiveCombinationCanPromoteWhileAGateFails`, `evidenceKeysCannotOverwriteRecordedGateOutcomes`, `aggregateIsMonotonicInParsimonyObjectiveScore`, `aggregateIsMonotonicInTaskSuccessObjectiveScore`, `decisionMatchesRawSumAtTheThresholdBoundary`, `decisionIsDerivedFromRawSumNotRoundedAggregate`); each property has a fixed numeric jqwik seed so failures are reproducible; the monotonicity properties are phrased against the objective input (bridge-level "monotonic in realization size" is a follow-on if wanted)
   - id: T8
     slice: check in a golden-verdict corpus as immutable TOON fixtures under `modules/deterministic/src/test/resources/golden-corpus/` and a test that iterates them
     status: pending
