@@ -62,7 +62,8 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         objectives.put("behavioral_safety", 1.0);
         objectives.put("parsimony", parsimony(realization));
 
-        return delegate.score(candidate, new PhenotypeEvidence(evidence, behaviorCases, objectives));
+        return delegate.score(
+                candidate, new PhenotypeEvidence(evidence, behaviorCases, objectives, realization));
     }
 
     private static BehaviorCaseEvidence toBehaviorCase(CheckEvidence check) {

@@ -65,6 +65,14 @@ deltas:
           - a committed symlink pointing out of the tree is refused rather than allowed to satisfy a required behaviour, because git worktree add recreates it faithfully in the candidate
           - the refusal aborts the run instead of being recorded as a failed behaviour case, because an escaping command is a broken setup rather than an observation about the mutation
           - a program named without a path separator is left to PATH resolution, which is how an interpreter such as sh is named and is the caller's choice rather than something the candidate can influence
+      - id: S9
+        when: a candidate's realization changed no file
+        then: promotion is hard-gated off regardless of how well the candidate scores
+        and:
+          - parsimony rewards the empty diff with 1.0, so without the gate a candidate that changed nothing is the highest-scoring candidate a population could contain
+          - the passing checks of an unchanged candidate are evidence about the baseline, not about a mutation
+          - the gate is enforced by the scorer rather than by the caller assembling the evidence, so a future caller cannot omit it
+          - a mode-only change counts as a realization, because the measure is files changed rather than lines changed
 
 acceptance:
   - scenario: S1
@@ -115,6 +123,15 @@ acceptance:
   - scenario: S8
     test_id: deterministic/PhenotypeBridgeScorerTest.failsTheGateWhenADeclaredBehaviourCaseFailedInAnyOfItsCheckEntries
     layer: unit
+  - scenario: S9
+    test_id: cli/EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing
+    layer: acceptance
+  - scenario: S9
+    test_id: deterministic/PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate
+    layer: unit
+  - scenario: S9
+    test_id: deterministic/PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing
+    layer: unit
 
 tasks:
   - id: T1
@@ -157,8 +174,8 @@ tasks:
     note: reporters print only name and status, so a script that exits non-zero for its own reasons is indistinguishable from a candidate that broke the behaviour; the missing and non-executable script cases are already refused before the run, so what remains is diagnostics rather than a gate weakness
   - id: T10
     slice: hard-gate a non-empty realization so a candidate that changed nothing cannot be promoted
-    status: pending
-    note: excluding .saaa bookkeeping from the measured diff means a realization that wrote nothing now measures zero lines and scores parsimony 1.0; no gate requires the realization to be non-empty, and a no-op candidate was already promotable before that exclusion because parsimony carries 0.10 against 0.20 of headroom below the threshold
+    status: completed
+    note: excluding .saaa bookkeeping from the measured diff means a realization that wrote nothing now measures zero lines and scores parsimony 1.0; no gate required the realization to be non-empty, and a no-op candidate was already promotable before that exclusion because parsimony carries 0.10 against 0.20 of headroom below the threshold. PhenotypeEvidence now carries the RealizationSummary and PhenotypeFitnessScorer gates on filesChanged > 0, so the gate holds for any caller rather than only the current bridge
 
 non_goals:
   - evaluating more than one candidate per generation, which is the next slice and the point at which this project starts to differ from a capable agent with tests

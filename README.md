@@ -152,6 +152,10 @@ The target folder must sit inside a Git repository, because candidate isolation
 uses `git worktree`. A discarded candidate is a successful run; the command
 exits non-zero only when the run itself fails.
 
+A candidate whose realization changed no file is discarded however well it
+scores. Parsimony rewards a smaller change, so without that gate the empty change
+would score best of all, on evidence about the baseline it never touched.
+
 Candidate worktree names derive from the mutation id, so re-running the fixture
 profile against a folder that already has a candidate worktree fails until
 `.worktrees/candidate-*` is removed.

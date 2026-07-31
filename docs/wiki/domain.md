@@ -24,7 +24,7 @@ and mutation ids, so a repeat run of the same mutation fails instead of
 evaluating a new candidate. It becomes blocking at the population slice, which
 needs many live candidate worktrees at once.
 
-No gate requires a realization to be non-empty, so a candidate that changed
-nothing scores parsimony 1.0 rather than being rejected outright; `CHG-003` task
-`T10` tracks it. Required behaviour cases do fail closed: a declared case with no
-check evidence is scored as failed rather than dropped.
+Gates fail closed. A declared behaviour case with no check evidence is scored as
+failed rather than dropped, and a candidate whose realization changed no file is
+rejected outright rather than being rewarded with parsimony 1.0 for the empty
+diff (`CHG-003` task `T10`).
