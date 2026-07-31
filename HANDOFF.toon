@@ -1,37 +1,38 @@
 session:
   updated: 2026-07-31
-  status: chg_003_merged_via_pr_1; t10_non_empty_realization_gate_implemented_on_branch_awaiting_review
-  branch: feat/non-empty-realization-gate
+  status: chg_003_merged_via_pr_1; t10_non_empty_realization_gate_merged_via_pr_2; readme_plain_english_rework_merged_directly_to_main
+  branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 362589c
-  head_note: 362589c is the T10 gate; this handoff record is committed on top of it, so the branch tip is one commit ahead
+  head: d1b9a71
+  head_note: d1b9a71 is the README plain-English rework, pushed directly to main under explicit user authorization; 36d01f8 immediately below is the PR #2 merge for the T10 gate
   dirty: false
   pushed: true
 
 goal:
   current: close the promotion-integrity gaps left open by `CHG-003` so the population slice can rank candidates without selecting for the wrong thing
-  phase: t10_implemented_on_branch
+  phase: chg_003_follow_ups_t9_and_t12_pending
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
   - read `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md`, `.agents/knowledge/index.md` and the `CHG-003` change and design
-  - confirmed PR #1 merged on 2026-07-30, so `CHG-003` is on `main` at 10ce37f and the previous handoff's "awaiting merge" state is closed
-  - implemented `CHG-003` task `T10` on branch `feat/non-empty-realization-gate` test-first: an acceptance test showed a candidate whose realization wrote the workflow file back unchanged reported PROMOTE
+  - confirmed PR #1 merged on 2026-07-30, so `CHG-003` was already on `main` at 10ce37f when this session started
+  - implemented `CHG-003` task `T10` test-first: an acceptance test showed a candidate whose realization wrote the workflow file back unchanged reported PROMOTE
   - added `hard_gate_non_empty_realization` to `PhenotypeFitnessScorer` and threaded `RealizationSummary` through `PhenotypeEvidence` so the gate holds for any caller rather than only the current bridge
   - added scenario `S9` with three acceptance mappings and recorded the gate in the `CHG-003` design and `docs/wiki/domain.md`
+  - PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2) merged 2026-07-31 as `36d01f8` after human review; CI was 4/4 green; the branch was deleted on remote and locally
+  - reworked the README opening in plain English: renamed the title to SAAA, added a problem/because/usage triptych, added a Contents TOC and surfaced the InfoQ context-store citation; merged directly to `main` as `d1b9a71` under explicit user authorization
+  - noticed and recorded that the SSH remote fails auth in this environment (`Permission denied (publickey)`), so both PR #2's post-merge cleanup and the README push used the HTTPS remote URL
 
-in_progress:
-  - `feat/non-empty-realization-gate` is implemented, pushed and open as PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2), awaiting human review and merge
+in_progress: []
 
 next:
-  - review and merge PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2); human review is the merge gate
-  - implement `T12` so pre-flight validates `HEAD` rather than the working tree, and `T9` so a failed behaviour case shows why it failed
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
   - migrate `MutationEvaluationLoop` from the transitional `Mutation`/`MutationValidator`/`FitnessScorer` stack onto `MutationContract` and `PhenotypeFitnessScorer`; both stacks exist today, only the old one is wired
   - implement `CHG-002` `T2`, `T5`, `T6` before any live provider run
   - the population slice: evaluate several candidates per generation and rank them, calling `MutationEvaluationLoop.evaluate` N times
+  - housekeeping: `feat/first-vertical-slice` still exists locally and on the remote although PR #1 merged 2026-07-30; delete when convenient
 
 decisions:
   - id: langchain4j_adapter_boundary
@@ -76,6 +77,7 @@ risks:
 
 files_changed:
   - HANDOFF.toon
+  - README.md
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeEvidence.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorer.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeBridgeScorer.java
@@ -116,4 +118,6 @@ team_fallback:
   current: single_lead_with_pr_review_gate
   reason: PR tooling works, so `CHG-003` went through PR #1 and `T10` went through PR #2. Pushing over SSH still fails with `Permission denied (publickey)`; the HTTPS remote URL works. No subagent actor review was requested for this change; human review on the PR is the merge gate.
   chg_003_outcome: PR #1 "Run one mutation evaluation end to end (CHG-003)" merged 2026-07-30; two independent actor reviews during its development, the second of which found a surviving promotion-integrity hole and returned do-not-merge before the `T11` fix
-  lost_challenge: this `T10` change has had lead self-review only, with no independent actor or human review yet. It is covered test-first at the acceptance and unit layers, and the failing acceptance test was observed reporting PROMOTE before the gate existed.
+  t10_outcome: PR #2 "Hard-gate a candidate whose realization changed nothing (CHG-003 T10)" merged 2026-07-31 as `36d01f8` after human review; the code change had lead self-review only, no independent actor review, but was covered test-first and the failing acceptance test was observed reporting PROMOTE before the gate existed
+  readme_rework_outcome: pushed directly to `main` as `d1b9a71` under explicit user authorization, no PR; lead self-review only, no actor or human review pass, no code changes
+  lost_challenge: the T10 code change and the README rework did not receive independent actor review; the T10 change has automated acceptance and unit coverage, the README change is a docs-only edit
