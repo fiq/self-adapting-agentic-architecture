@@ -173,6 +173,20 @@ decisions:
       - docs/architecture/module-boundaries.md
       - modules/domain/build.gradle.kts declares no dependencies, so the inward rule is a compile error
     consequence_if_changed: collapsing further into a single module would put provider libraries on the same classpath as scoring policy and reduce the LangChain4j boundary to a text search, which model-authored candidate code could satisfy while still reaching the provider
+  - id: three_layer_vision_with_vertical_slices
+    decision: SAAA is designed as three concentric layers (workflow evolution, tool surface for a custom agentic loop, product-code generalisation) and delivered through vertical slices across all three layers wherever possible, with population and conceptual crossover as foundation slices that upgrade every layer at once
+    reason:
+      - a stated direction stops the README from either overclaiming or underclaiming and gives the next slices a place to land
+      - vertical slices test the outer-loop tool vocabulary and the Layer-3 safety story on real use, rather than designing them in isolation
+      - foundation slices for population and crossover apply to every target, so pulling them out of vertical slices avoids re-deriving the mechanic per layer
+      - the deterministic decision boundary in ARCH-001 continues to hold at every layer; the model may propose or repair, never approve
+    confidence: medium
+    status: proposed
+    validation:
+      - docs/decisions/0002-three-layer-vision.md
+      - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
+      - README.md
+    consequence_if_changed: the population, crossover and Layer-3 slices need re-planning against a different delivery pattern before scope widens further
 
 unknowns:
   - id: Q-001

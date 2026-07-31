@@ -50,6 +50,8 @@ run promotes; break the fixture and the same command discards.
 - [How fitness is defined](#how-fitness-is-defined) — hard gates, weighted
   objectives, where the numbers come from
 - [What is real today, and what is not](#what-is-real-today-and-what-is-not)
+- [Where this is going](#where-this-is-going) — summary of the three-layer
+  vision, with a link to the full ADR
 - [Run locally](#run-locally) and [Evolve a workflow](#evolve-a-workflow) —
   full CLI reference
 - [Repository structure](#repository-structure) and
@@ -271,6 +273,34 @@ is evaluated per run, so there is no ranking or selection pressure between
 candidates yet — that is the next slice, and it is the point at which this starts
 to differ from a capable agent with a good test suite. `behavioral_safety` has no
 independent evidence source and sits at 1.0.
+
+## Where this is going
+
+Full detail lives in
+[ADR-0002: Three-layer vision for SAAA](docs/decisions/0002-three-layer-vision.md).
+Short version:
+
+- **Layer 1** — evolve a workflow, prompt or agent-configuration file.
+  *Shipped:* the whole loop end-to-end for one candidate per run, with a
+  canned fixture proposer.
+- **Layer 2** — SAAA exposed as a tool an outer agentic loop can call. The
+  outer loop plans *what to try*; the inner loop scores. Nothing shipped
+  beyond the CLI as an implicit tool surface.
+- **Layer 3** — the same loop applied to product code, gated by existing
+  tests and benchmarks. Nothing shipped.
+
+**Delivery pattern.** Vertical slices where possible: each slice ships a thin
+end of L1, L2 and L3 together, so the outer-loop tool vocabulary and the
+Layer-3 safety story get tested on real use instead of designed in isolation.
+**Population** (rank several candidates on identical evidence) and
+**conceptual crossover** (recombine ideas from evaluated parents) stay as
+foundation slices that upgrade all three layers at once.
+
+**Current state.** Layer 1 pipe is real for one canned candidate. The next
+concrete piece of work is a first vertical slice (candidate `CHG-004`): live
+LangChain4j proposer at L1, `evolve` exposed as an MCP tool at L2, one Java
+file inside this repository as the L3 target, gated by an existing unit test.
+See the ADR for the full delivery pattern and revisit triggers.
 
 ## Intended thin slice
 
