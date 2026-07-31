@@ -251,8 +251,8 @@ tasks:
     note: TOON per the repository's `state_and_contracts` structured-data rule; coverage floor is (a) one entry per hard gate demonstrating the gate firing, (b) two `PROMOTE` entries with different objective profiles, (c) one entry that scores exactly `PROMOTION_THRESHOLD` and promotes, (d) one entry that scores just under `PROMOTION_THRESHOLD` and discards, and (e) at least one entry captured from a real CHG-004 acceptance run so the corpus is grounded in observed evidence and not only in constructed cases; changes to a fixture require a spec change with rationale rather than a silent commit
   - id: T9
     slice: make `CommandCheckRunner` treat a compiler failure inside the candidate as a failed check with the compiler output as the summary, so a non-compiling mutation is discarded rather than crashing the run
-    status: pending
-    note: independently valuable for any target that could fail to compile, and a prerequisite before any Layer-3 target
+    status: completed
+    note: independently valuable for any target that could fail to compile, and a prerequisite before any Layer-3 target; the existing non-zero-exit-plus-captured-output path already covers this behaviour, so the change is a new integration test (`recordsCompilerFailureAsAFailedCheckRatherThanCrashing`) that invokes real `javac` on a deliberately broken source inside a candidate worktree and pins the FAILED-with-diagnostic behaviour as a regression guard
   - id: T9b
     slice: run behaviour case scripts inside the candidate worktree with a scrubbed environment allow-list; the default allow-list is `PATH`, `HOME`, `LANG`, `LC_*` and `JAVA_HOME`; `SAAA_MODEL_*` and any other model-provider credentials are never present in the child environment, per S11
     status: pending
