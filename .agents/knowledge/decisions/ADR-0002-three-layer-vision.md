@@ -2,7 +2,8 @@
 id: ADR-0002
 type: decision
 title: Three-layer vision for SAAA, delivered as vertical slices
-status: proposed
+status: canonical
+reviewed_at: 2026-07-31
 summary: SAAA is designed as three concentric layers — workflow evolution, tool surface for a custom agentic loop, and product-code generalisation — and delivered through vertical slices across all three layers, with population and crossover as foundation slices that upgrade every layer at once. The deterministic decision boundary (ARCH-001) holds at every layer.
 owners:
   - architect
