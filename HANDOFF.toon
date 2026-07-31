@@ -1,16 +1,16 @@
 session:
   updated: 2026-08-01
-  status: chg_004_spec_merged_via_pr_5; adr_0002_revision_merged_via_pr_6; chg_004_t9_open_as_pr_7; chg_004_t7_open_as_pr_8; chg_004_t8_implemented_on_branch
-  branch: feat/chg-004-t8-golden-corpus
+  status: chg_004_t8_merged_via_pr_9; chg_004_t9_open_as_pr_7; chg_004_t7_open_as_pr_8_rebased_after_pr_9
+  branch: feat/chg-004-t7-scorer-property-tests
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 4e82955
-  head_note: 4e82955 is the PR #6 merge for ADR-0002; T8 is on the branch above, uncommitted; T9 in PR #7, T7 in PR #8, both independent
+  head: 2d99eaa
+  head_note: 2d99eaa is the PR #9 merge for T8; T7 was rebased onto this to pick up the corpus changes and resolve conflicts in HANDOFF.toon and change.toon
   dirty: true
   pushed: false
 
 goal:
-  current: implement CHG-004 vertically per the staging order; guardrails first (T9, T7, T8), then L1, L2, L3
-  phase: chg_004_t8_implemented_on_branch
+  current: implement CHG-004 vertically per the staging order; guardrail trio next after T9/T7 merge, then L1
+  phase: chg_004_t7_rebased_after_t8_merge_awaiting_review
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -34,17 +34,18 @@ completed:
   - CHG-004 spec tightening (first pass): MCP module moved from `modules/mcp` to a package inside `modules/adapters` restoring the `invariant_named_module_layout` boundary; `S2` split into `S2` (network unreachable) and `S2b` (auth failure, no-key-echo assertion); `S9` added for the auto-merge prohibition; `S10` added for `journal.md` pollution risk; MCP response gained `aggregateScoreDisplay` and `journalPath` pinned as absolute; golden corpus format pinned to TOON per the structured-data rule; MCP invocation pinned to in-process; provider scope narrowed to Bearer + OpenAI Chat Completions; `AuthorityLanguage`-too-easy risk mitigation replaced with a concrete L3 test constraint; the false claim about ADR-0002's revisit triggers removed; `T9` reworded, `T10b` added, `T12` extended to flip `Q-001`; three additional non-goals
   - CHG-004 spec tightening (second pass, two personas): a security-reviewer pass added scenarios for `S11` (candidate cannot read `SAAA_MODEL_API_KEY` because behaviour cases run in a scrubbed env allow-list, `T9b`), `S12` (MCP response scrubs any occurrence of the current API key value before it reaches stdio, `T6b`), `S13` (picocli `System.exit` cannot terminate the MCP server, `T4` note), `S14` (promotion sink port is branch-pointer-only at the type level, `T9c`), plus per-field and total response-size caps in `T5` and a named non-goal for full JVM sandboxing; an evolutionary-computing-researcher pass added four new properties to `PhenotypeFitnessScorer` (parsimony monotonicity, task_success monotonicity, threshold-boundary behaviour, decision-from-raw-sum-not-rounded), extended the golden-corpus coverage floor with near-threshold and observed-evidence entries, clarified `T2`'s "bounded" as diff-lines not emitted-content, added `T2b` to log the exact prompt and raw response into candidate bookkeeping so a later scorer-as-target audit can distinguish "scorer changed its mind" from "model proposed differently", and named proposer diversity knobs as a non-goal deferred to the population slice
   - PR #5 merged 2026-08-01 as `b995c41` after human review; the CHG-004 spec is on `main` and the branch was deleted locally
-  - drafted the ADR-0002 revision on `docs/adr-0002-scorer-target-trigger`: adds a "scorer-as-target requires a superseding ADR" revisit trigger to `docs/decisions/0002-three-layer-vision.md` and mirrors it into the knowledge node, closing the deferral CHG-004's design document points at
-  - opened PR #6, merged 2026-08-01 as `4e82955`
-  - implemented CHG-004 T9, T7, T8 in parallel branches; T9 (compiler-failure regression test) in PR #7, T7 (jqwik property tests over PhenotypeFitnessScorer, all eight S6 invariants) in PR #8, T8 (golden-verdict corpus) drafted on this branch
-  - T8 shipped as a Java constant list in `GoldenCorpus.java` rather than TOON fixture files because there is no Java TOON reader yet; the deviation is documented in `docs/structured-data.md` and retires when `CHG-002 T3d` lands the envelope reader; nine entries covering three of four hard gates (`required_objective_scores` cannot fire through the bridge because the bridge always produces all objective values, so it is covered instead by scorer-level tests and property P3), two PROMOTE entries with different objective profiles, one PROMOTE at exactly PROMOTION_THRESHOLD, one DISCARD just below (which also happens to cover property P8 at the corpus level because its aggregate rounds to 0.80), one T10 rescue entry, and one entry captured from the CHG-003 fixture `toy-workflow` acceptance run
+  - opened PR #6, merged 2026-08-01 as `4e82955` after human review; branch deleted
+  - implemented CHG-004 T9 on `feat/chg-004-t9-compiler-failure-as-failed-check`: `CommandCheckRunnerIntegrationTest.recordsCompilerFailureAsAFailedCheckRatherThanCrashing` — invokes real `javac` inside a candidate worktree and asserts the runner records FAILED with the compiler diagnostic; the existing non-zero-exit path already covers the behaviour, so no code change to `CommandCheckRunner`; open as PR #7
+  - implemented CHG-004 T7 on `feat/chg-004-t7-scorer-property-tests`: `PhenotypeFitnessScorerPropertyTest` with all eight properties from S6 (any failed check → DISCARD, any missing declared behaviour case → DISCARD, no objective combination promotes while a gate fails, evidence keys cannot overwrite recorded gate outcomes, aggregate monotonic in parsimony objective, aggregate monotonic in task_success objective, decision matches raw sum at PROMOTION_THRESHOLD, decision derives from raw sum not rounded aggregate); each property has a fixed numeric jqwik seed for reproducibility; acceptance mapping updated to reflect scorer-level test names since the scorer never sees realization size or behaviour-case count directly (a bridge-level version may follow); open as PR #8
+  - implemented CHG-004 T8 on `feat/chg-004-t8-golden-corpus`: `GoldenCorpus.java` (nine immutable entries) plus `PhenotypeGoldenVerdictCorpusTest` iterating them via `@ParameterizedTest`; shipped as a Java constant list rather than TOON fixture files because there is no Java TOON reader yet — deviation documented in `docs/structured-data.md` and retires when `CHG-002 T3d` lands the envelope reader; covers three of four hard gates (`required_objective_scores` cannot fire through the bridge because the bridge always produces all objective values, so it is covered instead by scorer-level tests and property P3), two PROMOTE entries with different profiles, one PROMOTE at exactly PROMOTION_THRESHOLD, one DISCARD just below (which also covers property P8 at the corpus level because its aggregate rounds to 0.80), one T10 rescue entry, and one entry captured from the CHG-003 fixture `toy-workflow` acceptance run; PR #9 merged 2026-08-01 as `2d99eaa` after human review
+  - rebased T7 (`feat/chg-004-t7-scorer-property-tests`) onto `origin/main` after PR #9 merged, resolving `HANDOFF.toon` and `specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon` conflicts with the union of both sides (both status flips kept, both note sets kept, both sets of acceptance-mapping entries kept)
 
 in_progress:
-  - T8 corpus and iteration test on `feat/chg-004-t8-golden-corpus`, uncommitted; PRs #7 and #8 open independently
+  - PR #7 (T9) and PR #8 (T7) open; T8 already merged
 
 next:
-  - push and open the T8 PR
-  - once the guardrail trio (T9/T7/T8) merges, start L1: `T1`/`T2`/`T2b`/`T3` (OpenAiCompatible adapter + proposer + prompt/response bookkeeping + profile registration). T1 is the smallest and most independent; T2 depends on T1
+  - push T7 rebase and let the CI recheck the branch; #8 should go from `CONFLICTING` to `MERGEABLE`
+  - once T9 and T7 merge, start L1: `T1`/`T2`/`T2b`/`T3` (OpenAiCompatible adapter + proposer + prompt/response bookkeeping + profile registration). T1 is the smallest and most independent; T2 depends on T1
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
