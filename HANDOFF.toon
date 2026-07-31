@@ -6,7 +6,7 @@ session:
   head: 362589c
   head_note: 362589c is the T10 gate; this handoff record is committed on top of it, so the branch tip is one commit ahead
   dirty: false
-  pushed: false
+  pushed: true
 
 goal:
   current: close the promotion-integrity gaps left open by `CHG-003` so the population slice can rank candidates without selecting for the wrong thing
@@ -21,10 +21,10 @@ completed:
   - added scenario `S9` with three acceptance mappings and recorded the gate in the `CHG-003` design and `docs/wiki/domain.md`
 
 in_progress:
-  - `feat/non-empty-realization-gate` is implemented and committed but not pushed, reviewed or merged
+  - `feat/non-empty-realization-gate` is implemented, pushed and open as PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2), awaiting human review and merge
 
 next:
-  - push the branch, open a PR and get review; human review is the merge gate
+  - review and merge PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2); human review is the merge gate
   - implement `T12` so pre-flight validates `HEAD` rather than the working tree, and `T9` so a failed behaviour case shows why it failed
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
@@ -114,6 +114,6 @@ knowledge:
 
 team_fallback:
   current: single_lead_with_pr_review_gate
-  reason: PR tooling works, so `CHG-003` went through PR #1 and this branch will do the same. No subagent actor review was requested for this change; human review on the PR is the merge gate.
+  reason: PR tooling works, so `CHG-003` went through PR #1 and `T10` went through PR #2. Pushing over SSH still fails with `Permission denied (publickey)`; the HTTPS remote URL works. No subagent actor review was requested for this change; human review on the PR is the merge gate.
   chg_003_outcome: PR #1 "Run one mutation evaluation end to end (CHG-003)" merged 2026-07-30; two independent actor reviews during its development, the second of which found a surviving promotion-integrity hole and returned do-not-merge before the `T11` fix
   lost_challenge: this `T10` change has had lead self-review only, with no independent actor or human review yet. It is covered test-first at the acceptance and unit layers, and the failing acceptance test was observed reporting PROMOTE before the gate existed.
