@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.cli;
 
 import com.dreamthought.saaa.adapters.fixture.FixtureMutationProposer;
+import com.dreamthought.saaa.adapters.langchain4j.OpenAiCompatibleChatModelFactory;
 import com.dreamthought.saaa.deterministic.MutationProposer;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -21,8 +22,15 @@ public final class ProposerProfileRegistry {
     private final Map<String, Function<Path, MutationProposer>> factories = new LinkedHashMap<>();
 
     public ProposerProfileRegistry() {
+        this(System.getenv());
+    }
+
+    ProposerProfileRegistry(Map<String, String> environment) {
+        Objects.requireNonNull(environment, "environment");
         factories.put("fixture", folder ->
                 new FixtureMutationProposer(folder.resolve(".saaa/fixture-mutation.txt")));
+        factories.put("openai-compatible", folder ->
+                new OpenAiCompatibleChatModelFactory().mutationProposerFromEnvironment(environment));
     }
 
     public List<String> knownNames() {

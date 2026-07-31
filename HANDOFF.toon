@@ -1,16 +1,16 @@
 session:
   updated: 2026-08-01
-  status: chg_004_t7_t8_t9_merged; chg_004_t1_openai_compatible_wiring_in_progress
-  branch: feat/chg-004-t1-openai-compatible-wiring
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t1-openai-compatible-wiring
-  head: current PR #10 branch head after review-fix push
-  head_note: exact commit is reported by `git rev-parse --short HEAD`; this avoids a stale self-referential hash after amend
-  dirty: false
-  pushed: true
+  status: chg_004_t1_reviewed_in_pr_10; chg_004_t3_openai_profile_startable_path_in_progress
+  branch: feat/chg-004-t2-t3-openai-profile-stub
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t2-t3-openai-profile-stub
+  head: stacked on PR #10 head
+  head_note: branch is based on `feat/chg-004-t1-openai-compatible-wiring` pending PR #10 merge
+  dirty: true
+  pushed: false
 
 goal:
-  current: implement CHG-004 vertically per the staging order; L1 first, then L2, then L3
-  phase: chg_004_t1_openai_compatible_chat_model_wiring
+  current: implement CHG-004 vertically per the staging order; get the live-profile CLI path startable soon
+  phase: chg_004_t3_openai_compatible_profile_registration_with_local_stub
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -48,13 +48,17 @@ completed:
   - updated `docs/wiki/development.md` and `docs/wiki/glossary.md` with documentation-graph guidance and initial ontology terms so new Markdown has a professional local vocabulary to extend
   - ran two independent review passes on PR #10: architecture/security reviewer found no implementation boundary or credential leak issues and one low stale-handoff finding; knowledge/documentation reviewer found one medium taxonomy-key finding (`related_to` should be `relates_to`) and otherwise accepted the ontology/wiki prose
   - addressed both review findings: refreshed handoff branch state and fixed the question template plus `Q-008` to use the canonical `relates_to` edge key
+  - marked PR #10 ready for review after review fixes; GitHub checks were green and merge state was clean before starting this stacked follow-up
+  - started stacked branch `feat/chg-004-t2-t3-openai-profile-stub` from PR #10 head to move toward a tool with a startable agentic loop
+  - added `OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstALocalOpenAiCompatibleEndpoint`, using a JDK local HTTP stub for `/v1/chat/completions` instead of a live provider or secret; the test proves bearer auth, model name, prompt content and one mutation response mapping
+  - registered `openai-compatible` in `ProposerProfileRegistry`, with injectable environment for fast tests and adapter-side composition so CLI does not need LangChain4j classes on its classpath
 
 in_progress:
-  - PR #10 open as draft, clean and green before review-fix push; review fixes are staged locally
+  - stacked T3/local-stub branch is dirty and under validation
 
 next:
-  - finish validation for T1, commit, push and open a PR
-  - then continue L1 with `T2`/`T2b`/`T3` (OpenAiCompatible proposer + prompt/response bookkeeping + profile registration). T2 endpoint tests should use a local stub server rather than a live provider so local and CI runs stay fast and secret-free
+  - finish validation for the stacked T3/local-stub slice, commit and decide whether to open it as a stacked draft PR or wait for PR #10 to merge
+  - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
@@ -111,7 +115,10 @@ files_changed:
   - gradle/libs.versions.toml
   - modules/adapters/build.gradle.kts
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleChatModelFactory.java
+  - modules/adapters/src/integrationTest/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.java
   - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleChatModelFactoryTest.java
+  - modules/cli/src/main/java/com/dreamthought/saaa/cli/ProposerProfileRegistry.java
+  - modules/cli/src/test/java/com/dreamthought/saaa/cli/ProposerProfileRegistryTest.java
   - specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon
   - .agents/knowledge/questions/Q-008-documentation-taxonomy-linked-data.md
   - .agents/knowledge/templates/question.md
@@ -151,6 +158,15 @@ tests_run:
   - 2026-08-01 `.agentic-template/bin/project check`: pass after review fixes; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
   - 2026-08-01 `.agentic-template/bin/project check-wiki`: first rerun warned after knowledge-template fix; after adding canonical edge-name wording to `docs/wiki/development.md`, WIKI OK
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after review fixes; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 `.agentic-template/bin/project test`: first stacked T3 run failed because CLI reached an adapter method exposing LangChain4j `ChatModel`; fixed by adding an adapter-side `mutationProposerFromEnvironment` method returning `MutationProposer`
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after openai-compatible profile registration; 14 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: first run failed on brittle JSON spacing assertion; fixed to match LangChain4j's actual local-stub request shape
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after local-stub assertion fix; 10 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project check-changes`: CHANGES OK for stacked T3/local-stub slice
+  - 2026-08-01 `.agentic-template/bin/project lint`: ARCHITECTURE BOUNDARIES OK for stacked T3/local-stub slice
+  - 2026-08-01 `.agentic-template/bin/project check`: pass for stacked T3/local-stub slice; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `git diff --check`: pass for stacked T3/local-stub slice
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS for stacked T3/local-stub slice; 13 passed, 2 not applicable, 0 failed
   - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-07-31 `T10` red before green at the boundary: `EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing` failed with the journal reporting `PROMOTE` for a candidate whose realization wrote the workflow file back unchanged
   - 2026-07-31 `T10` red before green in the deterministic layer: `PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate` and `PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing` failed to compile against the pre-gate API, then failed on the gate value once it existed
