@@ -22,6 +22,7 @@ public final class PhenotypeFitnessScorer {
     public static final String DETERMINISTIC_CHECKS_GATE = "hard_gate_deterministic_checks";
     public static final String REQUIRED_BEHAVIOR_CASES_GATE = "hard_gate_required_behavior_cases";
     public static final String REQUIRED_OBJECTIVE_SCORES_GATE = "hard_gate_required_objective_scores";
+    public static final String NON_EMPTY_REALIZATION_GATE = "hard_gate_non_empty_realization";
 
     private static final double GATE_PASSED = 1.0;
     private static final double GATE_FAILED = 0.0;
@@ -35,7 +36,12 @@ public final class PhenotypeFitnessScorer {
         boolean behaviorCasesPassed = !phenotype.behaviorCases().isEmpty()
                 && phenotype.behaviorCases().stream().allMatch(c -> c.status() == CheckStatus.PASSED);
         boolean objectiveScoresPresent = hasEveryObjectiveScore(phenotype);
-        boolean gatesPassed = checksPassed && behaviorCasesPassed && objectiveScoresPresent;
+        // A candidate that changed no file has no behavioral variation to evaluate: its passing
+        // checks are evidence about the baseline, and parsimony rewards the empty diff with 1.0.
+        // Measured in files rather than lines, so a mode-only change still counts as a realization.
+        boolean realizationNonEmpty = phenotype.realization().filesChanged() > 0;
+        boolean gatesPassed =
+                checksPassed && behaviorCasesPassed && objectiveScoresPresent && realizationNonEmpty;
 
         double rawScore = gatesPassed ? weightedScore(phenotype) : 0.0;
         FitnessDecision decision = gatesPassed && rawScore >= PROMOTION_THRESHOLD
@@ -48,6 +54,7 @@ public final class PhenotypeFitnessScorer {
         objectives.put(DETERMINISTIC_CHECKS_GATE, gateValue(checksPassed));
         objectives.put(REQUIRED_BEHAVIOR_CASES_GATE, gateValue(behaviorCasesPassed));
         objectives.put(REQUIRED_OBJECTIVE_SCORES_GATE, gateValue(objectiveScoresPresent));
+        objectives.put(NON_EMPTY_REALIZATION_GATE, gateValue(realizationNonEmpty));
 
         return new FitnessResult(candidate, phenotype.evidence(), objectives, round(rawScore), decision);
     }
