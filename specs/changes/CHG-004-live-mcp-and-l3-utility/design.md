@@ -151,6 +151,20 @@ satisfy them while breaking meaning:
 4. **Audit-trail immutability.** Gate outcomes in the returned
    `FitnessResult.objectives` cannot be overwritten by keys present in the
    input `PhenotypeEvidence.objectiveScores`.
+5. **Parsimony monotonicity.** With every other input held constant, a
+   strictly smaller realization can never score `parsimony` worse than a
+   larger one. A scorer mutation that inverts the sign of the parsimony
+   formula would pass invariants 1–4 but fail this one.
+6. **Task-success monotonicity.** With every other input held constant, a
+   strictly larger set of passing behaviour cases can never score
+   `task_success` worse.
+7. **Threshold boundary.** A candidate whose raw weighted sum is exactly
+   `PROMOTION_THRESHOLD` promotes; a candidate whose raw sum is strictly
+   less discards. Regardless of how the reported score rounds.
+8. **Decision derives from the raw sum, not the rounded one.** A scorer
+   mutation that moved the comparison onto `aggregateScore` (the rounded
+   display value) would silently shift the PROMOTE boundary by up to the
+   rounding step. This property catches that.
 
 These are the invariants a scorer-as-target slice would rely on. Encoding
 them now means a future scorer mutation that weakens gating logic in a way
@@ -174,10 +188,56 @@ Coverage floor for this slice:
 - at least two `PROMOTE` entries with different objective profiles;
 - at least one entry that would `PROMOTE` on task_success alone but is
   rescued from over-promotion by parsimony or the non-empty-realization
-  gate.
+  gate;
+- one entry that scores exactly `PROMOTION_THRESHOLD` and promotes;
+- one entry that scores just below `PROMOTION_THRESHOLD` and discards
+  (these two together protect the boundary that a scoring bug is most
+  likely to move);
+- at least one entry captured from a real CHG-004 acceptance run so the
+  corpus is grounded in observed evidence rather than only constructed
+  cases.
 
 Fixtures are treated as immutable evidence. Editing a fixture requires a
 spec change with rationale; the check would otherwise be self-referential.
+
+## Security invariants at the Layer-3 boundary
+
+Once the loop runs a live model against real Java code, the model's output
+becomes code that will execute inside a JVM the operator trusts. That is a
+different trust posture from evolving a workflow file, and the spec pins
+four invariants on it, each with an acceptance test:
+
+1. **The candidate's environment does not carry the model-provider
+   credential.** `T9b` scrubs the child environment of behaviour case
+   scripts to an allow-list (`PATH`, `HOME`, `LANG`, `LC_*`, `JAVA_HOME`,
+   plus operator-added variables). `SAAA_MODEL_API_KEY` is never present.
+   `S11` proves the scrub with a candidate that deliberately tries to read
+   it and observes the empty string.
+2. **The MCP tool response never leaks the credential.** `T6b` adds a
+   scrubber that replaces any occurrence of the current key value (and
+   known transport headers) with `<redacted>` before the response reaches
+   stdio. Defence in depth against a serialisation library, LangChain4j
+   error trace, or downstream adapter that echoes a header. `S12` covers
+   it.
+3. **A CLI failure invoked in-process does not terminate the MCP server.**
+   `T4` configures picocli with an execution exception handler and exit
+   code mapper so a non-zero return does not become a `System.exit`.
+   `S13` covers it with a companion test that drives a CLI failure through
+   MCP and asserts the server still accepts the next request.
+4. **Promotion cannot become a merge at compile time.** `T9c` narrows the
+   promotion sink port so it exposes only "record a candidate ref". No
+   overload has a target-branch parameter that could name `main`, and a
+   source-scanning fitness function rejects a build in which the
+   deterministic layer references `git merge`. `S14` covers both. This
+   closes the "no code path merges" invariant at compile time rather than
+   by review.
+
+None of this sandboxes untrusted Java. A candidate can still open a socket,
+write outside the worktree, or exhaust memory. Full sandboxing is a named
+non-goal for this slice; the reasoning is that it is a much larger
+investment than the vertical demonstration is worth. The credential-leak
+vector is closed because it is the one that would be silent, hard to
+reverse, and pointed at a widely-issued secret.
 
 ### Why not elitism yet
 
@@ -402,3 +462,53 @@ Second-pass finds that were addressed:
 - `T12` extended to flip `Q-001` from `open` to `answered-by-CHG-004`.
 - New non-goals for MCP discovery tooling, credential-in-arguments, and
   subprocess transport.
+
+A third pass split the review across two personas — an adversarial
+security reviewer and an evolutionary-computing researcher — with these
+outcomes:
+
+*Security reviewer.*
+- `S11` and `T9b`: a candidate that runs during L3 evaluation now executes
+  in a scrubbed environment; `SAAA_MODEL_API_KEY` is not readable from
+  the child process. A positive test proves the scrub.
+- `S12` and `T6b`: the MCP response pipeline scrubs any occurrence of the
+  current API key value before it reaches stdio. Defence in depth against
+  a serialisation library or provider adapter echoing a header.
+- `S13`: picocli invocation from the MCP server is configured with an
+  execution exception handler so a CLI failure does not `System.exit`
+  the MCP process.
+- `S14` and `T9c`: the promotion sink port is narrowed at the type level
+  so it cannot express a merge; a source-scanning fitness function
+  rejects a build that references `git merge` from the deterministic
+  layer. Closes the "no code path merges" invariant at compile time
+  rather than by review.
+- `T5` gained per-field and total response-size caps so a hostile
+  candidate cannot DoS the stdio transport with oversized compiler
+  output.
+- Named non-goal added for full sandboxing of executed candidate Java;
+  the environment scrub closes the credential-leak vector without
+  claiming the JVM is sandboxed otherwise.
+
+*Evolutionary-computing researcher.*
+- Four new properties on `PhenotypeFitnessScorer`: parsimony monotonic
+  in realization size, task_success monotonic in passing case count,
+  decision matches the raw sum at the threshold boundary, and decision
+  is derived from the raw sum rather than the rounded aggregate. The
+  first two would catch a scorer mutation that inverts the sign or
+  drops a component; the second two protect the PROMOTE/DISCARD
+  boundary from silent shifts caused by rounding.
+- Golden-corpus floor extended: one entry at exactly
+  `PROMOTION_THRESHOLD` (PROMOTE), one just below (DISCARD), and one
+  captured from a real CHG-004 acceptance run so the corpus is
+  grounded in observed evidence and not only in constructed cases.
+- `T2` clarified: `maxLinesChanged` is a bound on the *diff*, not on
+  emitted content length. A same-length whole-file replacement that
+  changes every line still exceeds the bound.
+- `T2b` added: the exact prompt and raw model response are logged into
+  the candidate's `.saaa/candidates/<id>.toon`. A later scorer-as-target
+  audit can distinguish "the scorer changed its mind" from "the model
+  produced a different proposal" only if the prompt is recoverable
+  from the commit.
+- Named non-goal added for proposer diversity knobs (temperature,
+  top-p). They land with the population slice that actually needs
+  them.
