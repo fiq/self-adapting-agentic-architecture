@@ -1,0 +1,187 @@
+change:
+  id: CHG-004
+  title: First vertical slice across L1/L2/L3 with classical scorer guards
+  status: proposed
+  intent: Deliver the first vertical slice per ADR-0002 — a live LangChain4j proposer against an OpenAI-compatible endpoint at L1, `evolve` exposed as an MCP tool at L2, and a single Java utility (`AuthorityLanguage`) as the L3 target gated by existing tests — and bake in the classical evolutionary-computing guards (property-based tests over the scorer, and a golden-verdict corpus) so a later slice can safely target the scorer itself without silent decay.
+  audience_level: developer
+  relates_to:
+    - ADR-0002
+    - SYS-001
+    - ARCH-001
+    - CON-001
+    - RISK-001
+    - RISK-002
+    - RISK-003
+    - Q-001
+    - Q-005
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: A live model connected through an OpenAI-compatible endpoint proposes one bounded mutation per run, the run is drivable from an outer agent through an MCP tool, and the target may be an ordinary Java source file inside this repository gated by an existing unit test.
+    scenarios:
+      - id: S1
+        when: the CLI is invoked with `--profile openai-compatible` and the endpoint is reachable
+        then: a live model proposes exactly one bounded mutation that passes deterministic validation and the loop runs to a promote or discard decision
+        and:
+          - the model reads the baseline definition and produces a single-file replacement whose length respects the operator's `maxLinesChanged`
+          - a proposal that fails validation is discarded before any candidate worktree is created
+          - the run works against any OpenAI-compatible endpoint by configuring only `SAAA_MODEL_BASE_URL`, `SAAA_MODEL_API_KEY` and `SAAA_MODEL_NAME`
+      - id: S2
+        when: the endpoint is unreachable or the API key is rejected
+        then: the run exits non-zero without creating a candidate worktree or writing to `journal.md`
+        and:
+          - the error names the endpoint and the failure mode, not the API key
+          - a transient network error is not retried automatically in this slice; retries are a future operator concern
+      - id: S3
+        when: an outer agent invokes SAAA through the MCP tool `evolve`
+        then: the response is a structured object matching the `FitnessResult` shape rather than parsed text
+        and:
+          - the response includes score, decision, per-objective breakdown, per-gate outcomes, candidate commit sha and journal path
+          - hard-gate outcomes appear after the measured objective scores in the response object, mirroring `FitnessResult.objectives` order, so evidence content cannot overwrite a recorded gate result in the serialised form either
+          - no field in the MCP request can force a promotion or override a gate outcome; the outer agent plans, the inner loop scores
+      - id: S4
+        when: the MCP tool call completes
+        then: the tool response and the on-disk `journal.md` entry name the same candidate commit sha, so an outer agent and a human reader see the same evidence for the same run
+        and: []
+      - id: S5
+        when: the target folder resolves to `.` inside this repository and `AuthorityLanguage.java` is the file being evolved
+        then: the loop realises the model-proposed replacement into a Git worktree candidate, runs the existing tests that exercise the file, and scores the result
+        and:
+          - the candidate worktree is discardable and no branch is auto-merged to `main`
+          - promotion produces a candidate branch pointer, not a merge, per ADR-0002
+          - the `journal.md` for a Layer-3 run is written into the repository root's target folder as usual, not into the candidate branch history
+      - id: S6
+        when: property-based tests generate arbitrary phenotype evidence
+        then: `PhenotypeFitnessScorer` obeys the invariants that any failed check produces `DISCARD`, any missing declared behaviour case produces `DISCARD`, and no combination of measured objective scores can produce `PROMOTE` while any hard gate is failing
+        and:
+          - the property tests are seeded so failures are reproducible
+          - the properties cover the audit-trail invariant: gate outcomes recorded in the result cannot be overwritten by evidence-supplied keys
+      - id: S7
+        when: the golden-verdict corpus test runs
+        then: for every recorded `(EvaluationEvidence, RealizationSummary, expected decision)` triple, `PhenotypeBridgeScorer` reproduces the expected decision
+        and:
+          - the corpus is checked in as fixtures and treated as immutable; changes to a fixture require a spec change with rationale, not a silent commit
+          - the corpus includes at least one entry per hard gate demonstrating the gate firing, plus at least two entries demonstrating a `PROMOTE`
+      - id: S8
+        when: a live-proposer run touches a real Java file
+        then: the candidate worktree is created off `HEAD`, the mutation is realised into the file, `gradle test` for the file's module is run inside the worktree, and the exit code becomes the behaviour case's outcome
+        and:
+          - the target file is a single file per run
+          - a mutation that does not compile is a failed check, not a crash, so the loop still records a `DISCARD` with the compiler output as the check summary
+
+acceptance:
+  - scenario: S1
+    test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstARecordedEndpoint
+    layer: integration
+  - scenario: S1
+    test_id: cli/EvolveCommandAcceptanceTest.runsOneGenerationWithOpenAiCompatibleProfileAgainstARecordedEndpoint
+    layer: acceptance
+  - scenario: S2
+    test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.failsCleanlyWhenTheEndpointIsUnreachable
+    layer: integration
+  - scenario: S3
+    test_id: mcp/EvolveMcpToolTest.returnsAStructuredFitnessResultRatherThanText
+    layer: unit
+  - scenario: S3
+    test_id: mcp/EvolveMcpToolTest.gateOutcomesAppearAfterMeasuredObjectiveScoresInTheSerialisedResponse
+    layer: unit
+  - scenario: S3
+    test_id: mcp/EvolveMcpToolTest.rejectsAnInputFieldThatWouldForceAPromotionOrOverrideAGate
+    layer: unit
+  - scenario: S4
+    test_id: cli/EvolveMcpAcceptanceTest.mcpResponseAndJournalEntryAgreeOnTheCandidateCommitSha
+    layer: acceptance
+  - scenario: S5
+    test_id: cli/EvolveCommandAcceptanceTest.evolvesARealJavaFileGatedByAnExistingUnitTest
+    layer: acceptance
+  - scenario: S6
+    test_id: deterministic/PhenotypeFitnessScorerPropertyTest.anyFailedCheckProducesDiscard
+    layer: unit
+  - scenario: S6
+    test_id: deterministic/PhenotypeFitnessScorerPropertyTest.anyMissingDeclaredBehaviourCaseProducesDiscard
+    layer: unit
+  - scenario: S6
+    test_id: deterministic/PhenotypeFitnessScorerPropertyTest.noObjectiveCombinationCanPromoteWhileAGateFails
+    layer: unit
+  - scenario: S6
+    test_id: deterministic/PhenotypeFitnessScorerPropertyTest.evidenceKeysCannotOverwriteRecordedGateOutcomes
+    layer: unit
+  - scenario: S7
+    test_id: deterministic/PhenotypeGoldenVerdictCorpusTest.everyCorpusEntryReproducesItsRecordedDecision
+    layer: unit
+  - scenario: S8
+    test_id: cli/EvolveCommandAcceptanceTest.evolvesARealJavaFileGatedByAnExistingUnitTest
+    layer: acceptance
+  - scenario: S8
+    test_id: adapters/checks/CommandCheckRunnerIntegrationTest.recordsCompilerFailureAsAFailedCheckRatherThanCrashing
+    layer: integration
+
+tasks:
+  - id: T1
+    slice: add an OpenAI-compatible LangChain4j chat-model wiring with configurable `SAAA_MODEL_BASE_URL`, `SAAA_MODEL_API_KEY`, `SAAA_MODEL_NAME`, kept inside `modules/adapters/langchain4j`
+    status: pending
+    note: uses `OpenAiChatModel` with a custom `baseUrl` so OpenAI, NeuralWatt, together.ai, groq and Ollama's `/v1` shim all fit one adapter; provider-neutral so credentials are never seen by the deterministic layer
+  - id: T2
+    slice: implement `OpenAiCompatibleMutationProposer` behind the existing `MutationProposer` port, producing exactly one `Mutation` whose `patch` is a whole-file replacement bounded by the operator's `maxLinesChanged`
+    status: pending
+    note: replies that violate bounds are dropped before validation; parsing failures are surfaced as run errors, not silent fall-throughs; the adapter must not read scorer or gate state
+  - id: T3
+    slice: register the live proposer as `openai-compatible` in `ProposerProfileRegistry` so `--profile openai-compatible` is a first-class choice alongside `fixture`
+    status: pending
+  - id: T4
+    slice: add `modules/mcp` (new module) exposing an MCP server that wraps the existing CLI's `evolve` command as an MCP tool, with input schema, output schema and a stdio transport that any MCP client can drive
+    status: pending
+    note: this module is an adapter, sits outside deterministic, and must not import model-provider libraries; treat the CLI as the boundary rather than reimplementing the loop
+  - id: T5
+    slice: define the MCP tool response contract as a stable JSON serialisation of `FitnessResult` where gate outcomes are written after measured objective scores so audit-trail invariant survives serialisation
+    status: pending
+  - id: T6
+    slice: enforce that MCP input can never carry a field that overrides a gate outcome or forces a promotion; reject any unrecognised input key with a schema violation
+    status: pending
+    note: the load-bearing rule from ADR-0002 lives here at the wire; a permissive schema would reintroduce the original problem one level up
+  - id: T7
+    slice: add jqwik property-based tests over `PhenotypeFitnessScorer` covering the invariants named in S6; run inside the existing `:deterministic:test` task
+    status: pending
+    note: guardrail against future scorer-as-target slices; the properties describe intent rather than specific cases so a mutation cannot accidentally satisfy them while breaking meaning
+  - id: T8
+    slice: check in a golden-verdict corpus as immutable JSON or TOON fixtures under `modules/deterministic/src/test/resources/golden-corpus/` and a test that iterates them
+    status: pending
+    note: at minimum one entry per gate demonstrating the gate firing plus two `PROMOTE` entries; changes to a fixture require a spec change with rationale rather than a silent commit
+  - id: T9
+    slice: make `CommandCheckRunner` treat a compiler failure inside the candidate as a failed check with the compiler output as the summary, so a non-compiling mutation is discarded rather than crashing the run
+    status: pending
+    note: without this a Layer-3 target that fails to compile turns into an unhelpful stack trace instead of an ordinary `DISCARD`
+  - id: T10
+    slice: add the Layer-3 acceptance test evolving `modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/AuthorityLanguage.java` in a scratch worktree, gated by the existing `BoundedMutationValidator` tests
+    status: pending
+    note: the test asserts that a promotion produces a candidate branch pointer and no merge to `main`, so the blast-radius constraints from ADR-0002 are enforced by test rather than by convention
+  - id: T11
+    slice: update `README.md`, `docs/wiki/development.md` and `docs/wiki/domain.md` to describe the `openai-compatible` profile, the MCP tool surface, the classical guards and the Layer-3 constraints
+    status: pending
+  - id: T12
+    slice: update `PROJECT_PROFILE.toon` with any new decisions (endpoint-neutral provider adapter, MCP as first L2 surface, staged-hybrid guardrails) and `HANDOFF.toon` on merge
+    status: pending
+
+non_goals:
+  - population — more than one candidate per generation stays a foundation slice per ADR-0002
+  - conceptual crossover — same
+  - scorer-as-mutation-target — deferred until the guards this slice adds have real evidence of holding, per the staged hybrid; a later slice may attempt it
+  - AST-aware realisation — whole-file text replacement stays the operator model; a mutation the model cannot express as a whole-file rewrite is out of scope this slice
+  - mutation-testing sweep (PIT or similar) — belongs with the scorer-as-target slice, not this one
+  - retry policies for transient endpoint failures — a future operator concern
+  - a full outer agentic loop of our own — this slice exposes SAAA to an outer agent; building the outer agent is the caller's job
+  - promoted refs to `refs/heads/promoted/*` from `CHG-002 T5` — a candidate branch pointer is enough for this slice and does not depend on that scheme
+  - multiple L3 target files per run — one file per candidate per ADR-0002 blast-radius constraints
+  - auto-merge of any Layer-3 candidate under any score — hard rule; no CLI flag or MCP input weakens this
+
+risks:
+  - a live model can produce output that parses cleanly but is semantically nonsense; `BoundedMutationValidator` and the deterministic scorer are the only guards; expect noisy discards on early runs
+  - the MCP tool contract stabilises now, before we know exactly what an outer agent will want; the schema may need extension in a follow-up slice
+  - property-based tests are only as strong as the invariants they encode; missing an invariant hides scorer decay just as effectively as no property tests at all, so the invariant list must be reviewed as part of this change rather than accepted implicitly
+  - the golden-verdict corpus is only as strong as its coverage; a scorer mutation that changes behaviour on evidence shapes absent from the corpus will not be caught
+  - environment-variable configuration for the endpoint means a misconfigured endpoint fails at run time rather than at build time; documentation and pre-flight need to make this obvious
+  - `SAAA_MODEL_API_KEY` in the environment is a credential in an environment variable; agents driving this via MCP must respect that and not echo it in any tool response
+  - `AuthorityLanguage` is small; a mutation that removes the regex entirely may still pass compilation and only fail one test, which reads as an unrealistically easy `DISCARD`; the acceptance test needs to include a mutation that must actually respect meaning
+  - the MCP module adds a new dependency surface and a new transport (stdio); expect operational rough edges on early integrations
+  - LangChain4j provider-neutral typed-service coverage exists today, but running against a real endpoint in CI requires either recorded responses or a locally reachable model; the integration test must not require live secrets to pass
