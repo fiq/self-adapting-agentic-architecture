@@ -47,7 +47,8 @@ and wiki pages for short explanations that link back to those nodes.
 The current taxonomy is in `.agents/knowledge/TAXONOMY.md`. `Q-008` tracks
 whether the project needs a stronger ontology or DBpedia-style linked-data
 shape as the graph grows. Until then, prefer clear local terms in the glossary,
-resolved knowledge IDs, and short wiki pages over broad external vocabulary.
+resolved knowledge IDs, canonical edge names such as `relates_to`, and short
+wiki pages over broad external vocabulary.
 
 ## Tool-unavailable Integration Fallback
 
