@@ -181,11 +181,12 @@ decisions:
       - foundation slices for population and crossover apply to every target, so pulling them out of vertical slices avoids re-deriving the mechanic per layer
       - the deterministic decision boundary in ARCH-001 continues to hold at every layer; the model may propose or repair, never approve
     confidence: medium
-    status: proposed
+    status: active
     validation:
       - docs/decisions/0002-three-layer-vision.md
       - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
       - README.md
+      - PR #3 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/3) merged 2026-07-31 as 4a9ea7f after human review
     consequence_if_changed: the population, crossover and Layer-3 slices need re-planning against a different delivery pattern before scope widens further
 
 unknowns:

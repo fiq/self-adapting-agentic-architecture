@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted (merged 2026-07-31 as `4a9ea7f` via PR #3)
 
 ## Context
 
