@@ -10,6 +10,7 @@ import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.MutationOperatorType;
+import com.dreamthought.saaa.domain.RealizationSummary;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashMap;
@@ -28,7 +29,8 @@ final class PhenotypeFitnessScorerTest {
                         BehaviorCaseEvidence.passed("renders-draft", "draft pages render"),
                         BehaviorCaseEvidence.failed("publishes-review", "review transition regressed")
                 ),
-                perfectObjectiveScores()
+                perfectObjectiveScores(),
+                realized()
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
@@ -44,7 +46,8 @@ final class PhenotypeFitnessScorerTest {
                         Instant.parse("2026-07-27T00:00:00Z")
                 ),
                 List.of(BehaviorCaseEvidence.failed("required-cms-flow", "required behavior failed")),
-                perfectObjectiveScores()
+                perfectObjectiveScores(),
+                realized()
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
@@ -65,7 +68,8 @@ final class PhenotypeFitnessScorerTest {
                         "cost_latency_budget", 0.80,
                         "behavioral_safety", 1.00,
                         "parsimony", 0.70
-                )
+                ),
+                realized()
         ));
 
         assertThat(result.decision()).isEqualTo(PROMOTE);
@@ -77,13 +81,35 @@ final class PhenotypeFitnessScorerTest {
         var result = scorer.score(candidate(), new PhenotypeEvidence(
                 new EvaluationEvidence(List.of(), List.of(), Instant.parse("2026-07-27T00:00:00Z")),
                 List.of(BehaviorCaseEvidence.passed("renders-draft", "draft pages render")),
-                perfectObjectiveScores()
+                perfectObjectiveScores(),
+                realized()
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.aggregateScore()).isZero();
         assertThat(result.objectives())
                 .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE, 0.0);
+    }
+
+    /**
+     * A candidate that changed nothing measures zero lines, which parsimony rewards with 1.0 while
+     * every other objective stays blind to it. The gate belongs here rather than in the caller for
+     * the same reason as the behaviour-case gate: promotion integrity cannot depend on whoever
+     * assembled the evidence having wired it correctly.
+     */
+    @Test
+    void treatsAnEmptyRealizationAsAFailedGate() {
+        var result = scorer.score(candidate(), new PhenotypeEvidence(
+                evidence(),
+                List.of(BehaviorCaseEvidence.passed("renders-draft", "draft pages render")),
+                perfectObjectiveScores(),
+                new RealizationSummary(0, 0)
+        ));
+
+        assertThat(result.decision()).isEqualTo(DISCARD);
+        assertThat(result.aggregateScore()).isZero();
+        assertThat(result.objectives())
+                .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE, 0.0);
     }
 
     @Test
@@ -98,7 +124,8 @@ final class PhenotypeFitnessScorerTest {
                         Instant.parse("2026-07-27T00:00:00Z")
                 ),
                 List.of(BehaviorCaseEvidence.passed("renders-draft", "draft pages render")),
-                forged
+                forged,
+                realized()
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
@@ -117,7 +144,8 @@ final class PhenotypeFitnessScorerTest {
                         "cost_latency_budget", 0.975,
                         "behavioral_safety", 0.00,
                         "parsimony", 0.00
-                )
+                ),
+                realized()
         ));
 
         assertThat(result.aggregateScore()).isEqualTo(0.80);
@@ -135,6 +163,11 @@ final class PhenotypeFitnessScorerTest {
         assertThat(MutationOperatorType.values())
                 .allSatisfy(operator -> assertThat(MutationOperatorPolicy.defaultsFor(operator).objectives())
                         .isEqualTo(MutationOperatorPolicy.DEFAULT_OBJECTIVES));
+    }
+
+    /** Any non-empty realization; these tests are about the other gates and the weighting. */
+    private static RealizationSummary realized() {
+        return new RealizationSummary(1, 8);
     }
 
     private static Map<String, Double> perfectObjectiveScores() {

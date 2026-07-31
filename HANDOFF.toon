@@ -1,66 +1,32 @@
 session:
-  updated: 2026-07-30
-  status: chg_003_first_vertical_slice_reviewed_and_committed_on_branch_awaiting_merge_authorization
-  branch: feat/first-vertical-slice
+  updated: 2026-07-31
+  status: chg_003_merged_via_pr_1; t10_non_empty_realization_gate_implemented_on_branch_awaiting_review
+  branch: feat/non-empty-realization-gate
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 32c0f31
-  head_note: 32c0f31 is the reviewed `CHG-003` behaviour-case fix; this handoff record is committed directly on top of it, so the branch tip is one commit ahead
+  head: 362589c
+  head_note: 362589c is the T10 gate; this handoff record is committed on top of it, so the branch tip is one commit ahead
   dirty: false
-  pushed: false
+  pushed: true
 
 goal:
-  current: deliver the first runnable vertical slice (`CHG-003`) so `saaa evolve <folder>` runs one complete mutation evaluation end to end with no model credentials
-  phase: implemented_on_branch
+  current: close the promotion-integrity gaps left open by `CHG-003` so the population slice can rank candidates without selecting for the wrong thing
+  phase: t10_implemented_on_branch
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
-  - read `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md`, `.agents/knowledge/index.md`, `CON-001` and the `CHG-002` spec/design
-  - added core value types `MutationOperatorType`, `FitnessObjective`, `MutationBounds`, `MutationTarget`, `SearchPosture`, `ParentTrait` and `MutationContract`
-  - added application policies `MutationOperatorPolicy`, `MutationOperatorDefaults`, `MutationContractCanonicalizer`, `MutationContractValidator`, `PhenotypeFitnessScorer`, `PhenotypeEvidence`, `BehaviorCaseEvidence`, `ConceptualCrossoverPolicy` and `ConceptualCrossoverRequest`
-  - extracted the shared authority-language regex from `BoundedMutationValidator` into `AuthorityLanguage` at its second use
-  - made all six handed-over unit test classes pass without changing their assertions
-  - obtained one independent actor review and fixed six of eight findings
-  - added seven regression tests covering each applied review fix
-  - recorded the two unfixed findings as `RISK-002`, `Q-007` and spec task `T4b`
-  - updated `specs/changes/CHG-002-live-loop-policy/change.toon` task statuses and change status
-  - merged the slice into `main` locally under the recorded PR-less fallback with explicit user authorization
-  - renamed the package base from `io.github.selfadaptingagenticarchitecture` to `com.dreamthought.saaa`
-  - moved all Java under `modules/` and renamed layers to `domain`, `deterministic`, `adapters`, `cli` and `benchmarks`
-  - merged the four two-file adapter modules into one `modules/adapters` module
-  - made `check-architecture-boundaries` fail loudly when a scanned layer directory is missing instead of passing vacuously
-  - recorded the `invariant_named_module_layout` decision in `PROJECT_PROFILE.toon`
-  - removed redundancy: renamed `SelfAdaptingAgenticArchitectureCli` to `MutationLoopCli`, pointed objective validation at the operator's own defaults instead of a duplicated constant, and dropped a duplicated enum assertion from the crossover test
-  - implemented `CHG-003` Tasks 1-9 on branch `feat/first-vertical-slice`: `MutationRealizer` port and `TextMutationRealizer`, realization into the candidate commit, `RealizationInspector` port and `GitRealizationInspector`, `PhenotypeBridgeScorer` implementing `FitnessScorer`, `EvolutionReporter` port and loop reporting, fixture proposer and `ProposerProfileRegistry`, journal reporter and decision sink, toy-workflow fixture, and the `evolve` CLI command
-  - fixed `GitRealizationInspector` to exclude `.saaa/` bookkeeping files from the candidate diff so parsimony measures only the real change
-  - marked all `CHG-003` tasks complete and the change status `delivered`
-  - recorded the `.saaa/fixture-mutation.txt` plain-text deviation in `docs/structured-data.md`
-  - documented the `evolve` command in `README.md` and `docs/wiki/development.md`
-  - found in lead review that `EvolveCommand` declared every `--behaviour-case` name to the scorer but wired only `behaviourCases.get(0)` into the check runner, so extra declared cases were never verified while the required-behaviour hard gate still reported pass
-  - fixed it as `CHG-003` task `T8`: added `BehaviourCaseChecks` mapping each declared case to its own `<name>.sh`, rejecting unsafe names, absolute check directories and case-insensitive duplicates
-  - obtained one independent actor review of the `T8` fix and fixed every finding it raised
-  - fixed the actor-review blocker: a check directory that is empty because the target folder is the Git root produced a command with no path separator, which execvp resolves against `PATH` rather than the candidate worktree, so a script outside the candidate could satisfy a required behaviour
-  - made the command refuse to run unless every declared case has an executable script, so a typo or missing script is never recorded as evidence about the mutation
-  - made `PhenotypeBridgeScorer` fail the behaviour gate closed when a declared case produced no evidence, moving the invariant into the layer that owns the gate instead of relying on the CLI wiring it correctly
-  - anchored the `GitRealizationInspector` pathspecs at the repository root with `:/` and `(top,exclude)` so the measurement no longer depends on the caller's working directory
-  - recorded `RISK-003` for candidate worktree name collisions across runs
-  - recorded `CHG-003` tasks `T9` and `T10` for the deferred reporter-diagnostics and non-empty-realization gate findings
-  - obtained a second independent actor review covering only the self-cleared fixes, which returned a do-not-merge verdict and found a surviving promotion-integrity hole
-  - fixed it as `CHG-003` task `T11`: a committed symlink pointing out of the tree is recreated faithfully by `git worktree add`, so a script that was not in the candidate satisfied a required behaviour and promoted; `CommandCheckRunner` now requires a path-named program to resolve inside the candidate worktree with symlinks followed, and aborts rather than recording an escaping command as failed behaviour evidence
-  - declined the reviewer's suggested guard location as written: a blanket containment check on every command would have broken the legitimate `sh -c` pattern the existing integration test relies on, so containment applies only to programs named by path and `PATH`-resolved interpreters are left alone
-  - fixed the bridge's evidence map being last-wins, so a passing check entry can no longer overwrite a failing one for the same declared case
-  - made `ScoringConfig` reject blank behaviour case names, which previously crashed mid-scoring instead of failing the gate closed
-  - refused symlinked check scripts in the CLI pre-flight and rejected an upward-traversing check directory
-  - corrected two javadocs that claimed containment guarantees the code did not provide
+  - read `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md`, `.agents/knowledge/index.md` and the `CHG-003` change and design
+  - confirmed PR #1 merged on 2026-07-30, so `CHG-003` is on `main` at 10ce37f and the previous handoff's "awaiting merge" state is closed
+  - implemented `CHG-003` task `T10` on branch `feat/non-empty-realization-gate` test-first: an acceptance test showed a candidate whose realization wrote the workflow file back unchanged reported PROMOTE
+  - added `hard_gate_non_empty_realization` to `PhenotypeFitnessScorer` and threaded `RealizationSummary` through `PhenotypeEvidence` so the gate holds for any caller rather than only the current bridge
+  - added scenario `S9` with three acceptance mappings and recorded the gate in the `CHG-003` design and `docs/wiki/domain.md`
 
 in_progress:
-  - `CHG-003` branch `feat/first-vertical-slice` is implemented, reviewed and committed but not yet merged to `main`
+  - `feat/non-empty-realization-gate` is implemented, pushed and open as PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2), awaiting human review and merge
 
 next:
-  - review and merge PR #1 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/1); human review is the merge gate and merge still needs explicit user action
-  - implement `T10` before the population slice: parsimony rewards a smaller diff, so a no-op candidate scores 1.0 on that objective, and ranking N candidates would actively select for candidates that change nothing
-  - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
+  - review and merge PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2); human review is the merge gate
   - implement `T12` so pre-flight validates `HEAD` rather than the working tree, and `T9` so a failed behaviour case shows why it failed
-  - grant the `gh` token pull-request scope so future slices use a PR instead of the recorded fallback
+  - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
   - migrate `MutationEvaluationLoop` from the transitional `Mutation`/`MutationValidator`/`FitnessScorer` stack onto `MutationContract` and `PhenotypeFitnessScorer`; both stacks exist today, only the old one is wired
@@ -77,224 +43,77 @@ decisions:
   - id: closed_operator_enum
     summary: ten closed operator values; `conceptual-crossover` is deliberately absent and negatively tested
   - id: conceptual_crossover_boundary
-    summary: conceptual crossover is a recombination policy producing a bounded child mutation contract; the policy now validates its own child before emitting it
+    summary: conceptual crossover is a recombination policy producing a bounded child mutation contract; the policy validates its own child before emitting it
   - id: phenotype_fitness_policy
     summary: hard gates run before weighted objectives and are not tradeable; promotion threshold is `0.80` compared against the raw sum, with rounding applied to the reported score only
   - id: canonical_ir_safety
     summary: unquoted IR positions are checked against a safe atom/identifier shape so model-authored text cannot forge nodes such as an extra gate
   - id: gate_outcomes_win_in_audit_record
     summary: gate outcomes are written after measured scores in `FitnessResult.objectives` so evidence content cannot overwrite a recorded gate result
+  - id: gates_live_with_the_scorer
+    summary: every promotion invariant belongs in `PhenotypeFitnessScorer`, not in the bridge or the CLI, so promotion integrity does not depend on the caller assembling evidence correctly; `T10` follows the behaviour-case gate in this
+  - id: realization_measured_in_files
+    summary: the non-empty realization gate tests `filesChanged > 0` rather than `linesChanged`, so a mode-only change counts as a realization
+
+blocking_questions: []
 
 risks:
   - RISK-002: the scorer enforces its own fixed gates and never sees the contract, so a declared `required_evidence_present` gate can pass without the evidence it names; tracked as `T4b`
+  - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
   - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
-  - the new `MutationContract` / `MutationContractValidator` / `PhenotypeFitnessScorer` stack is parallel to the wired `Mutation` / `MutationValidator` / `FitnessScorer` ports and is reachable only from tests; the design records `Mutation.patch` as transitional but no migration step is scheduled yet
-  - `PhenotypeFitnessScorer` does not implement the `FitnessScorer` port, so `MutationEvaluationLoop` cannot use it until the contract is threaded through
+  - the new `MutationContract` / `MutationContractValidator` / `PhenotypeFitnessScorer` stack is parallel to the wired `Mutation` / `MutationValidator` / `FitnessScorer` ports; the design records `Mutation.patch` as transitional but no migration step is scheduled yet
   - benchmark presence is not yet a hard gate because "required benchmark evidence" is contract-dependent and the scorer has no contract input
-  - direct main shipping still requires branch isolation, deterministic checks, actor review or recorded fallback, lead self-review and explicit user authorization
   - the fixture proposer is deterministic by design, so it cannot demonstrate that a real model produces useful mutations; it only proves the pipe
   - `behavioral_safety` has no independent evidence source in this slice and is fixed at 1.0, leaving one of five objectives inert
+  - the non-empty realization gate rejects a no-op candidate but says nothing about whether the change is meaningful; a one-character whitespace edit still passes it, so parsimony's pull toward the smallest diff is bounded rather than removed
   - `journal.md` is written into the user's target folder, so the command writes outside its own repository
   - the `.saaa` pathspec exclusion in `GitRealizationInspector` is coupled by convention to `GitCandidateWorkspace`, which writes bookkeeping under `.saaa/candidates/`; a future adapter writing bookkeeping elsewhere would need the exclusion updated
   - `ExperimentMetadataStore` is a no-op in the CLI wiring; persistent experiment metadata arrives with `CHG-002` task `T5`
-  - `CHG-003` branch is implemented, reviewed and committed but not yet merged to `main`
-  - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
   - reporters print only check name and status, so a behaviour case that fails for its own reasons shows no diagnostics; tracked as `CHG-003` task `T9`
-  - no gate requires a non-empty realization, so a candidate that changed nothing scores parsimony 1.0; tracked as `CHG-003` task `T10`
-  - behaviour case names double as script file names, so a case name is constrained to `[a-zA-Z0-9][a-zA-Z0-9._-]*` and the per-case check timeout is fixed at one minute
-  - check scripts run in a worktree created from `HEAD`, so a new check script must be committed before it can gate a run
   - the CLI pre-flight inspects the working tree while checks run against `HEAD`, so an uncommitted or mode-mismatched script passes pre-flight and then fails to start inside the candidate; tracked as `CHG-003` task `T12`
+  - check scripts run in a worktree created from `HEAD`, so a new check script must be committed before it can gate a run
   - the behaviour case convention is POSIX-shaped, so `evolve` is effectively Linux and macOS only; on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`
 
 files_changed:
-  - CLAUDE_HANDOVER.toon (deleted; the handover packet was consumed and only carried stale paths forward)
   - HANDOFF.toon
-  - specs/changes/CHG-002-live-loop-policy/change.toon
-  - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
-  - .agents/knowledge/questions/Q-007-canonical-ir-ordering.md
-  - modules/domain/src/main/java/com/dreamthought/saaa/domain/FitnessObjective.java
-  - modules/domain/src/main/java/com/dreamthought/saaa/domain/MutationBounds.java
-  - modules/domain/src/main/java/com/dreamthought/saaa/domain/MutationContract.java
-  - modules/domain/src/main/java/com/dreamthought/saaa/domain/MutationOperatorType.java
-  - modules/domain/src/main/java/com/dreamthought/saaa/domain/MutationTarget.java
-  - modules/domain/src/main/java/com/dreamthought/saaa/domain/ParentTrait.java
-  - modules/domain/src/main/java/com/dreamthought/saaa/domain/SearchPosture.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/AuthorityLanguage.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/BehaviorCaseEvidence.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/BoundedMutationValidator.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/ConceptualCrossoverPolicy.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/ConceptualCrossoverRequest.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationContractCanonicalizer.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationContractValidator.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationOperatorDefaults.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationOperatorPolicy.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeEvidence.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorer.java
-  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/ConceptualCrossoverPolicyTest.java
-  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/MutationContractCanonicalizerTest.java
-  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/MutationContractValidatorTest.java
-  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/MutationOperatorTypeTest.java
-  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorerTest.java
-  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/SearchPosturePolicyTest.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationRealizer.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/RealizationInspector.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/ScoringConfig.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeBridgeScorer.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/EvolutionReporter.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationEvaluationLoop.java
+  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorerTest.java
   - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/PhenotypeBridgeScorerTest.java
-  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/MutationEvaluationLoopReportingTest.java
-  - modules/domain/src/main/java/com/dreamthought/saaa/domain/RealizationSummary.java
-  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/files/TextMutationRealizer.java
-  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/git/GitCandidateWorkspace.java
-  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/git/GitCommand.java
-  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/git/GitRealizationInspector.java
-  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/fixture/FixtureMutationProposer.java
-  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/journal/JournalReporter.java
-  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/journal/JournalDecisionSink.java
-  - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/files/TextMutationRealizerTest.java
-  - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/fixture/FixtureMutationProposerTest.java
-  - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/journal/JournalReporterTest.java
-  - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/journal/JournalDecisionSinkTest.java
-  - modules/adapters/src/integrationTest/java/com/dreamthought/saaa/adapters/git/GitCandidateWorkspaceIntegrationTest.java
-  - modules/adapters/src/integrationTest/java/com/dreamthought/saaa/adapters/git/GitRealizationInspectorIntegrationTest.java
-  - modules/cli/src/main/java/com/dreamthought/saaa/cli/EvolveCommand.java
-  - modules/cli/src/main/java/com/dreamthought/saaa/cli/ConsoleReporter.java
-  - modules/cli/src/main/java/com/dreamthought/saaa/cli/CompositeReporter.java
-  - modules/cli/src/main/java/com/dreamthought/saaa/cli/MutationLoopCli.java
-  - modules/cli/src/main/java/com/dreamthought/saaa/cli/ProposerProfileRegistry.java
-  - modules/cli/src/test/java/com/dreamthought/saaa/cli/ProposerProfileRegistryTest.java
   - modules/cli/src/acceptanceTest/java/com/dreamthought/saaa/cli/EvolveCommandAcceptanceTest.java
-  - modules/cli/build.gradle.kts
-  - .agentic-template/bin/project
-  - fixtures/toy-workflow/workflow.txt
-  - fixtures/toy-workflow/workflow-check.sh (renamed from check.sh; one script per behaviour case, named after the case)
-  - fixtures/toy-workflow/.saaa/fixture-mutation.txt
-  - fixtures/toy-workflow/README.md
-  - .gitignore
   - specs/changes/CHG-003-first-vertical-slice/change.toon
   - specs/changes/CHG-003-first-vertical-slice/design.md
-  - docs/structured-data.md
-  - README.md
-  - docs/wiki/development.md
   - docs/wiki/domain.md
-  - fixtures/toy-workflow/README.md
-  - .agents/knowledge/risks/RISK-003-candidate-worktree-name-collision.md
-  - modules/cli/src/main/java/com/dreamthought/saaa/cli/BehaviourCaseChecks.java
-  - modules/cli/src/test/java/com/dreamthought/saaa/cli/BehaviourCaseChecksTest.java
-  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/checks/CommandCheckRunner.java
-  - modules/adapters/src/integrationTest/java/com/dreamthought/saaa/adapters/checks/CommandCheckRunnerIntegrationTest.java
-  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/ScoringConfig.java
+  - README.md
 
 tests_run:
-  - 2026-07-28 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
-  - 2026-07-28 `.agentic-template/bin/project test`: pass; 24 application unit tests, 0 failures, 0 errors, including the jqwik canonicalization property
-  - 2026-07-28 `.agentic-template/bin/project lint`: pass; ARCHITECTURE BOUNDARIES OK
-  - 2026-07-28 `.agentic-template/bin/project component-test`: pass
-  - 2026-07-28 `.agentic-template/bin/project check`: pass; repo contract, profile, handoff, knowledge, changes and boundaries all OK
-  - 2026-07-28 `.agentic-template/bin/project ready`: READY PASS; 13 pass, 2 not applicable, 0 fail
-  - 2026-07-28 after package rename: test, component-test, integration-test, run, lint, check and ready all pass
-  - 2026-07-28 boundary probe after rename: injected a forbidden package reference into a domain file and confirmed `project lint` failed, then reverted
-  - 2026-07-28 after module restructure: 39 tests across unit, component and integration suites pass; run, lint, check and ready pass
-  - 2026-07-28 vacuous-pass probe: renamed `modules/domain` away and confirmed `project lint` failed with a missing-directory error, then restored
-  - 2026-07-28 confinement probe: added a `dev.langchain4j` reference to the git adapter and confirmed `project lint` failed, then reverted
-  - 2026-07-28 after redundancy removal: clean rebuild, 39 tests, run, lint, check and ready all pass
-  - 2026-07-28 `CHG-003` integration-test before fix: FAIL — `GitRealizationInspectorIntegrationTest.ignoresBookkeepingFilesUnderSaaaDirectory` failed at line 64 (filesChanged was 2, expected 1)
-  - 2026-07-28 `CHG-003` after realization-inspector fix: integration-test pass (7 tests), test pass, component-test pass, lint pass (ARCHITECTURE BOUNDARIES OK)
-  - 2026-07-30 independent re-verification of the handed-over state with `--rerun-tasks`, because the first green run was Gradle cache rather than execution: 60 tests, 0 failures
-  - 2026-07-30 `T8` red before green: `runsEveryDeclaredBehaviourCaseNotOnlyTheFirst` and `discardsWhenALaterDeclaredBehaviourCaseFails` failed with the journal recording only `workflow-check FAILED` and no `second-check` line at all, confirming the second declared case never ran
-  - 2026-07-30 `T8` actor-review blocker red before green: `keepsCommandsWorktreeRelativeWhenTheTargetFolderIsTheGitRoot`, `rejectsAnAbsoluteCheckDirectoryBecauseItWouldEscapeTheCandidateWorktree`, `rejectsCaseNamesDifferingOnlyByCaseBecauseOneScriptWouldSatisfyTwoCases` and the corrected command-path assertion all failed
-  - 2026-07-30 gate-closure red before green: `failsTheGateWhenADeclaredBehaviourCaseProducedNoEvidence` promoted a candidate whose declared case produced no evidence
-  - 2026-07-30 after all review fixes: 71 tests, 0 failures, 0 errors across unit, component, acceptance and integration suites with `--rerun-tasks`; check, lint, check-wiki (WIKI OK) and ready (READY: PASS) all pass
-  - 2026-07-30 real-binary probe of the PATH blocker: with a hostile `workflow-check.sh` on `PATH` and the real script failing inside the candidate, the run reported DISCARD, proving the candidate's own script ran; with no script in the repository at all the run refused to start and wrote no journal
-  - 2026-07-30 real-binary probe of multi-case wiring: nested target folder with two declared cases reported `workflow-check PASSED`, `second-check FAILED`, DISCARD, exit 0; a non-executable script was refused before any candidate was created
-  - 2026-07-31 reproduced the second reviewer's symlink escape before fixing it: a tracked symlink (mode 120000) to a script outside the repository reported `workflow-check PASSED`, score 1.00, PROMOTE, while the script never read the workflow file
-  - 2026-07-31 `T11` red before green: `refusesToRunAPathCommandThatResolvesOutsideTheCandidate` and `failsTheGateWhenADeclaredBehaviourCaseFailedInAnyOfItsCheckEntries` both failed; `runsAPathCommandThatStaysInsideTheCandidate` passed before the change, confirming the guard did not have to be invented to make contained paths work
-  - 2026-07-31 after `T11`: 75 tests, 0 failures, 0 errors with `--rerun-tasks`; check, lint, check-wiki and ready all pass
-  - 2026-07-31 real-binary verification of `T11` in fresh repositories: a symlink present in the working tree is refused by pre-flight, and a symlink present only in `HEAD` — which passes pre-flight — is refused at execution with "resolves to a program outside the candidate worktree"; neither wrote a journal nor executed the outside script, and a legitimate run still reported PASSED and PROMOTE
-  - 2026-07-31 note on an earlier probe: an intermediate run of this verification reported a misleading pass because `journal.md` and a candidate branch survived from a previous run in the same scratch repository; re-run in fresh repositories, which is also direct evidence of RISK-003
+  - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
+  - 2026-07-31 `T10` red before green at the boundary: `EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing` failed with the journal reporting `PROMOTE` for a candidate whose realization wrote the workflow file back unchanged
+  - 2026-07-31 `T10` red before green in the deterministic layer: `PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate` and `PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing` failed to compile against the pre-gate API, then failed on the gate value once it existed
+  - 2026-07-31 after `T10`: 78 tests, 0 failures, 0 errors across unit, component, acceptance and integration suites with `--rerun-tasks`
+  - 2026-07-31 `.agentic-template/bin/project check-changes`: CHANGES OK
+  - 2026-07-31 `.agentic-template/bin/project lint`: ARCHITECTURE BOUNDARIES OK
 
 fitness_functions:
-  - changed: `check-architecture-boundaries` now fails loudly when a scanned layer directory is missing, instead of returning an empty file list and reporting OK
-  - changed: each provider dependency is confined to one package, so the git, sqlite and checks adapters cannot import LangChain4j even though merging the adapter modules put those libraries on one compile classpath
-  - changed: Flyway was split into its own rule rather than sharing the SQLite message
-  - unchanged: `modules/domain` and `modules/deterministic` still import only `java.*` and repository packages
-  - unchanged: no boundary rule changed in `CHG-003`; the slice adds ports, adapters and a CLI command within existing layer boundaries
-  - strengthened without a new check: `PhenotypeBridgeScorer` now fails the required-behaviour gate closed when a declared case produced no evidence, so the deterministic layer enforces the invariant rather than trusting the CLI to wire one check per declared case
-  - added: `CommandCheckRunner` refuses a path-named check program that resolves outside the candidate worktree, which is a containment fitness function on evidence provenance rather than on imports; it is enforced by test rather than by the boundary script
+  - added: `hard_gate_non_empty_realization` in `PhenotypeFitnessScorer` fails promotion closed when the realization changed no file; enforced by test rather than by the boundary script, like the `CommandCheckRunner` containment rule
+  - unchanged: `check-architecture-boundaries` still fails loudly when a scanned layer directory is missing, and `modules/domain` and `modules/deterministic` still import only `java.*` and repository packages
+  - unchanged: no layer boundary moved; the change stays inside `deterministic` plus one acceptance test
 
 knowledge:
   consulted:
     - .agents/knowledge/index.md
-    - .agents/knowledge/contracts/CON-001-mutation-operator-enum.md
-    - .agents/knowledge/questions/Q-004-fitness-objectives.md
-    - .agents/knowledge/questions/Q-005-crossover-policy.md
-    - .agents/knowledge/questions/Q-006-search-posture-policy.md
-    - .agents/knowledge/risks/RISK-001-model-self-approval.md
-    - specs/changes/CHG-002-live-loop-policy/change.toon
-    - specs/changes/CHG-002-live-loop-policy/design.md
+    - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
+    - .agents/knowledge/risks/RISK-003-candidate-worktree-name-collision.md
     - specs/changes/CHG-003-first-vertical-slice/change.toon
     - specs/changes/CHG-003-first-vertical-slice/design.md
-    - docs/superpowers/plans/2026-07-28-first-vertical-slice.md
-  proposals:
-    - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
-    - .agents/knowledge/questions/Q-007-canonical-ir-ordering.md
-    - .agents/knowledge/risks/RISK-003-candidate-worktree-name-collision.md
-  no_record:
-    - the six applied review fixes are covered by regression tests and need no separate knowledge entry
-    - the `.saaa/fixture-mutation.txt` plain-text deviation is recorded in `docs/structured-data.md` rather than as a knowledge entry
+  proposals: []
+  no_record: |
+    `T10` closes a gap already recorded as a `CHG-003` task and a design section, so the durable
+    record is the scenario `S9` and the design rationale rather than a new knowledge entry.
 
 team_fallback:
-  current: chg_003_integrated_through_pr_1_awaiting_human_review_and_merge
-  reason: PR creation works as of 2026-07-31, so the tool-unavailable integration fallback no longer applies and `CHG-003` went through a pull request instead. Pushing over SSH failed with `agent refused operation` because the SSH agent would not sign; `gh auth setup-git` plus an HTTPS push worked, and the stored remote stayed on SSH.
-  pr_attempt:
-    command: gh pr create --base main --head feat/first-vertical-slice
-    result: succeeded
-    url: https://github.com/fiq/self-adapting-agentic-architecutre/pull/1
-    note: the earlier failure on `codex/mutation-contract-test-slice` was "GraphQL: Resource not accessible by personal access token (createPullRequest)"; the token now carries pull-request write scope, so that record is superseded
-  actor_review: completed twice for `CHG-002`; completed once for the `CHG-003` `T8` fix on 2026-07-30, which returned a block-the-merge verdict
-  chg_003_actor_review_outcome:
-    - fixed: a command with no path separator was resolved against `PATH` rather than the candidate worktree when the target folder was the Git root, so something outside the candidate could satisfy a required behaviour; commands now always carry a `./` prefix
-    - fixed: a missing or non-executable check script was reported as a failed behaviour case, indistinguishable from a candidate that broke the behaviour; the command now refuses to run
-    - fixed: the one-check-per-declared-case invariant lived only in the CLI; `PhenotypeBridgeScorer` now fails the gate closed on a declared case with no evidence
-    - fixed: `checkDirectory` had to be relative but nothing enforced it, so an absolute path would have escaped the candidate worktree
-    - fixed: duplicate detection was case-sensitive, so on a case-insensitive filesystem `Foo` and `foo` would both exec `foo.sh` and count as two cases
-    - fixed: pathspec anchoring depended on the caller's working directory; now anchored at the repository root with `:/` and `(top,exclude)`
-    - fixed: stale `check.sh` references in `HANDOFF.toon` and the `CHG-003` design; the per-case timeout is now documented
-    - recorded_not_fixed: reporters print only check name and status, so a failing behaviour case shows no diagnostics (task `T9`)
-    - recorded_not_fixed: no gate requires a non-empty realization (task `T10`)
-    - confirmed_not_a_defect: path traversal, leading-dash flag injection and check timeouts already failed closed, and the first-commit `<sha>^` case is unreachable because a candidate always commits on top of `HEAD`
-  chg_003_second_actor_review: completed 2026-07-31 over only the fixes the lead had cleared itself; verdict do-not-merge
-  chg_003_second_actor_review_outcome:
-    - fixed: a tracked symlink out of the tree let a script that was not in the candidate satisfy a required behaviour and promote; containment is now enforced at execution against the candidate worktree
-    - fixed: the bridge's evidence map was last-wins, so a passing check entry could overwrite a failing one for the same declared case and record the gate as satisfied
-    - fixed: a blank declared behaviour case name crashed mid-scoring rather than failing the gate closed
-    - fixed: two javadocs asserted containment guarantees the code did not provide
-    - fixed: `forCases` guarded absolute check directories but not upward traversal
-    - fixed: the blocker's regression test asserted the symptom rather than the property; an end-to-end symlink refusal test now covers it
-    - recorded_not_fixed: the pre-flight validates the working tree while checks run against `HEAD` (task `T12`)
-    - recorded_not_fixed: the POSIX-shaped convention and case-insensitive filesystem behaviour, recorded as `CHG-003` risks
-    - adjusted_rather_than_applied: the suggested containment location would have broken the legitimate `sh -c` pattern, so containment covers only programs named by path
-    - confirmed_not_a_defect: the pathspec change is byte-identical to the previous form from the repository root and strictly more robust from a subdirectory; `Set` iteration order is not observable in the recorded result; the pre-flight ordering is correct
-  actor_review_outcome:
-    - fixed: empty deterministic-check evidence no longer passes its hard gate
-    - fixed: gate outcomes are recorded after measured scores so evidence cannot overwrite them in the audit record
-    - fixed: canonicalizer rejects unsafe atoms and identifiers, closing IR node forgery and whitespace collisions
-    - fixed: threshold comparison uses the raw score; rounding is reporting only
-    - fixed: authority-language scan now covers search posture, parent traits, evidence and gate fields
-    - fixed: conceptual crossover requires two distinct evaluated parents and validates its own child contract
-    - recorded_not_fixed: declared contract hard gates are not enforced by the scorer (RISK-002, task T4b)
-    - recorded_not_fixed: canonical IR is declaration-order sensitive for set-like fields (Q-007)
-  lead_self_review: completed before each `CHG-002` merge; completed for `CHG-003` on 2026-07-30 after the actor findings were addressed
-  chg_003_lead_self_review_outcome:
-    - found: the `<name>.sh` convention was duplicated between `BehaviourCaseChecks` and the new fail-fast validation, so changing it in one place would drift; the validation now derives the script path from the emitted command
-    - found: `seen.add` was a side effect inside a stream `map`; replaced with an explicit loop
-    - no other findings; the diff adds no provider imports, no dead code and no silent TODOs, and `cli -> adapters` is a permitted direction
-  restructure_review_outcome:
-    - fixed: provider dependencies are now confined per package, closing the containment the adapter-module merge gave up
-    - fixed: `settings.gradle.kts` no longer creates an empty `:modules` container project
-    - fixed: stale `core/` and `application/` references in `docs/validation.md` and `docs/wiki/architecture.md`
-    - fixed: `HANDOFF.toon` recorded the fitness function as unchanged in the same change that hardened it, and asserted a push that had not happened
-    - fixed: `CHG-002` acceptance `test_id`s pointed at modules that no longer exist
-    - fixed: deleted the consumed `CLAUDE_HANDOVER.toon` packet rather than maintaining its stale paths
-  lost_challenge: no human code review; `CHG-002` and `CHG-003` reviews were agent actors. The first `CHG-003` review returned block-the-merge; its fixes were then re-reviewed independently, which found a surviving promotion-integrity hole, so the second review was load-bearing rather than confirmatory. The `T11` fixes answering that second review have themselves had only lead self-review, though they are covered by tests and verified against the real binary in fresh repositories. The user reported PR tooling is now available, so `CHG-003` goes through a pull request and human review rather than the PR-less fallback.
+  current: single_lead_with_pr_review_gate
+  reason: PR tooling works, so `CHG-003` went through PR #1 and `T10` went through PR #2. Pushing over SSH still fails with `Permission denied (publickey)`; the HTTPS remote URL works. No subagent actor review was requested for this change; human review on the PR is the merge gate.
+  chg_003_outcome: PR #1 "Run one mutation evaluation end to end (CHG-003)" merged 2026-07-30; two independent actor reviews during its development, the second of which found a surviving promotion-integrity hole and returned do-not-merge before the `T11` fix
+  lost_challenge: this `T10` change has had lead self-review only, with no independent actor or human review yet. It is covered test-first at the acceptance and unit layers, and the failing acceptance test was observed reporting PROMOTE before the gate existed.

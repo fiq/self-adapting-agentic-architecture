@@ -150,6 +150,24 @@ the realized diff. A mutation that changes eighty lines to achieve what another
 achieved in six scores lower. That is real selection pressure rather than
 decoration.
 
+### Why an empty realization is a hard gate
+
+Rewarding a smaller diff rewards the empty diff most of all: a realization that
+wrote the file back unchanged measures zero lines and scores `parsimony` 1.0,
+while every other objective reads evidence about a candidate identical to the
+baseline. Such a candidate promotes on the baseline's own passing checks, and
+ranking several candidates would select for changing nothing.
+
+So `hard_gate_non_empty_realization` fails closed when the realization changed no
+file. It lives in `PhenotypeFitnessScorer` next to the other gates, not in the
+bridge or the CLI, for the same reason as the behaviour-case gate: promotion
+integrity must not depend on whoever assembled the evidence having wired it
+correctly. `PhenotypeEvidence` therefore carries the `RealizationSummary` the
+bridge already obtained for `parsimony`.
+
+The measure is `filesChanged`, not `linesChanged`, so a mode-only change — making
+a script executable, for instance — still counts as a realization.
+
 `behavioral_safety` is honest but inert this slice: an invalid or
 authority-bearing contract is rejected before scoring, so no candidate reaching
 the scorer can score anything but 1.0. It gains a real source when reviewer
