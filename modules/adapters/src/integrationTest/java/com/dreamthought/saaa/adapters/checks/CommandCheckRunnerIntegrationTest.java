@@ -102,6 +102,39 @@ final class CommandCheckRunnerIntegrationTest {
         assertThat(runner.runChecks(candidate).get(0).status()).isEqualTo(CheckStatus.PASSED);
     }
 
+    /**
+     * At Layer 3 a check invokes the real Java toolchain against candidate source. A mutation that
+     * does not compile must not crash the run — it must be recorded as a failed check with the
+     * compiler diagnostic in the summary, so the loop takes an ordinary {@code DISCARD} decision
+     * rather than surfacing an unhelpful stack trace. Covers `S8` on `CHG-004`.
+     */
+    @Test
+    void recordsCompilerFailureAsAFailedCheckRatherThanCrashing() throws Exception {
+        Path worktree = tempDir.resolve("uncompilable");
+        Files.createDirectories(worktree.resolve("src"));
+        Files.writeString(
+                worktree.resolve("src/Broken.java"),
+                "class Broken { void x() { doesNotExist(); } }\n");
+        var candidate = new Candidate(
+                "candidate-mut-004", "mut-004", "candidate/baseline-mut-004", worktree,
+                "0123456789abcdef0123456789abcdef01234567");
+        var runner = new CommandCheckRunner(List.of(
+                new CommandCheckRunner.CommandCheck(
+                        "compile-check",
+                        List.of("sh", "-c", "javac -d out src/Broken.java")
+                )
+        ));
+
+        var evidence = runner.runChecks(candidate);
+
+        assertThat(evidence).hasSize(1);
+        assertThat(evidence.get(0).name()).isEqualTo("compile-check");
+        assertThat(evidence.get(0).status()).isEqualTo(CheckStatus.FAILED);
+        assertThat(evidence.get(0).summary())
+                .contains("cannot find symbol")
+                .contains("Broken.java");
+    }
+
     @Test
     void rejectsTimeoutsBelowProcessWaitGranularity() {
         assertThatThrownBy(() -> new CommandCheckRunner.CommandCheck(
