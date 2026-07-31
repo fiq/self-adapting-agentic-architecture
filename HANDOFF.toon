@@ -1,16 +1,16 @@
 session:
   updated: 2026-08-01
-  status: chg_004_spec_merged_via_pr_5; adr_0002_scorer_target_revisit_trigger_drafted_on_branch
-  branch: docs/adr-0002-scorer-target-trigger
+  status: chg_004_spec_merged_via_pr_5; adr_0002_revision_merged_via_pr_6; chg_004_t9_open_as_pr_7; chg_004_t7_open_as_pr_8; chg_004_t8_implemented_on_branch
+  branch: feat/chg-004-t8-golden-corpus
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: b995c41
-  head_note: b995c41 is the PR #5 merge for the CHG-004 spec; the ADR revision changes are on the branch above, uncommitted
+  head: 4e82955
+  head_note: 4e82955 is the PR #6 merge for ADR-0002; T8 is on the branch above, uncommitted; T9 in PR #7, T7 in PR #8, both independent
   dirty: true
   pushed: false
 
 goal:
-  current: land the ADR-0002 scorer-as-target revisit trigger CHG-004's design defers to it, then start CHG-004 implementation per the staging order (T9 + T7 + T8 in parallel first)
-  phase: adr_0002_revision_drafted_awaiting_review
+  current: implement CHG-004 vertically per the staging order; guardrails first (T9, T7, T8), then L1, L2, L3
+  phase: chg_004_t8_implemented_on_branch
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -35,14 +35,17 @@ completed:
   - CHG-004 spec tightening (second pass, two personas): a security-reviewer pass added scenarios for `S11` (candidate cannot read `SAAA_MODEL_API_KEY` because behaviour cases run in a scrubbed env allow-list, `T9b`), `S12` (MCP response scrubs any occurrence of the current API key value before it reaches stdio, `T6b`), `S13` (picocli `System.exit` cannot terminate the MCP server, `T4` note), `S14` (promotion sink port is branch-pointer-only at the type level, `T9c`), plus per-field and total response-size caps in `T5` and a named non-goal for full JVM sandboxing; an evolutionary-computing-researcher pass added four new properties to `PhenotypeFitnessScorer` (parsimony monotonicity, task_success monotonicity, threshold-boundary behaviour, decision-from-raw-sum-not-rounded), extended the golden-corpus coverage floor with near-threshold and observed-evidence entries, clarified `T2`'s "bounded" as diff-lines not emitted-content, added `T2b` to log the exact prompt and raw response into candidate bookkeeping so a later scorer-as-target audit can distinguish "scorer changed its mind" from "model proposed differently", and named proposer diversity knobs as a non-goal deferred to the population slice
   - PR #5 merged 2026-08-01 as `b995c41` after human review; the CHG-004 spec is on `main` and the branch was deleted locally
   - drafted the ADR-0002 revision on `docs/adr-0002-scorer-target-trigger`: adds a "scorer-as-target requires a superseding ADR" revisit trigger to `docs/decisions/0002-three-layer-vision.md` and mirrors it into the knowledge node, closing the deferral CHG-004's design document points at
+  - opened PR #6, merged 2026-08-01 as `4e82955`
+  - implemented CHG-004 T9, T7, T8 in parallel branches; T9 (compiler-failure regression test) in PR #7, T7 (jqwik property tests over PhenotypeFitnessScorer, all eight S6 invariants) in PR #8, T8 (golden-verdict corpus) drafted on this branch
+  - T8 shipped as a Java constant list in `GoldenCorpus.java` rather than TOON fixture files because there is no Java TOON reader yet; the deviation is documented in `docs/structured-data.md` and retires when `CHG-002 T3d` lands the envelope reader; nine entries covering three of four hard gates (`required_objective_scores` cannot fire through the bridge because the bridge always produces all objective values, so it is covered instead by scorer-level tests and property P3), two PROMOTE entries with different objective profiles, one PROMOTE at exactly PROMOTION_THRESHOLD, one DISCARD just below (which also happens to cover property P8 at the corpus level because its aggregate rounds to 0.80), one T10 rescue entry, and one entry captured from the CHG-003 fixture `toy-workflow` acceptance run
 
 in_progress:
-  - ADR-0002 revision is drafted on `docs/adr-0002-scorer-target-trigger`, uncommitted; will open a small PR because ADRs sit under the same "no direct commits to main" rule as any other content change
+  - T8 corpus and iteration test on `feat/chg-004-t8-golden-corpus`, uncommitted; PRs #7 and #8 open independently
 
 next:
-  - open the ADR revision PR and get it reviewed; small enough that lead self-review is likely acceptable, but human review remains the merge gate
-  - once the ADR revision lands, start CHG-004 implementation per the staging order in the design document (T9 + T7 + T8 in parallel → T1/T2/T3 → T4/T5/T6 → T10/T10b → T11/T12), each landing as its own PR unless a group is small enough to bundle
-  - the first implementation slice to start is `CHG-004 T9` (`CommandCheckRunner` treats compiler failure as a failed check): general robustness fix that also unblocks the L3 acceptance test and is independent of `T7`/`T8`
+  - push and open the T8 PR
+  - once the guardrail trio (T9/T7/T8) merges, start L1: `T1`/`T2`/`T2b`/`T3` (OpenAiCompatible adapter + proposer + prompt/response bookkeeping + profile registration). T1 is the smallest and most independent; T2 depends on T1
+  - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
