@@ -1,13 +1,276 @@
-# self-adapting-agentic-architecture
+# SAAA — self-adapting-agentic-architecture
 
-self-adapting-agentic-architecture is a Java-first experimental platform for
-evolving agentic workflows. It explores a bounded loop where a model proposes a
-workflow mutation, deterministic validators evaluate the result in an isolated
-Git worktree, and a multi-objective fitness score decides whether the candidate
-is promoted or discarded.
+SAAA is a Java-first experimental platform for evolving agentic workflows.
+
+**Problem it addresses.** When you or an agent change a workflow, prompt policy,
+tool-selection strategy or guardrail, tests, CI and reviewers can tell you
+whether the change *works*. What they rarely give you is a *fixed comparison
+across many attempts at the same idea*: the deciding step is still reasoning
+over evidence, running the same request twice tends to produce two different
+verdicts, and useful ideas from a rejected attempt rarely feed the next one.
+Population-scale selection and recombination between evaluated candidates are
+not really part of the vocabulary.
+
+**Because.** SAAA revives the older genetic-programming shape — propose, score
+against a fixed fitness function, keep or discard, later recombine survivors —
+and puts it on top of a repo-native context store, following
+[Comprehension at AI Speed](https://www.infoq.com/articles/ai-speed-context-store-architecture/).
+The deterministic scaffolding is not the novelty — tests, MCP tools, skills, CI
+already do that. What moves is the step that *decides*, from reasoning into
+fixed code. Model output can propose or repair; it can never approve its own
+result.
+[More on where this idea comes from →](#how-this-came-about)
+
+**Usage.**
+
+```sh
+git clone https://github.com/fiq/self-adapting-agentic-architecutre
+cd self-adapting-agentic-architecutre
+nix develop
+.agentic-template/bin/gradle-command :cli:installDist
+./modules/cli/build/install/cli/bin/cli evolve fixtures/toy-workflow \
+    --behaviour-case workflow-check --max-lines 80
+cat fixtures/toy-workflow/journal.md
+```
+
+Runs one full evaluation of the shipped fixture — propose a change, isolate it in
+a Git worktree, run your check script, score, decide, journal — with no model
+credentials required. The fixture's canned proposal makes the check pass, so the
+run promotes; break the fixture and the same command discards.
+[See a real run →](#what-it-actually-looks-like)
+
+## Contents
+
+- [How this came about](#how-this-came-about) — genetic programming, and the
+  InfoQ piece
+- [In plain terms](#in-plain-terms) — what the tool actually does
+- [What it actually looks like](#what-it-actually-looks-like) — a promote run
+  and a discard run
+- [Why not just ask an agent to make the change](#why-not-just-ask-an-agent-to-make-the-change)
+- [How fitness is defined](#how-fitness-is-defined) — hard gates, weighted
+  objectives, where the numbers come from
+- [What is real today, and what is not](#what-is-real-today-and-what-is-not)
+- [Run locally](#run-locally) and [Evolve a workflow](#evolve-a-workflow) —
+  full CLI reference
+- [Repository structure](#repository-structure) and
+  [Runtime architecture](#runtime-architecture-diagram)
+- [Agent startup](#agent-startup) and
+  [Development lifecycle](#development-lifecycle)
 
 The first consumer is a developer-researcher or platform maintainer who wants
 auditable experiments over autonomous agent workflow changes.
+
+## How this came about
+
+The shape is older than the agent hype. In the 1990s, genetic programming was
+already producing many candidate solutions, scoring each against a fitness
+function, keeping what scored well, recombining ideas from the survivors, and
+repeating. The parts that made it work were the *strong* fitness function, the
+*cheap* evaluation, and the willingness to throw candidates away.
+
+Modern agentic systems have serious deterministic scaffolding — tool calls, MCP
+servers, skills, static analysis, unit tests, type checkers, linters, CI
+pipelines. That scaffolding does a lot of real work. What is usually *not*
+deterministic is the step that decides: the reasoning that reads all of that
+evidence and picks a next action or accepts a change. The deterministic tools
+produce inputs; a model produces the verdict.
+
+Two things fall out of that arrangement. The deterministic constraints tend to
+concentrate on what is easy to encode — does it compile, does the test pass, is
+the type well-formed — because harder domain constraints are expensive to write
+down, so they get pushed back into the reasoning step, or into more model-graded
+checks (an LLM writing tests, an LLM judging outputs, another agent reviewing
+the first). And running the same request twice tends to give two different
+answers, with no way to compare them on the same axis, because there is no
+fitness function ranking them — only a chat log explaining why each one seemed
+fine at the time. Useful ideas from a rejected attempt rarely make it into the
+next one. Population-scale selection, and recombination between evaluated
+candidates, are not really part of the vocabulary.
+
+None of this is a criticism of the tools; SAAA uses the same primitives. It is
+a claim about where determinism should carry weight. SAAA moves the *decision*
+into fixed code and asks you to grow the fitness function until it can bear it.
+
+The second nudge was Comprehension at AI Speed
+([InfoQ, 2026-07-14](https://www.infoq.com/articles/ai-speed-context-store-architecture/)),
+which argues that as AI-assisted delivery gets faster, the bottleneck is durable
+*context*: specs, tests, fitness functions and handoff metadata living in the
+repository itself, not in a chat window. That reframes the loop above as an
+engineering discipline rather than a modelling trick, and it is why SAAA keeps
+its state — proposals, evidence, decisions, journal — as versioned files next to
+the code being evolved.
+
+Put those two together and SAAA is an experiment in reintroducing the older
+loop shape on top of a repo-native context store:
+
+- **Fixed fitness, not vibes.** Scoring is deterministic and lives in code, so
+  the same evidence always gives the same answer.
+- **Bounded mutation, in Git.** Every candidate is a real commit in a real
+  worktree, so any decision is reproducible from the commit id.
+- **Author and grader are different things.** A model may propose or repair, but
+  it never approves its own result.
+- **Recombination is on the roadmap, not the first slice.** Crossover between
+  evaluated candidates is deferred until single-candidate evaluation is honest,
+  because recombining unreliable evidence produces unreliable children.
+
+Hedged claim: for one change against a repository that already has a good test
+suite, an agent plus your CI does most of this. The payoff shows up when you
+want to try many variants of an idea and rank them on identical evidence,
+without a person adjudicating each round.
+
+## In plain terms
+
+You have something an agent depends on to do its job: a workflow definition, a
+prompt policy, a tool-selection strategy, a set of guardrails. You want to change
+it — and you want to know whether the change was actually an improvement, not
+just whether it looked plausible.
+
+That is the whole job here. You describe the behaviours that must still hold, as
+ordinary scripts that exit 0 or 1. Something proposes a change. The change is
+applied in an isolated copy, measured against your scripts, scored by fixed
+rules, and then kept or thrown away. You get a written record either way.
+
+```sh
+cli evolve ./my-workflow --behaviour-case publish-guard --behaviour-case renders-draft
+```
+
+That says: *evolve what is in this folder, and a candidate is only acceptable if
+`publish-guard.sh` and `renders-draft.sh` both still pass.*
+
+One run does this:
+
+```text
+1. propose    something suggests one bounded change, with a stated hypothesis
+2. isolate    the change is written into a separate Git worktree, never your working copy
+3. commit     the candidate is committed, so the exact thing measured is recoverable
+4. check      your <case>.sh scripts run inside that candidate
+5. score      fixed rules turn the evidence into a number and a decision
+6. journal    a human-readable entry is appended to journal.md
+```
+
+### What it actually looks like
+
+A candidate that works. The proposal was "enforce the draft check before
+publish", and the behaviour script demanding that still passes:
+
+```text
+  propose    MUT-toy-fixture  enforce the draft check before publish
+  candidate  candidate-mut-toy-fixture  2e02862
+  check      workflow-check           PASSED
+  score      1.00
+  PROMOTE
+```
+
+A candidate that does not. Same proposal, but this workflow also had a
+`publish: allow` line that the rewrite dropped, and the behaviour script noticed:
+
+```text
+  propose    MUT-toy-fixture  enforce the draft check before publish
+  candidate  candidate-mut-toy-fixture  a5360bd
+  check      workflow-check           FAILED
+  score      0.00
+  DISCARD
+```
+
+Nothing was broken in your files: the candidate lived in its own worktree, and
+the run exited 0 because discarding a bad candidate is a successful experiment,
+not an error. Both runs leave an entry like this in `journal.md`:
+
+```markdown
+## 2026-07-31T09:21:47Z  candidate-mut-toy-fixture
+
+**Hypothesis** enforce the draft check before publish
+
+| | |
+|---|---|
+| commit | 2e0286278d9429a8cbef0137b34dfe32d42d13ef |
+| checks | workflow-check PASSED |
+| score | 1.00 |
+| decision | PROMOTE |
+```
+
+The commit id is the point. Every claim in that table is attached to a commit you
+can check out and re-measure.
+
+### Why not just ask an agent to make the change
+
+Because the agent that writes the change is the last thing that should be
+grading it.
+
+| Asking an agent directly | This loop |
+|---|---|
+| The agent decides when it is done | A model may propose and repair, but never approves its own result |
+| "Looks correct to me" | Pass or fail from scripts you wrote, before the change existed |
+| Edits land in your working tree | Edits land in a throwaway Git worktree; your files are untouched until you promote |
+| Ask twice, get two different answers and no way to compare them | The same evidence always produces the same score and decision |
+| The reasoning is in a chat log | The decision, the evidence and the commit are in `journal.md` and Git |
+| One attempt, judged by vibes | Many attempts, ranked on identical measurements |
+
+Being honest about the trade: for a single change against a repository that
+already has good tests and CI, an agent plus your existing pipeline gets you most
+of this. The payoff starts when you want to try five variants of the same idea,
+compare them on identical evidence, and keep doing that without a human
+adjudicating each round. That is what fixed, deterministic scoring buys — an
+opinion that does not drift between runs.
+
+### How fitness is defined
+
+Fitness is two layers, and the first one is not negotiable.
+
+**Hard gates.** Fail any one of these and the candidate scores 0.00 and is
+discarded, no matter how good the rest looks. There is no trading a gate away
+against a high score elsewhere.
+
+| Gate | Fails when |
+|---|---|
+| `hard_gate_deterministic_checks` | any deterministic check failed, or no check evidence was produced at all |
+| `hard_gate_required_behavior_cases` | any behaviour case you declared failed, or produced no evidence of its own |
+| `hard_gate_required_objective_scores` | any objective below is missing or is not a number between 0 and 1 |
+| `hard_gate_non_empty_realization` | the candidate changed no file, so there is nothing to evaluate |
+
+Absent evidence counts as failure everywhere. A behaviour you asked for and did
+not get proof of has not been shown to hold.
+
+**Weighted objectives.** Only once every gate passes are these summed. The total
+must reach **0.80** to promote.
+
+| Objective | Weight | Measured as |
+|---|---|---|
+| `task_success` | 0.40 | fraction of your declared behaviour cases that passed |
+| `reliability` | 0.20 | 1.0 when no check timed out, else 0.0 |
+| `cost_latency_budget` | 0.20 | worst `budget / measured` across benchmarks, capped at 1.0 |
+| `behavioral_safety` | 0.10 | fixed at 1.0 today; gains a real source when reviewer evidence lands |
+| `parsimony` | 0.10 | `1 - (lines changed / --max-lines)`, so a tighter change scores higher |
+
+So the promoting run above scored `0.40 + 0.20 + 0.20 + 0.10 + 0.10 = 1.00`. The
+discarding run failed the behaviour gate, so it scored 0.00 without any objective
+being consulted.
+
+Where the numbers come from:
+
+- **Weights and the 0.80 threshold** are code, in `MutationOperatorPolicy` and
+  `PhenotypeFitnessScorer`. They are the same for every mutation operator, so
+  candidates stay comparable. Changing them is a reviewed change to the
+  repository, not a per-run flag.
+- **What "correct" means** is entirely yours: the `--behaviour-case` scripts you
+  write. The system has no opinion about your domain.
+- **Per-run budgets** are flags, such as `--max-lines` for the change budget
+  parsimony is scored against.
+- **Nothing the model emits** can influence any of this. A proposal that tries to
+  supply its own score or approval is rejected before scoring, and recorded gate
+  outcomes are written after measured values so evidence cannot overwrite them.
+
+### What is real today, and what is not
+
+Working end to end: proposal, isolation, realization, commit, checks, scoring,
+promote-or-discard, journal. Every part of the loop runs.
+
+Not yet: the proposer is a canned fixture read from a file, not a live model, so
+this proves the pipe rather than that a model produces good ideas. One candidate
+is evaluated per run, so there is no ranking or selection pressure between
+candidates yet — that is the next slice, and it is the point at which this starts
+to differ from a capable agent with a good test suite. `behavioral_safety` has no
+independent evidence source and sits at 1.0.
 
 ## Intended thin slice
 
