@@ -92,6 +92,25 @@ final class PhenotypeBridgeScorerTest {
         assertThat(result.decision()).isEqualTo(DISCARD);
     }
 
+    /**
+     * Parsimony rewards a smaller diff, so a realization that changed nothing scores 1.0 on that
+     * objective and every other objective is blind to it. The candidate must be gated out instead:
+     * its passing checks are evidence about the baseline, not about a mutation.
+     */
+    @Test
+    void discardsACandidateWhoseRealizationChangedNothing() {
+        var scorer = scorer(new RealizationSummary(0, 0), 80);
+
+        var result = scorer.score(CANDIDATE, new EvaluationEvidence(
+                List.of(passed("build", "ok"), passed("publish-guard", "ok")),
+                List.of(),
+                Instant.parse("2026-07-28T00:00:00Z")));
+
+        assertThat(result.objectives())
+                .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE, 0.0);
+        assertThat(result.decision()).isEqualTo(DISCARD);
+    }
+
     @Test
     void scoresParsimonyFromRealizedDiffSizeAgainstBounds() {
         var tight = scorer(new RealizationSummary(1, 8), 80);

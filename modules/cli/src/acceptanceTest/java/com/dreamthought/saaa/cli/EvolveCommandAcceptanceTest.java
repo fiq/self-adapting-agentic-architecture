@@ -149,6 +149,37 @@ final class EvolveCommandAcceptanceTest {
         assertThat(Files.exists(target.resolve("journal.md"))).isFalse();
     }
 
+    /**
+     * Parsimony rewards a smaller diff, so a realization that wrote the file back unchanged measures
+     * zero lines and scores 1.0. Nothing else in the score notices, so a candidate that changed
+     * nothing promotes on evidence about the baseline it did not touch. Ranking several candidates
+     * would then actively select for doing nothing.
+     */
+    @Test
+    void discardsACandidateWhoseRealizationChangedNothing(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
+                "leave the workflow exactly as it is\ndraft-check: skip\n");
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: skip$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", target.toString(),
+                "--behaviour-case", "workflow-check");
+
+        assertThat(exitCode).isZero();
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .contains("workflow-check PASSED")
+                .contains("DISCARD");
+    }
+
     @Test
     void failsFastWhenADeclaredBehaviourCaseHasNoScript(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
