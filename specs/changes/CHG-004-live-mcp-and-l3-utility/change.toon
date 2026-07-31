@@ -220,14 +220,14 @@ tasks:
   - id: T2
     slice: implement `OpenAiCompatibleMutationProposer` behind the existing `MutationProposer` port, producing exactly one `Mutation` whose `patch` is a whole-file replacement whose *diff* against the baseline respects the operator's `maxLinesChanged` bound
     status: pending
-    note: the bound is on the diff size, not the emitted-content length; a whole-file replacement of the same total length can still change every line and would exceed `maxLinesChanged`; replies whose diff violates bounds are dropped before validation; parsing failures are surfaced as run errors, not silent fall-throughs; the adapter must not read scorer or gate state; the exact prompt and the raw model response are logged into the candidate's `.saaa/candidates/<id>.toon` bookkeeping so a later run or a scorer-as-target audit can reproduce them from the commit
+    note: the bound is on the diff size, not the emitted-content length; a whole-file replacement of the same total length can still change every line and would exceed `maxLinesChanged`; replies whose diff violates bounds are dropped before validation; parsing failures are surfaced as run errors, not silent fall-throughs; the adapter must not read scorer or gate state; the exact prompt and the raw model response are logged into the candidate's `.saaa/candidates/<id>.toon` bookkeeping so a later run or a scorer-as-target audit can reproduce them from the commit. Partial shipped state: `OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstALocalOpenAiCompatibleEndpoint` proves the existing LangChain4j proposer adapter can call a local OpenAI-compatible `/v1/chat/completions` stub and map one response into a `Mutation`; the diff-bound and prompt/raw-response bookkeeping requirements remain pending.
   - id: T2b
     slice: extend the candidate bookkeeping TOON written by `GitCandidateWorkspace` to include the proposer id, prompt digest, and raw response for live-model runs; the fixture proposer records only its file path
     status: pending
     note: prerequisite for later audits that need to distinguish "the scorer changed its mind" from "the model produced a different proposal"
   - id: T3
     slice: register the live proposer as `openai-compatible` in `ProposerProfileRegistry` so `--profile openai-compatible` is a first-class choice alongside `fixture`
-    status: pending
+    status: completed
   - id: T4
     slice: add a new `mcp` package inside `modules/adapters` exposing an MCP server that wraps the existing CLI's `evolve` command as an MCP tool, with input schema, output schema and a stdio transport that any MCP client can drive
     status: pending
