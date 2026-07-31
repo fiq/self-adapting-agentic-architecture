@@ -1,16 +1,16 @@
 session:
   updated: 2026-07-31
-  status: adr_0002_three_layer_vision_drafted_on_branch_docs_adr_three_layer_vision
-  branch: docs/adr-three-layer-vision
+  status: adr_0002_merged_via_pr_3; status_promotion_on_branch_chore_promote_adr_0002
+  branch: chore/promote-adr-0002
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: b124dbd
-  head_note: b124dbd is the refreshed handoff on main; the ADR-0002 changes are on the branch above, not yet committed
+  head: 4a9ea7f
+  head_note: 4a9ea7f is the PR #3 merge for ADR-0002; the status-promotion changes are on the branch above, not yet committed
   dirty: true
   pushed: false
 
 goal:
-  current: state the three-layer SAAA direction and the vertical-slice delivery pattern durably, so subsequent slices land against one source and the README stops mixing shipped-vs-planned
-  phase: adr_0002_drafted_awaiting_review
+  current: promote ADR-0002 to Accepted/canonical/active after PR #3 merged, then scope CHG-004 as the first vertical slice
+  phase: adr_0002_status_promotion_on_branch
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -23,14 +23,16 @@ completed:
   - reworked the README opening in plain English: renamed the title to SAAA, added a problem/because/usage triptych, added a Contents TOC and surfaced the InfoQ context-store citation; merged directly to `main` as `d1b9a71` under explicit user authorization
   - noticed and recorded that the SSH remote fails auth in this environment (`Permission denied (publickey)`), so both PR #2's post-merge cleanup and the README push used the HTTPS remote URL
   - drafted `ADR-0002: Three-layer vision for SAAA` (`docs/decisions/0002-three-layer-vision.md` and `.agents/knowledge/decisions/ADR-0002-three-layer-vision.md`) after a design conversation: three concentric layers (workflow, tool surface for outer agent, product code), delivery pattern is vertical slices across all three with population and crossover as foundation slices
-  - added a "Where this is going" summary to the README linking to the ADR, and recorded the decision in `PROJECT_PROFILE.toon` as `three_layer_vision_with_vertical_slices` (status proposed)
+  - added a "Where this is going" summary to the README linking to the ADR, and recorded the decision in `PROJECT_PROFILE.toon` as `three_layer_vision_with_vertical_slices`
+  - opened PR #3 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/3), merged 2026-07-31 as `4a9ea7f` after human review
+  - repointed the `origin` remote from SSH to HTTPS after `git reset --hard origin/main` reset to a stale `10ce37f` because push-via-HTTPS-URL had left `origin/main` un-fetched; state recovered by resetting to the known merge sha and the remote URL change stops this bug class recurring
 
 in_progress:
-  - `ADR-0002` and the README/profile updates are drafted on branch `docs/adr-three-layer-vision`, uncommitted; will open a PR for visibility rather than push direct because the ADR sets project direction
+  - status-promotion edits (ADR to Accepted, knowledge node to canonical with reviewed_at, profile decision to active) drafted on `chore/promote-adr-0002`; the classifier correctly refused a direct push of bookkeeping to `main`, so this goes through a small PR
 
 next:
-  - review, merge and push `ADR-0002` (three-layer vision, vertical-slice delivery); human review is the merge gate
-  - propose `CHG-004` as the first vertical slice across all three layers per the ADR: LangChain4j live proposer at L1, `evolve` exposed as an MCP tool at L2, one Java file inside this repository as the L3 target gated by an existing unit test
+  - open the PR for `chore/promote-adr-0002` and get it reviewed; small enough that lead self-review is likely acceptable, but human review remains the merge gate
+  - confirm CHG-004 scope with the user (provider choice, target Java file, gate test), then draft the spec proposal on a `spec/chg-004-*` branch and open it for review before implementation begins
   - `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree) are still open `CHG-003` follow-ups; they can land ahead of `CHG-004` if reviewer diagnostics or pre-flight fidelity blocks the first vertical slice
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
