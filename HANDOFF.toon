@@ -1,16 +1,16 @@
 session:
   updated: 2026-07-31
-  status: adr_0002_three_layer_vision_drafted_on_branch_docs_adr_three_layer_vision
-  branch: docs/adr-three-layer-vision
+  status: adr_0002_merged_via_pr_3; pr_4_promotes_adr_status_and_refreshes_handoff_open; chg_004_spec_drafted_on_branch_spec_chg_004
+  branch: spec/chg-004-first-vertical-live-mcp
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: b124dbd
-  head_note: b124dbd is the refreshed handoff on main; the ADR-0002 changes are on the branch above, not yet committed
+  head: 4a9ea7f
+  head_note: 4a9ea7f is the PR #3 merge for ADR-0002; the CHG-004 spec draft is on the branch above, not yet committed
   dirty: true
   pushed: false
 
 goal:
-  current: state the three-layer SAAA direction and the vertical-slice delivery pattern durably, so subsequent slices land against one source and the README stops mixing shipped-vs-planned
-  phase: adr_0002_drafted_awaiting_review
+  current: propose CHG-004 as the first vertical slice per ADR-0002 (live LangChain4j proposer at L1, MCP tool at L2, AuthorityLanguage as the L3 target, plus in-slice classical scorer guards)
+  phase: chg_004_spec_drafted_awaiting_review
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -23,15 +23,21 @@ completed:
   - reworked the README opening in plain English: renamed the title to SAAA, added a problem/because/usage triptych, added a Contents TOC and surfaced the InfoQ context-store citation; merged directly to `main` as `d1b9a71` under explicit user authorization
   - noticed and recorded that the SSH remote fails auth in this environment (`Permission denied (publickey)`), so both PR #2's post-merge cleanup and the README push used the HTTPS remote URL
   - drafted `ADR-0002: Three-layer vision for SAAA` (`docs/decisions/0002-three-layer-vision.md` and `.agents/knowledge/decisions/ADR-0002-three-layer-vision.md`) after a design conversation: three concentric layers (workflow, tool surface for outer agent, product code), delivery pattern is vertical slices across all three with population and crossover as foundation slices
-  - added a "Where this is going" summary to the README linking to the ADR, and recorded the decision in `PROJECT_PROFILE.toon` as `three_layer_vision_with_vertical_slices` (status proposed)
+  - added a "Where this is going" summary to the README linking to the ADR, and recorded the decision in `PROJECT_PROFILE.toon` as `three_layer_vision_with_vertical_slices`
+  - opened PR #3 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/3), merged 2026-07-31 as `4a9ea7f` after human review
+  - repointed `origin` from SSH to HTTPS after `git reset --hard origin/main` reset to a stale `10ce37f` because push-via-HTTPS-URL had left `origin/main` un-fetched; state recovered by resetting to the known merge sha and the remote URL change stops this bug class recurring
+  - drafted the bookkeeping PR #4 (`chore/promote-adr-0002`) promoting ADR-0002 to `Accepted` / `canonical` / `active` after the PR #3 merge; open for review
+  - had a design conversation on staged-hybrid scorer targeting: A (small utility) first, guardrails in-slice, B (scorer itself) only after the guardrails have real evidence of holding
+  - drafted `CHG-004: First vertical slice across L1/L2/L3 with classical scorer guards` on branch `spec/chg-004-first-vertical-live-mcp`: LangChain4j `OpenAiChatModel` with configurable `baseUrl` at L1, `evolve` as MCP tool at L2, `AuthorityLanguage.java` as the L3 target, plus jqwik property tests over `PhenotypeFitnessScorer` and a golden-verdict corpus as in-slice guards
 
 in_progress:
-  - `ADR-0002` and the README/profile updates are drafted on branch `docs/adr-three-layer-vision`, uncommitted; will open a PR for visibility rather than push direct because the ADR sets project direction
+  - PR #4 (`chore/promote-adr-0002`) is open and awaiting merge; likely to conflict on `HANDOFF.toon` with this branch, resolvable at merge time
+  - CHG-004 spec drafted (`change.toon` + `design.md`) on `spec/chg-004-first-vertical-live-mcp`; ready to open a review PR
 
 next:
-  - review, merge and push `ADR-0002` (three-layer vision, vertical-slice delivery); human review is the merge gate
-  - propose `CHG-004` as the first vertical slice across all three layers per the ADR: LangChain4j live proposer at L1, `evolve` exposed as an MCP tool at L2, one Java file inside this repository as the L3 target gated by an existing unit test
-  - `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree) are still open `CHG-003` follow-ups; they can land ahead of `CHG-004` if reviewer diagnostics or pre-flight fidelity blocks the first vertical slice
+  - open the CHG-004 spec-review PR and get scope/design signed off before any implementation begins
+  - after CHG-004 review lands, plan implementation staging per the design document (T9 unblocker → guards → L1 → L2 → L3 vertical)
+  - `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree) are still open `CHG-003` follow-ups; T9 sits on the CHG-004 critical path via T9 in this spec (compiler-failure-as-failed-check)
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
