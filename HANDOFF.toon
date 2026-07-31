@@ -1,16 +1,16 @@
 session:
   updated: 2026-08-01
-  status: chg_004_t8_merged_via_pr_9; chg_004_t9_open_as_pr_7_rebased_after_pr_9; chg_004_t7_open_as_pr_8_rebased_after_pr_9
+  status: chg_004_t8_merged_via_pr_9; chg_004_t7_merged_via_pr_8; chg_004_t9_open_as_pr_7_merging_after_pr_8
   branch: feat/chg-004-t9-compiler-failure-as-failed-check
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: 2d99eaa
-  head_note: 2d99eaa is the PR #9 merge for T8; this T9 branch was rebased onto it to pick up the corpus changes and resolve conflicts in HANDOFF.toon
+  head: 8e35756
+  head_note: 8e35756 is the PR #8 merge for T7; this T9 branch is merging it to resolve the remaining PR #7 conflict
   dirty: true
   pushed: false
 
 goal:
-  current: implement CHG-004 vertically per the staging order; T8 merged, T9 and T7 open awaiting merge, then L1
-  phase: chg_004_t9_rebased_after_t8_merge_awaiting_review
+  current: implement CHG-004 vertically per the staging order; T8 and T7 merged, T9 open awaiting merge, then L1
+  phase: chg_004_t9_merge_after_t7_merge_conflict_resolution
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -39,13 +39,14 @@ completed:
   - implemented CHG-004 T7 on `feat/chg-004-t7-scorer-property-tests`: `PhenotypeFitnessScorerPropertyTest` with all eight properties from S6 (any failed check → DISCARD, any missing declared behaviour case → DISCARD, no objective combination promotes while a gate fails, evidence keys cannot overwrite recorded gate outcomes, aggregate monotonic in parsimony objective, aggregate monotonic in task_success objective, decision matches raw sum at PROMOTION_THRESHOLD, decision derives from raw sum not rounded aggregate); each property has a fixed numeric jqwik seed for reproducibility; acceptance mapping updated to reflect scorer-level test names since the scorer never sees realization size or behaviour-case count directly (a bridge-level version may follow); open as PR #8
   - implemented CHG-004 T8 on `feat/chg-004-t8-golden-corpus`: `GoldenCorpus.java` (nine immutable entries) plus `PhenotypeGoldenVerdictCorpusTest` iterating them via `@ParameterizedTest`; shipped as a Java constant list rather than TOON fixture files because there is no Java TOON reader yet — deviation documented in `docs/structured-data.md` and retires when `CHG-002 T3d` lands the envelope reader; covers three of four hard gates (`required_objective_scores` cannot fire through the bridge because the bridge always produces all objective values, so it is covered instead by scorer-level tests and property P3), two PROMOTE entries with different profiles, one PROMOTE at exactly PROMOTION_THRESHOLD, one DISCARD just below (which also covers property P8 at the corpus level because its aggregate rounds to 0.80), one T10 rescue entry, and one entry captured from the CHG-003 fixture `toy-workflow` acceptance run; PR #9 merged 2026-08-01 as `2d99eaa` after human review
   - rebased T9 (`feat/chg-004-t9-compiler-failure-as-failed-check`) onto `origin/main` after PR #9 merged, resolving `HANDOFF.toon` conflicts with the union of both sides (T9, T7, T8 status all reflected; T8 marked merged)
-  - rebased T7 (`feat/chg-004-t7-scorer-property-tests`) onto `origin/main` in the same session for the same reason; both branches now `MERGEABLE`
+  - rebased T7 (`feat/chg-004-t7-scorer-property-tests`) onto `origin/main` after PR #9 merged, resolving `HANDOFF.toon` and `specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon` conflicts with the union of both sides (both status flips kept, both note sets kept, both sets of acceptance-mapping entries kept)
+  - PR #8 merged 2026-08-01 as `8e35756` after human review; this PR #7 branch is merging that result to resolve the remaining GitHub conflict
 
 in_progress:
-  - PR #7 (T9) and PR #8 (T7) open; T8 already merged
+  - PR #7 (T9) open; T8 and T7 already merged
 
 next:
-  - CI recheck on PR #7 after this rebase push
+  - CI recheck on PR #7 after this merge push
   - once T9 and T7 merge, start L1: `T1`/`T2`/`T2b`/`T3` (OpenAiCompatible adapter + proposer + prompt/response bookkeeping + profile registration). T1 is the smallest and most independent; T2 depends on T1
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
