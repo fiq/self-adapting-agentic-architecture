@@ -5,7 +5,7 @@ status: open
 title: Meaningful documentation ontology
 summary: Should the repo define a stronger project ontology so growing Markdown stays professional, human-readable and agent-traversable rather than degenerating into loosely connected AI-generated prose?
 context: More Markdown, wiki pages, specs and knowledge entries will make taxonomy quality more important; humans quickly lose trust when terms drift, pages duplicate concepts or documentation reads like generic AI output. The project needs enough structure for agents to traverse and humans to review without turning documentation upkeep into ontology work too early.
-related_to:
+relates_to:
   - SYS-001
   - ADR-0002
 owner: lead
