@@ -51,8 +51,12 @@ public final class EvolveRunner {
 
         Path folder = request.targetFolder().toAbsolutePath().normalize();
         Path gitRoot = findGitRoot(folder);
-        Path workflowPath = folder.resolve(request.workflowFile());
-        if (!Files.isRegularFile(workflowPath)) {
+        Path workflowPath = folder.resolve(request.workflowFile()).normalize();
+        if (!workflowPath.startsWith(folder)) {
+            throw new IllegalArgumentException("workflowFile must stay inside targetFolder");
+        }
+        requireNoSymlinkSegments(folder, workflowPath);
+        if (!Files.isRegularFile(workflowPath, LinkOption.NOFOLLOW_LINKS)) {
             throw new IllegalArgumentException("workflow file not found: " + workflowPath);
         }
         var checks = BehaviourCaseChecks.forCases(request.behaviourCases(), gitRoot.relativize(folder));
@@ -97,6 +101,16 @@ public final class EvolveRunner {
             if (!Files.isExecutable(script)) {
                 throw new IllegalArgumentException(
                         "behaviour case " + check.name() + " has a script that is not executable: " + script);
+            }
+        }
+    }
+
+    private static void requireNoSymlinkSegments(Path folder, Path workflowPath) {
+        Path current = folder;
+        for (Path segment : folder.relativize(workflowPath)) {
+            current = current.resolve(segment);
+            if (Files.isSymbolicLink(current)) {
+                throw new IllegalArgumentException("workflowFile must not contain symlink path segments");
             }
         }
     }

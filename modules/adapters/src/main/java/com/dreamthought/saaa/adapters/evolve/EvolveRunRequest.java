@@ -14,7 +14,7 @@ public record EvolveRunRequest(
     public EvolveRunRequest {
         targetFolder = Objects.requireNonNull(targetFolder, "targetFolder");
         profile = requireNonBlank(profile, "profile");
-        workflowFile = requireNonBlank(workflowFile, "workflowFile");
+        workflowFile = requireRelativeChildPath(requireNonBlank(workflowFile, "workflowFile"), "workflowFile");
         behaviourCases = List.copyOf(Objects.requireNonNull(behaviourCases, "behaviourCases"));
         if (behaviourCases.isEmpty()) {
             throw new IllegalArgumentException("at least one behaviour case is required");
@@ -29,5 +29,13 @@ public record EvolveRunRequest(
             throw new IllegalArgumentException(name + " must not be blank");
         }
         return value;
+    }
+
+    private static String requireRelativeChildPath(String value, String name) {
+        Path path = Path.of(value).normalize();
+        if (path.isAbsolute() || path.startsWith("..") || path.toString().equals("..")) {
+            throw new IllegalArgumentException(name + " must stay inside targetFolder");
+        }
+        return path.toString();
     }
 }

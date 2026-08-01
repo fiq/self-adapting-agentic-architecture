@@ -31,9 +31,8 @@ public final class EvolveMcpResponseSerializer {
 
     public String serializeError(Throwable failure) {
         Objects.requireNonNull(failure, "failure");
-        String message = capped(failure.getMessage() == null ? failure.toString() : failure.getMessage(), ERROR_LIMIT);
-        String serialized = "{\"error\":" + quote(message) + "}";
-        return capped(scrubber.scrub(serialized), RESPONSE_LIMIT);
+        String message = scrubber.scrub(failure.getMessage() == null ? failure.toString() : failure.getMessage());
+        return cappedErrorEnvelope(message);
     }
 
     private static String serializeSuccess(FitnessResult result, Path journalPath) {
@@ -125,17 +124,24 @@ public final class EvolveMcpResponseSerializer {
     private static void appendObjectives(StringBuilder json, Map<String, Double> objectives) {
         json.append("\"objectives\":{");
         boolean first = true;
-        for (var entry : objectives.entrySet()) {
-            if (!entry.getKey().startsWith("hard_gate_")) {
-                first = appendObjective(json, first, entry);
-            }
-        }
-        for (var entry : objectives.entrySet()) {
-            if (entry.getKey().startsWith("hard_gate_")) {
-                first = appendObjective(json, first, entry);
-            }
-        }
+        first = appendObjectives(json, first, objectives, false);
+        appendObjectives(json, first, objectives, true);
         json.append('}');
+    }
+
+    private static boolean appendObjectives(
+            StringBuilder json,
+            boolean first,
+            Map<String, Double> objectives,
+            boolean hardGate) {
+        var ordered = objectives.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("hard_gate_") == hardGate)
+                .sorted(Map.Entry.comparingByKey())
+                .toList();
+        for (var entry : ordered) {
+            first = appendObjective(json, first, entry);
+        }
+        return first;
     }
 
     private static boolean appendObjective(StringBuilder json, boolean first, Map.Entry<String, Double> entry) {
@@ -148,6 +154,27 @@ public final class EvolveMcpResponseSerializer {
 
     private static String capped(String text, int limit) {
         return text.length() <= limit ? text : text.substring(0, limit);
+    }
+
+    private static String cappedErrorEnvelope(String message) {
+        int high = Math.min(message.length(), ERROR_LIMIT);
+        int low = 0;
+        String best = "{\"error\":\"\"}";
+        while (low <= high) {
+            int middle = low + ((high - low) / 2);
+            String candidate = errorEnvelope(message.substring(0, middle));
+            if (candidate.length() <= RESPONSE_LIMIT) {
+                best = candidate;
+                low = middle + 1;
+            } else {
+                high = middle - 1;
+            }
+        }
+        return best;
+    }
+
+    private static String errorEnvelope(String message) {
+        return "{\"error\":" + quote(message) + "}";
     }
 
     private static String quote(String text) {

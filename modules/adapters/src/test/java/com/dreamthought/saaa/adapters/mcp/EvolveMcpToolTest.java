@@ -9,12 +9,16 @@ import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessResult;
+import io.modelcontextprotocol.json.McpJsonDefaults;
+import io.modelcontextprotocol.json.TypeRef;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
 final class EvolveMcpToolTest {
@@ -48,6 +52,32 @@ final class EvolveMcpToolTest {
                 .isLessThan(response.json().indexOf("\"hard_gate_deterministic_checks\""));
         assertThat(response.json().indexOf("\"parsimony\""))
                 .isLessThan(response.json().indexOf("\"hard_gate_non_empty_realization\""));
+    }
+
+    @Test
+    void objectivesAreSerialisedInStableNameOrderInsideMeasuredAndGateGroups() {
+        var candidate = new Candidate(
+                "candidate-mut-001",
+                "mut-001",
+                "candidate/toy-mut-001",
+                Path.of("/tmp/repo/.worktrees/candidate-toy-mut-001"),
+                "abc123");
+        var evidence = new EvaluationEvidence(List.of(), List.of(), Instant.parse("2026-08-01T00:00:00Z"));
+        var objectives = new HashMap<String, Double>();
+        objectives.put("task_success", 1.0);
+        objectives.put("hard_gate_z_last", 1.0);
+        objectives.put("parsimony", 0.9);
+        objectives.put("hard_gate_a_first", 1.0);
+        var fitness = new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE);
+
+        var response = toolReturning(new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md")))
+                .call(Map.of(
+                        "targetFolder", "/tmp/repo/toy",
+                        "behaviourCases", List.of("workflow-check")));
+
+        assertThat(response.json())
+                .contains("\"objectives\":{\"parsimony\":0.9,\"task_success\":1.0,"
+                        + "\"hard_gate_a_first\":1.0,\"hard_gate_z_last\":1.0}");
     }
 
     @Test
@@ -107,6 +137,40 @@ final class EvolveMcpToolTest {
                 .contains("<redacted>")
                 .doesNotContain("test-secret")
                 .doesNotContain("Authorization: Bearer test-secret");
+    }
+
+    @Test
+    void mcpWorkflowFileCannotEscapeTheTargetFolderOrReachTheRunner() {
+        var runnerCalled = new AtomicBoolean();
+        var tool = new EvolveMcpTool((request, reporter) -> {
+            runnerCalled.set(true);
+            return successfulRun();
+        }, new EvolveMcpResponseSerializer(new EvolveMcpResponseScrubber(Optional::empty)));
+
+        var response = tool.call(Map.of(
+                "targetFolder", "/tmp/repo/toy",
+                "workflowFile", "../secrets.env",
+                "behaviourCases", List.of("workflow-check")));
+
+        assertThat(response.error()).isTrue();
+        assertThat(runnerCalled.get()).isFalse();
+        assertThat(response.json()).contains("workflowFile").doesNotContain("secrets.env");
+    }
+
+    @Test
+    void cappedErrorResponseStillReturnsValidJson() throws Exception {
+        var serializer = new EvolveMcpResponseSerializer(new EvolveMcpResponseScrubber(Optional::empty));
+        String escapedMessage = "\\".repeat(EvolveMcpResponseSerializer.RESPONSE_LIMIT);
+
+        String response = serializer.serializeError(new IllegalStateException(escapedMessage));
+
+        assertThat(response)
+                .hasSizeLessThanOrEqualTo(EvolveMcpResponseSerializer.RESPONSE_LIMIT)
+                .startsWith("{")
+                .endsWith("}");
+        assertThat(McpJsonDefaults.getMapper()
+                .readValue(response, new TypeRef<Map<String, Object>>() {})
+                .containsKey("error")).isTrue();
     }
 
     @Test
