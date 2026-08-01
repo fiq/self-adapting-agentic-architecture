@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,27 +43,35 @@ final class OpenAiCompatibleMutationProposerIntegrationTest {
         assertThat(mutation.patch()).isEqualTo("agent -> deterministic-tool -> answer");
         assertThat(server.lastPath).isEqualTo("/v1/chat/completions");
         assertThat(server.lastAuthorization).isEqualTo("Bearer local-test-key");
-        assertThat(server.lastRequestBody)
-                .contains("\"model\" : \"local-test-model\"")
-                .contains("workflow-a")
-                .contains("agent -> tool -> answer");
+        assertThat(server.lastRequestBody).contains("workflow-a", "agent -> tool -> answer");
+        assertThat(jsonStringField(server.lastRequestBody, "model")).isEqualTo("local-test-model");
+    }
+
+    private static String jsonStringField(String json, String fieldName) {
+        var pattern = Pattern.compile("\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"([^\"]+)\"");
+        var matcher = pattern.matcher(json);
+        assertThat(matcher.find()).as("JSON string field %s exists", fieldName).isTrue();
+        return matcher.group(1);
     }
 
     private static final class LocalOpenAiServer implements AutoCloseable {
         private final HttpServer server;
+        private final ExecutorService executor;
         private String lastPath;
         private String lastAuthorization;
         private String lastRequestBody;
 
-        private LocalOpenAiServer(HttpServer server) {
+        private LocalOpenAiServer(HttpServer server, ExecutorService executor) {
             this.server = server;
+            this.executor = executor;
         }
 
         private static LocalOpenAiServer start() throws IOException {
             var httpServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-            var localServer = new LocalOpenAiServer(httpServer);
+            var executor = Executors.newSingleThreadExecutor();
+            var localServer = new LocalOpenAiServer(httpServer, executor);
             httpServer.createContext("/v1/chat/completions", localServer::handleChatCompletions);
-            httpServer.setExecutor(Executors.newSingleThreadExecutor());
+            httpServer.setExecutor(executor);
             httpServer.start();
             return localServer;
         }
@@ -106,6 +116,7 @@ final class OpenAiCompatibleMutationProposerIntegrationTest {
         @Override
         public void close() {
             server.stop(0);
+            executor.shutdownNow();
         }
     }
 }
