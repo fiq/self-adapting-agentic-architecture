@@ -3,6 +3,7 @@ package com.dreamthought.saaa.adapters.journal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dreamthought.saaa.domain.Candidate;
+import com.dreamthought.saaa.domain.CandidateBranchRef;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessResult;
@@ -20,12 +21,12 @@ final class JournalDecisionSinkTest {
     void recordsBothOutcomesInOrder() {
         var sink = new JournalDecisionSink();
 
-        sink.promote(CANDIDATE, result(FitnessDecision.PROMOTE, 0.87));
-        sink.discard(CANDIDATE, result(FitnessDecision.DISCARD, 0.10));
+        sink.recordPromotedCandidateBranch(CandidateBranchRef.fromCandidate(CANDIDATE), result(FitnessDecision.PROMOTE, 0.87));
+        sink.recordDiscardedCandidateBranch(CandidateBranchRef.fromCandidate(CANDIDATE), result(FitnessDecision.DISCARD, 0.10));
 
         assertThat(sink.decisions()).containsExactly(
-                "PROMOTE cand-1 0.87",
-                "DISCARD cand-1 0.1");
+                "PROMOTE refs/heads/candidate/toy-MUT-1 0.87",
+                "DISCARD refs/heads/candidate/toy-MUT-1 0.1");
     }
 
     private static FitnessResult result(FitnessDecision decision, double score) {

@@ -3,6 +3,7 @@ package com.dreamthought.saaa.deterministic;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dreamthought.saaa.domain.Candidate;
+import com.dreamthought.saaa.domain.CandidateBranchRef;
 import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessDecision;
@@ -68,10 +69,16 @@ final class MutationEvaluationLoopReportingTest {
                 },
                 new CandidateDecisionSink() {
                     @Override
-                    public void promote(Candidate promoted, FitnessResult result) { }
+                    public void recordPromotedCandidateBranch(
+                            CandidateBranchRef candidateBranchRef,
+                            FitnessResult result
+                    ) { }
 
                     @Override
-                    public void discard(Candidate discarded, FitnessResult result) { }
+                    public void recordDiscardedCandidateBranch(
+                            CandidateBranchRef candidateBranchRef,
+                            FitnessResult result
+                    ) { }
                 },
                 reporter,
                 Clock.fixed(Instant.parse("2026-07-28T00:00:00Z"), ZoneOffset.UTC));

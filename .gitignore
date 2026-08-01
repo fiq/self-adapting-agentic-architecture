@@ -32,3 +32,5 @@ worktrees/
 
 # Generated journals from fixture and evolution runs
 fixtures/**/journal.md
+journal.md
+**/journal.md

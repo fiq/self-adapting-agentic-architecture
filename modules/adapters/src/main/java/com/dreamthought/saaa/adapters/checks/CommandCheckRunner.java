@@ -11,23 +11,32 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 public final class CommandCheckRunner implements CheckRunner {
     private static final int MAX_SUMMARY_OUTPUT_LENGTH = 4_000;
 
     private final List<CommandCheck> checks;
+    private final Supplier<Map<String, String>> environmentSource;
 
     public CommandCheckRunner(List<CommandCheck> checks) {
+        this(checks, System::getenv);
+    }
+
+    public CommandCheckRunner(List<CommandCheck> checks, Supplier<Map<String, String>> environmentSource) {
         this.checks = List.copyOf(Objects.requireNonNull(checks, "checks"));
         if (this.checks.isEmpty()) {
             throw new IllegalArgumentException("checks must not be empty");
         }
+        this.environmentSource = Objects.requireNonNull(environmentSource, "environmentSource");
     }
 
     @Override
@@ -76,10 +85,11 @@ public final class CommandCheckRunner implements CheckRunner {
         }
     }
 
-    private static CheckEvidence runCheck(Candidate candidate, CommandCheck check) {
+    private CheckEvidence runCheck(Candidate candidate, CommandCheck check) {
         ProcessBuilder processBuilder = new ProcessBuilder(check.command())
                 .directory(candidate.worktreePath().toFile())
                 .redirectErrorStream(true);
+        applyScrubbedEnvironment(processBuilder, check.environmentAllowList());
         try {
             Process process = processBuilder.start();
             CompletableFuture<String> output = captureOutput(process);
@@ -100,6 +110,36 @@ public final class CommandCheckRunner implements CheckRunner {
             Thread.currentThread().interrupt();
             return CheckEvidence.failed(check.name(), "interrupted while waiting for command");
         }
+    }
+
+    private void applyScrubbedEnvironment(ProcessBuilder processBuilder, List<String> allowList) {
+        Map<String, String> target = processBuilder.environment();
+        target.clear();
+        target.putAll(allowedEnvironment(environmentSource.get(), allowList));
+    }
+
+    private static Map<String, String> allowedEnvironment(Map<String, String> source, List<String> allowList) {
+        Map<String, String> allowed = new HashMap<>();
+        for (String entry : allowList) {
+            if (entry.endsWith("*")) {
+                String prefix = entry.substring(0, entry.length() - 1);
+                source.forEach((key, value) -> {
+                    if (key.startsWith(prefix) && !isDeniedCredentialName(key)) {
+                        allowed.put(key, value);
+                    }
+                });
+            } else if (source.containsKey(entry) && !isDeniedCredentialName(entry)) {
+                allowed.put(entry, source.get(entry));
+            }
+        }
+        return allowed;
+    }
+
+    private static boolean isDeniedCredentialName(String key) {
+        return key.startsWith("SAAA_MODEL_")
+                || key.equals("OPENAI_API_KEY")
+                || key.equals("ANTHROPIC_API_KEY")
+                || key.equals("CLAUDE_API_KEY");
     }
 
     private static void terminate(Process process) throws InterruptedException {
@@ -167,9 +207,13 @@ public final class CommandCheckRunner implements CheckRunner {
         return summary;
     }
 
-    public record CommandCheck(String name, List<String> command, Duration timeout) {
+    public record CommandCheck(String name, List<String> command, Duration timeout, List<String> environmentAllowList) {
         public CommandCheck(String name, List<String> command) {
             this(name, command, Duration.ofMinutes(5));
+        }
+
+        public CommandCheck(String name, List<String> command, Duration timeout) {
+            this(name, command, timeout, defaultEnvironmentAllowList());
         }
 
         public CommandCheck {
@@ -183,7 +227,13 @@ public final class CommandCheckRunner implements CheckRunner {
             if (timeout.toMillis() <= 0) {
                 throw new IllegalArgumentException("timeout must be at least one millisecond");
             }
+            environmentAllowList = List.copyOf(Objects.requireNonNull(environmentAllowList, "environmentAllowList"));
+            environmentAllowList.forEach(entry -> requireNonBlank(entry, "environment allow-list entry"));
         }
+    }
+
+    private static List<String> defaultEnvironmentAllowList() {
+        return List.of("PATH", "HOME", "LANG", "LC_*", "JAVA_HOME");
     }
 
     private static String requireNonBlank(String value, String name) {
