@@ -37,6 +37,18 @@ final class FixtureMutationProposerTest {
     }
 
     @Test
+    void recordsOnlyTheFixtureFileNameAsEvidence(@TempDir Path dir) throws IOException {
+        Path fixture = dir.resolve("fixture-mutation.txt");
+        Files.writeString(fixture, "tighten the publish guard\nnew content\n");
+        var proposer = new FixtureMutationProposer(fixture);
+
+        proposer.proposeFor(baseline);
+
+        assertThat(proposer.proposerEvidence().orElseThrow().attributes())
+                .containsEntry("fixture_path", "fixture-mutation.txt");
+    }
+
+    @Test
     void failsClearlyWhenTheFixtureIsMissing(@TempDir Path dir) {
         assertThatThrownBy(() -> new FixtureMutationProposer(dir.resolve("absent.txt")).proposeFor(baseline))
                 .isInstanceOf(IllegalStateException.class)

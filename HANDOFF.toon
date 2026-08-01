@@ -1,16 +1,16 @@
 session:
   updated: 2026-08-01
-  status: pr_10_pr_12_on_main; pr_11_was_merged_to_stacked_base_not_main; corrective_pr_13_open_with_wiremock_config_cleanup
-  branch: fix/land-pr-11-openai-profile
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/land-pr-11-openai-profile
-  head: merge of origin/feat/chg-004-t2-t3-openai-profile-stub onto origin/main
-  head_note: PR #11 was merged into `feat/chg-004-t1-openai-compatible-wiring`, not `main`; this branch lands the same implementation onto current `main` without reverting ADR-0003/Q-008 docs from PR #12
-  dirty: false
+  status: pr_14_open; claude_review_fixes_local_ready_to_push
+  branch: feat/chg-004-t2-audit-diff-bound
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t2-audit-diff-bound
+  head: origin/main at 09c22be plus PR #14 changes and local Claude review fixes
+  head_note: PR #14 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/14; Claude review found two durable-evidence blockers, both fixed locally and ready to push
+  dirty: true
   pushed: false
 
 goal:
   current: implement CHG-004 vertically per the staging order; get the live-profile CLI path startable soon
-  phase: chg_004_t3_openai_compatible_profile_registration_with_local_stub
+  phase: chg_004_t2_t2b_diff_bound_and_proposer_audit
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -61,13 +61,21 @@ completed:
   - moved live model endpoint settings behind adapter-owned `ModelEndpointConfig` and `SmallRyeModelEndpointConfigSource`; CLI selects the `openai-compatible` profile but does not read environment variables or reference LangChain4j types directly
   - recorded `Q-009` to defer a Quarkus runtime shell until a long-running HTTP/MCP runtime, health/metrics, packaging or native-image requirement is evidenced
   - applied independent senior-Java/startup-engineering advice: prefer typed config plus WireMock now, keep Quarkus deferred, and add static-analysis tooling as a separate quality slice rather than widening this PR
+  - PR #13 merged to `main` as 09c22be; local `main` was fast-forwarded and the corrective PR worktree plus local branch were removed
+  - started CHG-004 T2/T2b on `feat/chg-004-t2-audit-diff-bound` with ATDD-first CLI acceptance tests
+  - added deterministic `DiffLineBudgetMutationValidator` and `CompositeMutationValidator`; `--max-lines` now rejects proposal diffs before candidate worktree creation
+  - added provider-neutral `ProposerEvidence`; `GitCandidateWorkspace` writes proposer evidence into `.saaa/candidates/<id>.toon`
+  - `LangChain4jMutationProposalAdapter` records prompt digest, captured prompt messages and raw model response for live OpenAI-compatible runs while preserving LangChain4j/OpenAI request metadata through a transparent chat-model wrapper
+  - fixture proposer records only its fixture file path as proposer evidence
+  - addressed independent review findings: corrected CHG-004 acceptance mappings to actual ATDD tests, added `MutationScopeValidator` so the one-file realization path accepts only `WORKFLOW_DEFINITION`, and made `ProposerEvidence.proposerId` TOON-safe before writing it as a scalar
+  - addressed Claude PR #14 review findings: added adapter-side `ProposerEvidenceSanitizer` at the durable `GitCandidateWorkspace` TOON write boundary so prompt/raw provider evidence is scrubbed for `SAAA_MODEL_API_KEY` and `Authorization: Bearer ...` and capped before being committed; fixture proposer evidence now records only `fixture-mutation.txt` rather than an absolute host path
 
 in_progress:
-  - corrective PR #13 is open; local cleanup replaces low-level provider-test plumbing and adapter configuration before final validation/push
+  - PR #14 Claude review fixes are local and passing unit, integration, check and ready gates; push remains
 
 next:
-  - run final `project check`, `project ready` and GitHub checks after pushing `fix/land-pr-11-openai-profile`
-  - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
+  - push PR #14 review fixes and inspect GitHub checks
+  - rebase/update stacked PR #15 after PR #14 head changes
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
@@ -124,6 +132,10 @@ files_changed:
   - HANDOFF.toon
   - gradle/libs.versions.toml
   - modules/adapters/build.gradle.kts
+  - modules/adapters/src/integrationTest/java/com/dreamthought/saaa/adapters/git/GitCandidateWorkspaceIntegrationTest.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/fixture/FixtureMutationProposer.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/git/GitCandidateWorkspace.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/LangChain4jMutationProposalAdapter.java
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/ModelEndpointConfig.java
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleChatModelFactory.java
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleMutationProposerFactory.java
@@ -133,6 +145,14 @@ files_changed:
   - modules/cli/build.gradle.kts
   - modules/cli/src/main/java/com/dreamthought/saaa/cli/ProposerProfileRegistry.java
   - modules/cli/src/test/java/com/dreamthought/saaa/cli/ProposerProfileRegistryTest.java
+  - modules/domain/src/main/java/com/dreamthought/saaa/domain/ProposerEvidence.java
+  - modules/domain/src/test/java/com/dreamthought/saaa/domain/ProposerEvidenceTest.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/CompositeMutationValidator.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/DiffLineBudgetMutationValidator.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationProposer.java
+  - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationScopeValidator.java
+  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/DiffLineBudgetMutationValidatorTest.java
+  - modules/deterministic/src/test/java/com/dreamthought/saaa/deterministic/MutationScopeValidatorTest.java
   - specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon
   - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
   - .agents/knowledge/templates/question.md
@@ -152,6 +172,12 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after Claude PR #14 review fixes; includes fixture evidence file-name test
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: first concurrent run failed with a transient Gradle/source visibility compile error while another Gradle task was compiling the same worktree; rerun alone passed
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after Claude PR #14 review fixes; includes durable proposer evidence scrub/cap regression test
+  - 2026-08-01 `.agentic-template/bin/project check`: pass after Claude PR #14 review fixes
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after Claude PR #14 review fixes; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 `git diff --check`: pass after Claude PR #14 review fixes
   - 2026-08-01 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `559744f91afdd7e5e27cae92cfd12d5f6639637c`
   - 2026-08-01 `git worktree list --porcelain`: main checkout plus `.worktrees/feat-chg-004-t1-openai-compatible-wiring`; no abandoned worktree directories
@@ -202,6 +228,23 @@ tests_run:
   - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after WireMock and SmallRye config cleanup; 10 Gradle tasks
   - 2026-08-01 `.agentic-template/bin/project check`: pass after WireMock and SmallRye config cleanup; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after WireMock and SmallRye config cleanup; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 `.agentic-template/bin/project component-test`: red first for CHG-004 T2/T2b; new ATDD tests failed because oversized diffs were not rejected before candidate creation and live proposer evidence was absent from candidate TOON
+  - 2026-08-01 `.agentic-template/bin/project component-test`: pass after CHG-004 T2/T2b implementation; 11 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after CHG-004 T2/T2b implementation; 14 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: first rerun failed because the new Git candidate workspace integration test used an unsupported AssertJ path assertion overload; fixed to read the candidate TOON text
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after CHG-004 T2/T2b implementation; 10 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project test` run concurrently with `project ready`: transient Gradle binary test-result output contention in `:domain:test`; reran `project test` alone
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after adding `ProposerEvidenceTest`; 16 Gradle tasks
+  - 2026-08-01 boundary scan: no `dev.langchain4j`, `io.smallrye`, WireMock, direct environment reads or low-level HTTP/executor plumbing in domain/deterministic/CLI main source paths
+  - 2026-08-01 `git diff --check`: pass after CHG-004 T2/T2b implementation
+  - 2026-08-01 `.agentic-template/bin/project check`: pass after CHG-004 T2/T2b implementation; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after CHG-004 T2/T2b implementation; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 reviewer pass 1 (architecture/boundaries): no findings; residual side-channel/concurrency risk accepted for current one-run CLI slice
+  - 2026-08-01 reviewer pass 2 (Java maintainability/test quality): found stale CHG-004 acceptance mapping, live adapter scope mismatch with one-file realization, and TOON-unsafe proposer id risk; all addressed before PR publication
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after review fixes; 16 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project component-test`: pass after review fixes; 11 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project check`: pass after review fixes; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after review fixes; 13 passed, 2 not applicable, 0 failed
   - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-07-31 `T10` red before green at the boundary: `EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing` failed with the journal reporting `PROMOTE` for a candidate whose realization wrote the workflow file back unchanged
   - 2026-07-31 `T10` red before green in the deterministic layer: `PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate` and `PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing` failed to compile against the pre-gate API, then failed on the gate value once it existed
@@ -213,14 +256,18 @@ fitness_functions:
   - unchanged: T1 adds LangChain4j OpenAI provider wiring only inside `modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j`; the boundary fitness function remains the guard that provider imports do not leak into `modules/domain` or `modules/deterministic`
   - added: `hard_gate_non_empty_realization` in `PhenotypeFitnessScorer` fails promotion closed when the realization changed no file; enforced by test rather than by the boundary script, like the `CommandCheckRunner` containment rule
   - unchanged: `check-architecture-boundaries` still fails loudly when a scanned layer directory is missing, and `modules/domain` and `modules/deterministic` still import only `java.*` and repository packages
-  - unchanged: no layer boundary moved; the change stays inside `deterministic` plus one acceptance test
+  - added: `DiffLineBudgetMutationValidator` rejects proposal diffs over `maxLinesChanged` before candidate worktree creation; covered by CLI ATDD and deterministic unit tests
+  - unchanged: no layer boundary moved; provider capture stays in `modules/adapters/langchain4j`, candidate TOON writing stays in `modules/adapters/git`, and deterministic/domain code sees only provider-neutral records and ports
 
 knowledge:
   consulted:
     - .agents/knowledge/index.md
     - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
+    - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
+    - .agents/knowledge/decisions/ADR-0003-smart-bridge-northbound-interfaces.md
     - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
     - .agents/knowledge/risks/RISK-003-candidate-worktree-name-collision.md
+    - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
     - specs/changes/CHG-003-first-vertical-slice/change.toon
     - specs/changes/CHG-003-first-vertical-slice/design.md
   proposals:
@@ -230,7 +277,7 @@ knowledge:
     - pending separate docs/quality branch: Java static-analysis policy follow-up for Checkstyle/SpotBugs/Error Prone-style gates
     - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
   no_record: |
-    `T1` implements a task already recorded in `CHG-004`; the durable record is the task status,
+    `T2/T2b` implement tasks already recorded in `CHG-004`; the durable record is the task status,
     the new adapter tests and this handoff rather than a new knowledge entry.
 
 team_fallback:
