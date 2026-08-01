@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.cli;
 
 import com.dreamthought.saaa.adapters.fixture.FixtureMutationProposer;
+import com.dreamthought.saaa.adapters.langchain4j.OpenAiCompatibleMutationProposerFactory;
 import com.dreamthought.saaa.deterministic.MutationProposer;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -13,16 +14,22 @@ import java.util.function.Function;
  * Resolves a profile name to a proposer. Choosing a proposer is composition, not policy, so this
  * lives in the CLI rather than the deterministic layer.
  *
- * <p>Adding a live provider means adding an entry here plus provider-neutral {@code ChatModel}
- * construction. The proposal adapter already accepts any {@code ChatModel}, so no adapter changes
- * are needed for any provider.
+ * <p>Adding a live provider means adding an entry here while adapter-owned factories keep provider
+ * configuration and model client construction out of the CLI.
  */
 public final class ProposerProfileRegistry {
     private final Map<String, Function<Path, MutationProposer>> factories = new LinkedHashMap<>();
 
     public ProposerProfileRegistry() {
+        this(folder -> new OpenAiCompatibleMutationProposerFactory().fromApplicationConfig());
+    }
+
+    ProposerProfileRegistry(Function<Path, MutationProposer> openAiCompatibleFactory) {
+        Objects.requireNonNull(openAiCompatibleFactory, "openAiCompatibleFactory");
         factories.put("fixture", folder ->
                 new FixtureMutationProposer(folder.resolve(".saaa/fixture-mutation.txt")));
+        // The CLI selects a profile; adapter wiring owns provider config and LangChain4j classes.
+        factories.put("openai-compatible", openAiCompatibleFactory);
     }
 
     public List<String> knownNames() {
