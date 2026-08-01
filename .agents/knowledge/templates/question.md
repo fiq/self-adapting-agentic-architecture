@@ -5,7 +5,7 @@ status: open
 title: Question title
 summary: One sentence.
 context: Why this matters.
-related_to: []
+relates_to: []
 owner: unassigned
 blocking: false
 discovered_during: null
