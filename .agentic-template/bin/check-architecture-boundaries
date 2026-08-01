@@ -26,6 +26,12 @@ CONFINED_DEPENDENCIES = [
     ("org.openjdk.jmh", "modules/benchmarks/", "JMH is confined to modules/benchmarks"),
 ]
 
+NO_AUTO_MERGE_COMMANDS = [
+    "git merge",
+    "merge --ff",
+    "merge --no-ff",
+]
+
 # The dependency rule points inward. Domain is the innermost layer and may know nothing.
 FORBIDDEN_INBOUND = [
     "com.dreamthought.saaa.deterministic",
@@ -36,6 +42,13 @@ FORBIDDEN_INBOUND = [
 
 def java_files(root):
     return [path for path in root.rglob("*.java") if "/build/" not in str(path)]
+
+
+def main_java_files(root):
+    return [
+        path for path in java_files(root)
+        if "/src/main/java/" in path.as_posix()
+    ]
 
 
 def main():
@@ -70,6 +83,14 @@ def main():
         for package in FORBIDDEN_INBOUND:
             if package in text:
                 errors.append(f"{rel}: domain must not depend on {package}")
+
+    for layer in [DETERMINISTIC, ADAPTERS, CLI]:
+        for path in main_java_files(ROOT / layer):
+            text = path.read_text(errors="ignore")
+            rel = path.relative_to(ROOT)
+            for command in NO_AUTO_MERGE_COMMANDS:
+                if command in text:
+                    errors.append(f"{rel}: candidate promotion must not expose or run merge commands")
 
     return report(sorted(set(errors)))
 
