@@ -1,9 +1,7 @@
-package com.dreamthought.saaa.cli;
+package com.dreamthought.saaa.adapters.langchain4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.dreamthought.saaa.adapters.langchain4j.OpenAiCompatibleChatModelFactory;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import com.sun.net.httpserver.HttpExchange;
@@ -11,66 +9,55 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-final class ProposerProfileRegistryTest {
-    private final ProposerProfileRegistry registry = new ProposerProfileRegistry(Map.of(
-            OpenAiCompatibleChatModelFactory.BASE_URL_ENV, "http://127.0.0.1:11434/v1",
-            OpenAiCompatibleChatModelFactory.API_KEY_ENV, "test-key",
-            OpenAiCompatibleChatModelFactory.MODEL_NAME_ENV, "test-model"
-    ));
+final class OpenAiCompatibleMutationProposerIntegrationTest {
+    private LocalOpenAiServer server;
 
-    @Test
-    void resolvesKnownProfileAndListsKnownNamesOnFailure() {
-        assertThat(registry.knownNames()).containsExactly("fixture", "openai-compatible");
-        assertThat(registry.resolve("fixture", Path.of("some/folder"))).isNotNull();
-        assertThat(registry.resolve("openai-compatible", Path.of("some/folder"))).isNotNull();
-
-        assertThatThrownBy(() -> registry.resolve("gpt-cloud", Path.of("some/folder")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("unknown proposer profile: gpt-cloud; known profiles: fixture, openai-compatible");
-    }
-
-    @Test
-    void openAiCompatibleProfileUsesTheSaaaEnvironmentContract() {
-        var registry = new ProposerProfileRegistry(Map.of(
-                OpenAiCompatibleChatModelFactory.BASE_URL_ENV, "http://127.0.0.1:11434/v1",
-                OpenAiCompatibleChatModelFactory.API_KEY_ENV, "test-key"
-        ));
-
-        assertThatThrownBy(() -> registry.resolve("openai-compatible", Path.of("some/folder")))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("missing required environment variable: SAAA_MODEL_NAME");
-    }
-
-    @Test
-    void openAiCompatibleProfileProposesAgainstALocalEndpoint() throws Exception {
-        try (var server = LocalOpenAiServer.start()) {
-            var registry = new ProposerProfileRegistry(Map.of(
-                    OpenAiCompatibleChatModelFactory.BASE_URL_ENV, server.baseUrl(),
-                    OpenAiCompatibleChatModelFactory.API_KEY_ENV, "local-test-key",
-                    OpenAiCompatibleChatModelFactory.MODEL_NAME_ENV, "local-test-model"
-            ));
-
-            var proposer = registry.resolve("openai-compatible", Path.of("some/folder"));
-            var mutation = proposer.proposeFor(
-                    new WorkflowGraph("workflow-a", "baseline", "agent -> tool -> answer"));
-
-            assertThat(mutation.id()).isEqualTo("mut-local-001");
-            assertThat(mutation.scope()).isEqualTo(MutationScope.WORKFLOW_DEFINITION);
-            assertThat(mutation.patch()).isEqualTo("agent -> deterministic-tool -> answer");
-            assertThat(server.lastAuthorization).isEqualTo("Bearer local-test-key");
-            assertThat(server.lastRequestBody).contains("workflow-a", "agent -> tool -> answer");
+    @AfterEach
+    void stopServer() {
+        if (server != null) {
+            server.close();
         }
+    }
+
+    @Test
+    void proposesABoundedMutationAgainstALocalOpenAiCompatibleEndpoint() throws Exception {
+        server = LocalOpenAiServer.start();
+        var chatModel = new OpenAiCompatibleChatModelFactory().fromEnvironment(Map.of(
+                OpenAiCompatibleChatModelFactory.BASE_URL_ENV, server.baseUrl(),
+                OpenAiCompatibleChatModelFactory.API_KEY_ENV, "local-test-key",
+                OpenAiCompatibleChatModelFactory.MODEL_NAME_ENV, "local-test-model"
+        ));
+        var proposer = LangChain4jMutationProposalAdapter.from(chatModel);
+
+        var mutation = proposer.proposeFor(new WorkflowGraph("workflow-a", "baseline", "agent -> tool -> answer"));
+
+        assertThat(mutation.id()).isEqualTo("mut-local-001");
+        assertThat(mutation.scope()).isEqualTo(MutationScope.WORKFLOW_DEFINITION);
+        assertThat(mutation.patch()).isEqualTo("agent -> deterministic-tool -> answer");
+        assertThat(server.lastPath).isEqualTo("/v1/chat/completions");
+        assertThat(server.lastAuthorization).isEqualTo("Bearer local-test-key");
+        assertThat(server.lastRequestBody).contains("workflow-a", "agent -> tool -> answer");
+        assertThat(jsonStringField(server.lastRequestBody, "model")).isEqualTo("local-test-model");
+    }
+
+    private static String jsonStringField(String json, String fieldName) {
+        var pattern = Pattern.compile("\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"([^\"]+)\"");
+        var matcher = pattern.matcher(json);
+        assertThat(matcher.find()).as("JSON string field %s exists", fieldName).isTrue();
+        return matcher.group(1);
     }
 
     private static final class LocalOpenAiServer implements AutoCloseable {
         private final HttpServer server;
         private final ExecutorService executor;
+        private String lastPath;
         private String lastAuthorization;
         private String lastRequestBody;
 
@@ -94,6 +81,7 @@ final class ProposerProfileRegistryTest {
         }
 
         private void handleChatCompletions(HttpExchange exchange) throws IOException {
+            lastPath = exchange.getRequestURI().getPath();
             lastAuthorization = exchange.getRequestHeaders().getFirst("Authorization");
             lastRequestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             byte[] response = """
