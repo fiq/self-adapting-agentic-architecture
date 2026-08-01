@@ -37,6 +37,31 @@ the candidate could satisfy a required behaviour. An escaping command aborts the
 run rather than being recorded as a failed behaviour case, because it is a broken
 setup and not an observation about the mutation.
 
+## Interface Direction
+
+SAAA is intended to become a smart bridge in front of existing agents and
+models. `ADR-0003` records two northbound interfaces: MCP for tool-aware agents
+and a narrow OpenAI-compatible API for existing clients that want to use SAAA as
+a governed base URL.
+
+Keep the direction separate from the current `CHG-004` adapter work. The
+OpenAI-compatible LangChain4j wiring in `CHG-004` is southbound provider
+configuration: SAAA calling a model. A later northbound facade is clients
+calling SAAA.
+
+## Documentation Graph
+
+New Markdown should fit the existing graph instead of creating a parallel
+narrative. Use specs for intended behavior, knowledge entries for durable
+facts, decisions, risks and questions, ADRs for accepted architectural choices,
+and wiki pages for short explanations that link back to those nodes.
+
+The current taxonomy is in `.agents/knowledge/TAXONOMY.md`. `Q-008` tracks
+whether the project needs a stronger ontology or DBpedia-style linked-data
+shape as the graph grows. Until then, prefer clear local terms in the glossary,
+resolved knowledge IDs, canonical edge names such as `relates_to`, and short
+wiki pages over broad external vocabulary.
+
 ## Tool-unavailable Integration Fallback
 
 Default integration is branch plus PR. If PR or GitHub tooling is unavailable,

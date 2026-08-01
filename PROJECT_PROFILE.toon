@@ -188,6 +188,20 @@ decisions:
       - README.md
       - PR #3 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/3) merged 2026-07-31 as 4a9ea7f after human review
     consequence_if_changed: the population, crossover and Layer-3 slices need re-planning against a different delivery pattern before scope widens further
+  - id: smart_bridge_northbound_interfaces
+    decision: SAAA should expose MCP for tool-aware agents and a narrow OpenAI-compatible API for existing clients that want SAAA as a governed smart bridge in front of multiple models and external agents
+    reason:
+      - MCP gives outer agents explicit typed tools for operations such as evolve, score and inspect-candidate
+      - OpenAI-compatible clients, gateways and eval harnesses can adopt SAAA by changing base URL and model name
+      - Claude, OpenAI, local models and specialist external agents should remain southbound adapter choices rather than deterministic-layer dependencies
+      - the product story is a governed model bridge / agentic control plane rather than another standalone model
+    confidence: medium
+    status: proposed
+    validation:
+      - docs/decisions/0003-smart-bridge-northbound-interfaces.md
+      - .agents/knowledge/decisions/ADR-0003-smart-bridge-northbound-interfaces.md
+      - .agentic-template/bin/project check
+    consequence_if_changed: the L2 interface plan and any future northbound OpenAI-compatible facade need replanning before implementation
 
 unknowns:
   - id: Q-001
