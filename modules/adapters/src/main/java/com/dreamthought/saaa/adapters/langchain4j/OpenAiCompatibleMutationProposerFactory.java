@@ -15,10 +15,10 @@ public final class OpenAiCompatibleMutationProposerFactory {
     }
 
     public MutationProposer fromApplicationConfig() {
-        return LangChain4jMutationProposalAdapter.from(chatModelFactory.fromApplicationConfig());
+        return LangChain4jMutationProposalAdapter.from(chatModelFactory.fromApplicationConfig(), "openai-compatible");
     }
 
     public MutationProposer fromConfig(ModelEndpointConfig config) {
-        return LangChain4jMutationProposalAdapter.from(chatModelFactory.fromConfig(config));
+        return LangChain4jMutationProposalAdapter.from(chatModelFactory.fromConfig(config), "openai-compatible");
     }
 }
