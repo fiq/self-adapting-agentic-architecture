@@ -1,6 +1,6 @@
 session:
   updated: 2026-08-01
-  status: pr_10_pr_12_on_main; pr_11_was_merged_to_stacked_base_not_main; corrective_pr_pending
+  status: pr_10_pr_12_on_main; pr_11_was_merged_to_stacked_base_not_main; corrective_pr_13_open_with_wiremock_config_cleanup
   branch: fix/land-pr-11-openai-profile
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/land-pr-11-openai-profile
   head: merge of origin/feat/chg-004-t2-t3-openai-profile-stub onto origin/main
@@ -56,12 +56,17 @@ completed:
   - independent architecture/security review found no blocking findings; independent spec/test/product-scope review found no local content blockers and requested PR hygiene before handoff
   - performed Java maintainability review after user concern about static wrapper design; split proposer construction out of `OpenAiCompatibleChatModelFactory` into `OpenAiCompatibleMutationProposerFactory` so each factory has one responsibility and CLI still avoids direct LangChain4j types
   - checked static analysis tooling expectations: no Checkstyle, SpotBugs/FindBugs, PMD, Error Prone, NullAway or ArchUnit plugin/config is currently wired; current static gate is custom architecture-boundary lint through `project lint/check/ready`
+  - corrective PR #13 opened to land PR #11 implementation on current `main` after PR #11 was merged only into its stacked base
+  - replaced hand-rolled JDK local-provider test stubs (`HttpServer`, `HttpExchange`, `ExecutorService`) with WireMock in adapter integration and CLI profile tests
+  - moved live model endpoint settings behind adapter-owned `ModelEndpointConfig` and `SmallRyeModelEndpointConfigSource`; CLI selects the `openai-compatible` profile but does not read environment variables or reference LangChain4j types directly
+  - recorded `Q-009` to defer a Quarkus runtime shell until a long-running HTTP/MCP runtime, health/metrics, packaging or native-image requirement is evidenced
+  - applied independent senior-Java/startup-engineering advice: prefer typed config plus WireMock now, keep Quarkus deferred, and add static-analysis tooling as a separate quality slice rather than widening this PR
 
 in_progress:
-  - corrective PR branch prepared to land PR #11 implementation on `main`
+  - corrective PR #13 is open; local cleanup replaces low-level provider-test plumbing and adapter configuration before final validation/push
 
 next:
-  - push `fix/land-pr-11-openai-profile`, open corrective PR to `main`, and validate CI
+  - run final `project check`, `project ready` and GitHub checks after pushing `fix/land-pr-11-openai-profile`
   - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
@@ -101,6 +106,7 @@ risks:
   - RISK-002: the scorer enforces its own fixed gates and never sees the contract, so a declared `required_evidence_present` gate can pass without the evidence it names; tracked as `T4b`
   - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
   - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
+  - Q-009: Quarkus may become useful when SAAA has a durable HTTP/MCP runtime shell, but adopting it now would risk moving focus from mutation-loop behaviour to framework integration
   - the new `MutationContract` / `MutationContractValidator` / `PhenotypeFitnessScorer` stack is parallel to the wired `Mutation` / `MutationValidator` / `FitnessScorer` ports; the design records `Mutation.patch` as transitional but no migration step is scheduled yet
   - benchmark presence is not yet a hard gate because "required benchmark evidence" is contract-dependent and the scorer has no contract input
   - the fixture proposer is deterministic by design, so it cannot demonstrate that a real model produces useful mutations; it only proves the pipe
@@ -118,12 +124,17 @@ files_changed:
   - HANDOFF.toon
   - gradle/libs.versions.toml
   - modules/adapters/build.gradle.kts
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/ModelEndpointConfig.java
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleChatModelFactory.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleMutationProposerFactory.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/SmallRyeModelEndpointConfigSource.java
   - modules/adapters/src/integrationTest/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.java
   - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleChatModelFactoryTest.java
+  - modules/cli/build.gradle.kts
   - modules/cli/src/main/java/com/dreamthought/saaa/cli/ProposerProfileRegistry.java
   - modules/cli/src/test/java/com/dreamthought/saaa/cli/ProposerProfileRegistryTest.java
   - specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon
+  - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
   - .agents/knowledge/templates/question.md
   - README.md
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeEvidence.java
@@ -184,6 +195,13 @@ tests_run:
   - 2026-08-01 `.agentic-template/bin/project test`: pass after Java maintainability split; 14 Gradle tasks
   - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after Java maintainability split; 10 Gradle tasks
   - 2026-08-01 `git diff --check`: pass after Java maintainability split
+  - 2026-08-01 boundary scan: no `HttpServer`, `HttpExchange`, `ExecutorService`, `Executors`, `System.getenv` or `dev.langchain4j` matches in CLI/domain/deterministic source paths
+  - 2026-08-01 provider-test plumbing scan: no `HttpServer`, `HttpExchange`, `ExecutorService`, `Executors` or `System.getenv` matches in adapter/CLI provider test and main paths
+  - 2026-08-01 `git diff --check`: pass after WireMock and SmallRye config cleanup
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after WireMock and SmallRye config cleanup; 14 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after WireMock and SmallRye config cleanup; 10 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project check`: pass after WireMock and SmallRye config cleanup; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after WireMock and SmallRye config cleanup; 13 passed, 2 not applicable, 0 failed
   - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-07-31 `T10` red before green at the boundary: `EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing` failed with the journal reporting `PROMOTE` for a candidate whose realization wrote the workflow file back unchanged
   - 2026-07-31 `T10` red before green in the deterministic layer: `PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate` and `PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing` failed to compile against the pre-gate API, then failed on the gate value once it existed
@@ -210,6 +228,7 @@ knowledge:
     - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
     - PROJECT_PROFILE.toon (added `three_layer_vision_with_vertical_slices` under `decisions`, status `proposed`)
     - pending separate docs/quality branch: Java static-analysis policy follow-up for Checkstyle/SpotBugs/Error Prone-style gates
+    - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
   no_record: |
     `T1` implements a task already recorded in `CHG-004`; the durable record is the task status,
     the new adapter tests and this handoff rather than a new knowledge entry.

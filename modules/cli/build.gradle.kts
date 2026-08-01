@@ -6,6 +6,7 @@ dependencies {
     implementation(project(":deterministic"))
     implementation(project(":adapters"))
     implementation(libs.picocli)
+    testImplementation(libs.wiremock)
 }
 
 application {

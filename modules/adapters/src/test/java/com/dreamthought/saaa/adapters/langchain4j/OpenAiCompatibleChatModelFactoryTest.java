@@ -12,34 +12,36 @@ final class OpenAiCompatibleChatModelFactoryTest {
 
     @Test
     void buildsAnOpenAiChatModelFromTheSaaaEnvironmentContract() {
-        var model = factory.fromEnvironment(Map.of(
-                OpenAiCompatibleChatModelFactory.BASE_URL_ENV, "http://127.0.0.1:11434/v1",
-                OpenAiCompatibleChatModelFactory.API_KEY_ENV, "test-key",
-                OpenAiCompatibleChatModelFactory.MODEL_NAME_ENV, "test-model"
-        ));
+        var model = factory.fromConfig(new ModelEndpointConfig(
+                "http://127.0.0.1:11434/v1",
+                "test-key",
+                "test-model"));
 
         assertThat(model).isInstanceOf(OpenAiChatModel.class);
     }
 
     @Test
     void requiresBaseUrlApiKeyAndModelName() {
-        assertThatThrownBy(() -> factory.fromEnvironment(Map.of(
-                OpenAiCompatibleChatModelFactory.BASE_URL_ENV, "http://127.0.0.1:11434/v1",
-                OpenAiCompatibleChatModelFactory.API_KEY_ENV, "test-key"
-        )))
+        var source = new SmallRyeModelEndpointConfigSource(Map.of(
+                ModelEndpointConfig.BASE_URL_PROPERTY, "http://127.0.0.1:11434/v1",
+                ModelEndpointConfig.API_KEY_PROPERTY, "test-key"
+        ));
+
+        assertThatThrownBy(source::load)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("missing required environment variable: SAAA_MODEL_NAME");
+                .hasMessage(
+                        "missing required configuration property: saaa.model.name "
+                                + "(environment: SAAA_MODEL_NAME)");
     }
 
     @Test
     void rejectsBlankValuesWithoutEchoingTheApiKey() {
-        assertThatThrownBy(() -> factory.fromEnvironment(Map.of(
-                OpenAiCompatibleChatModelFactory.BASE_URL_ENV, "http://127.0.0.1:11434/v1",
-                OpenAiCompatibleChatModelFactory.API_KEY_ENV, "secret-key-value",
-                OpenAiCompatibleChatModelFactory.MODEL_NAME_ENV, " "
-        )))
+        assertThatThrownBy(() -> new ModelEndpointConfig(
+                "http://127.0.0.1:11434/v1",
+                "secret-key-value",
+                " "))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("environment variable must not be blank: SAAA_MODEL_NAME")
+                .hasMessage("configuration property must not be blank: saaa.model.name")
                 .hasMessageNotContaining("secret-key-value");
     }
 }
