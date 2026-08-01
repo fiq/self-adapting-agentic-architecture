@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Candidate;
+import com.dreamthought.saaa.domain.CandidateBranchRef;
 import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
@@ -63,7 +64,7 @@ final class MutationEvaluationLoopAcceptanceTest {
         assertThat(result.evidence().evaluatedAt()).isEqualTo(evaluatedAt);
         assertThat(metadata.recordedCandidates()).containsExactly(candidate);
         assertThat(metadata.recordedFitness()).contains(result);
-        assertThat(decisions.discardedCandidate()).contains(candidate);
+        assertThat(decisions.discardedCandidate()).contains(CandidateBranchRef.fromCandidate(candidate));
         assertThat(decisions.promotedCandidate()).isEmpty();
     }
 
@@ -216,24 +217,24 @@ final class MutationEvaluationLoopAcceptanceTest {
     }
 
     private static final class RecordingDecisionSink implements CandidateDecisionSink {
-        private Candidate promotedCandidate;
-        private Candidate discardedCandidate;
+        private CandidateBranchRef promotedCandidate;
+        private CandidateBranchRef discardedCandidate;
 
         @Override
-        public void promote(Candidate candidate, FitnessResult result) {
-            promotedCandidate = candidate;
+        public void recordPromotedCandidateBranch(CandidateBranchRef candidateBranchRef, FitnessResult result) {
+            promotedCandidate = candidateBranchRef;
         }
 
         @Override
-        public void discard(Candidate candidate, FitnessResult result) {
-            discardedCandidate = candidate;
+        public void discardCandidateBranch(CandidateBranchRef candidateBranchRef, FitnessResult result) {
+            discardedCandidate = candidateBranchRef;
         }
 
-        Optional<Candidate> promotedCandidate() {
+        Optional<CandidateBranchRef> promotedCandidate() {
             return Optional.ofNullable(promotedCandidate);
         }
 
-        Optional<Candidate> discardedCandidate() {
+        Optional<CandidateBranchRef> discardedCandidate() {
             return Optional.ofNullable(discardedCandidate);
         }
     }

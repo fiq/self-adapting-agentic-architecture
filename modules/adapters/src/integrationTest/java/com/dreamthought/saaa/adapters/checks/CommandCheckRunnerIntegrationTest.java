@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -133,6 +134,39 @@ final class CommandCheckRunnerIntegrationTest {
         assertThat(evidence.get(0).summary())
                 .contains("cannot find symbol")
                 .contains("Broken.java");
+    }
+
+    @Test
+    void behaviourCaseCannotReadTheModelProviderApiKey() throws Exception {
+        Path worktree = tempDir.resolve("scrubbed-env");
+        Files.createDirectories(worktree);
+        var candidate = new Candidate(
+                "candidate-mut-005",
+                "mut-005",
+                "candidate/baseline-mut-005",
+                worktree,
+                "0123456789abcdef0123456789abcdef01234567");
+        var runner = new CommandCheckRunner(
+                List.of(new CommandCheckRunner.CommandCheck(
+                        "credential-scrub",
+                        List.of("sh", "-c", """
+                                test -z "${SAAA_MODEL_API_KEY:-}" \
+                                && test -z "${OPENAI_API_KEY:-}" \
+                                && test "$PATH" = /usr/bin
+                                """),
+                        Duration.ofSeconds(5),
+                        List.of("PATH", "SAAA_MODEL_*", "OPENAI_API_KEY"))),
+                () -> Map.of(
+                        "PATH", "/usr/bin",
+                        "SAAA_MODEL_API_KEY", "sk-super-secret",
+                        "OPENAI_API_KEY", "sk-openai-secret",
+                        "LC_ALL", "C"));
+
+        var evidence = runner.runChecks(candidate);
+
+        assertThat(evidence).hasSize(1);
+        assertThat(evidence.get(0).status()).isEqualTo(CheckStatus.PASSED);
+        assertThat(evidence.get(0).summary()).contains("exit=0");
     }
 
     @Test
