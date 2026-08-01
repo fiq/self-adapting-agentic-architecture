@@ -37,19 +37,6 @@ the candidate could satisfy a required behaviour. An escaping command aborts the
 run rather than being recorded as a failed behaviour case, because it is a broken
 setup and not an observation about the mutation.
 
-## Documentation Graph
-
-New Markdown should fit the existing graph instead of creating a parallel
-narrative. Use specs for intended behavior, knowledge entries for durable
-facts, decisions, risks and questions, ADRs for accepted architectural choices,
-and wiki pages for short explanations that link back to those nodes.
-
-The current taxonomy is in `.agents/knowledge/TAXONOMY.md`. `Q-008` tracks
-whether the project needs a stronger ontology or DBpedia-style linked-data
-shape as the graph grows. Until then, prefer clear local terms in the glossary,
-resolved knowledge IDs, canonical edge names such as `relates_to`, and short
-wiki pages over broad external vocabulary.
-
 ## Tool-unavailable Integration Fallback
 
 Default integration is branch plus PR. If PR or GitHub tooling is unavailable,
