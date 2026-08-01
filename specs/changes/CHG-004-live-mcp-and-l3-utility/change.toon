@@ -120,10 +120,13 @@ deltas:
 
 acceptance:
   - scenario: S1
-    test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstARecordedEndpoint
+    test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstALocalOpenAiCompatibleEndpoint
     layer: integration
   - scenario: S1
-    test_id: cli/EvolveCommandAcceptanceTest.runsOneGenerationWithOpenAiCompatibleProfileAgainstARecordedEndpoint
+    test_id: cli/EvolveCommandAcceptanceTest.recordsLiveProposerPromptDigestAndRawResponseInCandidateBookkeeping
+    layer: acceptance
+  - scenario: S1
+    test_id: cli/EvolveCommandAcceptanceTest.rejectsPatchWhoseDiffExceedsMaxLinesBeforeCandidateCreation
     layer: acceptance
   - scenario: S2
     test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.failsCleanlyWhenTheEndpointIsUnreachable
@@ -219,29 +222,30 @@ tasks:
     note: uses `OpenAiChatModel` with a custom `baseUrl` so OpenAI, NeuralWatt, together.ai, groq and Ollama's `/v1` shim all fit one adapter; provider-neutral so credentials are never seen by the deterministic layer. Shipped as `OpenAiCompatibleChatModelFactory` plus typed `ModelEndpointConfig`; `SmallRyeModelEndpointConfigSource` reads application config from default config sources, including `SAAA_MODEL_BASE_URL`, `SAAA_MODEL_API_KEY` and `SAAA_MODEL_NAME` environment variables, while callers use repo-owned config types. Validation names config keys and never echoes credential values; tests are local construction/configuration tests and make no live endpoint call.
   - id: T2
     slice: implement the OpenAI-compatible proposer path behind the existing `MutationProposer` port, producing exactly one `Mutation` whose `patch` is a whole-file replacement whose *diff* against the baseline respects the operator's `maxLinesChanged` bound
-    status: pending
-    note: the bound is on the diff size, not the emitted-content length; a whole-file replacement of the same total length can still change every line and would exceed `maxLinesChanged`; replies whose diff violates bounds are dropped before validation; parsing failures are surfaced as run errors, not silent fall-throughs; the adapter must not read scorer or gate state; the exact prompt and the raw model response are logged into the candidate's `.saaa/candidates/<id>.toon` bookkeeping so a later run or a scorer-as-target audit can reproduce them from the commit. Partial shipped state: `OpenAiCompatibleMutationProposerFactory.fromConfig` reuses `LangChain4jMutationProposalAdapter` behind the `MutationProposer` port instead of adding a separate thin `OpenAiCompatibleMutationProposer` class. WireMock-backed tests prove that path can call a local OpenAI-compatible `/v1/chat/completions` stub and map one response into a `Mutation`; `ProposerProfileRegistryTest.openAiCompatibleProfileProposesAgainstALocalEndpoint` proves the CLI registry composes with the same local-stub path without hand-rolled HTTP server or executor code. The diff-bound and prompt/raw-response bookkeeping requirements remain pending.
+    status: completed
+    note: the bound is on the diff size, not the emitted-content length; a whole-file replacement of the same total length can still change every line and would exceed `maxLinesChanged`; replies whose diff violates bounds are rejected by `DiffLineBudgetMutationValidator` before candidate worktree creation; parsing failures are surfaced as run errors, not silent fall-throughs; the adapter does not read scorer or gate state. `OpenAiCompatibleMutationProposerFactory.fromConfig` reuses `LangChain4jMutationProposalAdapter` behind the `MutationProposer` port. WireMock-backed ATDD coverage in `EvolveCommandAcceptanceTest` proves that `--profile openai-compatible` can call a local OpenAI-compatible `/v1/chat/completions` stub, map one response into a `Mutation`, run the loop, and write proposer evidence into candidate bookkeeping without hand-rolled HTTP server or executor code.
   - id: T2b
     slice: extend the candidate bookkeeping TOON written by `GitCandidateWorkspace` to include the proposer id, prompt digest, and raw response for live-model runs; the fixture proposer records only its file path
-    status: pending
-    note: prerequisite for later audits that need to distinguish "the scorer changed its mind" from "the model produced a different proposal"
+    status: completed
+    note: candidate bookkeeping now accepts provider-neutral `ProposerEvidence`; live LangChain4j runs record `id: openai-compatible`, prompt digest, captured prompt messages and raw model response, while the fixture proposer records its fixture file path only. This preserves the clean architecture boundary: provider-specific request capture is inside `modules/adapters/langchain4j`, candidate TOON writing is inside `modules/adapters/git`, and deterministic/domain code only sees provider-neutral evidence values.
   - id: T3
     slice: register the live proposer as `openai-compatible` in `ProposerProfileRegistry` so `--profile openai-compatible` is a first-class choice alongside `fixture`
     status: completed
   - id: T4
     slice: add a new `mcp` package inside `modules/adapters` exposing an MCP server that wraps the existing CLI's `evolve` command as an MCP tool, with input schema, output schema and a stdio transport that any MCP client can drive
-    status: pending
-    note: placed inside `modules/adapters` per the `invariant_named_module_layout` decision in `PROJECT_PROFILE.toon`; the MCP module is an adapter, must not import model-provider libraries, and treats the picocli CLI class as the boundary rather than reimplementing the loop; invokes the CLI in-process via its picocli command class rather than as a subprocess, so a JVM is not started per MCP call; the picocli invocation is configured with an `IExecutionExceptionHandler` and an `IExitCodeExceptionMapper` so a CLI failure returns a non-zero code without calling `System.exit`, per S13
+    status: completed
+    note: placed inside `modules/adapters` per the `invariant_named_module_layout` decision in `PROJECT_PROFILE.toon`; the MCP module is an adapter, imports the official MCP Java SDK only inside `adapters/mcp`, and must not import model-provider libraries. Implementation deviates from the original "adapter wraps picocli directly" wording because `cli` already depends on `adapters`, so `adapters -> cli` would create a module cycle. The shared evolve wiring now lives in `adapters/evolve` as `EvolveRunner`; both `EvolveCommand` and `EvolveMcpTool` invoke that same runner in-process, so the loop is not reimplemented and a JVM is not started per MCP call. CLI exposes `saaa mcp` as a stdio entrypoint while SDK types stay hidden behind adapter-owned APIs; MCP failure paths return structured tool errors and do not call `System.exit`, per S13.
   - id: T5
     slice: define the MCP tool response contract as a stable JSON serialisation of `FitnessResult` where gate outcomes are written after measured objective scores so the audit-trail invariant survives serialisation, `aggregateScore` is emitted both as the raw double under `aggregateScore` and as a two-decimal string under `aggregateScoreDisplay`, `journalPath` is an absolute path so an outer agent process with a different cwd can still read it, and per-field string values are individually capped (`checkSummary <= 4000 chars`, error message `<= 8000 chars`) with the total serialised response also capped so a hostile candidate cannot DoS the stdio transport
-    status: pending
+    status: completed
+    note: `EvolveMcpResponseSerializer` emits stable JSON with candidate, evidence, objectives, aggregate score, display score, decision and absolute journal path; measured objective keys are emitted before `hard_gate_*` keys and each group is sorted by key so `FitnessResult` map-copy randomisation cannot perturb output; check summaries, error messages and total responses are capped before return to the MCP transport, with caps applied to field values rather than by truncating a complete JSON envelope.
   - id: T6
     slice: enforce that MCP input can never carry a field that overrides a gate outcome, forces a promotion, enables an auto-merge, or transports credentials; the schema is closed (unknown keys are a schema violation) and any candidate input field must resolve to an existing CLI flag with the same meaning
-    status: pending
-    note: the load-bearing rule from ADR-0002 lives here at the wire; a permissive schema would reintroduce the original problem one level up; credentials arrive only via the MCP server's environment, never as tool arguments
+    status: completed
+    note: the load-bearing rule from ADR-0002 lives here at the wire; a permissive schema would reintroduce the original problem one level up; credentials arrive only via the MCP server's environment, never as tool arguments. `workflowFile` is constrained to a relative path inside `targetFolder` at the shared evolve request boundary before any proposer or candidate worktree is invoked.
   - id: T6b
     slice: add a response scrubber to the MCP output pipeline that replaces any occurrence of the current `SAAA_MODEL_API_KEY` value (and known transport headers, e.g. `Authorization: Bearer …`) with `<redacted>` before the response reaches stdio, per S12
-    status: pending
+    status: completed
     note: defence-in-depth against the proposer adapter, LangChain4j, or a serialisation library echoing a header or body containing the key; the primary defence is still "don't put it into the error in the first place"
   - id: T7
     slice: add jqwik property-based tests over `PhenotypeFitnessScorer` covering the invariants named in S6; run inside the existing `:deterministic:test` task
@@ -337,3 +341,4 @@ risks:
   - concurrent MCP `evolve` invocations against the same target folder collide on `.worktrees/candidate-*` naming (RISK-003); the MCP surface makes this trivial where the CLI required user cooperation, but the folding of RISK-003 into the population slice already covers it
   - the response scrubber in T6b protects against an unhandled error trace leaking the current `SAAA_MODEL_API_KEY` value, but cannot protect against a leak of an out-of-band credential the operator has also set; the primary defence remains that the proposer adapter does not put credentials into error messages
   - property tests may find counterexamples to the monotonicity or boundary invariants that reflect legitimate scoring decisions rather than defects; the process is to convert each counterexample into a named example test with a rationale, or to tighten the property, before shipping
+  - `targetFolder` intentionally accepts any local Git repository visible to the stdio server process and runs declared behaviour-case scripts from that repository; this is acceptable for the current local developer tool, but must be revisited before exposing SAAA as a remote or multi-user service
