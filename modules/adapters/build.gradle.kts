@@ -10,8 +10,10 @@ plugins {
 // dependency to its own package instead; that rule is what keeps this merge honest.
 dependencies {
     implementation(project(":deterministic"))
+    implementation(platform(libs.mcp.bom))
     implementation(libs.langchain4j)
     implementation(libs.langchain4j.open.ai)
+    implementation(libs.mcp)
     implementation(libs.smallrye.config)
     implementation(libs.sqlite.jdbc)
     implementation(libs.flyway.core)

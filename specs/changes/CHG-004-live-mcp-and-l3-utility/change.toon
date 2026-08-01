@@ -233,18 +233,19 @@ tasks:
     status: completed
   - id: T4
     slice: add a new `mcp` package inside `modules/adapters` exposing an MCP server that wraps the existing CLI's `evolve` command as an MCP tool, with input schema, output schema and a stdio transport that any MCP client can drive
-    status: pending
-    note: placed inside `modules/adapters` per the `invariant_named_module_layout` decision in `PROJECT_PROFILE.toon`; the MCP module is an adapter, must not import model-provider libraries, and treats the picocli CLI class as the boundary rather than reimplementing the loop; invokes the CLI in-process via its picocli command class rather than as a subprocess, so a JVM is not started per MCP call; the picocli invocation is configured with an `IExecutionExceptionHandler` and an `IExitCodeExceptionMapper` so a CLI failure returns a non-zero code without calling `System.exit`, per S13
+    status: completed
+    note: placed inside `modules/adapters` per the `invariant_named_module_layout` decision in `PROJECT_PROFILE.toon`; the MCP module is an adapter, imports the official MCP Java SDK only inside `adapters/mcp`, and must not import model-provider libraries. Implementation deviates from the original "adapter wraps picocli directly" wording because `cli` already depends on `adapters`, so `adapters -> cli` would create a module cycle. The shared evolve wiring now lives in `adapters/evolve` as `EvolveRunner`; both `EvolveCommand` and `EvolveMcpTool` invoke that same runner in-process, so the loop is not reimplemented and a JVM is not started per MCP call. CLI exposes `saaa mcp` as a stdio entrypoint while SDK types stay hidden behind adapter-owned APIs; MCP failure paths return structured tool errors and do not call `System.exit`, per S13.
   - id: T5
     slice: define the MCP tool response contract as a stable JSON serialisation of `FitnessResult` where gate outcomes are written after measured objective scores so the audit-trail invariant survives serialisation, `aggregateScore` is emitted both as the raw double under `aggregateScore` and as a two-decimal string under `aggregateScoreDisplay`, `journalPath` is an absolute path so an outer agent process with a different cwd can still read it, and per-field string values are individually capped (`checkSummary <= 4000 chars`, error message `<= 8000 chars`) with the total serialised response also capped so a hostile candidate cannot DoS the stdio transport
-    status: pending
+    status: completed
+    note: `EvolveMcpResponseSerializer` emits stable JSON with candidate, evidence, objectives, aggregate score, display score, decision and absolute journal path; measured objective keys are emitted before `hard_gate_*` keys even if input order changes; check summaries, error messages and total responses are capped before return to the MCP transport.
   - id: T6
     slice: enforce that MCP input can never carry a field that overrides a gate outcome, forces a promotion, enables an auto-merge, or transports credentials; the schema is closed (unknown keys are a schema violation) and any candidate input field must resolve to an existing CLI flag with the same meaning
-    status: pending
+    status: completed
     note: the load-bearing rule from ADR-0002 lives here at the wire; a permissive schema would reintroduce the original problem one level up; credentials arrive only via the MCP server's environment, never as tool arguments
   - id: T6b
     slice: add a response scrubber to the MCP output pipeline that replaces any occurrence of the current `SAAA_MODEL_API_KEY` value (and known transport headers, e.g. `Authorization: Bearer …`) with `<redacted>` before the response reaches stdio, per S12
-    status: pending
+    status: completed
     note: defence-in-depth against the proposer adapter, LangChain4j, or a serialisation library echoing a header or body containing the key; the primary defence is still "don't put it into the error in the first place"
   - id: T7
     slice: add jqwik property-based tests over `PhenotypeFitnessScorer` covering the invariants named in S6; run inside the existing `:deterministic:test` task
