@@ -1,12 +1,12 @@
 session:
   updated: 2026-08-01
-  status: chg_004_t1_reviewed_in_pr_10; chg_004_t3_openai_profile_startable_path_claude_feedback_addressed
-  branch: feat/chg-004-t2-t3-openai-profile-stub
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t2-t3-openai-profile-stub
-  head: stacked on PR #10 head after merging PR #10 scope cleanup
-  head_note: branch is based on `feat/chg-004-t1-openai-compatible-wiring` pending PR #10 merge
+  status: pr_10_pr_12_on_main; pr_11_was_merged_to_stacked_base_not_main; corrective_pr_pending
+  branch: fix/land-pr-11-openai-profile
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/land-pr-11-openai-profile
+  head: merge of origin/feat/chg-004-t2-t3-openai-profile-stub onto origin/main
+  head_note: PR #11 was merged into `feat/chg-004-t1-openai-compatible-wiring`, not `main`; this branch lands the same implementation onto current `main` without reverting ADR-0003/Q-008 docs from PR #12
   dirty: false
-  pushed: true
+  pushed: false
 
 goal:
   current: implement CHG-004 vertically per the staging order; get the live-profile CLI path startable soon
@@ -58,10 +58,10 @@ completed:
   - checked static analysis tooling expectations: no Checkstyle, SpotBugs/FindBugs, PMD, Error Prone, NullAway or ArchUnit plugin/config is currently wired; current static gate is custom architecture-boundary lint through `project lint/check/ready`
 
 in_progress:
-  - PR #11 ready for review after Claude feedback fixes; Java maintainability split is local pending final validation and push
+  - corrective PR branch prepared to land PR #11 implementation on `main`
 
 next:
-  - validate and push Java maintainability split, then merge PR #10 first and update/recheck PR #11 against the merged base if GitHub does not do so automatically
+  - push `fix/land-pr-11-openai-profile`, open corrective PR to `main`, and validate CI
   - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
