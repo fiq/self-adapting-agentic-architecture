@@ -1,6 +1,6 @@
 session:
   updated: 2026-08-01
-  status: chg_004_t1_reviewed_in_pr_10; chg_004_t3_openai_profile_startable_path_in_progress
+  status: chg_004_t1_reviewed_in_pr_10; chg_004_t3_openai_profile_startable_path_claude_feedback_addressed
   branch: feat/chg-004-t2-t3-openai-profile-stub
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t2-t3-openai-profile-stub
   head: stacked on PR #10 head
@@ -52,12 +52,13 @@ completed:
   - started stacked branch `feat/chg-004-t2-t3-openai-profile-stub` from PR #10 head to move toward a tool with a startable agentic loop
   - added `OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstALocalOpenAiCompatibleEndpoint`, using a JDK local HTTP stub for `/v1/chat/completions` instead of a live provider or secret; the test proves bearer auth, model name, prompt content and one mutation response mapping
   - registered `openai-compatible` in `ProposerProfileRegistry`, with injectable environment for fast tests and adapter-side composition so CLI does not need LangChain4j classes on its classpath
+  - addressed Claude's PR #11 feedback: renamed the intended PR scope to T3 plus partial T2, reconciled the T2 task text with the reused `LangChain4jMutationProposalAdapter` implementation, added a registry-to-proposer local-stub test, made the integration assertion whitespace-tolerant, and shut down the local-stub executor
 
 in_progress:
-  - stacked T3/local-stub branch is dirty and under validation
+  - stacked T3/local-stub branch has Claude feedback fixes locally pending validation, review and push
 
 next:
-  - finish validation for the stacked T3/local-stub slice, commit and decide whether to open it as a stacked draft PR or wait for PR #10 to merge
+  - merge the latest PR #10 branch after its scope fix lands, validate the stacked branch, push, and update the PR #11 title
   - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
@@ -167,6 +168,10 @@ tests_run:
   - 2026-08-01 `.agentic-template/bin/project check`: pass for stacked T3/local-stub slice; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
   - 2026-08-01 `git diff --check`: pass for stacked T3/local-stub slice
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS for stacked T3/local-stub slice; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 Claude PR #11 review: actionable findings were PR title/scope mismatch, T2 spec/code mismatch, missing registry-to-proposer local-stub test, brittle request-body assertion and local-stub executor lifetime
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after Claude PR #11 fixes; includes registry-to-proposer local-stub test
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after Claude PR #11 fixes; includes OpenAI-compatible local-stub proposer test
+  - 2026-08-01 `git diff --check`: pass after Claude PR #11 fixes
   - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-07-31 `T10` red before green at the boundary: `EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing` failed with the journal reporting `PROMOTE` for a candidate whose realization wrote the workflow file back unchanged
   - 2026-07-31 `T10` red before green in the deterministic layer: `PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate` and `PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing` failed to compile against the pre-gate API, then failed on the gate value once it existed
