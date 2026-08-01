@@ -24,6 +24,7 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
     private final Path worktreesRoot;
     private final MutationRealizer realizer;
     private final Supplier<Optional<ProposerEvidence>> proposerEvidence;
+    private final ProposerEvidenceSanitizer proposerEvidenceSanitizer;
 
     public GitCandidateWorkspace() {
         this(Path.of(".").toAbsolutePath().normalize());
@@ -47,10 +48,21 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
             MutationRealizer realizer,
             Supplier<Optional<ProposerEvidence>> proposerEvidence
     ) {
+        this(repositoryRoot, worktreesRoot, realizer, proposerEvidence, new ProposerEvidenceSanitizer());
+    }
+
+    public GitCandidateWorkspace(
+            Path repositoryRoot,
+            Path worktreesRoot,
+            MutationRealizer realizer,
+            Supplier<Optional<ProposerEvidence>> proposerEvidence,
+            ProposerEvidenceSanitizer proposerEvidenceSanitizer
+    ) {
         this.repositoryRoot = Objects.requireNonNull(repositoryRoot, "repositoryRoot").toAbsolutePath().normalize();
         this.worktreesRoot = Objects.requireNonNull(worktreesRoot, "worktreesRoot").toAbsolutePath().normalize();
         this.realizer = Objects.requireNonNull(realizer, "realizer");
         this.proposerEvidence = Objects.requireNonNull(proposerEvidence, "proposerEvidence");
+        this.proposerEvidenceSanitizer = Objects.requireNonNull(proposerEvidenceSanitizer, "proposerEvidenceSanitizer");
     }
 
     @Override
@@ -82,7 +94,8 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
                 branchName,
                 baseline,
                 mutation,
-                proposerEvidence.get()));
+                proposerEvidence.get(),
+                proposerEvidenceSanitizer));
 
         realizer.realize(worktreePath, baseline, mutation);
 
@@ -141,7 +154,8 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
             String branchName,
             WorkflowGraph baseline,
             Mutation mutation,
-            Optional<ProposerEvidence> proposerEvidence
+            Optional<ProposerEvidence> proposerEvidence,
+            ProposerEvidenceSanitizer proposerEvidenceSanitizer
     ) {
         return """
                 candidate:
@@ -172,11 +186,14 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
                 mutation.scope().name(),
                 indentBlock(mutation.summary()),
                 indentBlock(mutation.patch()),
-                proposerBlock(proposerEvidence)
+                proposerBlock(proposerEvidence, proposerEvidenceSanitizer)
         );
     }
 
-    private static String proposerBlock(Optional<ProposerEvidence> evidence) {
+    private static String proposerBlock(
+            Optional<ProposerEvidence> evidence,
+            ProposerEvidenceSanitizer proposerEvidenceSanitizer
+    ) {
         if (evidence.isEmpty()) {
             return "";
         }
@@ -190,7 +207,7 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
                 .append("  ")
                 .append(key)
                 .append(": |\n")
-                .append(indentBlock(value))
+                .append(indentBlock(proposerEvidenceSanitizer.sanitize(value)))
                 .append("\n"));
         return builder.toString();
     }
