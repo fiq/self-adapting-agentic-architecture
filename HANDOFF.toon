@@ -1,16 +1,16 @@
 session:
   updated: 2026-08-01
-  status: pr_10_pr_12_on_main; pr_11_was_merged_to_stacked_base_not_main; corrective_pr_13_open_with_wiremock_config_cleanup
-  branch: fix/land-pr-11-openai-profile
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/land-pr-11-openai-profile
-  head: merge of origin/feat/chg-004-t2-t3-openai-profile-stub onto origin/main
-  head_note: PR #11 was merged into `feat/chg-004-t1-openai-compatible-wiring`, not `main`; this branch lands the same implementation onto current `main` without reverting ADR-0003/Q-008 docs from PR #12
-  dirty: false
+  status: chore_fast_pr_ci_local_ready_to_push
+  branch: chore/fast-pr-ci
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
+  head: origin/main plus local CI profile changes
+  head_note: CI is narrowed so PR pushes get fast feedback while full readiness runs manually or on version tags
+  dirty: true
   pushed: false
 
 goal:
-  current: implement CHG-004 vertically per the staging order; get the live-profile CLI path startable soon
-  phase: chg_004_t3_openai_compatible_profile_registration_with_local_stub
+  current: reduce GitHub Actions cost and latency with staged validation profiles while preserving an explicit full-readiness gate
+  phase: ci_fast_pr_feedback
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -61,12 +61,15 @@ completed:
   - moved live model endpoint settings behind adapter-owned `ModelEndpointConfig` and `SmallRyeModelEndpointConfigSource`; CLI selects the `openai-compatible` profile but does not read environment variables or reference LangChain4j types directly
   - recorded `Q-009` to defer a Quarkus runtime shell until a long-running HTTP/MCP runtime, health/metrics, packaging or native-image requirement is evidenced
   - applied independent senior-Java/startup-engineering advice: prefer typed config plus WireMock now, keep Quarkus deferred, and add static-analysis tooling as a separate quality slice rather than widening this PR
+  - started `chore/fast-pr-ci` from `main` and narrowed `.github/workflows/ci.yml`: PRs and pushes to `main` run fast checks (`project check`, `project test`, `project lint`), `workflow_dispatch` can run `fast` or `full`, and `v*` tags run full `project ready`
+  - added GitHub Actions concurrency cancellation so stale PR runs are cancelled on newer pushes
+  - narrowed `.github/workflows/repo-contract.yml` to `main` pushes and manual dispatch so it no longer duplicates every PR's fast checks
 
 in_progress:
-  - corrective PR #13 is open; local cleanup replaces low-level provider-test plumbing and adapter configuration before final validation/push
+  - publish the CI profile change PR
 
 next:
-  - run final `project check`, `project ready` and GitHub checks after pushing `fix/land-pr-11-openai-profile`
+  - open PR for `chore/fast-pr-ci`
   - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
@@ -153,6 +156,15 @@ files_changed:
 
 tests_run:
   - 2026-08-01 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project check`: pass before CI workflow commit; repo contract, profile, handoff, knowledge, changes, architecture boundaries, tooling and MCP checks OK
+  - 2026-08-01 `nix shell nixpkgs#yq-go -c yq eval '.' .github/workflows/ci.yml`: pass; workflow YAML parsed
+  - 2026-08-01 `nix shell nixpkgs#yq-go -c yq eval '.' .github/workflows/repo-contract.yml`: pass; workflow YAML parsed
+  - 2026-08-01 `nix shell nixpkgs#actionlint -c actionlint .github/workflows/ci.yml .github/workflows/repo-contract.yml`: pass
+  - 2026-08-01 `git diff --check`: pass for CI profile change
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project check`: pass after CI profile change
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project test`: pass for the exact fast-CI test step
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project lint`: pass for the exact fast-CI lint step
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project ready`: READY: PASS for manual/tag full-readiness path; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `559744f91afdd7e5e27cae92cfd12d5f6639637c`
   - 2026-08-01 `git worktree list --porcelain`: main checkout plus `.worktrees/feat-chg-004-t1-openai-compatible-wiring`; no abandoned worktree directories
   - 2026-08-01 `git branch --merged main` / `git branch --no-merged main`: all old local branches merged into `main`; no unmerged local branches besides the active T1 worktree branch
