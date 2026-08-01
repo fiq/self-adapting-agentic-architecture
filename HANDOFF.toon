@@ -1,16 +1,16 @@
 session:
   updated: 2026-08-01
-  status: pr_14_open; claude_review_fixes_local_ready_to_push
-  branch: feat/chg-004-t2-audit-diff-bound
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t2-audit-diff-bound
-  head: origin/main at 09c22be plus PR #14 changes and local Claude review fixes
-  head_note: PR #14 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/14; Claude review found two durable-evidence blockers, both fixed locally and ready to push
+  status: pr_14_open; chg_004_t4_t5_t6_t6b_mcp_tool_surface_ready_for_publication
+  branch: feat/chg-004-t4-mcp-tool-surface
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t4-mcp-tool-surface
+  head: PR #14 branch head including Claude review fixes plus local CHG-004 T4/T5/T6/T6b MCP changes
+  head_note: this branch is stacked on `feat/chg-004-t2-audit-diff-bound`; PR #14 review fixes are inherited and PR #15 still needs Claude review fixes before push
   dirty: true
   pushed: false
 
 goal:
   current: implement CHG-004 vertically per the staging order; get the live-profile CLI path startable soon
-  phase: chg_004_t2_t2b_diff_bound_and_proposer_audit
+  phase: chg_004_t4_t5_t6_t6b_mcp_tool_surface
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -69,14 +69,21 @@ completed:
   - fixture proposer records only its fixture file path as proposer evidence
   - addressed independent review findings: corrected CHG-004 acceptance mappings to actual ATDD tests, added `MutationScopeValidator` so the one-file realization path accepts only `WORKFLOW_DEFINITION`, and made `ProposerEvidence.proposerId` TOON-safe before writing it as a scalar
   - addressed Claude PR #14 review findings: added adapter-side `ProposerEvidenceSanitizer` at the durable `GitCandidateWorkspace` TOON write boundary so prompt/raw provider evidence is scrubbed for `SAAA_MODEL_API_KEY` and `Authorization: Bearer ...` and capped before being committed; fixture proposer evidence now records only `fixture-mutation.txt` rather than an absolute host path
+  - created `feat/chg-004-t4-mcp-tool-surface` in `.worktrees/feat-chg-004-t4-mcp-tool-surface` stacked on PR #14 to continue CHG-004 L2 without modifying the PR #14 worktree
+  - implemented CHG-004 T4/T5/T6/T6b: added the official MCP Java SDK dependency in `modules/adapters`, an adapter-owned `mcp` package exposing `evolve`, a closed MCP input schema, stable capped JSON output, response scrubbing for `SAAA_MODEL_API_KEY` and bearer headers, and a `saaa mcp` CLI entrypoint
+  - avoided the original `adapters -> cli` cycle by moving reusable run wiring into `modules/adapters/src/main/java/com/dreamthought/saaa/adapters/evolve/EvolveRunner`; CLI and MCP now share the same in-process runner rather than reimplementing the loop or leaking SDK types into CLI
+  - added MCP unit and acceptance coverage for structured `FitnessResult` output, objective/gate ordering, closed schema rejection of gate override / force promotion / auto-merge / credentials, API-key scrubbing, non-terminating tool errors, total response caps preserving valid JSON, closed output schema with evidence, and journal/commit-SHA agreement after a real fixture evolve run
+  - ran two independent review-agent passes for the MCP slice: architecture/security found medium issues in stdio lifecycle and error structured-content/schema mismatch; Java maintainability/test quality found a high malformed-JSON cap issue plus medium schema and ATDD-fidelity concerns
+  - addressed blocking review findings: errors no longer publish success-shaped `structuredContent`, output schema now includes `evidence` and is closed at root/candidate/evidence item levels, and total response caps preserve valid JSON by replacing over-large evidence arrays with a truncated evidence envelope
 
 in_progress:
-  - PR #14 Claude review fixes are local and passing unit, integration, check and ready gates; push remains
+  - PR #15 Claude review fixes are being applied on top of updated PR #14
 
 next:
-  - push PR #14 review fixes and inspect GitHub checks
-  - rebase/update stacked PR #15 after PR #14 head changes
-  - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
+  - fix PR #15 containment, JSON error and objective-order findings
+  - validate and push PR #15
+  - after PR #14 lands, rebase/retarget the MCP branch onto `main`
+  - then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
@@ -115,6 +122,7 @@ risks:
   - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
   - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
   - Q-009: Quarkus may become useful when SAAA has a durable HTTP/MCP runtime shell, but adopting it now would risk moving focus from mutation-loop behaviour to framework integration
+  - MCP stdio lifecycle is only startable in this slice (`saaa mcp` starts a stdio server and waits under the supervising client/process); there is no transport-level ATDD yet proving client-disconnect shutdown behavior, so do not claim more than "startable MCP stdio entrypoint" until a follow-up test drives the real process lifecycle
   - the new `MutationContract` / `MutationContractValidator` / `PhenotypeFitnessScorer` stack is parallel to the wired `Mutation` / `MutationValidator` / `FitnessScorer` ports; the design records `Mutation.patch` as transitional but no migration step is scheduled yet
   - benchmark presence is not yet a hard gate because "required benchmark evidence" is contract-dependent and the scorer has no contract input
   - the fixture proposer is deterministic by design, so it cannot demonstrate that a real model produces useful mutations; it only proves the pipe
@@ -132,6 +140,24 @@ files_changed:
   - HANDOFF.toon
   - gradle/libs.versions.toml
   - modules/adapters/build.gradle.kts
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/evolve/BehaviourCaseChecks.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/evolve/CompositeReporter.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/evolve/EvolveRunRequest.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/evolve/EvolveRunResult.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/evolve/EvolveRunner.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/evolve/ProposerProfileRegistry.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/mcp/EvolveMcpRequest.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/mcp/EvolveMcpResponseScrubber.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/mcp/EvolveMcpResponseSerializer.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/mcp/EvolveMcpServer.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/mcp/EvolveMcpTool.java
+  - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/mcp/EvolveMcpServerTest.java
+  - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/mcp/EvolveMcpToolTest.java
+  - modules/cli/src/acceptanceTest/java/com/dreamthought/saaa/cli/EvolveMcpAcceptanceTest.java
+  - modules/cli/src/main/java/com/dreamthought/saaa/cli/McpCommand.java
+  - modules/cli/src/main/java/com/dreamthought/saaa/cli/BehaviourCaseChecks.java
+  - modules/cli/src/main/java/com/dreamthought/saaa/cli/CompositeReporter.java
+  - modules/cli/src/main/java/com/dreamthought/saaa/cli/ProposerProfileRegistry.java
   - modules/adapters/src/integrationTest/java/com/dreamthought/saaa/adapters/git/GitCandidateWorkspaceIntegrationTest.java
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/fixture/FixtureMutationProposer.java
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/git/GitCandidateWorkspace.java
@@ -178,6 +204,16 @@ tests_run:
   - 2026-08-01 `.agentic-template/bin/project check`: pass after Claude PR #14 review fixes
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after Claude PR #14 review fixes; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 `git diff --check`: pass after Claude PR #14 review fixes
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after MCP implementation and review fixes; includes MCP structured output, schema, scrubbing, capped valid JSON and SDK error structured-content regression tests
+  - 2026-08-01 `.agentic-template/bin/project component-test`: pass after MCP implementation and review fixes; includes `EvolveMcpAcceptanceTest.mcpResponseAndJournalEntryAgreeOnTheCandidateCommitSha`
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after MCP implementation and review fixes
+  - 2026-08-01 `git diff --check`: pass after MCP implementation and review fixes
+  - 2026-08-01 `.agentic-template/bin/project check`: pass after MCP implementation and review fixes; repo contract, profile, handoff, knowledge, changes, architecture boundaries, tooling and MCP checks OK
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after MCP implementation and review fixes; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 boundary scan: no MCP SDK imports outside `modules/adapters/src/main/java/com/dreamthought/saaa/adapters/mcp`; no LangChain4j imports outside `modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j`; CLI sees only adapter-owned SAAA APIs
+  - 2026-08-01 process check: no `:cli:run`, `saaa mcp`, `MutationLoopCli` or `gradle.*mcp` process left running after the manual startability probe
+  - 2026-08-01 reviewer pass 1 (architecture/security): medium findings in MCP stdio lifecycle and error structured-content/schema mismatch; schema/structured-content fixed, stdio lifecycle recorded as follow-up risk
+  - 2026-08-01 reviewer pass 2 (Java maintainability/test quality): high malformed-JSON cap finding plus medium schema and ATDD fidelity findings; cap and schema fixed, transport-level ATDD recorded as follow-up risk
   - 2026-08-01 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `559744f91afdd7e5e27cae92cfd12d5f6639637c`
   - 2026-08-01 `git worktree list --porcelain`: main checkout plus `.worktrees/feat-chg-004-t1-openai-compatible-wiring`; no abandoned worktree directories

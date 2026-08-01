@@ -10,6 +10,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
+import com.dreamthought.saaa.adapters.evolve.ProposerProfileRegistry;
 import com.dreamthought.saaa.adapters.langchain4j.ModelEndpointConfig;
 import com.dreamthought.saaa.adapters.langchain4j.OpenAiCompatibleMutationProposerFactory;
 import com.dreamthought.saaa.domain.MutationScope;

@@ -1,4 +1,4 @@
-package com.dreamthought.saaa.cli;
+package com.dreamthought.saaa.adapters.evolve;
 
 import com.dreamthought.saaa.adapters.checks.CommandCheckRunner.CommandCheck;
 import java.nio.file.Path;
@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * so every declared case must produce its own check evidence; mapping only some of them would let a
  * candidate be promoted with a required behaviour never verified.
  */
-final class BehaviourCaseChecks {
+public final class BehaviourCaseChecks {
     /** The case name becomes a path segment, so it is restricted to a single safe file-name segment. */
     private static final Pattern SAFE_CASE_NAME = Pattern.compile("[a-zA-Z0-9][a-zA-Z0-9._-]*");
 
@@ -32,7 +32,7 @@ final class BehaviourCaseChecks {
      *     working directory; an absolute path would resolve against the coordination checkout and
      *     silently score the wrong content
      */
-    static List<CommandCheck> forCases(List<String> caseNames, Path checkDirectory) {
+    public static List<CommandCheck> forCases(List<String> caseNames, Path checkDirectory) {
         Objects.requireNonNull(caseNames, "caseNames");
         Objects.requireNonNull(checkDirectory, "checkDirectory");
         if (caseNames.isEmpty()) {
@@ -64,14 +64,8 @@ final class BehaviourCaseChecks {
     }
 
     /**
-     * Always carries a {@code ./} prefix, which keeps the program out of {@code PATH} resolution: a
-     * program name with no path separator is resolved against {@code PATH} rather than the child
-     * process working directory, and an empty check directory — what the target folder being the Git
-     * root produces — would otherwise yield a bare {@code <name>.sh}.
-     *
-     * <p>This makes the command worktree-relative; it does not by itself prove the program lies
-     * inside the worktree, because a path can still traverse or follow a symlink out of it.
-     * {@code CommandCheckRunner} enforces containment at the point of execution.
+     * Always carries a {@code ./} prefix, which keeps the program out of {@code PATH} resolution.
+     * {@code CommandCheckRunner} still enforces containment at the point of execution.
      */
     private static String scriptPath(Path checkDirectory, String caseName) {
         return Path.of(".").resolve(checkDirectory).resolve(caseName + ".sh").toString();

@@ -5,6 +5,7 @@ jmh = "1.37"
 jqwik = "1.9.3"
 junit = "5.13.4"
 langchain4j = "1.18.0"
+mcp = "2.0.0"
 picocli = "4.7.7"
 smallrye-config = "3.18.0"
 sqlite = "3.53.2.0"
@@ -21,6 +22,8 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 langchain4j = { module = "dev.langchain4j:langchain4j", version.ref = "langchain4j" }
 langchain4j-open-ai = { module = "dev.langchain4j:langchain4j-open-ai", version.ref = "langchain4j" }
+mcp-bom = { module = "io.modelcontextprotocol.sdk:mcp-bom", version.ref = "mcp" }
+mcp = { module = "io.modelcontextprotocol.sdk:mcp" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 smallrye-config = { module = "io.smallrye.config:smallrye-config", version.ref = "smallrye-config" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
