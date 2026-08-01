@@ -168,6 +168,8 @@ tests_run:
   - 2026-08-01 `.agentic-template/bin/project test`: pass after Claude PR #11 fixes; includes registry-to-proposer local-stub test
   - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after Claude PR #11 fixes; includes OpenAI-compatible local-stub proposer test
   - 2026-08-01 `git diff --check`: pass after Claude PR #11 fixes
+  - 2026-08-01 `.agentic-template/bin/project check`: pass after merging PR #10 cleanup into PR #11; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after merging PR #10 cleanup into PR #11; 13 passed, 2 not applicable, 0 failed
   - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-07-31 `T10` red before green at the boundary: `EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing` failed with the journal reporting `PROMOTE` for a candidate whose realization wrote the workflow file back unchanged
   - 2026-07-31 `T10` red before green in the deterministic layer: `PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate` and `PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing` failed to compile against the pre-gate API, then failed on the gate value once it existed
