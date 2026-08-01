@@ -22,7 +22,7 @@ final class JournalDecisionSinkTest {
         var sink = new JournalDecisionSink();
 
         sink.recordPromotedCandidateBranch(CandidateBranchRef.fromCandidate(CANDIDATE), result(FitnessDecision.PROMOTE, 0.87));
-        sink.discardCandidateBranch(CandidateBranchRef.fromCandidate(CANDIDATE), result(FitnessDecision.DISCARD, 0.10));
+        sink.recordDiscardedCandidateBranch(CandidateBranchRef.fromCandidate(CANDIDATE), result(FitnessDecision.DISCARD, 0.10));
 
         assertThat(sink.decisions()).containsExactly(
                 "PROMOTE refs/heads/candidate/toy-MUT-1 0.87",

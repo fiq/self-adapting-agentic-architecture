@@ -134,7 +134,7 @@ public final class MutationEvaluationLoop {
         CandidateBranchRef candidateBranchRef = CandidateBranchRef.fromCandidate(candidate);
         switch (result.decision()) {
             case PROMOTE -> decisionSink.recordPromotedCandidateBranch(candidateBranchRef, result);
-            case DISCARD -> decisionSink.discardCandidateBranch(candidateBranchRef, result);
+            case DISCARD -> decisionSink.recordDiscardedCandidateBranch(candidateBranchRef, result);
         }
 
         return result;

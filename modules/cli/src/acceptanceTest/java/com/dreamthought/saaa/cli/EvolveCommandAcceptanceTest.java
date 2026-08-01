@@ -11,6 +11,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -303,7 +306,8 @@ final class EvolveCommandAcceptanceTest {
                 """);
         initRepo(repo);
 
-        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+        int exitCode = runCliWithEnvironment(
+                Map.of("SAAA_MODEL_API_KEY", "sk-parent-process-secret"),
                 "evolve", target.toString(),
                 "--behaviour-case", "credential-check");
 
@@ -352,7 +356,7 @@ final class EvolveCommandAcceptanceTest {
         Path repo = tempDir.resolve("repo");
         Path target = repo.resolve("modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic");
         Files.createDirectories(target.resolve(".saaa"));
-        Files.writeString(repo.resolve(".gitignore"), "**/journal.md\n.worktrees/*\n");
+        Files.writeString(repo.resolve(".gitignore"), Files.readString(repositoryRoot().resolve(".gitignore")));
         Files.writeString(target.resolve("AuthorityLanguage.java"), """
                 package com.dreamthought.saaa.deterministic;
 
@@ -463,10 +467,28 @@ final class EvolveCommandAcceptanceTest {
         gitOutput(dir, args);
     }
 
+    private static int runCliWithEnvironment(Map<String, String> environment, String... args) throws Exception {
+        var command = new ArrayList<String>();
+        command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
+        command.add("-cp");
+        command.add(System.getProperty("java.class.path"));
+        command.add(MutationLoopCli.class.getName());
+        command.addAll(List.of(args));
+        var processBuilder = new ProcessBuilder(command).redirectErrorStream(true);
+        processBuilder.environment().putAll(environment);
+        var process = processBuilder.start();
+        String output = new String(process.getInputStream().readAllBytes());
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new IllegalStateException("CLI failed with exit " + exitCode + "\n" + output);
+        }
+        return exitCode;
+    }
+
     private static String gitOutput(Path dir, String... args) throws Exception {
-        var command = new java.util.ArrayList<String>();
+        var command = new ArrayList<String>();
         command.add("git");
-        command.addAll(java.util.List.of(args));
+        command.addAll(List.of(args));
         Files.createDirectories(dir);
         var process = new ProcessBuilder(command).directory(dir.toFile()).redirectErrorStream(true).start();
         String output = new String(process.getInputStream().readAllBytes());
@@ -474,5 +496,16 @@ final class EvolveCommandAcceptanceTest {
             throw new IllegalStateException("git failed: " + String.join(" ", args) + "\n" + output);
         }
         return output;
+    }
+
+    private static Path repositoryRoot() {
+        Path current = Path.of("").toAbsolutePath().normalize();
+        while (current != null) {
+            if (Files.isDirectory(current.resolve(".git"))) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        throw new IllegalStateException("could not locate repository root from " + Path.of("").toAbsolutePath());
     }
 }

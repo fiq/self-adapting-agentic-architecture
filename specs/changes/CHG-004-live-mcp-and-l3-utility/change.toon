@@ -292,7 +292,7 @@ tasks:
   - id: T9c
     slice: mark the promotion sink port as branch-pointer-only at the type level; the port exposes one operation that records a candidate ref under `refs/heads/candidate/*`, and no method has a target-branch parameter that could name `main`; add a source-scanning fitness function that fails the build if the deterministic layer references `git merge` outside test string literals, per S14
     status: completed
-    note: `CandidateDecisionSink` now exposes `recordPromotedCandidateBranch(CandidateBranchRef, FitnessResult)` and `discardCandidateBranch(CandidateBranchRef, FitnessResult)`; `CandidateBranchRef` accepts only `refs/heads/candidate/*`. `PromotionSinkTypeTest` asserts the port has no merge operation or target-branch string parameter, and `DeterministicLayerHasNoMergeReferenceTest` scans deterministic main sources for `git merge` / merge flags.
+    note: `CandidateDecisionSink` now exposes `recordPromotedCandidateBranch(CandidateBranchRef, FitnessResult)` and `recordDiscardedCandidateBranch(CandidateBranchRef, FitnessResult)`; `CandidateBranchRef` accepts only a single safe branch segment under `refs/heads/candidate/*`. `PromotionSinkTypeTest` asserts the port has no merge operation or target-branch string parameter, `DeterministicLayerHasNoMergeReferenceTest` scans deterministic main sources for `git merge` / merge flags, and `check-architecture-boundaries` scans deterministic, adapter and CLI main sources so the no-auto-merge command invariant runs in PR CI.
   - id: T10
     slice: add the Layer-3 acceptance test evolving `modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/AuthorityLanguage.java` in a scratch worktree, gated by the existing `BoundedMutationValidator` tests
     status: completed
