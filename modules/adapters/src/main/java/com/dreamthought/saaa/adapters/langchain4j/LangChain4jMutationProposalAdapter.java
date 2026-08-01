@@ -9,21 +9,55 @@ import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationLimits;
 import com.dreamthought.saaa.domain.MutationScope;
+import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.WorkflowGraph;
+import dev.langchain4j.model.ModelProvider;
+import dev.langchain4j.model.chat.Capability;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.HexFormat;
 
 public final class LangChain4jMutationProposalAdapter implements MutationProposer {
     private final WorkflowMutationAiService service;
+    private final String proposerId;
+    private final AuditingChatModel auditingChatModel;
 
     public static LangChain4jMutationProposalAdapter from(ChatModel chatModel) {
+        return from(chatModel, "langchain4j");
+    }
+
+    public static LangChain4jMutationProposalAdapter from(ChatModel chatModel, String proposerId) {
         Objects.requireNonNull(chatModel, "chatModel");
-        return new LangChain4jMutationProposalAdapter(AiServices.create(WorkflowMutationAiService.class, chatModel));
+        var auditingChatModel = new AuditingChatModel(chatModel);
+        return new LangChain4jMutationProposalAdapter(
+                AiServices.create(WorkflowMutationAiService.class, auditingChatModel),
+                proposerId,
+                auditingChatModel);
     }
 
     LangChain4jMutationProposalAdapter(WorkflowMutationAiService service) {
+        this(service, "langchain4j", null);
+    }
+
+    private LangChain4jMutationProposalAdapter(
+            WorkflowMutationAiService service,
+            String proposerId,
+            AuditingChatModel auditingChatModel
+    ) {
         this.service = Objects.requireNonNull(service, "service");
+        this.proposerId = Objects.requireNonNull(proposerId, "proposerId");
+        this.auditingChatModel = auditingChatModel;
     }
 
     @Override
@@ -39,6 +73,20 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
                 "mutation proposal"
         );
         return proposal.toMutation();
+    }
+
+    @Override
+    public Optional<ProposerEvidence> proposerEvidence() {
+        if (auditingChatModel == null
+                || auditingChatModel.lastPrompt == null
+                || auditingChatModel.lastResponse == null) {
+            return Optional.empty();
+        }
+        var attributes = new LinkedHashMap<String, String>();
+        attributes.put("prompt_digest", "sha256:" + sha256(auditingChatModel.lastPrompt));
+        attributes.put("prompt", auditingChatModel.lastPrompt);
+        attributes.put("raw_response", auditingChatModel.lastResponse);
+        return Optional.of(ProposerEvidence.of(proposerId, attributes));
     }
 
     private static List<String> allowedScopes() {
@@ -105,5 +153,54 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
             throw new IllegalArgumentException(name + " must be at most " + maxLength + " characters");
         }
         return value;
+    }
+
+    private static String sha256(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is not available", exception);
+        }
+    }
+
+    private static final class AuditingChatModel implements ChatModel {
+        private final ChatModel delegate;
+        private String lastPrompt;
+        private String lastResponse;
+
+        private AuditingChatModel(ChatModel delegate) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+        }
+
+        @Override
+        public ChatResponse doChat(ChatRequest chatRequest) {
+            lastPrompt = chatRequest.messages().toString();
+            ChatResponse response = delegate.doChat(chatRequest);
+            lastResponse = response.aiMessage().text();
+            return response;
+        }
+
+        // AiServices asks the ChatModel for provider-specific request metadata. This wrapper only
+        // observes requests and responses, so every model capability must delegate unchanged.
+        @Override
+        public ChatRequestParameters defaultRequestParameters() {
+            return delegate.defaultRequestParameters();
+        }
+
+        @Override
+        public List<ChatModelListener> listeners() {
+            return delegate.listeners();
+        }
+
+        @Override
+        public ModelProvider provider() {
+            return delegate.provider();
+        }
+
+        @Override
+        public Set<Capability> supportedCapabilities() {
+            return delegate.supportedCapabilities();
+        }
     }
 }

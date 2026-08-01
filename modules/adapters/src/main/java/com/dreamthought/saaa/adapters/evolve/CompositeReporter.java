@@ -1,4 +1,4 @@
-package com.dreamthought.saaa.cli;
+package com.dreamthought.saaa.adapters.evolve;
 
 import com.dreamthought.saaa.deterministic.EvolutionReporter;
 import com.dreamthought.saaa.domain.Candidate;

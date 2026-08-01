@@ -1,7 +1,16 @@
 package com.dreamthought.saaa.cli;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -9,6 +18,10 @@ import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 
 final class EvolveCommandAcceptanceTest {
+    private static final String BASE_URL_PROPERTY = "saaa.model.base-url";
+    private static final String API_KEY_PROPERTY = "saaa.model.api-key";
+    private static final String MODEL_NAME_PROPERTY = "saaa.model.name";
+
     @Test
     void runsOneGenerationWithFixtureProfileAndReportsADecision(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
@@ -200,11 +213,138 @@ final class EvolveCommandAcceptanceTest {
         assertThat(Files.exists(target.resolve("journal.md"))).isFalse();
     }
 
+    @Test
+    void rejectsPatchWhoseDiffExceedsMaxLinesBeforeCandidateCreation(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), """
+                alpha
+                beta
+                gamma
+                """);
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"), """
+                rewrite every line
+                one
+                two
+                three
+                """);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                exit 0
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", target.toString(),
+                "--profile", "fixture",
+                "--behaviour-case", "workflow-check",
+                "--max-lines", "1");
+
+        assertThat(exitCode).isNotZero();
+        assertThat(Files.exists(target.resolve("journal.md"))).isFalse();
+        assertThat(Files.exists(repo.resolve(".worktrees"))).isFalse();
+    }
+
+    @Test
+    void recordsLiveProposerPromptDigestAndRawResponseInCandidateBookkeeping(@TempDir Path tempDir) throws Exception {
+        var server = startOpenAiStub();
+        try {
+            stubOpenAiMutationResponse(server);
+            configureOpenAiCompatibleProfile(server);
+            Path repo = tempDir.resolve("repo");
+            Path target = repo.resolve("toy");
+            Files.createDirectories(target);
+            Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+            writeCheck(target, "workflow-check", """
+                    #!/usr/bin/env bash
+                    set -euo pipefail
+                    grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                    """);
+            initRepo(repo);
+
+            int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                    "evolve", target.toString(),
+                    "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check",
+                    "--max-lines", "8");
+
+            assertThat(exitCode).isZero();
+            Path candidateFile = repo.resolve(
+                    ".worktrees/candidate-toy-mut-live-001/.saaa/candidates/candidate-mut-live-001.toon");
+            assertThat(candidateFile).isRegularFile();
+            assertThat(Files.readString(candidateFile))
+                    .contains(
+                            "proposer:",
+                            "id: openai-compatible",
+                            "prompt_digest:",
+                            "raw_response: |",
+                            "mut-live-001",
+                            "draft-check: enforce"
+                    );
+            server.verify(postRequestedFor(urlEqualTo("/v1/chat/completions"))
+                    .withHeader("Authorization", equalTo("Bearer local-test-key"))
+                    .withRequestBody(matchingJsonPath("$.model", equalTo("local-test-model"))));
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
+    }
+
     private static void writeFixture(Path target) throws Exception {
         Files.createDirectories(target.resolve(".saaa"));
         Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
         Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
                 "enforce the draft check\ndraft-check: enforce\n");
+    }
+
+    private static WireMockServer startOpenAiStub() {
+        var server = new WireMockServer(WireMockConfiguration.options().dynamicPort());
+        server.start();
+        return server;
+    }
+
+    private static void stubOpenAiMutationResponse(WireMockServer server) {
+        server.stubFor(post(urlEqualTo("/v1/chat/completions"))
+                .withHeader("Authorization", equalTo("Bearer local-test-key"))
+                .withRequestBody(matchingJsonPath("$.model", equalTo("local-test-model")))
+                .withRequestBody(matchingJsonPath("$.messages[0].content", containing("bounded workflow mutations")))
+                .withRequestBody(matchingJsonPath("$.messages[1].content", containing("draft-check: skip")))
+                .willReturn(okJson("""
+                        {
+                          "id": "chatcmpl-local",
+                          "object": "chat.completion",
+                          "created": 1,
+                          "model": "local-test-model",
+                          "choices": [
+                            {
+                              "index": 0,
+                              "message": {
+                                "role": "assistant",
+                                "content": "{\\"id\\":\\"mut-live-001\\",\\"summary\\":\\"enforce the draft check\\",\\"scope\\":\\"WORKFLOW_DEFINITION\\",\\"patch\\":\\"draft-check: enforce\\\\n\\"}"
+                              },
+                              "finish_reason": "stop"
+                            }
+                          ],
+                          "usage": {
+                            "prompt_tokens": 1,
+                            "completion_tokens": 1,
+                            "total_tokens": 2
+                          }
+                        }
+                        """)));
+    }
+
+    private static void configureOpenAiCompatibleProfile(WireMockServer server) {
+        System.setProperty(BASE_URL_PROPERTY, server.baseUrl() + "/v1");
+        System.setProperty(API_KEY_PROPERTY, "local-test-key");
+        System.setProperty(MODEL_NAME_PROPERTY, "local-test-model");
+    }
+
+    private static void clearOpenAiCompatibleProfileConfig() {
+        System.clearProperty(BASE_URL_PROPERTY);
+        System.clearProperty(API_KEY_PROPERTY);
+        System.clearProperty(MODEL_NAME_PROPERTY);
     }
 
     private static void writeCheck(Path target, String caseName, String script) throws Exception {

@@ -63,6 +63,29 @@ final class LangChain4jMutationProposalAdapterTest {
     }
 
     @Test
+    void recordsPromptDigestAndRawModelResponseWhenConstructedFromChatModel() {
+        var chatModel = new StaticJsonChatModel("""
+                {
+                  "id": "mut-003",
+                  "summary": "prefer deterministic tool choice",
+                  "scope": "TOOL_CONFIGURATION",
+                  "patch": "set tool selection policy to deterministic"
+                }
+                """);
+        var adapter = LangChain4jMutationProposalAdapter.from(chatModel, "openai-compatible");
+
+        adapter.proposeFor(new WorkflowGraph("baseline", "v1", "agent -> tool -> answer"));
+
+        var evidence = adapter.proposerEvidence().orElseThrow();
+        assertThat(evidence.proposerId()).isEqualTo("openai-compatible");
+        assertThat(evidence.attributes())
+                .containsKeys("prompt_digest", "prompt", "raw_response");
+        assertThat(evidence.attributes().get("prompt_digest")).startsWith("sha256:");
+        assertThat(evidence.attributes().get("prompt")).contains("baseline", "agent -> tool -> answer");
+        assertThat(evidence.attributes().get("raw_response")).contains("mut-003");
+    }
+
+    @Test
     void rejectsModelOutputOutsideTheBoundedMutationContract() {
         var service = new RecordingMutationService(new LangChain4jMutationProposalAdapter.MutationProposal(
                 "mut-approval",

@@ -3,12 +3,15 @@ package com.dreamthought.saaa.adapters.fixture;
 import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationScope;
+import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Reads a canned mutation from a file so the pipe can be exercised with no model and no network.
@@ -23,6 +26,7 @@ import java.util.Objects;
  */
 public final class FixtureMutationProposer implements MutationProposer {
     private final Path fixtureFile;
+    private ProposerEvidence evidence;
 
     public FixtureMutationProposer(Path fixtureFile) {
         this.fixtureFile = Objects.requireNonNull(fixtureFile, "fixtureFile");
@@ -46,7 +50,13 @@ public final class FixtureMutationProposer implements MutationProposer {
             throw new IllegalStateException(
                     "fixture mutation must have a summary line and a body: " + fixtureFile);
         }
+        evidence = ProposerEvidence.of("fixture", Map.of("fixture_path", fixtureFile.getFileName().toString()));
         return new Mutation("MUT-" + baseline.id() + "-fixture", summary, MutationScope.WORKFLOW_DEFINITION, patch);
+    }
+
+    @Override
+    public Optional<ProposerEvidence> proposerEvidence() {
+        return Optional.ofNullable(evidence);
     }
 
     private String read() {

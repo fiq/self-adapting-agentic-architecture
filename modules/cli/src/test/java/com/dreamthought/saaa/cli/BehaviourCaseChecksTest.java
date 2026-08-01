@@ -3,6 +3,7 @@ package com.dreamthought.saaa.cli;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.dreamthought.saaa.adapters.evolve.BehaviourCaseChecks;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
