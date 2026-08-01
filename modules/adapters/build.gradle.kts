@@ -11,6 +11,7 @@ plugins {
 dependencies {
     implementation(project(":deterministic"))
     implementation(libs.langchain4j)
+    implementation(libs.langchain4j.open.ai)
     implementation(libs.sqlite.jdbc)
     implementation(libs.flyway.core)
 }
