@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.deterministic;
 
 import com.dreamthought.saaa.domain.Candidate;
+import com.dreamthought.saaa.domain.CandidateBranchRef;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
@@ -130,9 +131,10 @@ public final class MutationEvaluationLoop {
         metadataStore.recordFitness(result);
         reporter.scored(result);
 
+        CandidateBranchRef candidateBranchRef = CandidateBranchRef.fromCandidate(candidate);
         switch (result.decision()) {
-            case PROMOTE -> decisionSink.promote(candidate, result);
-            case DISCARD -> decisionSink.discard(candidate, result);
+            case PROMOTE -> decisionSink.recordPromotedCandidateBranch(candidateBranchRef, result);
+            case DISCARD -> decisionSink.discardCandidateBranch(candidateBranchRef, result);
         }
 
         return result;

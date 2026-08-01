@@ -291,6 +291,104 @@ final class EvolveCommandAcceptanceTest {
         }
     }
 
+    @Test
+    void candidateThatAttemptsToReadTheApiKeyObservesTheEmptyString(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "credential-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                test -z "${SAAA_MODEL_API_KEY:-}"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", target.toString(),
+                "--behaviour-case", "credential-check");
+
+        assertThat(exitCode).isZero();
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .contains("credential-check PASSED")
+                .contains("PROMOTE");
+    }
+
+    @Test
+    void hasNoFlagThatTurnsAnyScoreIntoAMerge() {
+        var evolve = new CommandLine(new MutationLoopCli()).getCommandSpec().subcommands().get("evolve");
+
+        assertThat(evolve.getCommandSpec().options())
+                .extracting(option -> String.join(",", option.names()))
+                .noneMatch(names -> names.contains("merge"))
+                .noneMatch(names -> names.contains("main"))
+                .noneMatch(names -> names.contains("promote"));
+    }
+
+    @Test
+    void promotedCandidateLandsAsABranchPointerAndNotAMerge(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+        String mainBefore = gitOutput(repo, "rev-parse", "main").strip();
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", target.toString(),
+                "--behaviour-case", "workflow-check");
+
+        assertThat(exitCode).isZero();
+        assertThat(gitOutput(repo, "show-ref", "--verify", "refs/heads/candidate/toy-mut-toy-fixture"))
+                .contains("refs/heads/candidate/toy-mut-toy-fixture");
+        assertThat(gitOutput(repo, "rev-parse", "main").strip()).isEqualTo(mainBefore);
+    }
+
+    @Test
+    void evolvingAFileInsideThisRepositoryLeavesNoUntrackedJournalMd(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(repo.resolve(".gitignore"), "**/journal.md\n.worktrees/*\n");
+        Files.writeString(target.resolve("AuthorityLanguage.java"), """
+                package com.dreamthought.saaa.deterministic;
+
+                final class AuthorityLanguage {
+                    static boolean allowed() {
+                        return false;
+                    }
+                }
+                """);
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"), """
+                make the authority helper useful
+                package com.dreamthought.saaa.deterministic;
+
+                final class AuthorityLanguage {
+                    static boolean allowed() {
+                        return true;
+                    }
+                }
+                """);
+        writeCheck(target, "authority-language-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q 'return true;' "$(dirname "$0")/AuthorityLanguage.java"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "evolve", target.toString(),
+                "--workflow-file", "AuthorityLanguage.java",
+                "--behaviour-case", "authority-language-check",
+                "--max-lines", "20");
+
+        assertThat(exitCode).isZero();
+        assertThat(gitOutput(repo, "status", "--short")).doesNotContain("journal.md");
+    }
+
     private static void writeFixture(Path target) throws Exception {
         Files.createDirectories(target.resolve(".saaa"));
         Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
@@ -362,6 +460,10 @@ final class EvolveCommandAcceptanceTest {
     }
 
     private static void git(Path dir, String... args) throws Exception {
+        gitOutput(dir, args);
+    }
+
+    private static String gitOutput(Path dir, String... args) throws Exception {
         var command = new java.util.ArrayList<String>();
         command.add("git");
         command.addAll(java.util.List.of(args));
@@ -371,5 +473,6 @@ final class EvolveCommandAcceptanceTest {
         if (process.waitFor() != 0) {
             throw new IllegalStateException("git failed: " + String.join(" ", args) + "\n" + output);
         }
+        return output;
     }
 }

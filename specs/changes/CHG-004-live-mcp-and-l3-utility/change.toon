@@ -287,20 +287,20 @@ tasks:
     note: independently valuable for any target that could fail to compile, and a prerequisite before any Layer-3 target; the existing non-zero-exit-plus-captured-output path already covers this behaviour, so the change is a new integration test (`recordsCompilerFailureAsAFailedCheckRatherThanCrashing`) that invokes real `javac` on a deliberately broken source inside a candidate worktree and pins the FAILED-with-diagnostic behaviour as a regression guard
   - id: T9b
     slice: run behaviour case scripts inside the candidate worktree with a scrubbed environment allow-list; the default allow-list is `PATH`, `HOME`, `LANG`, `LC_*` and `JAVA_HOME`; `SAAA_MODEL_*` and any other model-provider credentials are never present in the child environment, per S11
-    status: pending
-    note: prevents a candidate whose realised code deliberately or accidentally reads a credential from the process environment; operators can extend the allow-list per project through a documented mechanism; the acceptance test proves the scrub with a candidate that tries to read `SAAA_MODEL_API_KEY` and observes the empty string
+    status: completed
+    note: `CommandCheckRunner` clears each child process environment and copies only the allow-listed keys, including `LC_*` prefix entries, while always denying `SAAA_MODEL_*` and known model-provider API-key names even if they are accidentally allow-listed. `CommandCheckRunnerIntegrationTest.behaviourCaseCannotReadTheModelProviderApiKey` proves injected provider credentials are removed while allowed keys such as `PATH` remain, and `EvolveCommandAcceptanceTest.candidateThatAttemptsToReadTheApiKeyObservesTheEmptyString` proves the CLI path records an ordinary passing check when the candidate observes an empty `SAAA_MODEL_API_KEY`.
   - id: T9c
     slice: mark the promotion sink port as branch-pointer-only at the type level; the port exposes one operation that records a candidate ref under `refs/heads/candidate/*`, and no method has a target-branch parameter that could name `main`; add a source-scanning fitness function that fails the build if the deterministic layer references `git merge` outside test string literals, per S14
-    status: pending
-    note: closes the "no code path merges" invariant at compile time rather than by review; a later feature that actually needs a merge would have to add a new port and a new decision, both visible in review
+    status: completed
+    note: `CandidateDecisionSink` now exposes `recordPromotedCandidateBranch(CandidateBranchRef, FitnessResult)` and `discardCandidateBranch(CandidateBranchRef, FitnessResult)`; `CandidateBranchRef` accepts only `refs/heads/candidate/*`. `PromotionSinkTypeTest` asserts the port has no merge operation or target-branch string parameter, and `DeterministicLayerHasNoMergeReferenceTest` scans deterministic main sources for `git merge` / merge flags.
   - id: T10
     slice: add the Layer-3 acceptance test evolving `modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/AuthorityLanguage.java` in a scratch worktree, gated by the existing `BoundedMutationValidator` tests
-    status: pending
-    note: the test asserts that a promotion produces a candidate branch pointer under `refs/heads/candidate/*` and no merge to `main`; a companion acceptance test asserts the CLI has no flag that turns any score into a merge; the blast-radius constraints from ADR-0002 are enforced by test rather than by convention
+    status: completed
+    note: `EvolveCommandAcceptanceTest.evolvingAFileInsideThisRepositoryLeavesNoUntrackedJournalMd` evolves a scratch `AuthorityLanguage.java` under the deterministic module path with `--workflow-file`, and `promotedCandidateLandsAsABranchPointerAndNotAMerge` proves a promoted run creates `refs/heads/candidate/*` while leaving `main` unchanged. `hasNoFlagThatTurnsAnyScoreIntoAMerge` covers the CLI surface.
   - id: T10b
     slice: extend `.gitignore` to cover `journal.md` at every path a Layer-3 run could write it, and add an acceptance test that evolves a file inside `modules/` and asserts the working tree is clean of an untracked `journal.md` after the run
-    status: pending
-    note: without this, running SAAA against a target inside the SAAA repo can produce an accidental `journal.md` commit; the acceptance test would catch a regression that stops the gitignore matching
+    status: completed
+    note: root `.gitignore` now ignores `**/journal.md`; the Layer-3 acceptance test writes a journal under a module-like target folder and asserts `git status --short` does not report it.
   - id: T11
     slice: update `README.md`, `docs/wiki/development.md` and `docs/wiki/domain.md` to describe the `openai-compatible` profile, the MCP tool surface, the classical guards, the Layer-3 constraints, and the "endpoint accepts Bearer auth and the OpenAI Chat Completions API shape" scope
     status: pending
