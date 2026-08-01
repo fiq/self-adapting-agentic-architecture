@@ -4,6 +4,7 @@ import com.dreamthought.saaa.deterministic.CandidateWorkspace;
 import com.dreamthought.saaa.deterministic.MutationRealizer;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class GitCandidateWorkspace implements CandidateWorkspace {
@@ -20,6 +23,7 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
     private final Path repositoryRoot;
     private final Path worktreesRoot;
     private final MutationRealizer realizer;
+    private final Supplier<Optional<ProposerEvidence>> proposerEvidence;
 
     public GitCandidateWorkspace() {
         this(Path.of(".").toAbsolutePath().normalize());
@@ -34,9 +38,19 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
     }
 
     public GitCandidateWorkspace(Path repositoryRoot, Path worktreesRoot, MutationRealizer realizer) {
+        this(repositoryRoot, worktreesRoot, realizer, Optional::empty);
+    }
+
+    public GitCandidateWorkspace(
+            Path repositoryRoot,
+            Path worktreesRoot,
+            MutationRealizer realizer,
+            Supplier<Optional<ProposerEvidence>> proposerEvidence
+    ) {
         this.repositoryRoot = Objects.requireNonNull(repositoryRoot, "repositoryRoot").toAbsolutePath().normalize();
         this.worktreesRoot = Objects.requireNonNull(worktreesRoot, "worktreesRoot").toAbsolutePath().normalize();
         this.realizer = Objects.requireNonNull(realizer, "realizer");
+        this.proposerEvidence = Objects.requireNonNull(proposerEvidence, "proposerEvidence");
     }
 
     @Override
@@ -63,7 +77,12 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
 
         Path candidateFile = worktreePath.resolve(".saaa/candidates/" + candidateId + ".toon");
         createDirectories(candidateFile.getParent());
-        writeString(candidateFile, candidateDocument(candidateId, branchName, baseline, mutation));
+        writeString(candidateFile, candidateDocument(
+                candidateId,
+                branchName,
+                baseline,
+                mutation,
+                proposerEvidence.get()));
 
         realizer.realize(worktreePath, baseline, mutation);
 
@@ -121,7 +140,8 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
             String candidateId,
             String branchName,
             WorkflowGraph baseline,
-            Mutation mutation
+            Mutation mutation,
+            Optional<ProposerEvidence> proposerEvidence
     ) {
         return """
                 candidate:
@@ -140,6 +160,7 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
                 %s
                   patch: |
                 %s
+                %s
                 """.formatted(
                 candidateId,
                 mutation.id(),
@@ -150,8 +171,28 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
                 mutation.id(),
                 mutation.scope().name(),
                 indentBlock(mutation.summary()),
-                indentBlock(mutation.patch())
+                indentBlock(mutation.patch()),
+                proposerBlock(proposerEvidence)
         );
+    }
+
+    private static String proposerBlock(Optional<ProposerEvidence> evidence) {
+        if (evidence.isEmpty()) {
+            return "";
+        }
+        ProposerEvidence proposer = evidence.get();
+        StringBuilder builder = new StringBuilder()
+                .append("proposer:\n")
+                .append("  id: ")
+                .append(proposer.proposerId())
+                .append("\n");
+        proposer.attributes().forEach((key, value) -> builder
+                .append("  ")
+                .append(key)
+                .append(": |\n")
+                .append(indentBlock(value))
+                .append("\n"));
+        return builder.toString();
     }
 
     private static String indentBlock(String value) {

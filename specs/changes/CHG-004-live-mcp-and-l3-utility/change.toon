@@ -120,10 +120,13 @@ deltas:
 
 acceptance:
   - scenario: S1
-    test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstARecordedEndpoint
+    test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstALocalOpenAiCompatibleEndpoint
     layer: integration
   - scenario: S1
-    test_id: cli/EvolveCommandAcceptanceTest.runsOneGenerationWithOpenAiCompatibleProfileAgainstARecordedEndpoint
+    test_id: cli/EvolveCommandAcceptanceTest.recordsLiveProposerPromptDigestAndRawResponseInCandidateBookkeeping
+    layer: acceptance
+  - scenario: S1
+    test_id: cli/EvolveCommandAcceptanceTest.rejectsPatchWhoseDiffExceedsMaxLinesBeforeCandidateCreation
     layer: acceptance
   - scenario: S2
     test_id: adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.failsCleanlyWhenTheEndpointIsUnreachable
@@ -219,12 +222,12 @@ tasks:
     note: uses `OpenAiChatModel` with a custom `baseUrl` so OpenAI, NeuralWatt, together.ai, groq and Ollama's `/v1` shim all fit one adapter; provider-neutral so credentials are never seen by the deterministic layer. Shipped as `OpenAiCompatibleChatModelFactory` plus typed `ModelEndpointConfig`; `SmallRyeModelEndpointConfigSource` reads application config from default config sources, including `SAAA_MODEL_BASE_URL`, `SAAA_MODEL_API_KEY` and `SAAA_MODEL_NAME` environment variables, while callers use repo-owned config types. Validation names config keys and never echoes credential values; tests are local construction/configuration tests and make no live endpoint call.
   - id: T2
     slice: implement the OpenAI-compatible proposer path behind the existing `MutationProposer` port, producing exactly one `Mutation` whose `patch` is a whole-file replacement whose *diff* against the baseline respects the operator's `maxLinesChanged` bound
-    status: pending
-    note: the bound is on the diff size, not the emitted-content length; a whole-file replacement of the same total length can still change every line and would exceed `maxLinesChanged`; replies whose diff violates bounds are dropped before validation; parsing failures are surfaced as run errors, not silent fall-throughs; the adapter must not read scorer or gate state; the exact prompt and the raw model response are logged into the candidate's `.saaa/candidates/<id>.toon` bookkeeping so a later run or a scorer-as-target audit can reproduce them from the commit. Partial shipped state: `OpenAiCompatibleMutationProposerFactory.fromConfig` reuses `LangChain4jMutationProposalAdapter` behind the `MutationProposer` port instead of adding a separate thin `OpenAiCompatibleMutationProposer` class. WireMock-backed tests prove that path can call a local OpenAI-compatible `/v1/chat/completions` stub and map one response into a `Mutation`; `ProposerProfileRegistryTest.openAiCompatibleProfileProposesAgainstALocalEndpoint` proves the CLI registry composes with the same local-stub path without hand-rolled HTTP server or executor code. The diff-bound and prompt/raw-response bookkeeping requirements remain pending.
+    status: completed
+    note: the bound is on the diff size, not the emitted-content length; a whole-file replacement of the same total length can still change every line and would exceed `maxLinesChanged`; replies whose diff violates bounds are rejected by `DiffLineBudgetMutationValidator` before candidate worktree creation; parsing failures are surfaced as run errors, not silent fall-throughs; the adapter does not read scorer or gate state. `OpenAiCompatibleMutationProposerFactory.fromConfig` reuses `LangChain4jMutationProposalAdapter` behind the `MutationProposer` port. WireMock-backed ATDD coverage in `EvolveCommandAcceptanceTest` proves that `--profile openai-compatible` can call a local OpenAI-compatible `/v1/chat/completions` stub, map one response into a `Mutation`, run the loop, and write proposer evidence into candidate bookkeeping without hand-rolled HTTP server or executor code.
   - id: T2b
     slice: extend the candidate bookkeeping TOON written by `GitCandidateWorkspace` to include the proposer id, prompt digest, and raw response for live-model runs; the fixture proposer records only its file path
-    status: pending
-    note: prerequisite for later audits that need to distinguish "the scorer changed its mind" from "the model produced a different proposal"
+    status: completed
+    note: candidate bookkeeping now accepts provider-neutral `ProposerEvidence`; live LangChain4j runs record `id: openai-compatible`, prompt digest, captured prompt messages and raw model response, while the fixture proposer records its fixture file path only. This preserves the clean architecture boundary: provider-specific request capture is inside `modules/adapters/langchain4j`, candidate TOON writing is inside `modules/adapters/git`, and deterministic/domain code only sees provider-neutral evidence values.
   - id: T3
     slice: register the live proposer as `openai-compatible` in `ProposerProfileRegistry` so `--profile openai-compatible` is a first-class choice alongside `fixture`
     status: completed

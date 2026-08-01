@@ -8,12 +8,17 @@ import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
 import com.dreamthought.saaa.adapters.journal.JournalDecisionSink;
 import com.dreamthought.saaa.adapters.journal.JournalReporter;
 import com.dreamthought.saaa.deterministic.BoundedMutationValidator;
+import com.dreamthought.saaa.deterministic.CompositeMutationValidator;
+import com.dreamthought.saaa.deterministic.DiffLineBudgetMutationValidator;
 import com.dreamthought.saaa.deterministic.ExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.MutationEvaluationLoop;
+import com.dreamthought.saaa.deterministic.MutationProposer;
+import com.dreamthought.saaa.deterministic.MutationScopeValidator;
 import com.dreamthought.saaa.deterministic.PhenotypeBridgeScorer;
 import com.dreamthought.saaa.deterministic.ScoringConfig;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -78,12 +83,19 @@ public final class EvolveCommand implements Callable<Integer> {
         var reporter = new CompositeReporter(List.of(
                 new ConsoleReporter(out),
                 new JournalReporter(folder.resolve("journal.md"), Clock.systemUTC())));
+        MutationProposer proposer = new ProposerProfileRegistry().resolve(profile, folder);
 
         var loop = new MutationEvaluationLoop(
-                new ProposerProfileRegistry().resolve(profile, folder),
-                new BoundedMutationValidator(),
+                proposer,
+                new CompositeMutationValidator(List.of(
+                        new BoundedMutationValidator(),
+                        new MutationScopeValidator(Set.of(MutationScope.WORKFLOW_DEFINITION)),
+                        new DiffLineBudgetMutationValidator(maxLines))),
                 new GitCandidateWorkspace(
-                        gitRoot, gitRoot.resolve(".worktrees"), new TextMutationRealizer(relativeWorkflow)),
+                        gitRoot,
+                        gitRoot.resolve(".worktrees"),
+                        new TextMutationRealizer(relativeWorkflow),
+                        proposer::proposerEvidence),
                 new CommandCheckRunner(checks),
                 candidate -> List.of(),
                 new PhenotypeBridgeScorer(
