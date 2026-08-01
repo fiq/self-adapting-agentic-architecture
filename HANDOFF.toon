@@ -88,12 +88,14 @@ completed:
   - implemented `T9b`: `CommandCheckRunner` now clears child process environments, copies only the default allow-list (`PATH`, `HOME`, `LANG`, `LC_*`, `JAVA_HOME`), and always denies `SAAA_MODEL_*` plus known model-provider API-key names so candidate behaviour checks cannot read model credentials
   - implemented `T9c`: `CandidateDecisionSink` now records `CandidateBranchRef` values under `refs/heads/candidate/*`; the port exposes no merge operation or target-branch string parameter
   - implemented `T10/T10b` acceptance coverage: fixture evolution can target a scratch `AuthorityLanguage.java`, promoted candidates create candidate refs without moving `main`, the CLI exposes no merge/promote flag, and `**/journal.md` is ignored so in-repo L3 runs do not leave an untracked journal
+  - addressed Claude PR #17 review blockers: the credential-scrub CLI acceptance test now runs the CLI in a child JVM with `SAAA_MODEL_API_KEY` set in the parent environment, the journal ignore acceptance test copies this repository's actual `.gitignore` into its scratch repo, and PR CI now runs component and integration tests in the fast job
+  - addressed PR #17 review maintainability points: `CandidateBranchRef` rejects traversal-shaped candidate refs, discard recording is named `recordDiscardedCandidateBranch`, and the no-auto-merge command scan moved into `check-architecture-boundaries` so it covers deterministic, adapter and CLI main sources
 
 in_progress:
   - validate and publish `feat/chg-004-plumb-l3-behaviour` for CHG-004 L3 behaviour plumbing
 
 next:
-  - run `project check` and `project ready` after the L3 plumbing docs/spec updates, then request review and open a PR
+  - push PR #17 review fixes, wait for GitHub fast CI, then request Claude or human re-review
   - close CHG-004 with `T11/T12`: README/wiki/profile/handoff updates for the openai-compatible profile, MCP surface, classical guards, Layer-3 constraints and Q-001 answer
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
@@ -129,7 +131,7 @@ decisions:
 blocking_questions: []
 
 risks:
-  - PR fast CI intentionally omits component and integration tests to reduce Actions latency; automatic `push` to `main`, `v*` tag validation and manual `profile=full` dispatch run full readiness, but reviewers must request or run full validation before merging high-risk adapter, Git, SQLite or workflow-loop changes
+  - PR fast CI now includes component and integration tests because CHG-004 uses those suites as load-bearing evidence; watch GitHub Actions duration and split further only when measured runtime or quota pressure justifies it
   - RISK-002: the scorer enforces its own fixed gates and never sees the contract, so a declared `required_evidence_present` gate can pass without the evidence it names; tracked as `T4b`
   - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
   - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
@@ -215,6 +217,14 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project test`: pass after Claude PR #17 review fixes; includes `CandidateBranchRef` traversal rejection, promotion sink type shape and existing unit suites
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project component-test`: pass after Claude PR #17 review fixes; includes child-JVM CLI acceptance test with `SAAA_MODEL_API_KEY` actually present in the parent process and journal-ignore test using this repository's `.gitignore`
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project integration-test`: pass after Claude PR #17 review fixes; includes non-vacuous `CommandCheckRunner` environment scrub test
+  - 2026-08-02 `git diff --check`: pass after Claude PR #17 review fixes
+  - 2026-08-02 `nix shell nixpkgs#yq-go -c yq eval '.' .github/workflows/ci.yml`: pass after adding component/integration evidence to PR fast CI
+  - 2026-08-02 `nix shell nixpkgs#actionlint -c actionlint .github/workflows/ci.yml`: pass after adding component/integration evidence to PR fast CI
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project check`: pass after Claude PR #17 review fixes; includes no-auto-merge command scan in `check-architecture-boundaries`
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project ready`: READY: PASS after Claude PR #17 review fixes; 14 passed, 2 not applicable, 0 failed; `project ready` now includes component tests
   - 2026-08-01 `.agentic-template/bin/project test`: pass after Claude PR #14 review fixes; includes fixture evidence file-name test
   - 2026-08-01 `.agentic-template/bin/project integration-test`: first concurrent run failed with a transient Gradle/source visibility compile error while another Gradle task was compiling the same worktree; rerun alone passed
   - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after Claude PR #14 review fixes; includes durable proposer evidence scrub/cap regression test
@@ -344,7 +354,7 @@ tests_run:
   - 2026-07-31 `.agentic-template/bin/project lint`: ARCHITECTURE BOUNDARIES OK
 
 fitness_functions:
-  - changed: PR `pull_request` CI runs the fast conformance profile (`project check`, `project check-readme`, `project test`, `project lint`) and no longer runs `project ready`; automatic `push` to `main`, `v*` tags and manual `profile=full` dispatch run both fast checks and full readiness so real Git/SQLite integration gates still run automatically after merge and on versioned validation
+  - changed: PR `pull_request` CI runs the fast conformance profile (`project check`, `project check-readme`, `project test`, `project component-test`, `project integration-test`, `project lint`) and no longer runs `project ready`; automatic `push` to `main`, `v*` tags and manual `profile=full` dispatch run both fast checks and full readiness
   - removed: the separate `repo-contract` workflow is deleted because `project check` runs `check-repo-contract` in the main CI workflow
   - unchanged: T1 adds LangChain4j OpenAI provider wiring only inside `modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j`; the boundary fitness function remains the guard that provider imports do not leak into `modules/domain` or `modules/deterministic`
   - added: `hard_gate_non_empty_realization` in `PhenotypeFitnessScorer` fails promotion closed when the realization changed no file; enforced by test rather than by the boundary script, like the `CommandCheckRunner` containment rule
@@ -353,6 +363,7 @@ fitness_functions:
   - unchanged: no layer boundary moved; provider capture stays in `modules/adapters/langchain4j`, candidate TOON writing stays in `modules/adapters/git`, and deterministic/domain code sees only provider-neutral records and ports
   - added: behaviour-case child processes run with an explicit allow-listed environment; covered by adapter integration and CLI acceptance tests
   - added: promotion is branch-pointer-only at the `CandidateDecisionSink` port via `CandidateBranchRef`, with unit coverage for the type shape and a deterministic source scan for merge commands
+  - added: `check-architecture-boundaries` rejects candidate auto-merge command references in deterministic, adapter and CLI main sources, so the invariant runs in PR CI
 
 knowledge:
   consulted:

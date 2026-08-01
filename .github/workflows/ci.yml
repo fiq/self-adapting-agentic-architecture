@@ -41,6 +41,10 @@ jobs:
         run: .agentic-template/bin/project check-readme
       - name: Unit tests
         run: .agentic-template/bin/project test
+      - name: Component tests
+        run: .agentic-template/bin/project component-test
+      - name: Integration tests
+        run: .agentic-template/bin/project integration-test
       - name: Architecture lint
         run: .agentic-template/bin/project lint
 

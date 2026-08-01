@@ -14,7 +14,7 @@ final class PromotionSinkTypeTest {
                 .toList();
 
         assertThat(methodNames)
-                .containsExactlyInAnyOrder("recordPromotedCandidateBranch", "discardCandidateBranch")
+                .containsExactlyInAnyOrder("recordPromotedCandidateBranch", "recordDiscardedCandidateBranch")
                 .noneMatch(name -> name.toLowerCase().contains("merge"));
 
         Arrays.stream(CandidateDecisionSink.class.getDeclaredMethods())

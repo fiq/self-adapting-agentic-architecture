@@ -20,7 +20,7 @@ public final class JournalDecisionSink implements CandidateDecisionSink {
     }
 
     @Override
-    public void discardCandidateBranch(CandidateBranchRef candidateBranchRef, FitnessResult result) {
+    public void recordDiscardedCandidateBranch(CandidateBranchRef candidateBranchRef, FitnessResult result) {
         record("DISCARD", candidateBranchRef, result);
     }
 

@@ -21,4 +21,11 @@ final class CandidateBranchRefTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("candidate branch ref must start with refs/heads/candidate/");
     }
+
+    @Test
+    void rejectsTraversalShapedCandidateRefs() {
+        assertThatThrownBy(() -> new CandidateBranchRef("refs/heads/candidate/../../heads/main"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("single safe branch segment");
+    }
 }

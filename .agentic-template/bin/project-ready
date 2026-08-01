@@ -96,6 +96,8 @@ def main():
             steps.append(([project_script, "test"], "unit tests"))
         if "lint" in specialised_commands:
             steps.append(([project_script, "lint"], "lint"))
+        if "component-test" in specialised_commands:
+            steps.append(([project_script, "component-test"], "component tests"))
         if "integration-test" in specialised_commands:
             steps.append(([project_script, "integration-test"], "integration tests"))
         if "contract-test" in specialised_commands:

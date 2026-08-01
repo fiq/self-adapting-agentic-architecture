@@ -75,7 +75,7 @@ final class MutationEvaluationLoopReportingTest {
                     ) { }
 
                     @Override
-                    public void discardCandidateBranch(
+                    public void recordDiscardedCandidateBranch(
                             CandidateBranchRef candidateBranchRef,
                             FitnessResult result
                     ) { }
