@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-01
-  status: pr_15_open; chg_004_t4_t5_t6_t6b_mcp_tool_surface_under_review
+  status: pr_15_open; claude_review_fixes_local_validation
   branch: feat/chg-004-t4-mcp-tool-surface
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t4-mcp-tool-surface
   head: PR #14 branch head including Claude review fixes plus local CHG-004 T4/T5/T6/T6b MCP changes
-  head_note: PR #15 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/15 and stacked on PR #14 / `feat/chg-004-t2-audit-diff-bound`; PR #14 review fixes are inherited and PR #15 still needs Claude review fixes before push
+  head_note: PR #15 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/15 and stacked on PR #14 / `feat/chg-004-t2-audit-diff-bound`; PR #14 review fixes are inherited and PR #15 Claude review fixes are local pending full validation and force-with-lease push authorisation after the stack rebase
   dirty: true
   pushed: true
 
@@ -75,12 +75,13 @@ completed:
   - added MCP unit and acceptance coverage for structured `FitnessResult` output, objective/gate ordering, closed schema rejection of gate override / force promotion / auto-merge / credentials, API-key scrubbing, non-terminating tool errors, total response caps preserving valid JSON, closed output schema with evidence, and journal/commit-SHA agreement after a real fixture evolve run
   - ran two independent review-agent passes for the MCP slice: architecture/security found medium issues in stdio lifecycle and error structured-content/schema mismatch; Java maintainability/test quality found a high malformed-JSON cap issue plus medium schema and ATDD-fidelity concerns
   - addressed blocking review findings: errors no longer publish success-shaped `structuredContent`, output schema now includes `evidence` and is closed at root/candidate/evidence item levels, and total response caps preserve valid JSON by replacing over-large evidence arrays with a truncated evidence envelope
+  - addressed Claude PR #15 blocking review findings locally: `workflowFile` is now a normalized relative child path validated by `EvolveRunRequest` and rechecked by `EvolveRunner` before file reads or proposer resolution; MCP error response caps shrink only the error value so the JSON envelope remains valid; objective serialization sorts measured keys then hard gates by key, making output stable despite `FitnessResult` map-copy randomisation
+  - recorded the `targetFolder` trust boundary in the CHG-004 risk list: the local stdio tool intentionally accepts any visible local Git repository and executes its declared check scripts, which is acceptable for this developer-only slice but must be revisited before remote or multi-user service exposure
 
 in_progress:
-  - PR #15 Claude review fixes are being applied on top of updated PR #14
+  - PR #15 Claude review fixes are being validated on top of updated PR #14
 
 next:
-  - fix PR #15 containment, JSON error and objective-order findings
   - validate and push PR #15
   - after PR #14 lands, rebase/retarget the MCP branch onto `main`
   - then L3 (T9b/T9c/T10/T10b), close with T11/T12
@@ -122,6 +123,7 @@ risks:
   - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
   - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
   - Q-009: Quarkus may become useful when SAAA has a durable HTTP/MCP runtime shell, but adopting it now would risk moving focus from mutation-loop behaviour to framework integration
+  - MCP `targetFolder` accepts any local Git repository visible to the stdio server process and executes declared check scripts from that repository; acceptable for the local developer tool, but unsafe as-is for a remote or multi-user service
   - MCP stdio lifecycle is only startable in this slice (`saaa mcp` starts a stdio server and waits under the supervising client/process); there is no transport-level ATDD yet proving client-disconnect shutdown behavior, so do not claim more than "startable MCP stdio entrypoint" until a follow-up test drives the real process lifecycle
   - the new `MutationContract` / `MutationContractValidator` / `PhenotypeFitnessScorer` stack is parallel to the wired `Mutation` / `MutationValidator` / `FitnessScorer` ports; the design records `Mutation.patch` as transitional but no migration step is scheduled yet
   - benchmark presence is not yet a hard gate because "required benchmark evidence" is contract-dependent and the scorer has no contract input
@@ -214,6 +216,13 @@ tests_run:
   - 2026-08-01 process check: no `:cli:run`, `saaa mcp`, `MutationLoopCli` or `gradle.*mcp` process left running after the manual startability probe
   - 2026-08-01 reviewer pass 1 (architecture/security): medium findings in MCP stdio lifecycle and error structured-content/schema mismatch; schema/structured-content fixed, stdio lifecycle recorded as follow-up risk
   - 2026-08-01 reviewer pass 2 (Java maintainability/test quality): high malformed-JSON cap finding plus medium schema and ATDD fidelity findings; cap and schema fixed, transport-level ATDD recorded as follow-up risk
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project test`: pass after Claude PR #15 fixes; includes MCP traversal rejection, symlink workflow rejection, valid capped error JSON and stable objective ordering regressions
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project component-test`: pass after Claude PR #15 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project integration-test`: pass after Claude PR #15 fixes; Nix printed a transient eval-cache SQLite busy warning, but Gradle finished successfully
+  - 2026-08-01 `git diff --check`: pass after Claude PR #15 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project check`: pass after Claude PR #15 fixes; repo contract, profile, handoff, knowledge, changes, architecture boundaries, tooling and MCP checks OK
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project ready`: READY: PASS after Claude PR #15 fixes; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 independent focused subagent review of PR #15 Claude fixes: no blocking findings; confirmed workflow containment before runner/model/candidate invocation, valid capped error JSON, deterministic objective ordering and clean adapter-only architecture
   - 2026-08-01 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `559744f91afdd7e5e27cae92cfd12d5f6639637c`
   - 2026-08-01 `git worktree list --porcelain`: main checkout plus `.worktrees/feat-chg-004-t1-openai-compatible-wiring`; no abandoned worktree directories
