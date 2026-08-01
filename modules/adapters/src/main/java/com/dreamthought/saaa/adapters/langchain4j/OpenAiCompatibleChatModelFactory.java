@@ -2,7 +2,6 @@ package com.dreamthought.saaa.adapters.langchain4j;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import com.dreamthought.saaa.deterministic.MutationProposer;
 import java.util.Map;
 import java.util.Objects;
 
@@ -13,10 +12,6 @@ public final class OpenAiCompatibleChatModelFactory {
 
     public ChatModel fromProcessEnvironment() {
         return fromEnvironment(System.getenv());
-    }
-
-    public MutationProposer mutationProposerFromEnvironment(Map<String, String> environment) {
-        return LangChain4jMutationProposalAdapter.from(fromEnvironment(environment));
     }
 
     public ChatModel fromEnvironment(Map<String, String> environment) {
