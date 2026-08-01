@@ -50,7 +50,7 @@ public final class FixtureMutationProposer implements MutationProposer {
             throw new IllegalStateException(
                     "fixture mutation must have a summary line and a body: " + fixtureFile);
         }
-        evidence = ProposerEvidence.of("fixture", Map.of("fixture_path", fixtureFile.toString()));
+        evidence = ProposerEvidence.of("fixture", Map.of("fixture_path", fixtureFile.getFileName().toString()));
         return new Mutation("MUT-" + baseline.id() + "-fixture", summary, MutationScope.WORKFLOW_DEFINITION, patch);
     }
 

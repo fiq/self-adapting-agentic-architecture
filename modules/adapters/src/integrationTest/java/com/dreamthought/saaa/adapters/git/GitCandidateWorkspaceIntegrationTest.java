@@ -105,6 +105,38 @@ final class GitCandidateWorkspaceIntegrationTest {
                         "    {\"id\":\"MUT-1\"}");
     }
 
+    @Test
+    void scrubsAndCapsProposerEvidenceBeforeItIsCommitted() throws IOException {
+        Path repository = initRepositoryWithWorkflowFile();
+        Path worktrees = tempDir.resolve("worktrees");
+        var attributes = new LinkedHashMap<String, String>();
+        attributes.put("prompt", "prompt " + "x".repeat(ProposerEvidenceSanitizer.VALUE_LIMIT + 200));
+        attributes.put(
+                "raw_response",
+                "Authorization: Bearer sk-super-secret-value echoed sk-super-secret-value");
+
+        var workspace = new GitCandidateWorkspace(
+                repository,
+                worktrees,
+                new TextMutationRealizer("workflow.txt"),
+                () -> Optional.of(ProposerEvidence.of("openai-compatible", attributes)),
+                new ProposerEvidenceSanitizer(() -> Optional.of("sk-super-secret-value")));
+
+        var candidate = workspace.createCommittedCandidate(
+                new WorkflowGraph("toy", "v1", "old content"),
+                new Mutation("MUT-1", "tighten guard", WORKFLOW_DEFINITION, "new content"));
+
+        String candidateToon = Files.readString(candidate.worktreePath().resolve(".saaa/candidates/candidate-mut-1.toon"));
+        assertThat(candidateToon)
+                .doesNotContain("sk-super-secret-value")
+                .contains("Authorization: Bearer <redacted>")
+                .contains("<redacted>");
+        assertThat(candidateToon)
+                .doesNotContain("x".repeat(ProposerEvidenceSanitizer.VALUE_LIMIT + 1));
+        assertThat(runOutput(candidate.worktreePath(), "show", "HEAD:.saaa/candidates/candidate-mut-1.toon"))
+                .doesNotContain("sk-super-secret-value");
+    }
+
     private Path initRepositoryWithWorkflowFile() throws IOException {
         Path repository = tempDir.resolve("repo");
         Files.createDirectories(repository);
