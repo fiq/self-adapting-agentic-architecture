@@ -1,16 +1,16 @@
 session:
   updated: 2026-08-01
-  status: chg_004_t7_t8_t9_merged; chg_004_t1_openai_compatible_wiring_review_feedback_addressed
-  branch: feat/chg-004-t1-openai-compatible-wiring
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t1-openai-compatible-wiring
-  head: current PR #10 branch head after review-fix push
-  head_note: exact commit is reported by `git rev-parse --short HEAD`; this avoids a stale self-referential hash after amend
+  status: pr_10_pr_12_on_main; pr_11_was_merged_to_stacked_base_not_main; corrective_pr_13_open_with_wiremock_config_cleanup
+  branch: fix/land-pr-11-openai-profile
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/land-pr-11-openai-profile
+  head: merge of origin/feat/chg-004-t2-t3-openai-profile-stub onto origin/main
+  head_note: PR #11 was merged into `feat/chg-004-t1-openai-compatible-wiring`, not `main`; this branch lands the same implementation onto current `main` without reverting ADR-0003/Q-008 docs from PR #12
   dirty: false
-  pushed: true
+  pushed: false
 
 goal:
-  current: implement CHG-004 vertically per the staging order; L1 first, then L2, then L3
-  phase: chg_004_t1_openai_compatible_chat_model_wiring
+  current: implement CHG-004 vertically per the staging order; get the live-profile CLI path startable soon
+  phase: chg_004_t3_openai_compatible_profile_registration_with_local_stub
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -47,13 +47,27 @@ completed:
   - ran two independent review passes on PR #10: architecture/security reviewer found no implementation boundary or credential leak issues and one low stale-handoff finding; knowledge/documentation reviewer found one medium taxonomy-key finding (`related_to` should be `relates_to`) and otherwise accepted the ontology/wiki prose
   - addressed both initial review findings: refreshed handoff branch state and fixed the question template to use the canonical `relates_to` edge key
   - addressed Claude's PR #10 scope feedback by removing the broader ontology/wiki material from the T1 wiring PR; the smart-bridge/ontology direction will be captured in a separate documentation branch
+  - marked PR #10 ready for review after review fixes; GitHub checks were green and merge state was clean before starting this stacked follow-up
+  - started stacked branch `feat/chg-004-t2-t3-openai-profile-stub` from PR #10 head to move toward a tool with a startable agentic loop
+  - added `OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstALocalOpenAiCompatibleEndpoint`, using a JDK local HTTP stub for `/v1/chat/completions` instead of a live provider or secret; the test proves bearer auth, model name, prompt content and one mutation response mapping
+  - registered `openai-compatible` in `ProposerProfileRegistry`, with injectable environment for fast tests and adapter-side composition so CLI does not need LangChain4j classes on its classpath
+  - addressed Claude's PR #11 feedback: renamed the intended PR scope to T3 plus partial T2, reconciled the T2 task text with the reused `LangChain4jMutationProposalAdapter` implementation, added a registry-to-proposer local-stub test, made the integration assertion whitespace-tolerant, and shut down the local-stub executor
+  - merged PR #10 branch head `43b547f` into the stacked PR #11 branch so PR #11 inherits the scope cleanup
+  - independent architecture/security review found no blocking findings; independent spec/test/product-scope review found no local content blockers and requested PR hygiene before handoff
+  - performed Java maintainability review after user concern about static wrapper design; split proposer construction out of `OpenAiCompatibleChatModelFactory` into `OpenAiCompatibleMutationProposerFactory` so each factory has one responsibility and CLI still avoids direct LangChain4j types
+  - checked static analysis tooling expectations: no Checkstyle, SpotBugs/FindBugs, PMD, Error Prone, NullAway or ArchUnit plugin/config is currently wired; current static gate is custom architecture-boundary lint through `project lint/check/ready`
+  - corrective PR #13 opened to land PR #11 implementation on current `main` after PR #11 was merged only into its stacked base
+  - replaced hand-rolled JDK local-provider test stubs (`HttpServer`, `HttpExchange`, `ExecutorService`) with WireMock in adapter integration and CLI profile tests
+  - moved live model endpoint settings behind adapter-owned `ModelEndpointConfig` and `SmallRyeModelEndpointConfigSource`; CLI selects the `openai-compatible` profile but does not read environment variables or reference LangChain4j types directly
+  - recorded `Q-009` to defer a Quarkus runtime shell until a long-running HTTP/MCP runtime, health/metrics, packaging or native-image requirement is evidenced
+  - applied independent senior-Java/startup-engineering advice: prefer typed config plus WireMock now, keep Quarkus deferred, and add static-analysis tooling as a separate quality slice rather than widening this PR
 
 in_progress:
-  - PR #10 open and ready; Claude feedback addressed locally pending validation and push
+  - corrective PR #13 is open; local cleanup replaces low-level provider-test plumbing and adapter configuration before final validation/push
 
 next:
-  - validate and push PR #10 feedback fix
-  - then continue L1 with `T2`/`T2b`/`T3` (OpenAiCompatible proposer + prompt/response bookkeeping + profile registration). T2 endpoint tests should use a local stub server rather than a live provider so local and CI runs stay fast and secret-free
+  - run final `project check`, `project ready` and GitHub checks after pushing `fix/land-pr-11-openai-profile`
+  - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
@@ -92,6 +106,7 @@ risks:
   - RISK-002: the scorer enforces its own fixed gates and never sees the contract, so a declared `required_evidence_present` gate can pass without the evidence it names; tracked as `T4b`
   - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
   - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
+  - Q-009: Quarkus may become useful when SAAA has a durable HTTP/MCP runtime shell, but adopting it now would risk moving focus from mutation-loop behaviour to framework integration
   - the new `MutationContract` / `MutationContractValidator` / `PhenotypeFitnessScorer` stack is parallel to the wired `Mutation` / `MutationValidator` / `FitnessScorer` ports; the design records `Mutation.patch` as transitional but no migration step is scheduled yet
   - benchmark presence is not yet a hard gate because "required benchmark evidence" is contract-dependent and the scorer has no contract input
   - the fixture proposer is deterministic by design, so it cannot demonstrate that a real model produces useful mutations; it only proves the pipe
@@ -109,9 +124,17 @@ files_changed:
   - HANDOFF.toon
   - gradle/libs.versions.toml
   - modules/adapters/build.gradle.kts
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/ModelEndpointConfig.java
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleChatModelFactory.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleMutationProposerFactory.java
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/SmallRyeModelEndpointConfigSource.java
+  - modules/adapters/src/integrationTest/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleMutationProposerIntegrationTest.java
   - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/langchain4j/OpenAiCompatibleChatModelFactoryTest.java
+  - modules/cli/build.gradle.kts
+  - modules/cli/src/main/java/com/dreamthought/saaa/cli/ProposerProfileRegistry.java
+  - modules/cli/src/test/java/com/dreamthought/saaa/cli/ProposerProfileRegistryTest.java
   - specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon
+  - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
   - .agents/knowledge/templates/question.md
   - README.md
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeEvidence.java
@@ -146,6 +169,39 @@ tests_run:
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after review fixes; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 `.agentic-template/bin/project check`: pass after Claude scope cleanup; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after Claude scope cleanup; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 `.agentic-template/bin/project test`: first stacked T3 run failed because CLI reached an adapter method exposing LangChain4j `ChatModel`; fixed by adding an adapter-side `mutationProposerFromEnvironment` method returning `MutationProposer`
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after openai-compatible profile registration; 14 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: first run failed on brittle JSON spacing assertion; fixed to match LangChain4j's actual local-stub request shape
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after local-stub assertion fix; 10 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project check-changes`: CHANGES OK for stacked T3/local-stub slice
+  - 2026-08-01 `.agentic-template/bin/project lint`: ARCHITECTURE BOUNDARIES OK for stacked T3/local-stub slice
+  - 2026-08-01 `.agentic-template/bin/project check`: pass for stacked T3/local-stub slice; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `git diff --check`: pass for stacked T3/local-stub slice
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS for stacked T3/local-stub slice; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 Claude PR #11 review: actionable findings were PR title/scope mismatch, T2 spec/code mismatch, missing registry-to-proposer local-stub test, brittle request-body assertion and local-stub executor lifetime
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after Claude PR #11 fixes; includes registry-to-proposer local-stub test
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after Claude PR #11 fixes; includes OpenAI-compatible local-stub proposer test
+  - 2026-08-01 `git diff --check`: pass after Claude PR #11 fixes
+  - 2026-08-01 `.agentic-template/bin/project check`: pass after merging PR #10 cleanup into PR #11; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after merging PR #10 cleanup into PR #11; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 reviewer pass 1 (architecture/security): no blocking findings; boundary scan/lint/diff checks accepted; noted regex JSON field helper is acceptable only for the narrow stub assertion
+  - 2026-08-01 reviewer pass 2 (spec/test/product-scope): no local content blockers; requested PR #11 hygiene because remote title/draft/dirty state lagged local fixes
+  - 2026-08-01 `git push`: pushed PR #11 branch through `f0eb642`
+  - 2026-08-01 `gh pr ready 11`: PR #11 marked ready for review
+  - 2026-08-01 `gh pr edit 11 --title ...`: PR #11 retitled to `CHG-004 T3 + partial T2: register profile and stub proposer path`
+  - 2026-08-01 `gh pr checks 11`: GitHub checks green after push and title/ready update
+  - 2026-08-01 static-analysis scan: no Checkstyle, SpotBugs/FindBugs, PMD, Error Prone, NullAway or ArchUnit configuration found in Gradle files
+  - 2026-08-01 Java maintainability review: no blocking Java idiom findings after splitting chat-model and proposer factory responsibilities; remaining static calls are constants, local test helpers, JDK factories or the existing adapter static factory
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after Java maintainability split; 14 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after Java maintainability split; 10 Gradle tasks
+  - 2026-08-01 `git diff --check`: pass after Java maintainability split
+  - 2026-08-01 boundary scan: no `HttpServer`, `HttpExchange`, `ExecutorService`, `Executors`, `System.getenv` or `dev.langchain4j` matches in CLI/domain/deterministic source paths
+  - 2026-08-01 provider-test plumbing scan: no `HttpServer`, `HttpExchange`, `ExecutorService`, `Executors` or `System.getenv` matches in adapter/CLI provider test and main paths
+  - 2026-08-01 `git diff --check`: pass after WireMock and SmallRye config cleanup
+  - 2026-08-01 `.agentic-template/bin/project test`: pass after WireMock and SmallRye config cleanup; 14 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project integration-test`: pass after WireMock and SmallRye config cleanup; 10 Gradle tasks
+  - 2026-08-01 `.agentic-template/bin/project check`: pass after WireMock and SmallRye config cleanup; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after WireMock and SmallRye config cleanup; 13 passed, 2 not applicable, 0 failed
   - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-07-31 `T10` red before green at the boundary: `EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing` failed with the journal reporting `PROMOTE` for a candidate whose realization wrote the workflow file back unchanged
   - 2026-07-31 `T10` red before green in the deterministic layer: `PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate` and `PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing` failed to compile against the pre-gate API, then failed on the gate value once it existed
@@ -171,6 +227,8 @@ knowledge:
     - docs/decisions/0002-three-layer-vision.md
     - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
     - PROJECT_PROFILE.toon (added `three_layer_vision_with_vertical_slices` under `decisions`, status `proposed`)
+    - pending separate docs/quality branch: Java static-analysis policy follow-up for Checkstyle/SpotBugs/Error Prone-style gates
+    - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
   no_record: |
     `T1` implements a task already recorded in `CHG-004`; the durable record is the task status,
     the new adapter tests and this handoff rather than a new knowledge entry.

@@ -6,7 +6,9 @@ jqwik = "1.9.3"
 junit = "5.13.4"
 langchain4j = "1.18.0"
 picocli = "4.7.7"
+smallrye-config = "3.18.0"
 sqlite = "3.53.2.0"
+wiremock = "3.13.2"
 
 [libraries]
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
@@ -20,4 +22,6 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 langchain4j = { module = "dev.langchain4j:langchain4j", version.ref = "langchain4j" }
 langchain4j-open-ai = { module = "dev.langchain4j:langchain4j-open-ai", version.ref = "langchain4j" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
+smallrye-config = { module = "io.smallrye.config:smallrye-config", version.ref = "smallrye-config" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
+wiremock = { module = "org.wiremock:wiremock", version.ref = "wiremock" }
