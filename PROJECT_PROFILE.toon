@@ -122,18 +122,17 @@ decisions:
       - .agentic-template/bin/project ready
     consequence_if_changed: distribution work could distract from validating the mutation loop
   - id: staged_ci_validation_profiles
-    decision: default pull-request CI runs a fast feedback profile, while full readiness is reserved for manual workflow dispatch and version tags
+    decision: pull-request CI runs a fast feedback profile, while pushes to `main`, `v*` tags and manual full dispatch run both fast checks and full readiness
     reason:
-      - `project ready` composes earlier checks and integration tests, so running it on every PR push duplicates work and burns GitHub Actions quota
+      - duplicate push/pull_request workflows and the redundant repo-contract workflow spent most of the avoidable GitHub Actions time
       - fast PR feedback should prove repository contracts, specs, architecture boundaries and unit behavior before human review waits on slower suites
-      - release or high-risk validation still needs a full `project ready` path that can be run deliberately
+      - full validation still needs `project ready` for integration tests over real Git/SQLite and other readiness checks, but the full path is strongest when it also runs the fast checks that `ready` does not include
     confidence: medium
     status: active
     validation:
       - .github/workflows/ci.yml
-      - .github/workflows/repo-contract.yml
       - .agentic-template/bin/project check
-    consequence_if_changed: PRs may either become slow and quota-heavy again or merge without an explicit full-readiness path for risky and versioned changes
+    consequence_if_changed: CI may either become slow and quota-heavy again or stop running real-dependency readiness checks automatically after merge and on versioned releases
   - id: jqwik_1_9_3_pending_policy_review
     decision: pin jqwik to 1.9.3 for the initial scaffold
     reason:

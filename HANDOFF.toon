@@ -1,12 +1,12 @@
 session:
   updated: 2026-08-01
-  status: pr_16_open_fast_ci_green
+  status: pr_16_review_fixes_local_validation
   branch: chore/fast-pr-ci
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
   head: origin/main plus local CI profile changes
-  head_note: PR #16 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/16; PR fast CI passed and full-readiness was skipped as intended for pull_request
-  dirty: false
-  pushed: true
+  head_note: PR #16 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/16; Claude review fixes are local pending validation and push
+  dirty: true
+  pushed: false
 
 goal:
   current: reduce GitHub Actions cost and latency with staged validation profiles while preserving an explicit full-readiness gate
@@ -64,12 +64,13 @@ completed:
   - started `chore/fast-pr-ci` from `main` and narrowed `.github/workflows/ci.yml`: PRs and pushes to `main` run fast checks (`project check`, `project test`, `project lint`), `workflow_dispatch` can run `fast` or `full`, and `v*` tags run full `project ready`
   - added GitHub Actions concurrency cancellation so stale PR runs are cancelled on newer pushes
   - narrowed `.github/workflows/repo-contract.yml` to `main` pushes and manual dispatch so it no longer duplicates every PR's fast checks
+  - addressed Claude PR #16 review feedback locally: `push` to `main`, `v*` tags and manual `profile=full` now run both fast checks and full readiness; PRs still run fast feedback only; `check-readme` is restored to fast CI; workflow concurrency includes event name and dispatch profile so a `main` push cannot cancel a manual full run; the redundant repo-contract workflow is deleted
 
 in_progress:
-  - PR #16 is open for review
+  - validate and push PR #16 review fixes
 
 next:
-  - merge PR #16 after human review if the staged CI policy is acceptable
+  - push PR #16 review fixes and wait for GitHub checks
   - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
@@ -106,6 +107,7 @@ decisions:
 blocking_questions: []
 
 risks:
+  - PR fast CI intentionally omits component and integration tests to reduce Actions latency; automatic `push` to `main`, `v*` tag validation and manual `profile=full` dispatch run full readiness, but reviewers must request or run full validation before merging high-risk adapter, Git, SQLite or workflow-loop changes
   - RISK-002: the scorer enforces its own fixed gates and never sees the contract, so a declared `required_evidence_present` gate can pass without the evidence it names; tracked as `T4b`
   - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
   - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
@@ -124,7 +126,10 @@ risks:
   - the behaviour case convention is POSIX-shaped, so `evolve` is effectively Linux and macOS only; on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`
 
 files_changed:
+  - .github/workflows/ci.yml
+  - .github/workflows/repo-contract.yml (deleted)
   - HANDOFF.toon
+  - PROJECT_PROFILE.toon
   - gradle/libs.versions.toml
   - modules/adapters/build.gradle.kts
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/ModelEndpointConfig.java
@@ -166,6 +171,14 @@ tests_run:
   - 2026-08-01 `nix develop --command .agentic-template/bin/project lint`: pass for the exact fast-CI lint step
   - 2026-08-01 `nix develop --command .agentic-template/bin/project ready`: READY: PASS for manual/tag full-readiness path; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 `gh pr checks 16 --watch`: PR #16 `fast` job passed in 51s; `full-readiness` skipped on pull_request as intended
+  - 2026-08-01 `nix shell nixpkgs#yq-go -c yq eval '.' .github/workflows/ci.yml`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix shell nixpkgs#actionlint -c actionlint .github/workflows/ci.yml`: pass after Claude PR #16 fixes
+  - 2026-08-01 `git diff --check`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project check`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project check-readme`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project test`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project lint`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project ready`: READY: PASS after Claude PR #16 fixes; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `559744f91afdd7e5e27cae92cfd12d5f6639637c`
   - 2026-08-01 `git worktree list --porcelain`: main checkout plus `.worktrees/feat-chg-004-t1-openai-compatible-wiring`; no abandoned worktree directories
   - 2026-08-01 `git branch --merged main` / `git branch --no-merged main`: all old local branches merged into `main`; no unmerged local branches besides the active T1 worktree branch
@@ -223,6 +236,8 @@ tests_run:
   - 2026-07-31 `.agentic-template/bin/project lint`: ARCHITECTURE BOUNDARIES OK
 
 fitness_functions:
+  - changed: PR `pull_request` CI runs the fast conformance profile (`project check`, `project check-readme`, `project test`, `project lint`) and no longer runs `project ready`; automatic `push` to `main`, `v*` tags and manual `profile=full` dispatch run both fast checks and full readiness so real Git/SQLite integration gates still run automatically after merge and on versioned validation
+  - removed: the separate `repo-contract` workflow is deleted because `project check` runs `check-repo-contract` in the main CI workflow
   - unchanged: T1 adds LangChain4j OpenAI provider wiring only inside `modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j`; the boundary fitness function remains the guard that provider imports do not leak into `modules/domain` or `modules/deterministic`
   - added: `hard_gate_non_empty_realization` in `PhenotypeFitnessScorer` fails promotion closed when the realization changed no file; enforced by test rather than by the boundary script, like the `CommandCheckRunner` containment rule
   - unchanged: `check-architecture-boundaries` still fails loudly when a scanned layer directory is missing, and `modules/domain` and `modules/deterministic` still import only `java.*` and repository packages
