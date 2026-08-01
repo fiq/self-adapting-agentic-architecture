@@ -2,7 +2,9 @@ name: Repo Contract
 
 on:
   push:
-  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   repo-contract:
