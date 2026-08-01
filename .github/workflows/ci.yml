@@ -19,12 +19,12 @@ on:
           - full
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.inputs.profile || 'auto' }}
   cancel-in-progress: true
 
 jobs:
   fast:
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.profile == 'fast' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.profile == 'fast' || github.event.inputs.profile == 'full' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,13 +37,15 @@ jobs:
           gradle-version: "8.14.4"
       - name: Repository checks
         run: .agentic-template/bin/project check
+      - name: README check
+        run: .agentic-template/bin/project check-readme
       - name: Unit tests
         run: .agentic-template/bin/project test
       - name: Architecture lint
         run: .agentic-template/bin/project lint
 
   full-readiness:
-    if: ${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.profile == 'full') }}
+    if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.profile == 'full') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
