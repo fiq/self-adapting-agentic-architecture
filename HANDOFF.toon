@@ -1,12 +1,12 @@
 session:
   updated: 2026-08-01
-  status: pr_14_open; chg_004_t4_t5_t6_t6b_mcp_tool_surface_ready_for_publication
+  status: pr_15_open; chg_004_t4_t5_t6_t6b_mcp_tool_surface_under_review
   branch: feat/chg-004-t4-mcp-tool-surface
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t4-mcp-tool-surface
   head: PR #14 branch head including Claude review fixes plus local CHG-004 T4/T5/T6/T6b MCP changes
-  head_note: this branch is stacked on `feat/chg-004-t2-audit-diff-bound`; PR #14 review fixes are inherited and PR #15 still needs Claude review fixes before push
+  head_note: PR #15 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/15 and stacked on PR #14 / `feat/chg-004-t2-audit-diff-bound`; PR #14 review fixes are inherited and PR #15 still needs Claude review fixes before push
   dirty: true
-  pushed: false
+  pushed: true
 
 goal:
   current: implement CHG-004 vertically per the staging order; get the live-profile CLI path startable soon
