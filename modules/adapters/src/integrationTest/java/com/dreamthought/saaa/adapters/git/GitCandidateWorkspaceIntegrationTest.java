@@ -5,13 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -72,6 +75,66 @@ final class GitCandidateWorkspaceIntegrationTest {
 
         String committed = runOutput(candidate.worktreePath(), "show", candidate.commitSha() + ":workflow.txt");
         assertThat(committed).isEqualTo("new content");
+    }
+
+    @Test
+    void writesProposerEvidenceIntoCandidateBookkeeping() throws IOException {
+        Path repository = initRepositoryWithWorkflowFile();
+        Path worktrees = tempDir.resolve("worktrees");
+        var attributes = new LinkedHashMap<String, String>();
+        attributes.put("prompt_digest", "sha256:abc123");
+        attributes.put("raw_response", "{\"id\":\"MUT-1\"}");
+
+        var workspace = new GitCandidateWorkspace(
+                repository,
+                worktrees,
+                new TextMutationRealizer("workflow.txt"),
+                () -> Optional.of(ProposerEvidence.of("openai-compatible", attributes)));
+
+        var candidate = workspace.createCommittedCandidate(
+                new WorkflowGraph("toy", "v1", "old content"),
+                new Mutation("MUT-1", "tighten guard", WORKFLOW_DEFINITION, "new content"));
+
+        assertThat(Files.readString(candidate.worktreePath().resolve(".saaa/candidates/candidate-mut-1.toon")))
+                .contains(
+                        "proposer:",
+                        "id: openai-compatible",
+                        "prompt_digest: |",
+                        "    sha256:abc123",
+                        "raw_response: |",
+                        "    {\"id\":\"MUT-1\"}");
+    }
+
+    @Test
+    void scrubsAndCapsProposerEvidenceBeforeItIsCommitted() throws IOException {
+        Path repository = initRepositoryWithWorkflowFile();
+        Path worktrees = tempDir.resolve("worktrees");
+        var attributes = new LinkedHashMap<String, String>();
+        attributes.put("prompt", "prompt " + "x".repeat(ProposerEvidenceSanitizer.VALUE_LIMIT + 200));
+        attributes.put(
+                "raw_response",
+                "Authorization: Bearer sk-super-secret-value echoed sk-super-secret-value");
+
+        var workspace = new GitCandidateWorkspace(
+                repository,
+                worktrees,
+                new TextMutationRealizer("workflow.txt"),
+                () -> Optional.of(ProposerEvidence.of("openai-compatible", attributes)),
+                new ProposerEvidenceSanitizer(() -> Optional.of("sk-super-secret-value")));
+
+        var candidate = workspace.createCommittedCandidate(
+                new WorkflowGraph("toy", "v1", "old content"),
+                new Mutation("MUT-1", "tighten guard", WORKFLOW_DEFINITION, "new content"));
+
+        String candidateToon = Files.readString(candidate.worktreePath().resolve(".saaa/candidates/candidate-mut-1.toon"));
+        assertThat(candidateToon)
+                .doesNotContain("sk-super-secret-value")
+                .contains("Authorization: Bearer <redacted>")
+                .contains("<redacted>");
+        assertThat(candidateToon)
+                .doesNotContain("x".repeat(ProposerEvidenceSanitizer.VALUE_LIMIT + 1));
+        assertThat(runOutput(candidate.worktreePath(), "show", "HEAD:.saaa/candidates/candidate-mut-1.toon"))
+                .doesNotContain("sk-super-secret-value");
     }
 
     private Path initRepositoryWithWorkflowFile() throws IOException {
