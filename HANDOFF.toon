@@ -3,7 +3,7 @@ session:
   status: chg_004_t1_reviewed_in_pr_10; chg_004_t3_openai_profile_startable_path_claude_feedback_addressed
   branch: feat/chg-004-t2-t3-openai-profile-stub
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t2-t3-openai-profile-stub
-  head: stacked on PR #10 head
+  head: stacked on PR #10 head after merging PR #10 scope cleanup
   head_note: branch is based on `feat/chg-004-t1-openai-compatible-wiring` pending PR #10 merge
   dirty: true
   pushed: false
@@ -44,21 +44,21 @@ completed:
   - PR #7 merged 2026-08-01 as `559744f`; `main` was fast-forwarded to that merge locally
   - audited worktrees after PR #7 merge: only the main checkout and `.worktrees/feat-chg-004-t1-openai-compatible-wiring` exist; no abandoned worktree directories remain; all old local branches are merged into `main`
   - started CHG-004 T1 on `feat/chg-004-t1-openai-compatible-wiring`: added `OpenAiCompatibleChatModelFactory` in `modules/adapters/langchain4j`, added the `langchain4j-open-ai` dependency, and covered the SAAA environment contract with local construction/configuration tests that do not call a live endpoint
-  - recorded `Q-008` for the documentation taxonomy / DBpedia-style linked-data idea so future Markdown growth is handled through the existing knowledge graph and wiki-tidy loop rather than ad hoc files
-  - updated `docs/wiki/development.md` and `docs/wiki/glossary.md` with documentation-graph guidance and initial ontology terms so new Markdown has a professional local vocabulary to extend
   - ran two independent review passes on PR #10: architecture/security reviewer found no implementation boundary or credential leak issues and one low stale-handoff finding; knowledge/documentation reviewer found one medium taxonomy-key finding (`related_to` should be `relates_to`) and otherwise accepted the ontology/wiki prose
-  - addressed both review findings: refreshed handoff branch state and fixed the question template plus `Q-008` to use the canonical `relates_to` edge key
+  - addressed both initial review findings: refreshed handoff branch state and fixed the question template to use the canonical `relates_to` edge key
+  - addressed Claude's PR #10 scope feedback by removing the broader ontology/wiki material from the T1 wiring PR; the smart-bridge/ontology direction will be captured in a separate documentation branch
   - marked PR #10 ready for review after review fixes; GitHub checks were green and merge state was clean before starting this stacked follow-up
   - started stacked branch `feat/chg-004-t2-t3-openai-profile-stub` from PR #10 head to move toward a tool with a startable agentic loop
   - added `OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstALocalOpenAiCompatibleEndpoint`, using a JDK local HTTP stub for `/v1/chat/completions` instead of a live provider or secret; the test proves bearer auth, model name, prompt content and one mutation response mapping
   - registered `openai-compatible` in `ProposerProfileRegistry`, with injectable environment for fast tests and adapter-side composition so CLI does not need LangChain4j classes on its classpath
   - addressed Claude's PR #11 feedback: renamed the intended PR scope to T3 plus partial T2, reconciled the T2 task text with the reused `LangChain4jMutationProposalAdapter` implementation, added a registry-to-proposer local-stub test, made the integration assertion whitespace-tolerant, and shut down the local-stub executor
+  - merged PR #10 branch head `43b547f` into the stacked PR #11 branch so PR #11 inherits the scope cleanup
 
 in_progress:
-  - stacked T3/local-stub branch has Claude feedback fixes locally pending validation, review and push
+  - stacked T3/local-stub branch has Claude feedback fixes and PR #10 scope cleanup merged locally pending final validation, review and push
 
 next:
-  - merge the latest PR #10 branch after its scope fix lands, validate the stacked branch, push, and update the PR #11 title
+  - validate the stacked branch after the PR #10 merge, push, and update the PR #11 title
   - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
@@ -121,10 +121,7 @@ files_changed:
   - modules/cli/src/main/java/com/dreamthought/saaa/cli/ProposerProfileRegistry.java
   - modules/cli/src/test/java/com/dreamthought/saaa/cli/ProposerProfileRegistryTest.java
   - specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon
-  - .agents/knowledge/questions/Q-008-documentation-taxonomy-linked-data.md
   - .agents/knowledge/templates/question.md
-  - docs/wiki/development.md
-  - docs/wiki/glossary.md
   - README.md
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeEvidence.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorer.java
@@ -152,13 +149,12 @@ tests_run:
   - 2026-08-01 `.agentic-template/bin/project check`: pass; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
   - 2026-08-01 `git diff --check`: pass
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS; 13 passed, 2 not applicable, 0 failed
-  - 2026-08-01 `.agentic-template/bin/project check-wiki`: first run warned that knowledge/specs changed after the wiki; after updating development/glossary pages, WIKI OK
-  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after ontology/wiki updates; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 reviewer pass 1 (architecture/security): one low finding in `HANDOFF.toon` stale state; no boundary or credential-leak implementation findings
   - 2026-08-01 reviewer pass 2 (knowledge/documentation): one medium finding in `Q-008` and the question template using noncanonical `related_to` instead of `relates_to`; wiki/taxonomy prose otherwise accepted
   - 2026-08-01 `.agentic-template/bin/project check`: pass after review fixes; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
-  - 2026-08-01 `.agentic-template/bin/project check-wiki`: first rerun warned after knowledge-template fix; after adding canonical edge-name wording to `docs/wiki/development.md`, WIKI OK
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after review fixes; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 `.agentic-template/bin/project check`: pass after Claude scope cleanup; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
+  - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after Claude scope cleanup; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 `.agentic-template/bin/project test`: first stacked T3 run failed because CLI reached an adapter method exposing LangChain4j `ChatModel`; fixed by adding an adapter-side `mutationProposerFromEnvironment` method returning `MutationProposer`
   - 2026-08-01 `.agentic-template/bin/project test`: pass after openai-compatible profile registration; 14 Gradle tasks
   - 2026-08-01 `.agentic-template/bin/project integration-test`: first run failed on brittle JSON spacing assertion; fixed to match LangChain4j's actual local-stub request shape
@@ -194,7 +190,6 @@ knowledge:
     - specs/changes/CHG-003-first-vertical-slice/change.toon
     - specs/changes/CHG-003-first-vertical-slice/design.md
   proposals:
-    - .agents/knowledge/questions/Q-008-documentation-taxonomy-linked-data.md
     - docs/decisions/0002-three-layer-vision.md
     - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
     - PROJECT_PROFILE.toon (added `three_layer_vision_with_vertical_slices` under `decisions`, status `proposed`)
