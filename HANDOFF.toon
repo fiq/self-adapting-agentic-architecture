@@ -1,16 +1,16 @@
 session:
-  updated: 2026-08-01
-  status: pr_15_open; claude_review_fixes_pushed_ci_pending
-  branch: feat/chg-004-t4-mcp-tool-surface
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t4-mcp-tool-surface
-  head: PR #14 branch head including Claude review fixes plus local CHG-004 T4/T5/T6/T6b MCP changes
-  head_note: PR #15 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/15 and stacked on PR #14 / `feat/chg-004-t2-audit-diff-bound`; PR #14 review fixes are inherited, PR #15 Claude review fixes were pushed after explicit force-with-lease authorization, and GitHub checks are pending
+  updated: 2026-08-02
+  status: pr_16_rebased_after_pr_14_pr_15_merge_local_validation
+  branch: chore/fast-pr-ci
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
+  head: origin/main with PR #14 and PR #15 merged, plus local PR #16 CI profile changes
+  head_note: PR #16 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/16; current branch merged `origin/main` after PR #14 and PR #15 landed and is pending validation/push
   dirty: true
-  pushed: true
+  pushed: false
 
 goal:
-  current: implement CHG-004 vertically per the staging order; get the live-profile CLI path startable soon
-  phase: chg_004_t4_t5_t6_t6b_mcp_tool_surface
+  current: merge outstanding reviewed PRs, delete merged branches and keep the staged CI validation policy ready to land
+  phase: pr_merge_cleanup
 
 completed:
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
@@ -61,6 +61,11 @@ completed:
   - moved live model endpoint settings behind adapter-owned `ModelEndpointConfig` and `SmallRyeModelEndpointConfigSource`; CLI selects the `openai-compatible` profile but does not read environment variables or reference LangChain4j types directly
   - recorded `Q-009` to defer a Quarkus runtime shell until a long-running HTTP/MCP runtime, health/metrics, packaging or native-image requirement is evidenced
   - applied independent senior-Java/startup-engineering advice: prefer typed config plus WireMock now, keep Quarkus deferred, and add static-analysis tooling as a separate quality slice rather than widening this PR
+  - started `chore/fast-pr-ci` from `main` and narrowed `.github/workflows/ci.yml`: PRs and pushes to `main` run fast checks (`project check`, `project test`, `project lint`), `workflow_dispatch` can run `fast` or `full`, and `v*` tags run full `project ready`
+  - added GitHub Actions concurrency cancellation so stale PR runs are cancelled on newer pushes
+  - narrowed `.github/workflows/repo-contract.yml` to `main` pushes and manual dispatch so it no longer duplicates every PR's fast checks
+  - addressed Claude PR #16 review feedback locally: `push` to `main`, `v*` tags and manual `profile=full` now run both fast checks and full readiness; PRs still run fast feedback only; `check-readme` is restored to fast CI; workflow concurrency includes event name and dispatch profile so a `main` push cannot cancel a manual full run; the redundant repo-contract workflow is deleted
+  - addressed lead self-review finding: manual `workflow_dispatch` with `profile=fast` no longer runs `full-readiness` just because the dispatch ref is `refs/heads/main`; full readiness now runs on `push` to `main`, `v*` tag pushes, or manual `profile=full`
   - PR #13 merged to `main` as 09c22be; local `main` was fast-forwarded and the corrective PR worktree plus local branch were removed
   - started CHG-004 T2/T2b on `feat/chg-004-t2-audit-diff-bound` with ATDD-first CLI acceptance tests
   - added deterministic `DiffLineBudgetMutationValidator` and `CompositeMutationValidator`; `--max-lines` now rejects proposal diffs before candidate worktree creation
@@ -79,11 +84,10 @@ completed:
   - recorded the `targetFolder` trust boundary in the CHG-004 risk list: the local stdio tool intentionally accepts any visible local Git repository and executes its declared check scripts, which is acceptable for this developer-only slice but must be revisited before remote or multi-user service exposure
 
 in_progress:
-  - PR #15 GitHub checks are running after Claude review fixes were pushed
+  - validate and push PR #16 after merging current `main` into the branch
 
 next:
-  - wait for PR #15 GitHub checks to finish
-  - after PR #14 lands, rebase/retarget the MCP branch onto `main`
+  - push PR #16 branch update, merge PR #16 when GitHub fast CI is green, then delete merged branches/worktrees that are clean
   - then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
@@ -119,6 +123,7 @@ decisions:
 blocking_questions: []
 
 risks:
+  - PR fast CI intentionally omits component and integration tests to reduce Actions latency; automatic `push` to `main`, `v*` tag validation and manual `profile=full` dispatch run full readiness, but reviewers must request or run full validation before merging high-risk adapter, Git, SQLite or workflow-loop changes
   - RISK-002: the scorer enforces its own fixed gates and never sees the contract, so a declared `required_evidence_present` gate can pass without the evidence it names; tracked as `T4b`
   - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
   - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
@@ -139,7 +144,10 @@ risks:
   - the behaviour case convention is POSIX-shaped, so `evolve` is effectively Linux and macOS only; on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`
 
 files_changed:
+  - .github/workflows/ci.yml
+  - .github/workflows/repo-contract.yml (deleted)
   - HANDOFF.toon
+  - PROJECT_PROFILE.toon
   - gradle/libs.versions.toml
   - modules/adapters/build.gradle.kts
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/evolve/BehaviourCaseChecks.java
@@ -224,6 +232,37 @@ tests_run:
   - 2026-08-01 `nix develop --command .agentic-template/bin/project ready`: READY: PASS after Claude PR #15 fixes; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 independent focused subagent review of PR #15 Claude fixes: no blocking findings; confirmed workflow containment before runner/model/candidate invocation, valid capped error JSON, deterministic objective ordering and clean adapter-only architecture
   - 2026-08-01 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project check`: pass before CI workflow commit; repo contract, profile, handoff, knowledge, changes, architecture boundaries, tooling and MCP checks OK
+  - 2026-08-01 `nix shell nixpkgs#yq-go -c yq eval '.' .github/workflows/ci.yml`: pass; workflow YAML parsed
+  - 2026-08-01 `nix shell nixpkgs#yq-go -c yq eval '.' .github/workflows/repo-contract.yml`: pass; workflow YAML parsed
+  - 2026-08-01 `nix shell nixpkgs#actionlint -c actionlint .github/workflows/ci.yml .github/workflows/repo-contract.yml`: pass
+  - 2026-08-01 `git diff --check`: pass for CI profile change
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project check`: pass after CI profile change
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project test`: pass for the exact fast-CI test step
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project lint`: pass for the exact fast-CI lint step
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project ready`: READY: PASS for manual/tag full-readiness path; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 `gh pr checks 16 --watch`: PR #16 `fast` job passed in 51s; `full-readiness` skipped on pull_request as intended
+  - 2026-08-01 `nix shell nixpkgs#yq-go -c yq eval '.' .github/workflows/ci.yml`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix shell nixpkgs#actionlint -c actionlint .github/workflows/ci.yml`: pass after Claude PR #16 fixes
+  - 2026-08-01 `git diff --check`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project check`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project check-readme`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project test`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project lint`: pass after Claude PR #16 fixes
+  - 2026-08-01 `nix develop --command .agentic-template/bin/project ready`: READY: PASS after Claude PR #16 fixes; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 `gh pr checks 16 --watch`: PR #16 `fast` job passed in 45s after Claude review fixes; `full-readiness` skipped on pull_request as intended
+  - 2026-08-02 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
+  - 2026-08-02 `nix shell nixpkgs#yq-go -c yq eval '.' .github/workflows/ci.yml`: pass after self-review dispatch-condition fix
+  - 2026-08-02 `nix shell nixpkgs#actionlint -c actionlint .github/workflows/ci.yml`: pass after self-review dispatch-condition fix
+  - 2026-08-02 `git diff --check`: pass after self-review dispatch-condition fix
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project check`: pass after self-review dispatch-condition fix
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project check-readme`: pass after self-review dispatch-condition fix
+  - 2026-08-02 `git merge origin/main`: merged current `main` containing PR #14 and PR #15 into `chore/fast-pr-ci`; resolved `HANDOFF.toon` with combined CHG-004 and CI state
+  - 2026-08-02 `git diff --check`: pass after merging `origin/main` into PR #16
+  - 2026-08-02 `nix shell nixpkgs#actionlint -c actionlint .github/workflows/ci.yml`: pass after merging `origin/main` into PR #16
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project check`: pass after merging `origin/main` into PR #16
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project test`: pass after merging `origin/main` into PR #16
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project ready`: READY: PASS after merging `origin/main` into PR #16; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `559744f91afdd7e5e27cae92cfd12d5f6639637c`
   - 2026-08-01 `git worktree list --porcelain`: main checkout plus `.worktrees/feat-chg-004-t1-openai-compatible-wiring`; no abandoned worktree directories
   - 2026-08-01 `git branch --merged main` / `git branch --no-merged main`: all old local branches merged into `main`; no unmerged local branches besides the active T1 worktree branch
@@ -298,6 +337,8 @@ tests_run:
   - 2026-07-31 `.agentic-template/bin/project lint`: ARCHITECTURE BOUNDARIES OK
 
 fitness_functions:
+  - changed: PR `pull_request` CI runs the fast conformance profile (`project check`, `project check-readme`, `project test`, `project lint`) and no longer runs `project ready`; automatic `push` to `main`, `v*` tags and manual `profile=full` dispatch run both fast checks and full readiness so real Git/SQLite integration gates still run automatically after merge and on versioned validation
+  - removed: the separate `repo-contract` workflow is deleted because `project check` runs `check-repo-contract` in the main CI workflow
   - unchanged: T1 adds LangChain4j OpenAI provider wiring only inside `modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j`; the boundary fitness function remains the guard that provider imports do not leak into `modules/domain` or `modules/deterministic`
   - added: `hard_gate_non_empty_realization` in `PhenotypeFitnessScorer` fails promotion closed when the realization changed no file; enforced by test rather than by the boundary script, like the `CommandCheckRunner` containment rule
   - unchanged: `check-architecture-boundaries` still fails loudly when a scanned layer directory is missing, and `modules/domain` and `modules/deterministic` still import only `java.*` and repository packages
