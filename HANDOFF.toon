@@ -5,8 +5,8 @@ session:
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t2-t3-openai-profile-stub
   head: stacked on PR #10 head after merging PR #10 scope cleanup
   head_note: branch is based on `feat/chg-004-t1-openai-compatible-wiring` pending PR #10 merge
-  dirty: true
-  pushed: false
+  dirty: false
+  pushed: pending
 
 goal:
   current: implement CHG-004 vertically per the staging order; get the live-profile CLI path startable soon
@@ -53,12 +53,13 @@ completed:
   - registered `openai-compatible` in `ProposerProfileRegistry`, with injectable environment for fast tests and adapter-side composition so CLI does not need LangChain4j classes on its classpath
   - addressed Claude's PR #11 feedback: renamed the intended PR scope to T3 plus partial T2, reconciled the T2 task text with the reused `LangChain4jMutationProposalAdapter` implementation, added a registry-to-proposer local-stub test, made the integration assertion whitespace-tolerant, and shut down the local-stub executor
   - merged PR #10 branch head `43b547f` into the stacked PR #11 branch so PR #11 inherits the scope cleanup
+  - independent architecture/security review found no blocking findings; independent spec/test/product-scope review found no local content blockers and requested PR hygiene before handoff
 
 in_progress:
-  - stacked T3/local-stub branch has Claude feedback fixes and PR #10 scope cleanup merged locally pending final validation, review and push
+  - stacked T3/local-stub branch has Claude feedback fixes and PR #10 scope cleanup merged locally; final step is push, title update and ready-for-review flip
 
 next:
-  - validate the stacked branch after the PR #10 merge, push, and update the PR #11 title
+  - push PR #11, update the title to include T3 plus partial T2, and mark ready for review
   - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
@@ -170,6 +171,8 @@ tests_run:
   - 2026-08-01 `git diff --check`: pass after Claude PR #11 fixes
   - 2026-08-01 `.agentic-template/bin/project check`: pass after merging PR #10 cleanup into PR #11; repo contract, profile, handoff, knowledge, changes and architecture boundaries OK
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after merging PR #10 cleanup into PR #11; 13 passed, 2 not applicable, 0 failed
+  - 2026-08-01 reviewer pass 1 (architecture/security): no blocking findings; boundary scan/lint/diff checks accepted; noted regex JSON field helper is acceptable only for the narrow stub assertion
+  - 2026-08-01 reviewer pass 2 (spec/test/product-scope): no local content blockers; requested PR #11 hygiene because remote title/draft/dirty state lagged local fixes
   - 2026-07-31 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
   - 2026-07-31 `T10` red before green at the boundary: `EvolveCommandAcceptanceTest.discardsACandidateWhoseRealizationChangedNothing` failed with the journal reporting `PROMOTE` for a candidate whose realization wrote the workflow file back unchanged
   - 2026-07-31 `T10` red before green in the deterministic layer: `PhenotypeFitnessScorerTest.treatsAnEmptyRealizationAsAFailedGate` and `PhenotypeBridgeScorerTest.discardsACandidateWhoseRealizationChangedNothing` failed to compile against the pre-gate API, then failed on the gate value once it existed
