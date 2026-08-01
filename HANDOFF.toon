@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-01
-  status: pr_15_open; claude_review_fixes_local_validation
+  status: pr_15_open; claude_review_fixes_pushed_ci_pending
   branch: feat/chg-004-t4-mcp-tool-surface
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre/.worktrees/feat-chg-004-t4-mcp-tool-surface
   head: PR #14 branch head including Claude review fixes plus local CHG-004 T4/T5/T6/T6b MCP changes
-  head_note: PR #15 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/15 and stacked on PR #14 / `feat/chg-004-t2-audit-diff-bound`; PR #14 review fixes are inherited and PR #15 Claude review fixes are local pending full validation and force-with-lease push authorisation after the stack rebase
+  head_note: PR #15 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/15 and stacked on PR #14 / `feat/chg-004-t2-audit-diff-bound`; PR #14 review fixes are inherited, PR #15 Claude review fixes were pushed after explicit force-with-lease authorization, and GitHub checks are pending
   dirty: true
   pushed: true
 
@@ -79,10 +79,10 @@ completed:
   - recorded the `targetFolder` trust boundary in the CHG-004 risk list: the local stdio tool intentionally accepts any visible local Git repository and executes its declared check scripts, which is acceptable for this developer-only slice but must be revisited before remote or multi-user service exposure
 
 in_progress:
-  - PR #15 Claude review fixes are being validated on top of updated PR #14
+  - PR #15 GitHub checks are running after Claude review fixes were pushed
 
 next:
-  - validate and push PR #15
+  - wait for PR #15 GitHub checks to finish
   - after PR #14 lands, rebase/retarget the MCP branch onto `main`
   - then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
