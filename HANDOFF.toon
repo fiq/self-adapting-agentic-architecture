@@ -1,12 +1,12 @@
 session:
-  updated: 2026-08-01
-  status: pr_16_review_fixes_pushed_fast_ci_green
+  updated: 2026-08-02
+  status: pr_16_self_review_fix_local_validation
   branch: chore/fast-pr-ci
   worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
   head: origin/main plus local CI profile changes
-  head_note: PR #16 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/16; Claude review fixes were pushed and PR fast CI passed
-  dirty: false
-  pushed: true
+  head_note: PR #16 is open at https://github.com/fiq/self-adapting-agentic-architecutre/pull/16; self-review fix is local pending validation and push
+  dirty: true
+  pushed: false
 
 goal:
   current: reduce GitHub Actions cost and latency with staged validation profiles while preserving an explicit full-readiness gate
@@ -65,12 +65,13 @@ completed:
   - added GitHub Actions concurrency cancellation so stale PR runs are cancelled on newer pushes
   - narrowed `.github/workflows/repo-contract.yml` to `main` pushes and manual dispatch so it no longer duplicates every PR's fast checks
   - addressed Claude PR #16 review feedback locally: `push` to `main`, `v*` tags and manual `profile=full` now run both fast checks and full readiness; PRs still run fast feedback only; `check-readme` is restored to fast CI; workflow concurrency includes event name and dispatch profile so a `main` push cannot cancel a manual full run; the redundant repo-contract workflow is deleted
+  - addressed lead self-review finding: manual `workflow_dispatch` with `profile=fast` no longer runs `full-readiness` just because the dispatch ref is `refs/heads/main`; full readiness now runs on `push` to `main`, `v*` tag pushes, or manual `profile=full`
 
 in_progress:
-  - PR #16 review fixes are ready for human review
+  - validate and push PR #16 self-review fix
 
 next:
-  - merge PR #16 after human review if the staged CI policy is acceptable
+  - push PR #16 self-review fix and wait for GitHub fast CI
   - continue T2/T2b by enforcing diff-size bounds and writing proposer id, prompt digest and raw response into candidate bookkeeping; keep endpoint tests on local stubs so local and CI runs stay fast and secret-free
   - then L2 (T4/T5/T6/T6b), then L3 (T9b/T9c/T10/T10b), close with T11/T12
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
@@ -180,6 +181,12 @@ tests_run:
   - 2026-08-01 `nix develop --command .agentic-template/bin/project lint`: pass after Claude PR #16 fixes
   - 2026-08-01 `nix develop --command .agentic-template/bin/project ready`: READY: PASS after Claude PR #16 fixes; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 `gh pr checks 16 --watch`: PR #16 `fast` job passed in 45s after Claude review fixes; `full-readiness` skipped on pull_request as intended
+  - 2026-08-02 `.agentic-template/bin/project startup`: pass; `AGENTS.md` read from disk
+  - 2026-08-02 `nix shell nixpkgs#yq-go -c yq eval '.' .github/workflows/ci.yml`: pass after self-review dispatch-condition fix
+  - 2026-08-02 `nix shell nixpkgs#actionlint -c actionlint .github/workflows/ci.yml`: pass after self-review dispatch-condition fix
+  - 2026-08-02 `git diff --check`: pass after self-review dispatch-condition fix
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project check`: pass after self-review dispatch-condition fix
+  - 2026-08-02 `nix develop --command .agentic-template/bin/project check-readme`: pass after self-review dispatch-condition fix
   - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `559744f91afdd7e5e27cae92cfd12d5f6639637c`
   - 2026-08-01 `git worktree list --porcelain`: main checkout plus `.worktrees/feat-chg-004-t1-openai-compatible-wiring`; no abandoned worktree directories
   - 2026-08-01 `git branch --merged main` / `git branch --no-merged main`: all old local branches merged into `main`; no unmerged local branches besides the active T1 worktree branch
