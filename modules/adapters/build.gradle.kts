@@ -14,8 +14,15 @@ dependencies {
     implementation(libs.langchain4j)
     implementation(libs.langchain4j.open.ai)
     implementation(libs.mcp)
+    implementation(libs.jgit)
+    implementation(libs.neo4j.driver)
     implementation(libs.smallrye.config)
     implementation(libs.sqlite.jdbc)
     implementation(libs.flyway.core)
+    constraints {
+        implementation(libs.jackson3.databind) {
+            because("3.1.5 fixes GHSA-5gvw-p9qm-jgwh in the Flyway/MCP transitive graph")
+        }
+    }
     testImplementation(libs.wiremock)
 }
