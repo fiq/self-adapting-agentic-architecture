@@ -2,12 +2,16 @@
 assertj = "3.27.7"
 flyway = "12.10.0"
 jmh = "1.37"
+jgit = "7.6.0.202603022253-r"
+jackson3 = "3.1.5"
 jqwik = "1.9.3"
 junit = "5.13.4"
 langchain4j = "1.18.0"
 mcp = "2.0.0"
+neo4j-driver = "6.2.0"
 picocli = "4.7.7"
 smallrye-config = "3.18.0"
+slf4j = "2.0.18"
 sqlite = "3.53.2.0"
 wiremock = "3.13.2"
 
@@ -16,6 +20,8 @@ assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
 jmh-generator-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
+jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
+jackson3-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson3" }
 jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
@@ -24,7 +30,9 @@ langchain4j = { module = "dev.langchain4j:langchain4j", version.ref = "langchain
 langchain4j-open-ai = { module = "dev.langchain4j:langchain4j-open-ai", version.ref = "langchain4j" }
 mcp-bom = { module = "io.modelcontextprotocol.sdk:mcp-bom", version.ref = "mcp" }
 mcp = { module = "io.modelcontextprotocol.sdk:mcp" }
+neo4j-driver = { module = "org.neo4j.driver:neo4j-java-driver", version.ref = "neo4j-driver" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 smallrye-config = { module = "io.smallrye.config:smallrye-config", version.ref = "smallrye-config" }
+slf4j-nop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
 wiremock = { module = "org.wiremock:wiremock", version.ref = "wiremock" }
