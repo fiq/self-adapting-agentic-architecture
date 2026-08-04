@@ -16,6 +16,47 @@ cli -> deterministic -> domain
 `deterministic` holds validation, scoring, promotion and ports; nothing
 provider-aware or nondeterministic belongs there.
 
+| Path | Purpose |
+|---|---|
+| `modules/domain/` | plain Java records and value types; no dependencies at all |
+| `modules/deterministic/` | validation, scoring, promotion and ports |
+| `modules/adapters/` | model access, Git worktrees, SQLite, Neo4j, command execution, MCP, journal |
+| `modules/benchmarks/` | JMH benchmarks and the benchmark evidence adapter |
+| `modules/cli/` | picocli entrypoint |
+
+## Loop wiring
+
+```text
+CLI (picocli) / MCP stdio server
+  |
+  v
+MutationEvaluationLoop  (deterministic)
+  |
+  +--> domain records and deterministic policies
+  |
+  +--> ports
+        |-- MutationProposer          -> adapters/fixture, adapters/langchain4j
+        |-- EvidenceRetriever         -> adapters/retrieval, adapters/neo4j
+        |-- CandidateWorkspace        -> adapters/git
+        |-- CheckRunner               -> adapters/checks
+        |-- BenchmarkRunner           -> benchmarks/JMH (not wired into the CLI)
+        |-- FitnessScorer             -> deterministic/PhenotypeBridgeScorer
+        |-- ExperimentMetadataStore   -> adapters/sqlite
+        |-- CandidateDecisionSink     -> adapters/journal
+```
+
+`:cli` has no Gradle dependency on `:benchmarks`, and `EvolveRunner` supplies a
+constant empty benchmark list, so no CLI run produces benchmark evidence.
+`JmhBenchmarkRunner` exists and is integration-tested but nothing in the loop
+calls it.
+
+Extension points that do not touch the loop: register a proposer in
+`ProposerProfileRegistry` for a new `--profile`; write a `<name>.sh` for a new
+behaviour case; supply benchmark budgets through `ScoringConfig` once something
+produces benchmark evidence. `CandidateDecisionSink` exposes no merge
+operation, so promotion cannot become an automatic merge through adapter
+configuration.
+
 The key architecture rule is `ARCH-001`: LangChain4j is an adapter detail, and
 validation, fitness scoring, promotion and rollback remain deterministic Java
 decisions. `RISK-001` tracks the model self-approval failure mode.
