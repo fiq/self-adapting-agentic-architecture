@@ -22,7 +22,9 @@ REQUIRED_TERMS = [
     "Severity Class",
 ]
 
-REQUIRED_REFERENCES = []
+REQUIRED_REFERENCES = [
+    "CON-002",
+]
 
 
 def fail(lines):

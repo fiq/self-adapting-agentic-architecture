@@ -45,6 +45,8 @@ threshold that turn evidence about one candidate into `PROMOTE` or `DISCARD`.
 It grades a candidate, never the repository. Distinct from an Architecture
 Fitness Function.
 
+Its identifiers follow the naming scheme in `CON-002`.
+
 ## Capability
 
 A living behavior contract under `specs/capabilities/`, keyed as `CAP-*`.
@@ -69,6 +71,8 @@ and not tradeable against any objective, but carrying a magnitude used to rank
 candidates that have already failed, so a near miss stays distinguishable from a
 total miss.
 
+Named `subject.invariant.*` or `process.invariant.*`; see `CON-002`.
+
 ## Knowledge Node
 
 A structured Markdown entry under `.agents/knowledge/`, keyed by its category
@@ -80,6 +84,8 @@ changelog.
 
 A graded property that compounds into a candidate's score, evaluated only once
 every invariant has passed.
+
+Named `subject.objective.*`; see `CON-002`.
 
 ## Northbound Interface
 
@@ -99,6 +105,9 @@ The partition that orders invariant violations and decides who may set a
 threshold: integrity, safety, correctness, shape. Integrity voids a run rather
 than ranking it, because a compromised measurement is not a statement about
 fitness.
+
+Defined in `CON-002`, which also gives the comparison order and the threshold
+authority for each class.
 
 ## Smart Bridge
 
