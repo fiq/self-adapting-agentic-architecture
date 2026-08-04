@@ -8,7 +8,7 @@ Captured from a design conversation following the README evidence pass
 (`bd93d3a`), which found that four of five weighted objectives are constant for
 any candidate clearing the hard gates.
 
-**Scope warning.** This is a programme, not a single change. The eight numbered
+**Scope warning.** This is a programme, not a single change. The nine numbered
 items under Sequencing are separately shippable and several are independently
 valuable; step 1 changes no behaviour at all. Each needs its own `CHG-` spec and
 implementation plan. Do not attempt this as one branch.
@@ -79,8 +79,12 @@ That ordering is what makes near-miss candidates useful as exemplars. Today
 every gate failure collapses to `0.00 / DISCARD` and the information is lost.
 
 **Cost:** invariants currently report booleans. Ranking needs *magnitude* — 3 of
-5 behaviour cases failed, 12 lines over budget, 2 boundary violations. That is a
+5 behaviour cases failed, 2 methods over the complexity threshold. That is a
 change to gate evidence, not only to scoring.
+
+Pick magnitudes that are counts of the same kind of thing wherever possible.
+"Lines over budget" is a poor magnitude for the reasons in section 3a, and
+mixing incommensurable magnitudes reintroduces weights by the back door.
 
 ### 3. Graded objectives: specify the set now, stage the algorithm
 
@@ -98,6 +102,72 @@ set, which is how the current state arose.
 
 Stage the *implementation* so the loop stays runnable, but do not stage the
 *specification*.
+
+### 3a. Parsimony is actively harmful, not merely weak
+
+`parsimony = 1 - linesChanged/maxLines` rewards the smallest edit that clears
+the gates. The smallest edit that makes a check pass is frequently the hack: a
+special case is fewer lines than fixing the abstraction, an early return is
+fewer lines than handling the case. Parsimony is a gradient pointing at kludges.
+
+It is also the **only objective that currently varies**, so the single axis on
+which SAAA can distinguish two passing candidates is the one that prefers the
+bodge. The audit finding is therefore worse than "four objectives are inert":
+the one that works pulls the wrong way.
+
+Two further defects:
+
+**It measures the delta, not the artifact.** Long method is a smell because it
+signals several responsibilities in one place, not because lines are
+intrinsically costly. Counting changed lines measures the shadow of the symptom.
+
+**It is representation-relative.** The same semantic change costs very different
+line counts in Perl, Java and `workflow.txt`. This is Kolmogorov complexity's
+invariance theorem in practice: description length is defined only up to a
+constant depending on the description language, and for short programs that
+constant dominates. Worse, terse and parsimonious come apart hardest in
+expressive languages — a chained-regex one-liner is shorter *and* packs more
+responsibilities into one place — so the metric's bias, not merely its scale,
+varies by language.
+
+**Resolution.** Split it along the shape/behaviour line rather than deleting or
+blending:
+
+- **Quality becomes an invariant.** Threshold-crossing, not any-increase: "no
+  method crosses cyclomatic 15", not "complexity must never rise", because the
+  correct fix sometimes adds branches and input validation must not be blocked.
+  Binary, non-tradeable, in the violation aggregate.
+- **Size survives as a graded objective**, and is now safe, because the quality
+  gate has already refused the golf hack that size alone would have rewarded.
+
+Do **not** blend size and quality into one score. `f(size, quality)` needs a
+weight between them, which is the penalty-function exchange rate again: sprawl
+buys tidiness, or brevity buys ugliness.
+
+**`--max-lines` survives as a bound, not as a score denominator.**
+`DiffLineBudgetMutationValidator` uses it pre-realisation to cap blast radius.
+Bounds need to be conservative, not fair across languages. Structure the bounds,
+free the content.
+
+**Implementation caveat.** "Score the git diff" is not computable as stated;
+cyclomatic complexity of a hunk is undefined because analysers work on whole
+compilation units. What works is metric-on-file-before minus
+metric-on-file-after, with findings attributed to changed lines. That is how
+new-code analysis is done in practice, it avoids blaming a candidate for
+pre-existing mess, and the attribution closes a gaming route — without it a
+candidate improves its score by touching unrelated code to drag an average down.
+
+### 3b. Shape is an invariant, behaviour is an objective
+
+The principle that falls out of 3a. Tidiness, cohesion, complexity and boundary
+conformance are gates. Whether the candidate does the job better is what gets
+graded. Attempting to score shape reintroduces exchange rates between things
+that should not be exchangeable, and cohesion metrics are noisy enough (LCOM
+variants disagree with each other and with human judgement) that the number
+would be perpetually argued while the boolean would not.
+
+Corollary: if some part of "well-scoped" is irreducibly subjective, it can be a
+lesson at `PROPOSED` authority. It cannot be a score.
 
 ### 4. Weights: LLM-proposed and frozen now, calibrated later
 
@@ -234,6 +304,68 @@ which is what `EvidenceCapsuleCompiler` and `RetrievalBundle` already are. The
 blend is versioned by `retrieval_configuration_id`, so a result stays
 attributable to the guidance that produced it.
 
+### 9. Measures depend on the target kind
+
+This conclusion arrived three separate times tonight and is probably the real
+structural finding.
+
+- Static analysis needs code. The L1 fixture evolves `workflow.txt`, which has
+  no methods and no analyser.
+- Line budgets mean different things in Perl, Java and a text file.
+- Complexity thresholds are language-specific, and the tooling is too: PMD,
+  Checkstyle and Error Prone give this for Java and nothing for a prompt file.
+
+So the objective and invariant sets cannot be one global list. A workflow file,
+a prompt and a Java method need different measures. `MutationContract` already
+carries per-contract `objectives`, `hardGates` and `requiredEvidence`; what
+blocks it is `MutationContractValidator` requiring equality with
+`MutationOperatorPolicy.DEFAULT_OBJECTIVES`. Wiring the contract through
+(section "What this depends on") is therefore a prerequisite for almost
+everything else here, not an independent nicety.
+
+### 10. What the structure costs
+
+Recorded because a design note that only lists gains is not honest. Structure is
+a prior, and a prior prunes the search space to what was already imagined.
+
+**Expressiveness.** `MutationOperatorType` is closed at ten values and
+`MutationContractValidator` rejects anything outside it, so a genuinely novel
+change fitting no operator is unrepresentable. Evolution's power comes from
+variation nobody anticipated; a schema is a written statement of what was
+anticipated. This cost lands hardest exactly where the design wants to trust the
+model's randomness.
+
+**Distribution narrowing.** Requiring `(mutation (operator hill-climb) …)` turns
+a generative model into a form-filler. Every structural slot narrows what it
+samples from.
+
+**Evaluation cost.** GP worked through many cheap evaluations. Violation
+magnitudes, behavioural descriptors and predicate checks each add per-candidate
+cost. Ten times dearer per generation buys a tenth of the search, and a thousand
+crude candidates may beat a hundred careful ones.
+
+**A new failure class.** A bad mutation scores 0.00 and is informative. A
+malformed contract throws; `BenchmarkCommand` already special-cases
+`mutation validation failed:` so it does not poison ablation runs. Structural
+failures carry no fitness information but consume a generation.
+
+**Map-territory drift.** The IR models the change; the commit is the change.
+`MutationContract` already runs parallel to the wired `Mutation`, and
+`Mutation.patch` is marked transitional with no migration scheduled, so two
+representations that can disagree already exist.
+
+**Ossification.** `schema_version: saaa-experiment-envelope-v2` exists because
+schemas are migrations owed later.
+
+**Mitigation.** Structure the bounds and the claims, not the content.
+`(bounds (max-files 2) (max-lines 80))` constrains without prescribing and costs
+no expressiveness. `(operator hill-climb)` prescribes a kind, and that is where
+the tax falls. Structure the grading side hard, because determinism is the point
+there; keep the generating side as loose as tolerable. This is the existing
+principle read carefully: structure the approval, free the proposal.
+`AGENTS.md` currently puts mutation IR and fitness predicates under one
+S-expression rule; those two deserve splitting.
+
 ## What this depends on
 
 `RISK-002` / task `T4b`. `PhenotypeFitnessScorer` never receives the
@@ -247,18 +379,30 @@ specification declarative" is finishing this, not inventing it.
 ## Sequencing
 
 1. Taxonomy: glossary entries, prefix scheme, naming check. No behaviour change.
-2. Wire the contract through to the scorer, closing `RISK-002`/`T4b`.
-3. Specify the full measure set and selection algorithm together.
-4. Invariants report magnitude; adopt the Deb comparator.
-5. Requirement type and predicate evaluation.
-6. Archive with behavioural cells; gap selection.
-7. Guidance capsule kinds and the blend policy.
-8. Population, then NSGA-II when there is a front to sort.
+2. Wire the contract through to the scorer, closing `RISK-002`/`T4b`. This is a
+   prerequisite for per-target-kind measures, so it gates most of what follows.
+3. Specify the full measure set and selection algorithm together, per target
+   kind.
+4. Replace line-count parsimony: static-analysis quality gate as an invariant,
+   size demoted to a tiebreak, `--max-lines` retained as a bound only.
+5. Invariants report magnitude; adopt the Deb comparator.
+6. Requirement type and predicate evaluation.
+7. Archive with behavioural cells; gap selection.
+8. Guidance capsule kinds and the blend policy.
+9. Population, then NSGA-II when there is a front to sort.
 
 ## Open questions
 
 - What is the violation magnitude for each invariant, and is it comparable
-  across invariants without reintroducing weights by the back door?
+  across invariants without reintroducing weights by the back door? Counts of
+  the same kind of thing compose; "3 failed cases" against "2 methods over
+  threshold" may not.
+- Which complexity thresholds, and who sets them? A threshold is a magic number
+  of exactly the kind section 4 objects to, so it needs the same treatment:
+  declared, versioned, frozen per experiment.
+- Is size still worth keeping as a graded objective once the quality gate exists,
+  or does the gate make it redundant? Section 3a keeps it as a tiebreak, but that
+  is a judgement, not a finding.
 - What are the behavioural descriptors for archive cells? They must be
   observable without being score-derived.
 - Who builds the labelled corpus for weight calibration, and from what?
