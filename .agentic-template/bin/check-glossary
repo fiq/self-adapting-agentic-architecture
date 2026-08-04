@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Fail when the glossary omits a term the project has decided is load-bearing.
+
+A term lands in REQUIRED_TERMS when two established usages collide and the wiki
+has to say so explicitly rather than silently pick a winner. This mirrors the
+REQUIRED_SECTIONS shape in check-readme.
+"""
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path.cwd()
+GLOSSARY = ROOT / "docs/wiki/glossary.md"
+
+REQUIRED_TERMS = [
+    "Architecture Fitness Function",
+    "Benchmark",
+    "Candidate Fitness Function",
+    "Corpus",
+    "Invariant",
+    "Objective",
+    "Severity Class",
+]
+
+REQUIRED_REFERENCES = [
+    "CON-002",
+]
+
+
+def fail(lines):
+    print("GLOSSARY CHECK FAILED")
+    print()
+    for line in lines:
+        print("- " + line)
+    return 1
+
+
+def main():
+    if not GLOSSARY.exists():
+        return fail(["docs/wiki/glossary.md missing"])
+
+    text = GLOSSARY.read_text()
+    errors = []
+    for term in REQUIRED_TERMS:
+        pattern = re.compile(rf"^##\s+{re.escape(term)}\s*$", re.MULTILINE)
+        if not pattern.search(text):
+            errors.append(f"glossary missing term heading: {term!r}")
+    for reference in REQUIRED_REFERENCES:
+        if reference not in text:
+            errors.append(f"glossary missing required reference: {reference!r}")
+    if errors:
+        return fail(errors)
+    print("GLOSSARY OK")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
