@@ -34,7 +34,7 @@ The canonical command surface is `.agentic-template/bin/project`.
 | `project startup` | Print startup contract and state-file route |
 | `project init` | Re-run initialization inspection and postcondition guidance |
 | `project inspect` | Print compact runtime evidence |
-| `project check` | Run repository contract, profile, handoff, knowledge, spec, tooling, MCP and architecture-boundary checks |
+| `project check` | Run repository contract, profile, handoff, knowledge, spec, tooling, MCP, architecture-boundary and glossary checks |
 | `project ready` | Run deterministic readiness checks that apply to the current slice |
 | `project test` | Run Gradle unit tests |
 | `project lint` | Run architecture-boundary fitness checks |
@@ -50,6 +50,7 @@ The canonical command surface is `.agentic-template/bin/project`.
 | `project infra-check` | Not applicable while no deployment target exists |
 | `project check-changes` | Validate structured specs |
 | `project check-wiki` | Warn on wiki drift from knowledge and specs |
+| `project check-glossary` | Fail when the glossary drops a load-bearing term |
 
 ## Architecture and dependency rules
 

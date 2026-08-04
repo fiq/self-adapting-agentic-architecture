@@ -40,10 +40,11 @@ come to mean both candidate scoring and architecture conformance, and
 
 The existing `hard_gate_*` identifiers do not yet follow this scheme. Renaming
 them changes MCP output ordering, which `EvolveMcpToolTest` asserts, and
-invalidates identifiers already persisted in `.saaa/experiments.sqlite` and in
-committed `experiments/ledger/*.toon` envelopes. The rename is therefore a
-separate change with a migration story, and this entry records the target shape
-rather than claiming it is in force.
+invalidates identifiers already persisted in any target repository that has
+run `saaa-evolve`, both in its `.saaa/experiments.sqlite` ledger and in its
+`experiments/ledger/*.toon` envelopes. The rename is therefore a separate
+change with a migration story, and this entry records the target shape rather
+than claiming it is in force.
 
 ## Severity classes
 
