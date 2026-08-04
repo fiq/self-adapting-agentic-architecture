@@ -5,6 +5,7 @@ import com.dreamthought.saaa.deterministic.MutationRealizer;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.ProposerEvidence;
+import com.dreamthought.saaa.domain.RetrievalProvenance;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +26,7 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
     private final MutationRealizer realizer;
     private final Supplier<Optional<ProposerEvidence>> proposerEvidence;
     private final ProposerEvidenceSanitizer proposerEvidenceSanitizer;
+    private final java.util.Optional<String> candidateNamespace;
 
     public GitCandidateWorkspace() {
         this(Path.of(".").toAbsolutePath().normalize());
@@ -48,7 +50,19 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
             MutationRealizer realizer,
             Supplier<Optional<ProposerEvidence>> proposerEvidence
     ) {
-        this(repositoryRoot, worktreesRoot, realizer, proposerEvidence, new ProposerEvidenceSanitizer());
+        this(repositoryRoot, worktreesRoot, realizer, proposerEvidence,
+                new ProposerEvidenceSanitizer(), java.util.Optional.empty());
+    }
+
+    public GitCandidateWorkspace(
+            Path repositoryRoot,
+            Path worktreesRoot,
+            MutationRealizer realizer,
+            Supplier<Optional<ProposerEvidence>> proposerEvidence,
+            java.util.Optional<String> candidateNamespace
+    ) {
+        this(repositoryRoot, worktreesRoot, realizer, proposerEvidence,
+                new ProposerEvidenceSanitizer(), candidateNamespace);
     }
 
     public GitCandidateWorkspace(
@@ -58,11 +72,25 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
             Supplier<Optional<ProposerEvidence>> proposerEvidence,
             ProposerEvidenceSanitizer proposerEvidenceSanitizer
     ) {
+        this(repositoryRoot, worktreesRoot, realizer, proposerEvidence,
+                proposerEvidenceSanitizer, java.util.Optional.empty());
+    }
+
+    private GitCandidateWorkspace(
+            Path repositoryRoot,
+            Path worktreesRoot,
+            MutationRealizer realizer,
+            Supplier<Optional<ProposerEvidence>> proposerEvidence,
+            ProposerEvidenceSanitizer proposerEvidenceSanitizer,
+            java.util.Optional<String> candidateNamespace
+    ) {
         this.repositoryRoot = Objects.requireNonNull(repositoryRoot, "repositoryRoot").toAbsolutePath().normalize();
         this.worktreesRoot = Objects.requireNonNull(worktreesRoot, "worktreesRoot").toAbsolutePath().normalize();
         this.realizer = Objects.requireNonNull(realizer, "realizer");
         this.proposerEvidence = Objects.requireNonNull(proposerEvidence, "proposerEvidence");
         this.proposerEvidenceSanitizer = Objects.requireNonNull(proposerEvidenceSanitizer, "proposerEvidenceSanitizer");
+        this.candidateNamespace = Objects.requireNonNull(candidateNamespace, "candidateNamespace")
+                .map(value -> safeSegment(value, "candidateNamespace"));
     }
 
     @Override
@@ -74,9 +102,10 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
 
         String workflowSegment = safeSegment(baseline.id(), "baseline.id");
         String mutationSegment = safeSegment(mutation.id(), "mutation.id");
-        String candidateId = "candidate-" + mutationSegment;
-        String branchName = "candidate/" + workflowSegment + "-" + mutationSegment;
-        Path worktreePath = worktreesRoot.resolve("candidate-" + workflowSegment + "-" + mutationSegment)
+        String namespace = candidateNamespace.map(value -> value + "-").orElse("");
+        String candidateId = "candidate-" + namespace + mutationSegment;
+        String branchName = "candidate/" + workflowSegment + "-" + namespace + mutationSegment;
+        Path worktreePath = worktreesRoot.resolve("candidate-" + workflowSegment + "-" + namespace + mutationSegment)
                 .toAbsolutePath()
                 .normalize();
 
@@ -209,12 +238,45 @@ public final class GitCandidateWorkspace implements CandidateWorkspace {
                 .append(": |\n")
                 .append(indentBlock(proposerEvidenceSanitizer.sanitize(value)))
                 .append("\n"));
+        proposer.retrieval().ifPresent(retrieval -> builder.append(retrievalBlock(retrieval, proposerEvidenceSanitizer)));
         return builder.toString();
     }
 
+    private static String retrievalBlock(
+            RetrievalProvenance retrieval,
+            ProposerEvidenceSanitizer sanitizer
+    ) {
+        StringBuilder builder = new StringBuilder()
+                .append("  retrieval:\n")
+                .append("    mode: ").append(retrieval.mode()).append("\n")
+                .append("    configuration_id: ").append(retrieval.configurationId()).append("\n")
+                .append("    repository_revision: ").append(retrieval.repositoryRevision()).append("\n")
+                .append("    graph_schema_version: ").append(retrieval.graphSchemaVersion()).append("\n")
+                .append("    capsule_projection_version: ").append(retrieval.capsuleProjectionVersion()).append("\n")
+                .append("    ranking_version: ").append(retrieval.rankingVersion()).append("\n")
+                .append("    embedding_model_id: ").append(retrieval.embeddingModelId()).append("\n")
+                .append("    memory_policy_id: ").append(retrieval.memoryPolicyId()).append("\n")
+                .append("    historical_weight_cap: ").append(retrieval.diagnostics().historicalWeightCap()).append("\n")
+                .append("    evidence_ids:\n");
+        retrieval.evidenceIds().forEach(id -> builder.append("      - ").append(safeScalar(id)).append("\n"));
+        builder.append("    flattened_context: |\n")
+                .append(indentBlock(sanitizer.sanitize(retrieval.flattenedContext()), 6))
+                .append("\n");
+        return builder.toString();
+    }
+
+    private static String safeScalar(String value) {
+        return value.replaceAll("[^a-zA-Z0-9_./:-]+", "-");
+    }
+
     private static String indentBlock(String value) {
+        return indentBlock(value, 4);
+    }
+
+    private static String indentBlock(String value, int spaces) {
+        String prefix = " ".repeat(spaces);
         return value.lines()
-                .map(line -> "    " + line)
+                .map(line -> prefix + line)
                 .collect(Collectors.joining("\n"));
     }
 

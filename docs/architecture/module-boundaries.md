@@ -41,6 +41,8 @@ every decision that must be repeatable:
 - phenotype fitness scoring and hard gates
 - promotion or discard selection
 - metadata recording
+- exact/vector/graph rank fusion, capsule compilation, retrieval budgets and
+  evolutionary-memory projection contracts
 
 The name is the rule. Nothing provider-aware, network-bound, clock-dependent or
 otherwise nondeterministic belongs in this layer. A model may propose or repair
@@ -58,6 +60,12 @@ Git commands, SQLite schemas or benchmark implementations.
   tool calling, retrieval integration and agent coordination.
 - `adapters/git` owns isolated Git worktree and commit behavior.
 - `adapters/sqlite` owns experiment metadata persistence and migrations.
+- `adapters/neo4j` owns the rebuildable graph/vector projection and explicit
+  outcome relationships.
+- `adapters/repository` owns deterministic extraction of repository knowledge,
+  Java type/import and test-reference facts.
+- `adapters/retrieval` composes local graph, embedding, capsule-cache and audit
+  adapters for an explicitly selected treatment.
 - `adapters/checks` owns deterministic command execution.
 
 These are packages inside one Gradle module rather than four modules. The
@@ -76,7 +84,7 @@ Run:
 .agentic-template/bin/project lint
 ```
 
-The check fails if LangChain4j, picocli, SQLite, Flyway or JMH implementation
+The check fails if LangChain4j, picocli, SQLite, Flyway, JGit or JMH implementation
 dependencies appear in `modules/domain/` or `modules/deterministic/`, or if
 `domain` references an outward package.
 
@@ -86,6 +94,16 @@ reporting OK would be worse than having no check at all.
 
 ## Deferred Boundaries
 
-OpenSearch/vector storage, AST mutation, LSP integration, distributed workers
-and automatic production deployment are deferred. Revisit only when the
-conditions in `PROJECT_PROFILE.toon.rejected_options` are met.
+OpenSearch and generic vector platforms, AST mutation, LSP integration,
+distributed workers and automatic production deployment remain deferred. The
+former blanket vector deferral has been intentionally revisited only for the
+bounded local Neo4j experiment in ADR-0004. Neo4j and SQLite remain outward,
+rebuildable adapters; they may inform a proposal but never enter scoring or
+promotion authority.
+
+`adapters/git` uses pinned JGit as its zero-setup primary API for read-only
+identity, revision and historic-tree operations. Native Git is a visible fallback
+and remains the established linked candidate-worktree implementation because
+JGit has no comparable worktree-creation API. `adapters/sqlite` keeps disposable
+retrieval projections and durable experiment memory behind different ports and
+classes even when experiment stores share one physical database.

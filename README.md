@@ -28,7 +28,7 @@ git clone https://github.com/fiq/self-adapting-agentic-architecutre
 cd self-adapting-agentic-architecutre
 nix develop
 .agentic-template/bin/gradle-command :cli:installDist
-./modules/cli/build/install/cli/bin/cli evolve fixtures/toy-workflow \
+./modules/cli/build/install/saaa/bin/saaa saaa-evolve fixtures/toy-workflow \
     --behaviour-case workflow-check --max-lines 80
 cat fixtures/toy-workflow/journal.md
 ```
@@ -38,6 +38,10 @@ a Git worktree, run your check script, score, decide, journal — with no model
 credentials required. The fixture's canned proposal makes the check pass, so the
 run promotes; break the fixture and the same command discards.
 [See a real run →](#what-it-actually-looks-like)
+
+The installed executable is always `saaa`. Public command tokens also carry the
+`saaa-` prefix so logs, shells and tool registries never expose ambiguous names
+such as `index` or `retrieve`.
 
 ## Contents
 
@@ -298,7 +302,7 @@ foundation slices that upgrade all three layers at once.
 
 **Current state.** Layer 1 pipe is real for one canned candidate. The next
 concrete piece of work is a first vertical slice (candidate `CHG-004`): live
-LangChain4j proposer at L1, `evolve` exposed as an MCP tool at L2, one Java
+LangChain4j proposer at L1, `saaa_evolve` exposed as an MCP tool at L2, one Java
 file inside this repository as the L3 target, gated by an existing unit test.
 See the ADR for the full delivery pattern and revisit triggers.
 
@@ -415,7 +419,7 @@ credentials:
 
 ```sh
 .agentic-template/bin/gradle-command :cli:installDist
-./modules/cli/build/install/cli/bin/cli evolve fixtures/toy-workflow \
+./modules/cli/build/install/saaa/bin/saaa saaa-evolve fixtures/toy-workflow \
     --behaviour-case workflow-check --max-lines 80
 cat fixtures/toy-workflow/journal.md
 ```
@@ -426,6 +430,8 @@ cat fixtures/toy-workflow/journal.md
 | `--workflow-file` | `workflow.txt` | File inside the target folder being evolved |
 | `--behaviour-case` | required | Check name that hard-gates promotion; repeatable |
 | `--max-lines` | `80` | Change budget parsimony is scored against |
+| `--retrieval` | `NONE` | Explicit treatment: `NONE`, `VECTOR`, `GRAPH` or `HYBRID` |
+| `--task` | bounded default goal | Intent used for exact, semantic and structural discovery |
 
 Each `--behaviour-case <name>` runs `<name>.sh` in the target folder, with a
 one-minute timeout per case, and every declared case must pass before promotion,
@@ -438,7 +444,7 @@ Checks run inside a worktree created from `HEAD`, so a new check script must be
 committed before it can gate a run. A check script must be a regular file, not a
 symlink: a program named by path has to resolve inside the candidate worktree, so
 a script pointing outside it cannot satisfy a required behaviour. The convention
-is POSIX-shaped (`<name>.sh`, executable bit), so `evolve` targets Linux and
+is POSIX-shaped (`<name>.sh`, executable bit), so `saaa-evolve` targets Linux and
 macOS.
 
 The target folder must sit inside a Git repository, because candidate isolation
@@ -455,9 +461,113 @@ profile against a folder that already has a candidate worktree fails until
 
 ## Run with containers
 
-Not applicable for the initial architecture. This is a local experimental CLI,
-not a deployable service or web application. Revisit an application image when
-the CLI needs reproducible distribution outside the Nix/Gradle environment.
+There is still no application image. ADR-0004 intentionally revisits the earlier
+container/vector deferral only for one optional, on-demand Neo4j Community
+dependency used by retrieval experiments:
+
+```sh
+export SAAA_NEO4J_PASSWORD='choose-a-local-password'
+nix develop --command docker compose up -d --wait neo4j
+
+nix run . -- saaa-index build --role SUBJECT_AND_PROCESS
+nix run . -- saaa-retrieve \
+    --repository . --task 'preserve deterministic fitness' \
+    --mode GRAPH --exact ARCH-001
+
+nix develop --command docker compose down
+```
+
+The flake dev shell supplies the Docker client and Compose plugin as well as
+Java/Gradle; it uses the host Docker daemon and does not try to run a daemon
+inside Nix. `nix run . -- <saaa-command>` builds the local distribution
+incrementally and invokes the same installed Java binary. The existing flake is
+the one development-environment contract, so devenv is not required for this
+local topology.
+
+The named volume survives ordinary shutdown. Neo4j is rebuildable: repository
+artifacts remain canonical, and graph deletion loses no canonical knowledge.
+`NONE` constructs neither Neo4j nor an embedding provider. Configured non-`NONE`
+modes fail clearly if their required dependency is unavailable. Retrieval also
+requires the graph projection revision, query revision and current working-tree
+fingerprint to match exactly; after any repository change, run `saaa-index
+update` before retrieving. This fails closed instead of silently supplying stale
+evidence under the requested treatment.
+
+VECTOR/HYBRID indexing uses an explicitly configured OpenAI-compatible embedding
+endpoint and publishes only after the complete embedding set succeeds:
+
+```sh
+export SAAA_EMBEDDING_BASE_URL='https://provider.example/v1'
+export SAAA_EMBEDDING_API_KEY='local-secret'
+export SAAA_EMBEDDING_MODEL_ID='embedding-model-id'
+export SAAA_EMBEDDING_DIMENSIONS='1536'
+./modules/cli/build/install/saaa/bin/saaa saaa-index update --vectors
+```
+
+Embeddings are memoised in `.saaa/retrieval.sqlite` by model ID plus content
+hash. Evidence Capsules use logical subject plus revision plus projection
+version. This database is disposable. `.saaa/experiments.sqlite` is the current
+efficient experiment ledger; separate store classes/tables keep experiment
+metadata and evolutionary memory ports distinct even though they share the file.
+
+Every evaluated attempt also writes a compact Git-visible
+`experiments/ledger/<candidate>.toon` envelope. It contains both the subject
+repository revision and the SAAA process revision, mutation/retrieval/memory
+strategy IDs, checks, benchmarks, fitness and decision. It excludes prompts,
+raw responses, embeddings and private reasoning. These envelopes can rehydrate
+the evolutionary-memory tables used to rebuild Neo4j; the older candidate
+metadata tables retain their existing local lifecycle. `docs/wiki/experiments.md` is regenerated from them as a
+human-readable projection and says explicitly that inclusion is not authority
+or ranking weight.
+
+Neo4j retains only the working set chosen by `lineage-novelty-v1`: bounded
+champions and known ancestors, distinct failure fingerprints, evidence-novel
+representatives and a deterministic exploration reservoir. It does not expire
+history by age. Defaults can be overridden with `SAAA_MEMORY_*` variables, but
+changed semantics require a new `SAAA_MEMORY_POLICY_ID`. Historic source and
+compatible outcomes can be explicitly projected without touching the checkout:
+
+```sh
+./modules/cli/build/install/saaa/bin/saaa saaa-reinflate \
+    --repository . --revision <commit>
+```
+
+JGit is the zero-setup primary API for identity, revision fingerprints and
+historic snapshots; native Git is a visible compatibility fallback. Native Git
+continues to implement already-tested linked candidate worktrees, where JGit has
+no comparable creation API.
+
+One Neo4j database can hold multiple repository projections. Index an external
+implementation as `SUBJECT` and the SAAA repository as `PROCESS`; evaluation
+contexts link subject revision, process revision and retrieval configuration.
+Replacement remains scoped by repository identity. One experiment SQLite ledger
+stays beside each subject project, so it remains portable.
+
+Compose pins the official Neo4j 5.26.28 Community UBI10 manifest by digest,
+disables HTTP/HTTPS, and publishes authenticated Bolt only on `127.0.0.1`.
+The recorded Trivy scan found no high/critical UBI packages. Known Java findings
+remain tracked in RISK-005 until Neo4j ships their fixed dependency versions;
+do not expose this topology to an untrusted network.
+
+### Retrieval ablation
+
+`saaa-ablate retrieval` runs identical task rows under explicit
+treatments. Its TSV header is:
+
+```text
+id<TAB>target_folder<TAB>profile<TAB>workflow_file<TAB>max_lines<TAB>baseline_fitness<TAB>behaviour_cases<TAB>task
+```
+
+```sh
+./modules/cli/build/install/saaa/bin/saaa saaa-ablate retrieval \
+    --experiment-id ablation-001 --corpus retrieval-corpus.tsv --attempts 1
+```
+
+Candidate worktrees are namespaced by task, mode and attempt. The structured
+report includes acceptance/attempt, best fitness, accepted fitness improvement
+per provider-cost unit (or token when cost is unavailable), context tokens per
+accepted candidate, hard-gate, cache, graph and timing diagnostics. It
+deliberately makes no improvement claim.
 
 ## Tests
 
@@ -466,14 +576,17 @@ the CLI needs reproducible distribution outside the Nix/Gradle environment.
 .agentic-template/bin/project lint
 .agentic-template/bin/project component-test
 .agentic-template/bin/project integration-test
+.agentic-template/bin/project graphrag-integration-test
 ```
 
 `component-test` runs the first outside-in acceptance test for the mutation and
 fitness loop. `integration-test` covers real Git worktree candidate creation,
 SQLite experiment metadata persistence, deterministic command checks and JMH
-benchmark evidence. `test` covers the provider-neutral LangChain4j mutation
-proposal adapter without live provider credentials and the deterministic
-bounded mutation validator.
+benchmark evidence. `test` covers provider-neutral LangChain4j
+proposal/embedding mapping without live credentials and deterministic bounded
+mutation/retrieval policies. `graphrag-integration-test` starts Neo4j, proves
+atomic replacement, traversal, vector search and outcome memory, then shuts it
+down while retaining the named volume.
 
 ## Configuration and environment variables
 
@@ -482,23 +595,38 @@ can be constructed from a provider-neutral `ChatModel`; future provider
 configuration should read credentials from environment variables or local
 ignored config and keep provider-specific details out of the core domain.
 
-Initial expected variables, names still subject to approval:
+Local defaults require no Git-library setup. Configure only the external
+boundary being used:
 
 | Variable | Purpose |
 |---|---|
 | `SAAA_MODEL_PROVIDER` | Select the LangChain4j-backed model adapter |
 | `SAAA_MODEL_API_KEY` | Provider API key for model-backed mutation proposal |
 | `SAAA_EXPERIMENT_DB` | SQLite database path for experiment metadata |
+| `SAAA_NEO4J_PASSWORD` | Credential shared by Compose and the graph adapter |
+| `SAAA_EMBEDDING_BASE_URL` | OpenAI-compatible embedding endpoint |
+| `SAAA_EMBEDDING_API_KEY` | Embedding-provider credential |
+| `SAAA_EMBEDDING_MODEL_ID` | Stable model/cache identity |
+| `SAAA_EMBEDDING_DIMENSIONS` | Provider and Neo4j vector dimensions |
+| `SAAA_PROCESS_REPOSITORY` | Optional SAAA process checkout when evolving a different subject repository; defaults to the subject for self-evolution |
+| `SAAA_MEMORY_POLICY_ID` | Versioned graph working-set policy identity; change this when policy semantics change |
+| `SAAA_MEMORY_CHAMPION_SLOTS` | Champion representatives retained in the hot graph |
+| `SAAA_MEMORY_LINEAGE_SLOTS` | Known ancestors of selected champions retained in the hot graph |
+| `SAAA_MEMORY_FAILURE_FINGERPRINT_SLOTS` | Distinct failed-behaviour representatives |
+| `SAAA_MEMORY_NOVELTY_SLOTS` | Distinct evidence/strategy niches |
+| `SAAA_MEMORY_EXPLORATION_SLOTS` | Deterministic exploration reservoir |
+| `SAAA_MEMORY_MAX_ACTIVE_EVALUATIONS` | Absolute hot-graph evaluation bound |
 
 ## Infrastructure and deployment state
 
-Local topology is Nix plus Gradle. Deployment target is `local_cli` only.
+Local topology is Nix plus Gradle, Git, SQLite and optional on-demand Neo4j
+Community. Deployment target is `local_cli` only.
 Infrastructure as code is not applicable until a remote execution or deployment
 target is selected.
 
 ## Deliberate non-goals
 
-- OpenSearch or vector storage
+- OpenSearch, generic vector platforms or production retrieval infrastructure
 - AST mutation
 - LSP integration
 - distributed workers

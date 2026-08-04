@@ -146,6 +146,8 @@ final class LangChain4jMutationProposalAdapterTest {
         private String workflowVersion;
         private String workflowDefinition;
         private List<String> allowedScopes;
+        private String mutationIntent;
+        private String retrievalContext;
 
         private RecordingMutationService(LangChain4jMutationProposalAdapter.MutationProposal proposal) {
             this.proposal = proposal;
@@ -156,12 +158,16 @@ final class LangChain4jMutationProposalAdapterTest {
                 String workflowId,
                 String workflowVersion,
                 String workflowDefinition,
-                List<String> allowedScopes
+                List<String> allowedScopes,
+                String mutationIntent,
+                String retrievalContext
         ) {
             this.workflowId = workflowId;
             this.workflowVersion = workflowVersion;
             this.workflowDefinition = workflowDefinition;
             this.allowedScopes = List.copyOf(allowedScopes);
+            this.mutationIntent = mutationIntent;
+            this.retrievalContext = retrievalContext;
             return proposal;
         }
     }

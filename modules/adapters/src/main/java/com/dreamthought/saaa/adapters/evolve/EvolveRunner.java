@@ -5,11 +5,19 @@ import com.dreamthought.saaa.adapters.checks.CommandCheckRunner.CommandCheck;
 import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
 import com.dreamthought.saaa.adapters.git.GitCandidateWorkspace;
 import com.dreamthought.saaa.adapters.git.GitRealizationInspector;
+import com.dreamthought.saaa.adapters.git.GitRepositoryRevision;
+import com.dreamthought.saaa.adapters.git.JGitChangedPathInspector;
 import com.dreamthought.saaa.adapters.journal.JournalDecisionSink;
 import com.dreamthought.saaa.adapters.journal.JournalReporter;
+import com.dreamthought.saaa.adapters.retrieval.LocalRetrievalFactory;
+import com.dreamthought.saaa.adapters.retrieval.LocalEvolutionaryMemoryFactory;
+import com.dreamthought.saaa.adapters.sqlite.SqliteExperimentMetadataStore;
+import com.dreamthought.saaa.deterministic.EvolutionaryMemoryProjector;
+import com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore;
 import com.dreamthought.saaa.deterministic.BoundedMutationValidator;
 import com.dreamthought.saaa.deterministic.CompositeMutationValidator;
 import com.dreamthought.saaa.deterministic.EvolutionReporter;
+import com.dreamthought.saaa.deterministic.EvidenceRetriever;
 import com.dreamthought.saaa.deterministic.ExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.deterministic.MutationEvaluationLoop;
@@ -21,6 +29,10 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.WorkflowGraph;
+import com.dreamthought.saaa.domain.MutationProposalRequest;
+import com.dreamthought.saaa.domain.RetrievalBundle;
+import com.dreamthought.saaa.domain.RetrievalMode;
+import com.dreamthought.saaa.domain.RetrievalQuery;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -31,23 +43,48 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Optional;
+import java.util.function.BiFunction;
 
 public final class EvolveRunner {
     private final ProposerProfileRegistry profileRegistry;
     private final Clock clock;
+    private final BiFunction<RetrievalMode, Path, EvidenceRetriever> retrievalResolver;
+    private final BiFunction<RetrievalMode, Path, EvolutionaryMemoryStore> memoryResolver;
 
     public EvolveRunner() {
-        this(new ProposerProfileRegistry(), Clock.systemUTC());
+        this(new ProposerProfileRegistry(), Clock.systemUTC(), LocalRetrievalFactory::forMode,
+                LocalEvolutionaryMemoryFactory::forMode);
     }
 
     public EvolveRunner(ProposerProfileRegistry profileRegistry, Clock clock) {
+        this(profileRegistry, clock, LocalRetrievalFactory::forMode, LocalEvolutionaryMemoryFactory::forMode);
+    }
+
+    public EvolveRunner(
+            ProposerProfileRegistry profileRegistry,
+            Clock clock,
+            BiFunction<RetrievalMode, Path, EvidenceRetriever> retrievalResolver
+    ) {
+        this(profileRegistry, clock, retrievalResolver, LocalEvolutionaryMemoryFactory::forMode);
+    }
+
+    public EvolveRunner(
+            ProposerProfileRegistry profileRegistry,
+            Clock clock,
+            BiFunction<RetrievalMode, Path, EvidenceRetriever> retrievalResolver,
+            BiFunction<RetrievalMode, Path, EvolutionaryMemoryStore> memoryResolver
+    ) {
         this.profileRegistry = Objects.requireNonNull(profileRegistry, "profileRegistry");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.retrievalResolver = Objects.requireNonNull(retrievalResolver, "retrievalResolver");
+        this.memoryResolver = Objects.requireNonNull(memoryResolver, "memoryResolver");
     }
 
     public EvolveRunResult run(EvolveRunRequest request, EvolutionReporter reporter) {
         Objects.requireNonNull(request, "request");
         Objects.requireNonNull(reporter, "reporter");
+        long runStarted = System.nanoTime();
 
         Path folder = request.targetFolder().toAbsolutePath().normalize();
         Path gitRoot = findGitRoot(folder);
@@ -63,8 +100,12 @@ public final class EvolveRunner {
         requireRunnableCheckScripts(gitRoot, checks);
 
         String relativeWorkflow = gitRoot.relativize(workflowPath).toString();
-        var baseline = new WorkflowGraph(folder.getFileName().toString(), "baseline", readString(workflowPath));
+        String repositoryRevision = GitRepositoryRevision.workingTree(gitRoot);
+        var evolutionContext = LocalEvolutionContext.resolve(gitRoot, repositoryRevision);
+        var baseline = new WorkflowGraph(folder.getFileName().toString(), repositoryRevision, readString(workflowPath));
         MutationProposer proposer = profileRegistry.resolve(request.profile(), folder);
+        var timedRetriever = new TimedRetriever(retrievalResolver.apply(request.retrievalMode(), gitRoot));
+        var retrievalCapture = new RetrievalCapture();
         Path journalPath = folder.resolve("journal.md");
         var loop = new MutationEvaluationLoop(
                 proposer,
@@ -76,17 +117,34 @@ public final class EvolveRunner {
                         gitRoot,
                         gitRoot.resolve(".worktrees"),
                         new TextMutationRealizer(relativeWorkflow),
-                        proposer::proposerEvidence),
+                        proposer::proposerEvidence,
+                        request.runId()),
                 new CommandCheckRunner(checks),
                 candidate -> List.of(),
                 new PhenotypeBridgeScorer(
                         new GitRealizationInspector(),
                         new ScoringConfig(Set.copyOf(request.behaviourCases()), request.maxLines(), Map.of())),
-                new NoOpMetadataStore(),
+                new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite")),
                 new JournalDecisionSink(),
-                new CompositeReporter(List.of(reporter, new JournalReporter(journalPath, clock))),
-                clock);
-        return new EvolveRunResult(loop.evaluate(baseline), journalPath);
+                new CompositeReporter(List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture)),
+                clock,
+                timedRetriever,
+                new EvolutionaryMemoryProjector(
+                        memoryResolver.apply(request.retrievalMode(), gitRoot),
+                        LocalEvolutionaryMemoryFactory.policy().id(),
+                        evolutionContext,
+                        new JGitChangedPathInspector()));
+        var query = new RetrievalQuery(
+                request.retrievalMode(),
+                request.task(),
+                baseline,
+                repositoryRevision,
+                List.of(relativeWorkflow, baseline.id()),
+                Optional.empty());
+        var result = loop.evaluate(new MutationProposalRequest(baseline, query));
+        long wallMillis = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - runStarted);
+        return new EvolveRunResult(result, journalPath, retrievalCapture.required(), proposer.proposerEvidence(),
+                wallMillis, timedRetriever.elapsedMillis());
     }
 
     private static void requireRunnableCheckScripts(Path gitRoot, List<CommandCheck> checks) {
@@ -132,15 +190,39 @@ public final class EvolveRunner {
         }
     }
 
-    private static final class NoOpMetadataStore implements ExperimentMetadataStore {
+    private static final class RetrievalCapture implements EvolutionReporter {
+        private RetrievalBundle retrieval;
+
         @Override
-        public void recordCandidate(Candidate candidate) {
-            // persistent experiment metadata arrives with CHG-002 task T5
+        public void retrievalPrepared(RetrievalBundle retrieval) {
+            this.retrieval = retrieval;
+        }
+
+        private RetrievalBundle required() {
+            return Objects.requireNonNull(retrieval, "retrieval was not prepared");
+        }
+    }
+
+    private static final class TimedRetriever implements EvidenceRetriever {
+        private final EvidenceRetriever delegate;
+        private long elapsedNanos;
+
+        private TimedRetriever(EvidenceRetriever delegate) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
         }
 
         @Override
-        public void recordFitness(FitnessResult result) {
-            // persistent experiment metadata arrives with CHG-002 task T5
+        public RetrievalBundle retrieve(RetrievalQuery query) {
+            long started = System.nanoTime();
+            try {
+                return delegate.retrieve(query);
+            } finally {
+                elapsedNanos += System.nanoTime() - started;
+            }
+        }
+
+        private long elapsedMillis() {
+            return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
         }
     }
 }

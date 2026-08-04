@@ -13,7 +13,50 @@
           name = system;
           value = f system;
         }) systems);
+      saaaRunner = system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+          pkgs.writeShellApplication {
+            name = "saaa";
+            runtimeInputs = [
+              pkgs.git
+              pkgs.gradle
+              pkgs.jdk21_headless
+              pkgs.jq
+              pkgs.docker-client
+              pkgs.docker-compose
+              pkgs.python3
+            ];
+            text = ''
+              task_root="''${SAAA_SOURCE_ROOT:-$PWD}"
+              if [[ ! -x "$task_root/.agentic-template/bin/gradle-command" ]]; then
+                echo "saaa: run from a SAAA checkout or set SAAA_SOURCE_ROOT" >&2
+                exit 2
+              fi
+              "$task_root/.agentic-template/bin/gradle-command" --quiet :cli:installDist
+              exec "$task_root/modules/cli/build/install/saaa/bin/saaa" "$@"
+            '';
+          };
     in {
+      packages = forAllSystems (system: {
+        default = saaaRunner system;
+        saaa = saaaRunner system;
+      });
+
+      apps = forAllSystems (system: {
+        default = {
+          type = "app";
+          program = "${saaaRunner system}/bin/saaa";
+          meta.description = "Run the local SAAA Java CLI";
+        };
+        saaa = {
+          type = "app";
+          program = "${saaaRunner system}/bin/saaa";
+          meta.description = "Run the local SAAA Java CLI";
+        };
+      });
+
       checks = forAllSystems (system: {
         repo-contract =
           let
@@ -42,6 +85,8 @@
               pkgs.gradle
               pkgs.jdk21_headless
               pkgs.jq
+              pkgs.docker-client
+              pkgs.docker-compose
               pkgs.python3
               pkgs.ripgrep
             ];
