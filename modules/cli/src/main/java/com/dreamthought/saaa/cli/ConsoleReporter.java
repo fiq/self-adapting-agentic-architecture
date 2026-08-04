@@ -5,6 +5,7 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.RetrievalBundle;
 import java.io.PrintWriter;
 import java.util.Objects;
 
@@ -19,6 +20,12 @@ public final class ConsoleReporter implements EvolutionReporter {
     @Override
     public void proposed(Mutation mutation) {
         out.printf("  propose    %s  %s%n", mutation.id(), mutation.summary());
+    }
+
+    @Override
+    public void retrievalPrepared(RetrievalBundle retrieval) {
+        out.printf("  retrieval %s  config=%s evidence=%d tokens~%d%n",
+                retrieval.mode(), retrieval.configurationId(), retrieval.capsules().size(), retrieval.estimatedTokens());
     }
 
     @Override
