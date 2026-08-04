@@ -1,374 +1,465 @@
 # SAAA — self-adapting-agentic-architecture
 
-SAAA is a Java-first experimental platform for evolving agentic workflows.
+SAAA takes one proposed change to one file, realises it in an isolated Git
+worktree, runs check scripts you wrote against that worktree, turns the results
+into a score with fixed code, and records promote or discard. Nothing merges.
 
-**Problem it addresses.** When you or an agent change a workflow, prompt policy,
-tool-selection strategy or guardrail, tests, CI and reviewers can tell you
-whether the change *works*. What they rarely give you is a *fixed comparison
-across many attempts at the same idea*: the deciding step is still reasoning
-over evidence, running the same request twice tends to produce two different
-verdicts, and useful ideas from a rejected attempt rarely feed the next one.
-Population-scale selection and recombination between evaluated candidates are
-not really part of the vocabulary.
+```text
+proposal -> isolated Git candidate -> measured evidence -> fixed decision -> promote or discard
+```
 
-**Because.** SAAA revives the older genetic-programming shape — propose, score
-against a fixed fitness function, keep or discard, later recombine survivors —
-and puts it on top of a repo-native context store, following
-[Comprehension at AI Speed](https://www.infoq.com/articles/ai-speed-context-store-architecture/).
-The deterministic scaffolding is not the novelty — tests, MCP tools, skills, CI
-already do that. What moves is the step that *decides*, from reasoning into
-fixed code. Model output can propose or repair; it can never approve its own
-result.
-[More on where this idea comes from →](#how-this-came-about)
+The intended target is what an agent depends on rather than the agent itself: a
+workflow definition, a prompt policy, a tool-selection strategy, a set of
+guardrails. Anything that is a file and can be graded by a script exiting 0 or 1.
 
-**Usage.**
+Fixed in code: validation, the hard gates, the weighted objectives, the 0.80
+promotion threshold and the promote-or-discard rule. A model may propose or
+repair a candidate, but it must never approve its own result.
+
+The loop runs end to end for one candidate per run. The default proposer is a
+canned file, so a stock run proves the pipe rather than that a model has good
+ideas, and no benchmark evidence reaches the score.
 
 ```sh
-git clone https://github.com/fiq/self-adapting-agentic-architecutre
-cd self-adapting-agentic-architecutre
+git clone https://github.com/fiq/self-adapting-agentic-architecture
+cd self-adapting-agentic-architecture
 nix develop
 .agentic-template/bin/gradle-command :cli:installDist
 ./modules/cli/build/install/saaa/bin/saaa saaa-evolve fixtures/toy-workflow \
     --behaviour-case workflow-check --max-lines 80
-cat fixtures/toy-workflow/journal.md
 ```
 
-Runs one full evaluation of the shipped fixture — propose a change, isolate it in
-a Git worktree, run your check script, score, decide, journal — with no model
-credentials required. The fixture's canned proposal makes the check pass, so the
-run promotes; break the fixture and the same command discards.
-[See a real run →](#what-it-actually-looks-like)
-
-The installed executable is always `saaa`. Public command tokens also carry the
-`saaa-` prefix so logs, shells and tool registries never expose ambiguous names
-such as `index` or `retrieve`.
-
-## Contents
-
-- [How this came about](#how-this-came-about) — genetic programming, and the
-  InfoQ piece
-- [In plain terms](#in-plain-terms) — what the tool actually does
-- [What it actually looks like](#what-it-actually-looks-like) — a promote run
-  and a discard run
-- [Why not just ask an agent to make the change](#why-not-just-ask-an-agent-to-make-the-change)
-- [How fitness is defined](#how-fitness-is-defined) — hard gates, weighted
-  objectives, where the numbers come from
-- [What is real today, and what is not](#what-is-real-today-and-what-is-not)
-- [Where this is going](#where-this-is-going) — summary of the three-layer
-  vision, with a link to the full ADR
-- [Run locally](#run-locally) and [Evolve a workflow](#evolve-a-workflow) —
-  full CLI reference
-- [Repository structure](#repository-structure) and
-  [Runtime architecture](#runtime-architecture-diagram)
-- [Agent startup](#agent-startup) and
-  [Development lifecycle](#development-lifecycle)
-
-The first consumer is a developer-researcher or platform maintainer who wants
-auditable experiments over autonomous agent workflow changes.
-
-## How this came about
-
-The shape is older than the agent hype. In the 1990s, genetic programming was
-already producing many candidate solutions, scoring each against a fitness
-function, keeping what scored well, recombining ideas from the survivors, and
-repeating. The parts that made it work were the *strong* fitness function, the
-*cheap* evaluation, and the willingness to throw candidates away.
-
-Modern agentic systems have serious deterministic scaffolding — tool calls, MCP
-servers, skills, static analysis, unit tests, type checkers, linters, CI
-pipelines. That scaffolding does a lot of real work. What is usually *not*
-deterministic is the step that decides: the reasoning that reads all of that
-evidence and picks a next action or accepts a change. The deterministic tools
-produce inputs; a model produces the verdict.
-
-Two things fall out of that arrangement. The deterministic constraints tend to
-concentrate on what is easy to encode — does it compile, does the test pass, is
-the type well-formed — because harder domain constraints are expensive to write
-down, so they get pushed back into the reasoning step, or into more model-graded
-checks (an LLM writing tests, an LLM judging outputs, another agent reviewing
-the first). And running the same request twice tends to give two different
-answers, with no way to compare them on the same axis, because there is no
-fitness function ranking them — only a chat log explaining why each one seemed
-fine at the time. Useful ideas from a rejected attempt rarely make it into the
-next one. Population-scale selection, and recombination between evaluated
-candidates, are not really part of the vocabulary.
-
-None of this is a criticism of the tools; SAAA uses the same primitives. It is
-a claim about where determinism should carry weight. SAAA moves the *decision*
-into fixed code and asks you to grow the fitness function until it can bear it.
-
-The second nudge was Comprehension at AI Speed
-([InfoQ, 2026-07-14](https://www.infoq.com/articles/ai-speed-context-store-architecture/)),
-which argues that as AI-assisted delivery gets faster, the bottleneck is durable
-*context*: specs, tests, fitness functions and handoff metadata living in the
-repository itself, not in a chat window. That reframes the loop above as an
-engineering discipline rather than a modelling trick, and it is why SAAA keeps
-its state — proposals, evidence, decisions, journal — as versioned files next to
-the code being evolved.
-
-Put those two together and SAAA is an experiment in reintroducing the older
-loop shape on top of a repo-native context store:
-
-- **Fixed fitness, not vibes.** Scoring is deterministic and lives in code, so
-  the same evidence always gives the same answer.
-- **Bounded mutation, in Git.** Every candidate is a real commit in a real
-  worktree, so any decision is reproducible from the commit id.
-- **Author and grader are different things.** A model may propose or repair, but
-  it never approves its own result.
-- **Recombination is on the roadmap, not the first slice.** Crossover between
-  evaluated candidates is deferred until single-candidate evaluation is honest,
-  because recombining unreliable evidence produces unreliable children.
-
-Hedged claim: for one change against a repository that already has a good test
-suite, an agent plus your CI does most of this. The payoff shows up when you
-want to try many variants of an idea and rank them on identical evidence,
-without a person adjudicating each round.
-
-## In plain terms
-
-You have something an agent depends on to do its job: a workflow definition, a
-prompt policy, a tool-selection strategy, a set of guardrails. You want to change
-it — and you want to know whether the change was actually an improvement, not
-just whether it looked plausible.
-
-That is the whole job here. You describe the behaviours that must still hold, as
-ordinary scripts that exit 0 or 1. Something proposes a change. The change is
-applied in an isolated copy, measured against your scripts, scored by fixed
-rules, and then kept or thrown away. You get a written record either way.
-
-```sh
-cli evolve ./my-workflow --behaviour-case publish-guard --behaviour-case renders-draft
-```
-
-That says: *evolve what is in this folder, and a candidate is only acceptable if
-`publish-guard.sh` and `renders-draft.sh` both still pass.*
-
-One run does this:
+No model credentials required. Real output:
 
 ```text
-1. propose    something suggests one bounded change, with a stated hypothesis
-2. isolate    the change is written into a separate Git worktree, never your working copy
-3. commit     the candidate is committed, so the exact thing measured is recoverable
-4. check      your <case>.sh scripts run inside that candidate
-5. score      fixed rules turn the evidence into a number and a decision
-6. journal    a human-readable entry is appended to journal.md
-```
-
-### What it actually looks like
-
-A candidate that works. The proposal was "enforce the draft check before
-publish", and the behaviour script demanding that still passes:
-
-```text
-  propose    MUT-toy-fixture  enforce the draft check before publish
-  candidate  candidate-mut-toy-fixture  2e02862
+  retrieval NONE  config=retrieval-config-v1 evidence=0 tokens~0
+  propose    MUT-toy-workflow-fixture  enforce the draft check before publishing
+  candidate  candidate-mut-toy-workflow-fixture  56bf0b9d69bae647ad7c8b68d4346e905a2d05ce
   check      workflow-check           PASSED
   score      1.00
   PROMOTE
+  journal    /home/raf/…/fixtures/toy-workflow/journal.md
 ```
 
-A candidate that does not. Same proposal, but this workflow also had a
-`publish: allow` line that the rewrite dropped, and the behaviour script noticed:
+The fixture baseline deliberately fails `workflow-check.sh` and the canned
+proposal fixes it, so the run promotes.
+
+## What is real today
+
+**Working** means implemented and runnable now. **Partial** means a real
+implementation exists but the useful capability is incomplete. **Not
+implemented** means no code.
+
+| Capability | Status | Detail |
+|---|---|---|
+| Propose, isolate, commit, check, score, decide, journal | Working | one candidate per `saaa-evolve` run |
+| Canned proposer | Working | `--profile fixture` reads `<target>/.saaa/fixture-mutation.txt` |
+| Live model proposer | Partial | `--profile openai-compatible` via LangChain4j, covered by a WireMock-backed acceptance test, not exercised by the shipped fixture |
+| MCP exposure | Partial | `saaa-mcp` serves the `saaa_evolve` tool over stdio; startup and tool contract are tested, client-disconnect lifecycle is not |
+| Benchmark-backed objectives | Not implemented | `EvolveRunner` wires the benchmark runner to a constant empty list, and `:cli` has no dependency on `:benchmarks` |
+| Behavioural-safety evidence | Not implemented | the objective is the literal `1.0` |
+| Retrieval treatments | Partial | `NONE` needs nothing; `VECTOR`, `GRAPH` and `HYBRID` need Neo4j and an embedding endpoint |
+| Population, ranking, selection | Not implemented | |
+| Recombination | Not implemented | `ConceptualCrossoverPolicy` exists with unit tests and is wired into no command |
+| Evolving product code | Partial | `--workflow-file` accepts any regular file and an acceptance test targets a Java file; realisation is whole-file replacement, not an AST edit |
+
+## Run locally
+
+`nix develop` supplies Java, Gradle, Git and the Docker client. The installed
+executable is always `saaa`; every public command token carries the `saaa-`
+prefix so `index` and `retrieve` never appear as bare names in a tool registry.
+
+| Option | Default | Purpose |
+|---|---|---|
+| `--profile` | `fixture` | `fixture` or `openai-compatible` |
+| `--workflow-file` | `workflow.txt` | the file inside the target folder being replaced |
+| `--behaviour-case` | required | check name that hard-gates promotion; repeatable |
+| `--max-lines` | `80` | change budget; both a pre-realisation validator and the parsimony denominator |
+| `--retrieval` | `NONE` | `NONE`, `VECTOR`, `GRAPH` or `HYBRID` |
+| `--task` | a bounded default goal | intent passed to retrieval and to the model prompt |
+
+Each `--behaviour-case <name>` runs `<name>.sh` in the target folder with a
+one-minute timeout, and every declared case must pass, so the gate cannot be
+satisfied by the first case alone. The run refuses to start unless every
+declared case has an executable regular file, so a typo is never recorded as
+evidence about the mutation. Checks run in a worktree created from `HEAD`, so a
+new or edited check script must be committed before it can gate a run.
+
+The target folder must sit inside a Git repository, because isolation uses
+`git worktree`. A discarded candidate is a successful run and exits 0; a
+non-zero exit means the run itself failed. For a live proposal, set the three
+model variables in [configuration](#configuration-and-environment-variables) and
+pass `--profile openai-compatible`.
+
+Naming rules, the symlink restriction and the two ways a repeat run collides are
+in [docs/wiki/operations.md](docs/wiki/operations.md).
+
+### A discard
+
+The fixture proposer reads `.saaa/fixture-mutation.txt` from your working tree
+rather than from `HEAD`, so editing it changes the proposal without a commit.
+Give it a body that changes a line but leaves `draft-check: skip` in place, and
+the same command gives:
 
 ```text
-  propose    MUT-toy-fixture  enforce the draft check before publish
-  candidate  candidate-mut-toy-fixture  a5360bd
   check      workflow-check           FAILED
   score      0.00
   DISCARD
 ```
 
-Nothing was broken in your files: the candidate lived in its own worktree, and
-the run exited 0 because discarding a bad candidate is a successful experiment,
-not an error. Both runs leave an entry like this in `journal.md`:
+Nothing in your files broke. The candidate lived in its own worktree.
 
-```markdown
-## 2026-07-31T09:21:47Z  candidate-mut-toy-fixture
+## What one run leaves behind
 
-**Hypothesis** enforce the draft check before publish
+- **A candidate commit** on `candidate/<workflow>-<mutation>`, holding the
+  realised file plus `.saaa/candidates/<candidate>.toon` bookkeeping: baseline,
+  mutation, and for a live proposer the prompt digest, prompt, raw response and
+  token counts.
+- **`journal.md`**, appended in the target folder:
 
-| | |
-|---|---|
-| commit | 2e0286278d9429a8cbef0137b34dfe32d42d13ef |
-| checks | workflow-check PASSED |
-| score | 1.00 |
-| decision | PROMOTE |
+  ```markdown
+  ## 2026-08-04T07:36:54.889592334Z  candidate-mut-toy-workflow-fixture
+
+  **Hypothesis** enforce the draft check before publishing
+
+  | | |
+  |---|---|
+  | commit | 56bf0b9d69bae647ad7c8b68d4346e905a2d05ce |
+  | checks | workflow-check PASSED |
+  | score | 1.00 |
+  | decision | PROMOTE |
+
+  Scored 1.00 against a threshold of 0.80.
+  ```
+
+- **`experiments/ledger/<candidate>-<digest>.toon`**, a Git-visible envelope
+  carrying subject and process repository revisions, mutation and retrieval
+  strategy ids, changed paths, checks, benchmarks, fitness and decision. It
+  excludes prompts, raw responses, embeddings and reasoning, and can rehydrate
+  the memory tables used to rebuild Neo4j.
+- **Rows in `.saaa/experiments.sqlite`**, one per objective and gate, plus
+  **`docs/wiki/experiments.md`** regenerated from the envelopes as a readable
+  projection that states it is not authority or ranking weight.
+
+Every claim there is attached to a commit you can check out and re-measure.
+
+Promotion writes none of your files. It records a decision and leaves the branch
+in place; `main` is untouched, and there is no flag, no port method and no merge
+string in the deterministic layer that turns a score into a merge. Three tests
+hold that line, listed in [docs/wiki/testing.md](docs/wiki/testing.md).
+
+## Fitness and the decision
+
+```text
+candidate --> hard gates pass? --no--> discard
+                    |
+                   yes
+                    v
+              weighted sum >= 0.80? --no--> discard
+                    |
+                   yes --> promote
+
+eligible(c) = every hard gate passes
+fitness(c)  = Σ weight_i × objective_i(c)
+promote(c)  = eligible(c) and fitness(c) >= 0.80
 ```
 
-The commit id is the point. Every claim in that table is attached to a commit you
-can check out and re-measure.
+### Hard gates
 
-### Why not just ask an agent to make the change
-
-Because the agent that writes the change is the last thing that should be
-grading it.
-
-| Asking an agent directly | This loop |
-|---|---|
-| The agent decides when it is done | A model may propose and repair, but never approves its own result |
-| "Looks correct to me" | Pass or fail from scripts you wrote, before the change existed |
-| Edits land in your working tree | Edits land in a throwaway Git worktree; your files are untouched until you promote |
-| Ask twice, get two different answers and no way to compare them | The same evidence always produces the same score and decision |
-| The reasoning is in a chat log | The decision, the evidence and the commit are in `journal.md` and Git |
-| One attempt, judged by vibes | Many attempts, ranked on identical measurements |
-
-Being honest about the trade: for a single change against a repository that
-already has good tests and CI, an agent plus your existing pipeline gets you most
-of this. The payoff starts when you want to try five variants of the same idea,
-compare them on identical evidence, and keep doing that without a human
-adjudicating each round. That is what fixed, deterministic scoring buys — an
-opinion that does not drift between runs.
-
-### How fitness is defined
-
-Fitness is two layers, and the first one is not negotiable.
-
-**Hard gates.** Fail any one of these and the candidate scores 0.00 and is
-discarded, no matter how good the rest looks. There is no trading a gate away
-against a high score elsewhere.
+Fail one and the candidate scores 0.00 and is discarded, whatever else is true.
+A gate cannot be traded against a high score elsewhere.
 
 | Gate | Fails when |
 |---|---|
-| `hard_gate_deterministic_checks` | any deterministic check failed, or no check evidence was produced at all |
-| `hard_gate_required_behavior_cases` | any behaviour case you declared failed, or produced no evidence of its own |
-| `hard_gate_required_objective_scores` | any objective below is missing or is not a number between 0 and 1 |
-| `hard_gate_non_empty_realization` | the candidate changed no file, so there is nothing to evaluate |
+| `hard_gate_deterministic_checks` | any check failed, or no check evidence was produced at all |
+| `hard_gate_required_behavior_cases` | any declared behaviour case failed or produced no evidence of its own |
+| `hard_gate_required_objective_scores` | any objective below is missing, or is not a finite number in `[0, 1]` |
+| `hard_gate_non_empty_realization` | the candidate commit changed no file outside its own `.saaa/` bookkeeping |
 
-Absent evidence counts as failure everywhere. A behaviour you asked for and did
-not get proof of has not been shown to hold.
+Absent evidence counts as failure everywhere: a behaviour you asked for and got
+no proof of has not been shown to hold. The empty-realisation gate exists
+because parsimony rewards the smallest diff, so without it a candidate that
+changed nothing would score best of all, on evidence about a baseline it never
+touched. Gate outcomes are written into the result map after the measured
+scores, so evidence content cannot overwrite a recorded gate outcome; a jqwik
+property asserts that, not just an example.
 
-**Weighted objectives.** Only once every gate passes are these summed. The total
-must reach **0.80** to promote.
+### Weighted objectives
 
-| Objective | Weight | Measured as |
-|---|---|---|
-| `task_success` | 0.40 | fraction of your declared behaviour cases that passed |
-| `reliability` | 0.20 | 1.0 when no check timed out, else 0.0 |
-| `cost_latency_budget` | 0.20 | worst `budget / measured` across benchmarks, capped at 1.0 |
-| `behavioral_safety` | 0.10 | fixed at 1.0 today; gains a real source when reviewer evidence lands |
-| `parsimony` | 0.10 | `1 - (lines changed / --max-lines)`, so a tighter change scores higher |
+Weights live in `MutationOperatorPolicy.DEFAULT_OBJECTIVES`, identical for every
+mutation operator so candidates stay comparable. Values are derived in
+`PhenotypeBridgeScorer`.
 
-So the promoting run above scored `0.40 + 0.20 + 0.20 + 0.10 + 0.10 = 1.00`. The
-discarding run failed the behaviour gate, so it scored 0.00 without any objective
-being consulted.
+| Objective | Weight | Derived from | Varies between eligible candidates? |
+|---|---:|---|---|
+| `task_success` | 0.40 | fraction of declared behaviour cases that passed | No |
+| `reliability` | 0.20 | `1.0` unless some check summary contains the text `timed out` | No, in practice |
+| `cost_latency_budget` | 0.20 | worst `budget / measured` over benchmarks, clamped to `[0, 1]`, starting at `1.0` | No |
+| `behavioral_safety` | 0.10 | the literal `1.0` | No |
+| `parsimony` | 0.10 | `1 - (linesChanged / --max-lines)`, clamped | Yes |
 
-Where the numbers come from:
+The threshold compares against the raw sum; the reported score is rounded to two
+decimals for display only, so `0.7950` cannot promote.
 
-- **Weights and the 0.80 threshold** are code, in `MutationOperatorPolicy` and
-  `PhenotypeFitnessScorer`. They are the same for every mutation operator, so
-  candidates stay comparable. Changing them is a reviewed change to the
-  repository, not a per-run flag.
-- **What "correct" means** is entirely yours: the `--behaviour-case` scripts you
-  write. The system has no opinion about your domain.
-- **Per-run budgets** are flags, such as `--max-lines` for the change budget
-  parsimony is scored against.
-- **Nothing the model emits** can influence any of this. A proposal that tries to
-  supply its own score or approval is rejected before scoring, and recorded gate
-  outcomes are written after measured values so evidence cannot overwrite them.
+From the run above: the fixture replaces one line of `workflow.txt`, counted as
+one removed plus one added, so parsimony is `1 - 2/80 = 0.975` and the raw sum
+is `0.40 + 0.20 + 0.20 + 0.10 + 0.0975 = 0.9975`, reported as `1.00`.
 
-### What is real today, and what is not
+### Why four of those five decide nothing
 
-Working end to end: proposal, isolation, realization, commit, checks, scoring,
-promote-or-discard, journal. Every part of the loop runs.
+`task_success` duplicates its own gate: every declared case must pass to clear
+`hard_gate_required_behavior_cases`, so the passed fraction is 1.0 by
+construction. Partial credit would need the gate relaxed first.
 
-Not yet: the proposer is a canned fixture read from a file, not a live model, so
-this proves the pipe rather than that a model produces good ideas. One candidate
-is evaluated per run, so there is no ranking or selection pressure between
-candidates yet — that is the next slice, and it is the point at which this starts
-to differ from a capable agent with a good test suite. `behavioral_safety` has no
-independent evidence source and sits at 1.0.
+`reliability` only drops when a check already failed, because a timed-out check
+is recorded as failed. Worse, it is a substring match on the check summary, and
+that summary contains the script's own stdout, so a passing check that prints
+the words `timed out` scores 0.0.
 
-## Where this is going
+`cost_latency_budget` cannot be measured. `EvolveRunner` wires the benchmark
+runner to `candidate -> List.of()`, `ScoringConfig` gets an empty budget map,
+and `:cli` has no Gradle dependency on `:benchmarks`, so the loop never executes
+and the value stays at its `1.0` starting point. `JmhBenchmarkRunner` is real
+and integration-tested; nothing in the loop calls it. A benchmark with a zero
+value or no budget is skipped rather than failed, so absent benchmark evidence
+is invisible rather than a gate failure.
 
-Full detail lives in
-[ADR-0002: Three-layer vision for SAAA](docs/decisions/0002-three-layer-vision.md).
-Short version:
+`behavioral_safety` is the literal constant `1.0`. SAAA evaluates no behavioural
+safety property. It contributes 0.10 of unearned weight.
 
-- **Layer 1** — evolve a workflow, prompt or agent-configuration file.
-  *Shipped:* the whole loop end-to-end for one candidate per run, with a
-  canned fixture proposer.
-- **Layer 2** — SAAA exposed as a tool an outer agentic loop can call. The
-  outer loop plans *what to try*; the inner loop scores. Nothing shipped
-  beyond the CLI as an implicit tool surface.
-- **Layer 3** — the same loop applied to product code, gated by existing
-  tests and benchmarks. Nothing shipped.
+`parsimony` is the one that varies. `linesChanged` comes from the candidate
+commit against its first parent through JGit, summing `lengthA + lengthB` per
+edit, so a one-line replacement counts as 2. Paths under `.saaa/` are excluded
+so bookkeeping does not inflate the diff; everything else counts, including
+generated files and reformatting. At or above `--max-lines` it clamps to 0.0,
+and `--max-lines` is also a pre-realisation validator, so a patch exceeding the
+budget is rejected before a candidate exists and the run exits non-zero.
 
-**Delivery pattern.** Vertical slices where possible: each slice ships a thin
-end of L1, L2 and L3 together, so the outer-loop tool vocabulary and the
-Layer-3 safety story get tested on real use instead of designed in isolation.
-**Population** (rank several candidates on identical evidence) and
-**conceptual crossover** (recombine ideas from evaluated parents) stay as
-foundation slices that upgrade all three layers at once.
+So through `PhenotypeBridgeScorer`, the only scorer the CLI wires, the weighted
+sum cannot fall below 0.90 and the 0.80 threshold cannot reject an eligible
+candidate. The gates are the decision; the score is a record of it. The one way
+the threshold currently bites is that `reliability` substring collision, which
+discards an otherwise passing candidate. `PhenotypeFitnessScorer` underneath
+compares properly and the golden corpus exercises both sides of the threshold,
+but nothing on the CLI path produces those inputs.
 
-**Current state.** Layer 1 pipe is real for one canned candidate. The next
-concrete piece of work is a first vertical slice (candidate `CHG-004`): live
-LangChain4j proposer at L1, `saaa_evolve` exposed as an MCP tool at L2, one Java
-file inside this repository as the L3 target, gated by an existing unit test.
-See the ADR for the full delivery pattern and revisit triggers.
+### The limitation of deterministic fitness
 
-## Intended thin slice
+A fixed decision is reproducible. It is not automatically a good decision.
 
-The first approved implementation slice will prove one candidate path:
+The machinery earns its cost only when the fitness function reflects the
+behaviour that matters, separates better candidates from merely passing ones,
+uses evidence independent of whatever proposed the change, resists gaming, is
+cheap to run repeatedly, treats absent evidence as visible failure, and stays
+versioned. SAAA currently manages the last two.
+
+A candidate can optimise the checks rather than the intended behaviour when the
+checks are weak or observable. What narrows that here: check scripts come from
+`HEAD`, so a candidate cannot introduce the script that grades it within the
+same run; a check program named by path must resolve inside the worktree and
+must not be a symlink; the check environment is scrubbed to `PATH`, `HOME`,
+`LANG`, `LC_*` and `JAVA_HOME` with provider credentials denied, and an
+acceptance test asserts a candidate reading the API key sees the empty string;
+the MCP input schema is closed against fields that would force promotion,
+override a gate, request a merge or carry credentials. What does not: the check
+process is not sandboxed, so it keeps whatever filesystem and network access
+launched it. This narrows the obvious routes rather than solving anything.
+
+Ranking several candidates on identical evidence, selecting between them and
+recombining ideas from evaluated parents are not implemented, and the current
+score should not be read as if they were.
+
+## Compared with an agent plus CI
+
+For one change against a repository with strong tests and CI, a capable coding
+agent already provides much of this workflow.
+
+The intended differentiator is what a single adjudicated change cannot give you:
 
 ```text
-baseline workflow
-  -> model proposes bounded mutation
-  -> deterministic validation
-  -> isolated Git worktree candidate
-  -> candidate commit
-  -> deterministic checks and JMH benchmark evidence
-  -> multi-objective fitness result
-  -> deterministic promote or discard
+several candidate variants
+        + identical external evidence
+        + fixed comparison
+        + retained experiment history
 ```
 
-The model may propose mutations and repairs, but it must never approve its own
-result.
+Three of the four exist. The candidate variants do not: SAAA evaluates one
+candidate per run, so the differentiator is a design claim rather than a working
+property.
 
-## Runtime architecture diagram
+## Architecture
+
+All Java lives under `modules/`, in layers named for what they may know.
+Dependencies point inward: `cli` and `adapters` may reach `deterministic`,
+`deterministic` may reach `domain`, and `domain` may reach nothing. Gradle
+enforces it, so a violation is a compile error rather than a review comment.
 
 ```text
-CLI (picocli)
-  |
-  v
-Deterministic use case: MutationEvaluationLoop
-  |
-  +--> domain records and deterministic policies
-  |
-  +--> ports
-        |-- MutationProposer          -> adapters/langchain4j
-        |-- CandidateWorkspace        -> adapters/git
-        |-- ExperimentMetadataStore   -> adapters/sqlite
-        |-- CheckRunner               -> adapters/checks
-        |-- BenchmarkRunner           -> benchmarks/JMH
+cli -> deterministic -> domain
+             ^
+             |
+  adapters and benchmarks implement ports
 ```
 
-LangChain4j is intentionally isolated behind adapter ports. The domain layer is
-plain Java and must not import model-provider libraries.
+`MutationEvaluationLoop` sits in `deterministic` and talks only to ports:
+`MutationProposer`, `EvidenceRetriever`, `CandidateWorkspace`, `CheckRunner`,
+`BenchmarkRunner`, `FitnessScorer`, `ExperimentMetadataStore` and
+`CandidateDecisionSink`. The port wiring, module table and extension points are
+in [docs/wiki/architecture.md](docs/wiki/architecture.md); the boundary rules
+are in
+[docs/architecture/module-boundaries.md](docs/architecture/module-boundaries.md).
 
-## Repository structure
+`CandidateDecisionSink` exposes no merge operation, so promotion cannot become
+an automatic merge through adapter configuration.
 
-Layers are named for what they are allowed to know. Dependencies point inward:
-`cli` and `adapters` may reach `deterministic`, `deterministic` may reach
-`domain`, and `domain` may reach nothing. Gradle enforces this, so a violation
-is a compile error rather than a review comment.
+## Run with containers
 
-| Path | Purpose |
+There is no application image. ADR-0004 revisits the earlier container and
+vector deferrals only for one optional, on-demand Neo4j Community dependency
+used by retrieval experiments:
+
+```sh
+export SAAA_NEO4J_PASSWORD='choose-a-local-password'
+nix develop --command docker compose up -d --wait neo4j
+
+nix run . -- saaa-index build --role SUBJECT_AND_PROCESS
+nix run . -- saaa-retrieve \
+    --repository . --task 'preserve deterministic fitness' \
+    --mode GRAPH --exact ARCH-001
+
+nix develop --command docker compose down
+```
+
+Retrieval requires the projection revision, query revision and working-tree
+fingerprint to match exactly, so run `saaa-index update` after any repository
+change; it fails closed rather than serving stale evidence under the requested
+treatment.
+
+The image is pinned by digest, HTTP and HTTPS are off, authenticated Bolt binds
+`127.0.0.1` only, `no-new-privileges` is set and no plugins are installed. On
+2026-08-02 Trivy 0.72 found no high or critical operating-system findings in
+that image and ten unique high Java dependency findings, whose published fixed
+versions are newer than anything Neo4j currently ships. RISK-005 tracks them.
+That is containment, not absence, so do not expose this topology to an untrusted
+network.
+
+Topology, the volume and password trap, repository roles, the
+`lineage-novelty-v1` retention policy, historic reinflation, the JGit fallback
+and `saaa-ablate retrieval` are all in
+[docs/wiki/operations.md](docs/wiki/operations.md).
+
+## Tests
+
+```sh
+.agentic-template/bin/project test
+.agentic-template/bin/project lint
+.agentic-template/bin/project component-test
+.agentic-template/bin/project integration-test
+.agentic-template/bin/project graphrag-integration-test
+```
+
+`lint` is the architecture-boundary fitness function guarding this repository:
+model-provider imports may not appear in `modules/domain` or
+`modules/deterministic`, and it fails when a scanned layer directory is missing,
+so a rename cannot make it pass vacuously. The Neo4j tests are opt-in behind
+`SAAA_NEO4J_INTEGRATION`, so a plain `integration-test` skips them. What each
+suite covers is in [docs/wiki/testing.md](docs/wiki/testing.md).
+
+## Configuration and environment variables
+
+No model-provider configuration is committed. Configure only the boundary you
+are using; local Git and SQLite defaults need nothing.
+
+| Variable | Purpose |
 |---|---|
-| `modules/domain/` | Plain Java records and value types; no dependencies at all |
-| `modules/deterministic/` | Validation, scoring, promotion and ports; nothing provider-aware or nondeterministic lives here |
-| `modules/adapters/` | Model access, Git worktrees, SQLite persistence and command execution, one package each |
-| `modules/benchmarks/` | JMH benchmarks and benchmark evidence adapters |
-| `modules/cli/` | picocli command entrypoint |
-| `specs/` | Capability and change specs |
-| `docs/` | Architecture, validation, decisions, runbooks and wiki |
+| `SAAA_MODEL_BASE_URL` | OpenAI-compatible chat endpoint for `--profile openai-compatible` |
+| `SAAA_MODEL_API_KEY` | model credential |
+| `SAAA_MODEL_NAME` | model id |
+| `SAAA_NEO4J_PASSWORD` | credential shared by Compose and the graph adapter |
+| `SAAA_EMBEDDING_*` | `BASE_URL`, `API_KEY`, `MODEL_ID` and `DIMENSIONS` for `VECTOR` and `HYBRID` indexing |
+| `SAAA_PROCESS_REPOSITORY` | SAAA process checkout when evolving a different subject repository; defaults to the subject |
+| `SAAA_MEMORY_*` | `POLICY_ID` plus the slot counts bounding the hot graph |
+
+The experiment database path is not configurable: it is
+`.saaa/experiments.sqlite` at the Git root of the target repository.
+
+## Known limitations
+
+Beyond the fitness gaps above:
+
+- `journal.md` is written into your target folder, so the command writes outside
+  its own repository. This repository's `.gitignore` covers `**/journal.md`.
+- Reporters print only check name and status, so a behaviour case that fails for
+  its own reasons shows no diagnostics.
+- The MCP server accepts any local Git repository visible to the stdio process
+  and runs check scripts from it. Fine for a local developer tool, unsafe as-is
+  for anything remote or multi-user.
+- The non-empty realisation gate rejects a no-op candidate but says nothing about
+  whether the change is meaningful; a whitespace edit passes it.
+- The `MutationContract` and `MutationContractValidator` stack runs parallel to
+  the wired `Mutation` and `MutationValidator` ports. `Mutation.patch` is
+  recorded as transitional with no migration step scheduled.
+- Token counts are captured but no price schedule is configured, so ablation cost
+  falls back to token count.
+
+## Infrastructure and deployment state
+
+Local topology is Nix plus Gradle, Git, SQLite and optional on-demand Neo4j
+Community. The deployment target is `local_cli`. Infrastructure as code is not
+applicable until a remote execution or deployment target is chosen.
+
+## Deliberate non-goals
+
+- OpenSearch, generic vector platforms or production retrieval infrastructure
+- AST mutation
+- LSP integration
+- distributed workers
+- automatic production deployment
+
+Each is recorded as deferred in `PROJECT_PROFILE.toon` with revisit conditions.
+
+## Background
+
+The shape predates the current agent tooling. Genetic programming produced many
+candidates, scored each against a fitness function, kept what scored well,
+recombined ideas from survivors and repeated. What made it work was a strong
+fitness function, cheap evaluation and willingness to throw candidates away.
+
+Agentic systems already have deterministic scaffolding: tool calls, MCP servers,
+skills, static analysis, tests, CI. What is usually not deterministic is the
+step that decides. The scaffolding produces inputs and a model produces the
+verdict, so encoded constraints drift towards what is cheap to express and the
+rest goes back into reasoning or model-graded checks. SAAA is a bet that the
+decision belongs in fixed code, and that the real work is then growing a fitness
+function that can carry it.
+
+The second input is
+[Comprehension at AI Speed](https://www.infoq.com/articles/ai-speed-context-store-architecture/)
+(InfoQ, 2026-07-14): the bottleneck is durable context living in the repository
+rather than a chat window. Hence evidence, decisions and journal as versioned
+files beside the code being evolved.
+
+## Roadmap
+
+Three layers, detailed in
+[ADR-0002](docs/decisions/0002-three-layer-vision.md): evolve a
+workflow or prompt file (shipped for one candidate per run); SAAA as a tool an
+outer agentic loop calls (`saaa-mcp` serves it, the planning loop is not built);
+the same loop on product code gated by existing tests and benchmarks
+(`--workflow-file` can target a Java file, but realisation is whole-file
+replacement and no benchmark gating exists).
+
+Population and conceptual crossover stay foundation slices that upgrade all
+three at once. Both are blocked on the same thing: objectives that actually vary
+between passing candidates.
 
 ## Agent startup
 
 Fresh agent sessions must run `.agentic-template/bin/project startup`, confirm
-that `AGENTS.md` was read from disk, review the printed sequence and options,
-then continue from the operating contract. For non-trivial work, read
-`HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md` and
-`.agents/knowledge/index.md` before planning or implementation.
+that `AGENTS.md` was read from disk, then continue from the operating contract.
+For non-trivial work, read `HANDOFF.toon`, `PROJECT_PROFILE.toon`,
+`docs/context-store.md` and `.agents/knowledge/index.md` before planning or
+implementation.
 
 ## Documentation IA
 
@@ -383,274 +474,23 @@ then continue from the operating contract. For non-trivial work, read
 
 ## Context store
 
-The repository is the durable context store. Structure lives in `AGENTS.md`,
-this README, `PROJECT_PROFILE.toon` and architecture docs. Lineage lives in
-`HANDOFF.toon`, ADRs and `.agents/knowledge/`. Behavior lives in specs and
-tests. Conformance lives in repository checks, CI and architecture fitness
-functions.
+The repository is the durable context store: structure in `AGENTS.md`, this
+README and `PROJECT_PROFILE.toon`; lineage in `HANDOFF.toon`, ADRs and
+`.agents/knowledge/`; behavior in specs and tests; conformance in repository
+checks, CI and architecture fitness functions. The model is described in
+[docs/context-store.md](docs/context-store.md).
 
-Do not add an external vector store, database memory layer or SaaS memory layer
-by default. Add one only when project evidence justifies it and
-`PROJECT_PROFILE.toon` records the decision. Every non-trivial handoff should
-include the spec reference, validation run, fitness-function delta and
-knowledge update or no-record rationale.
-
-## Run locally
-
-Use the Nix development shell:
-
-```sh
-nix develop
-.agentic-template/bin/project run
-```
-
-The CLI is scaffolded. The application mutation loop orchestration is
-implemented and covered by a component test. Deterministic bounded mutation
-validation is implemented. Git, SQLite, command-check and JMH evidence adapters
-have integration coverage; the LangChain4j mutation proposer adapter has
-provider-neutral typed-service coverage. Live provider selection and credential
-configuration remain deferred.
-
-### Evolve a workflow
-
-The `evolve` command runs one complete mutation evaluation end to end — propose,
-realize into a Git candidate, check, score, decide, journal — with no model
-credentials:
-
-```sh
-.agentic-template/bin/gradle-command :cli:installDist
-./modules/cli/build/install/saaa/bin/saaa saaa-evolve fixtures/toy-workflow \
-    --behaviour-case workflow-check --max-lines 80
-cat fixtures/toy-workflow/journal.md
-```
-
-| Option | Default | Purpose |
-|---|---|---|
-| `--profile` | `fixture` | Proposer profile name; `fixture` needs no credentials |
-| `--workflow-file` | `workflow.txt` | File inside the target folder being evolved |
-| `--behaviour-case` | required | Check name that hard-gates promotion; repeatable |
-| `--max-lines` | `80` | Change budget parsimony is scored against |
-| `--retrieval` | `NONE` | Explicit treatment: `NONE`, `VECTOR`, `GRAPH` or `HYBRID` |
-| `--task` | bounded default goal | Intent used for exact, semantic and structural discovery |
-
-Each `--behaviour-case <name>` runs `<name>.sh` in the target folder, with a
-one-minute timeout per case, and every declared case must pass before promotion,
-so the gate cannot pass on the strength of the first case alone. The name is used
-as a file-name segment and must match `[a-zA-Z0-9][a-zA-Z0-9._-]*`; duplicates
-are rejected. The command refuses to run unless every declared case has an
-executable script, so a typo is never recorded as evidence about the mutation.
-
-Checks run inside a worktree created from `HEAD`, so a new check script must be
-committed before it can gate a run. A check script must be a regular file, not a
-symlink: a program named by path has to resolve inside the candidate worktree, so
-a script pointing outside it cannot satisfy a required behaviour. The convention
-is POSIX-shaped (`<name>.sh`, executable bit), so `saaa-evolve` targets Linux and
-macOS.
-
-The target folder must sit inside a Git repository, because candidate isolation
-uses `git worktree`. A discarded candidate is a successful run; the command
-exits non-zero only when the run itself fails.
-
-A candidate whose realization changed no file is discarded however well it
-scores. Parsimony rewards a smaller change, so without that gate the empty change
-would score best of all, on evidence about the baseline it never touched.
-
-Candidate worktree names derive from the mutation id, so re-running the fixture
-profile against a folder that already has a candidate worktree fails until
-`.worktrees/candidate-*` is removed.
-
-## Run with containers
-
-There is still no application image. ADR-0004 intentionally revisits the earlier
-container/vector deferral only for one optional, on-demand Neo4j Community
-dependency used by retrieval experiments:
-
-```sh
-export SAAA_NEO4J_PASSWORD='choose-a-local-password'
-nix develop --command docker compose up -d --wait neo4j
-
-nix run . -- saaa-index build --role SUBJECT_AND_PROCESS
-nix run . -- saaa-retrieve \
-    --repository . --task 'preserve deterministic fitness' \
-    --mode GRAPH --exact ARCH-001
-
-nix develop --command docker compose down
-```
-
-The flake dev shell supplies the Docker client and Compose plugin as well as
-Java/Gradle; it uses the host Docker daemon and does not try to run a daemon
-inside Nix. `nix run . -- <saaa-command>` builds the local distribution
-incrementally and invokes the same installed Java binary. The existing flake is
-the one development-environment contract, so devenv is not required for this
-local topology.
-
-The named volume survives ordinary shutdown. Neo4j is rebuildable: repository
-artifacts remain canonical, and graph deletion loses no canonical knowledge.
-`NONE` constructs neither Neo4j nor an embedding provider. Configured non-`NONE`
-modes fail clearly if their required dependency is unavailable. Retrieval also
-requires the graph projection revision, query revision and current working-tree
-fingerprint to match exactly; after any repository change, run `saaa-index
-update` before retrieving. This fails closed instead of silently supplying stale
-evidence under the requested treatment.
-
-VECTOR/HYBRID indexing uses an explicitly configured OpenAI-compatible embedding
-endpoint and publishes only after the complete embedding set succeeds:
-
-```sh
-export SAAA_EMBEDDING_BASE_URL='https://provider.example/v1'
-export SAAA_EMBEDDING_API_KEY='local-secret'
-export SAAA_EMBEDDING_MODEL_ID='embedding-model-id'
-export SAAA_EMBEDDING_DIMENSIONS='1536'
-./modules/cli/build/install/saaa/bin/saaa saaa-index update --vectors
-```
-
-Embeddings are memoised in `.saaa/retrieval.sqlite` by model ID plus content
-hash. Evidence Capsules use logical subject plus revision plus projection
-version. This database is disposable. `.saaa/experiments.sqlite` is the current
-efficient experiment ledger; separate store classes/tables keep experiment
-metadata and evolutionary memory ports distinct even though they share the file.
-
-Every evaluated attempt also writes a compact Git-visible
-`experiments/ledger/<candidate>.toon` envelope. It contains both the subject
-repository revision and the SAAA process revision, mutation/retrieval/memory
-strategy IDs, checks, benchmarks, fitness and decision. It excludes prompts,
-raw responses, embeddings and private reasoning. These envelopes can rehydrate
-the evolutionary-memory tables used to rebuild Neo4j; the older candidate
-metadata tables retain their existing local lifecycle. `docs/wiki/experiments.md` is regenerated from them as a
-human-readable projection and says explicitly that inclusion is not authority
-or ranking weight.
-
-Neo4j retains only the working set chosen by `lineage-novelty-v1`: bounded
-champions and known ancestors, distinct failure fingerprints, evidence-novel
-representatives and a deterministic exploration reservoir. It does not expire
-history by age. Defaults can be overridden with `SAAA_MEMORY_*` variables, but
-changed semantics require a new `SAAA_MEMORY_POLICY_ID`. Historic source and
-compatible outcomes can be explicitly projected without touching the checkout:
-
-```sh
-./modules/cli/build/install/saaa/bin/saaa saaa-reinflate \
-    --repository . --revision <commit>
-```
-
-JGit is the zero-setup primary API for identity, revision fingerprints and
-historic snapshots; native Git is a visible compatibility fallback. Native Git
-continues to implement already-tested linked candidate worktrees, where JGit has
-no comparable creation API.
-
-One Neo4j database can hold multiple repository projections. Index an external
-implementation as `SUBJECT` and the SAAA repository as `PROCESS`; evaluation
-contexts link subject revision, process revision and retrieval configuration.
-Replacement remains scoped by repository identity. One experiment SQLite ledger
-stays beside each subject project, so it remains portable.
-
-Compose pins the official Neo4j 5.26.28 Community UBI10 manifest by digest,
-disables HTTP/HTTPS, and publishes authenticated Bolt only on `127.0.0.1`.
-The recorded Trivy scan found no high/critical UBI packages. Known Java findings
-remain tracked in RISK-005 until Neo4j ships their fixed dependency versions;
-do not expose this topology to an untrusted network.
-
-### Retrieval ablation
-
-`saaa-ablate retrieval` runs identical task rows under explicit
-treatments. Its TSV header is:
-
-```text
-id<TAB>target_folder<TAB>profile<TAB>workflow_file<TAB>max_lines<TAB>baseline_fitness<TAB>behaviour_cases<TAB>task
-```
-
-```sh
-./modules/cli/build/install/saaa/bin/saaa saaa-ablate retrieval \
-    --experiment-id ablation-001 --corpus retrieval-corpus.tsv --attempts 1
-```
-
-Candidate worktrees are namespaced by task, mode and attempt. The structured
-report includes acceptance/attempt, best fitness, accepted fitness improvement
-per provider-cost unit (or token when cost is unavailable), context tokens per
-accepted candidate, hard-gate, cache, graph and timing diagnostics. It
-deliberately makes no improvement claim.
-
-## Tests
-
-```sh
-.agentic-template/bin/project test
-.agentic-template/bin/project lint
-.agentic-template/bin/project component-test
-.agentic-template/bin/project integration-test
-.agentic-template/bin/project graphrag-integration-test
-```
-
-`component-test` runs the first outside-in acceptance test for the mutation and
-fitness loop. `integration-test` covers real Git worktree candidate creation,
-SQLite experiment metadata persistence, deterministic command checks and JMH
-benchmark evidence. `test` covers provider-neutral LangChain4j
-proposal/embedding mapping without live credentials and deterministic bounded
-mutation/retrieval policies. `graphrag-integration-test` starts Neo4j, proves
-atomic replacement, traversal, vector search and outcome memory, then shuts it
-down while retaining the named volume.
-
-## Configuration and environment variables
-
-No required model-provider configuration is committed. The LangChain4j adapter
-can be constructed from a provider-neutral `ChatModel`; future provider
-configuration should read credentials from environment variables or local
-ignored config and keep provider-specific details out of the core domain.
-
-Local defaults require no Git-library setup. Configure only the external
-boundary being used:
-
-| Variable | Purpose |
-|---|---|
-| `SAAA_MODEL_PROVIDER` | Select the LangChain4j-backed model adapter |
-| `SAAA_MODEL_API_KEY` | Provider API key for model-backed mutation proposal |
-| `SAAA_EXPERIMENT_DB` | SQLite database path for experiment metadata |
-| `SAAA_NEO4J_PASSWORD` | Credential shared by Compose and the graph adapter |
-| `SAAA_EMBEDDING_BASE_URL` | OpenAI-compatible embedding endpoint |
-| `SAAA_EMBEDDING_API_KEY` | Embedding-provider credential |
-| `SAAA_EMBEDDING_MODEL_ID` | Stable model/cache identity |
-| `SAAA_EMBEDDING_DIMENSIONS` | Provider and Neo4j vector dimensions |
-| `SAAA_PROCESS_REPOSITORY` | Optional SAAA process checkout when evolving a different subject repository; defaults to the subject for self-evolution |
-| `SAAA_MEMORY_POLICY_ID` | Versioned graph working-set policy identity; change this when policy semantics change |
-| `SAAA_MEMORY_CHAMPION_SLOTS` | Champion representatives retained in the hot graph |
-| `SAAA_MEMORY_LINEAGE_SLOTS` | Known ancestors of selected champions retained in the hot graph |
-| `SAAA_MEMORY_FAILURE_FINGERPRINT_SLOTS` | Distinct failed-behaviour representatives |
-| `SAAA_MEMORY_NOVELTY_SLOTS` | Distinct evidence/strategy niches |
-| `SAAA_MEMORY_EXPLORATION_SLOTS` | Deterministic exploration reservoir |
-| `SAAA_MEMORY_MAX_ACTIVE_EVALUATIONS` | Absolute hot-graph evaluation bound |
-
-## Infrastructure and deployment state
-
-Local topology is Nix plus Gradle, Git, SQLite and optional on-demand Neo4j
-Community. Deployment target is `local_cli` only.
-Infrastructure as code is not applicable until a remote execution or deployment
-target is selected.
-
-## Deliberate non-goals
-
-- OpenSearch, generic vector platforms or production retrieval infrastructure
-- AST mutation
-- LSP integration
-- distributed workers
-- automatic production deployment
-
-Each is recorded as deferred in `PROJECT_PROFILE.toon` with revisit
-conditions.
+Do not add an external vector store or SaaS memory layer by default. Add one
+only when project evidence justifies it and `PROJECT_PROFILE.toon` records the
+decision.
 
 ## Development lifecycle
 
 Work flows from a narrative or `/ideate` into a structured change spec, then a
-boundary-first acceptance test, then implementation, review, validation,
-handoff and knowledge/wiki upkeep. Meaningful behavior changes must update the
-spec and validation evidence in the same change.
-
-Default integration is branch plus PR. If PR tooling is unavailable and the user
-explicitly authorizes skipping the PR, use the documented fallback: keep work on
-a bounded branch, run checks, request risk-appropriate actor review when agent
-tooling is available, retry or get human review if a reviewer times out, address
-actor or human review findings, self-review in code-review style, update
-handoff with the fallback reason, validation and actor-review or substituted
-human-review result, merge to `main`, then push `main` without force-pushing. If
-actor review tooling is unavailable, disclose the lost actor-review gate and get
-explicit user authorization for that degraded path before merge.
+boundary-first acceptance test, implementation, review, validation, handoff and
+knowledge upkeep. Meaningful behavior changes update the spec and validation
+evidence in the same change. Default integration is branch plus PR; the
+tool-unavailable fallback is in `AGENTS.md`.
 
 ## Important decisions and documentation links
 

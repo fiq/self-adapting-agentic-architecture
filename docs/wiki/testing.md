@@ -2,16 +2,38 @@
 
 The testing approach is boundary-in and ATDD-aligned.
 
+```sh
+.agentic-template/bin/project test
+.agentic-template/bin/project lint
+.agentic-template/bin/project component-test
+.agentic-template/bin/project integration-test
+.agentic-template/bin/project graphrag-integration-test
+```
+
 - Unit tests cover plain Java domain policies, deterministic bounded mutation
   validation, mutation contract canonicalization and hard-gated phenotype
-  fitness scoring.
+  fitness scoring. Scorer coverage includes a jqwik property suite with fixed
+  numeric seeds and a nine-entry golden verdict corpus in `GoldenCorpus.java`
+  holding entries either side of `PROMOTION_THRESHOLD`.
 - Component tests drive the mutation loop with fake model, Git, check and
-  benchmark ports.
+  benchmark ports, and drive the CLI outside-in, including a WireMock-backed
+  live-proposer run that needs no real credentials.
 - Adapter unit tests cover the provider-neutral LangChain4j typed service
-  boundary without live model credentials.
+  boundary without live model credentials, and the MCP tool contract: closed
+  input schema, rejection of fields that would force promotion, override a gate,
+  request a merge or carry credentials, API-key scrubbing and non-terminating
+  tool errors.
 - Integration tests cover real Git worktree, SQLite, command-check and JMH
-  adapter semantics.
-- Benchmarks use JMH and feed `EvaluationEvidence`.
+  adapter semantics. The Neo4j graph tests are opt-in behind
+  `SAAA_NEO4J_INTEGRATION`, so a plain `integration-test` skips them;
+  `graphrag-integration-test` sets it, starts Compose and shuts it down.
+- JMH benchmarks exist and `JmhBenchmarkRunner` has integration coverage, but
+  the CLI does not wire them, so they do not currently feed
+  `EvaluationEvidence` on any runnable path.
+- Three tests hold the no-merge boundary:
+  `hasNoFlagThatTurnsAnyScoreIntoAMerge`,
+  `promotedCandidateLandsAsABranchPointerAndNotAMerge` and
+  `DeterministicLayerHasNoMergeReferenceTest`.
 
 The first approval-driving test is
 `modules/deterministic/src/acceptanceTest/java/com/dreamthought/saaa/deterministic/MutationEvaluationLoopAcceptanceTest.java`.
