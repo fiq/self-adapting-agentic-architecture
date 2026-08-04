@@ -52,7 +52,9 @@ final class GitRepositoryRevisionIntegrationTest {
         git(repository, "init", "--initial-branch=main");
         git(repository, "config", "user.name", "Test");
         git(repository, "config", "user.email", "test@example.invalid");
-        git(repository, "remote", "add", "origin", "git@github.com:example/subject-project.git");
+        // Config value only: repositoryId parses remote.origin.url and never contacts it.
+        // The .invalid TLD (RFC 2606) makes that unmistakable and unresolvable.
+        git(repository, "remote", "add", "origin", "git@example.invalid:example/subject-project.git");
         Files.writeString(repository.resolve("tracked.txt"), "baseline");
         git(repository, "add", "tracked.txt");
         git(repository, "commit", "-m", "baseline");
