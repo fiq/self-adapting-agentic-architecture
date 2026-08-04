@@ -8,16 +8,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import com.dreamthought.saaa.domain.RetrievalMode;
 
 public record EvolveMcpRequest(
         Path targetFolder,
         String profile,
         String workflowFile,
         List<String> behaviourCases,
-        int maxLines
+        int maxLines,
+        RetrievalMode retrievalMode,
+        String task
 ) {
     private static final Set<String> ALLOWED_FIELDS = Set.of(
-            "targetFolder", "profile", "workflowFile", "behaviourCases", "maxLines");
+            "targetFolder", "profile", "workflowFile", "behaviourCases", "maxLines", "retrieval", "task");
 
     public EvolveMcpRequest {
         targetFolder = Objects.requireNonNull(targetFolder, "targetFolder");
@@ -30,6 +33,25 @@ public record EvolveMcpRequest(
         if (maxLines < 1) {
             throw new IllegalArgumentException("maxLines must be positive");
         }
+        retrievalMode = Objects.requireNonNull(retrievalMode, "retrievalMode");
+        task = requireNonBlank(task, "task");
+    }
+
+    public EvolveMcpRequest(
+            Path targetFolder,
+            String profile,
+            String workflowFile,
+            List<String> behaviourCases,
+            int maxLines
+    ) {
+        this(
+                targetFolder,
+                profile,
+                workflowFile,
+                behaviourCases,
+                maxLines,
+                RetrievalMode.NONE,
+                "Improve the target while preserving all declared behaviour cases");
     }
 
     public static EvolveMcpRequest fromArguments(Map<String, Object> arguments) {
@@ -48,7 +70,12 @@ public record EvolveMcpRequest(
                 optionalString(arguments, "profile", "fixture"),
                 optionalString(arguments, "workflowFile", "workflow.txt"),
                 requiredStringList(arguments, "behaviourCases"),
-                optionalInt(arguments, "maxLines", 80));
+                optionalInt(arguments, "maxLines", 80),
+                RetrievalMode.parse(optionalString(arguments, "retrieval", "NONE")),
+                optionalString(
+                        arguments,
+                        "task",
+                        "Improve the target while preserving all declared behaviour cases"));
     }
 
     public static Map<String, Object> inputSchema() {
@@ -61,6 +88,9 @@ public record EvolveMcpRequest(
                 "items", Map.of("type", "string"),
                 "minItems", 1));
         properties.put("maxLines", Map.of("type", "integer", "minimum", 1, "default", 80));
+        properties.put("retrieval", Map.of(
+                "type", "string", "enum", List.of("NONE", "VECTOR", "GRAPH", "HYBRID"), "default", "NONE"));
+        properties.put("task", Map.of("type", "string"));
 
         var schema = new LinkedHashMap<String, Object>();
         schema.put("type", "object");
@@ -71,7 +101,8 @@ public record EvolveMcpRequest(
     }
 
     public EvolveRunRequest toRunRequest() {
-        return new EvolveRunRequest(targetFolder, profile, workflowFile, behaviourCases, maxLines);
+        return new EvolveRunRequest(
+                targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task);
     }
 
     private static String requiredString(Map<String, Object> arguments, String key) {

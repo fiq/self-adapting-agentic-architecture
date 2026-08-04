@@ -5,6 +5,7 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.RetrievalBundle;
 import java.util.List;
 import java.util.Objects;
 
@@ -19,6 +20,11 @@ public final class CompositeReporter implements EvolutionReporter {
     @Override
     public void proposed(Mutation mutation) {
         reporters.forEach(reporter -> reporter.proposed(mutation));
+    }
+
+    @Override
+    public void retrievalPrepared(RetrievalBundle retrieval) {
+        reporters.forEach(reporter -> reporter.retrievalPrepared(retrieval));
     }
 
     @Override
