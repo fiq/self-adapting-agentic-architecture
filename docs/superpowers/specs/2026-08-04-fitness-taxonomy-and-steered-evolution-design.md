@@ -144,10 +144,33 @@ Do **not** blend size and quality into one score. `f(size, quality)` needs a
 weight between them, which is the penalty-function exchange rate again: sprawl
 buys tidiness, or brevity buys ugliness.
 
-**`--max-lines` survives as a bound, not as a score denominator.**
+**Bounds do the constraining, and the layer already exists.**
+`--max-lines` survives as a bound, not as a score denominator;
 `DiffLineBudgetMutationValidator` uses it pre-realisation to cap blast radius.
 Bounds need to be conservative, not fair across languages. Structure the bounds,
 free the content.
+
+`MutationBounds` is richer than a size cap. It is a capability envelope —
+`maxFilesChanged`, `maxLinesChanged`, `publicApiChange`, `persistenceChange`,
+`productionConfigChange` — and `MutationOperatorPolicy` already varies it per
+operator: `EXPLORATORY_LEAP` gets 4 files and 160 lines against
+`TARGETED_BEHAVIOR_CHANGE`'s 2 and 80, and `MODEL_ROUTING_CHANGE` 2 and 60. The
+three permission flags are `false` for every operator today and are the natural
+place to express blast radius that has nothing to do with size.
+
+**Defect this exposes.** Parsimony penalises `EXPLORATORY_LEAP` for being
+exploratory. The operator exists to produce bolder variation and its bounds
+grant double the budget, but `PhenotypeBridgeScorer` divides by
+`ScoringConfig.maxLinesChanged`, sourced from the CLI `--max-lines` (default 80)
+with no reference to the operator's own bounds. A leap that spends its granted
+160 lines scores near zero on the only objective that varies, so the fitness
+function actively fights the search-posture design. Two disconnected notions of
+"too big" that never consult each other.
+
+This is a further argument for retiring size as a scored quantity: the bounds
+layer already answers "how much change is appropriate for this kind of move",
+per operator and declaratively. Parsimony was duplicating that answer badly and
+contradicting it at the edges.
 
 **Implementation caveat.** "Score the git diff" is not computable as stated;
 cyclomatic complexity of a hunk is undefined because analysers work on whole
@@ -402,7 +425,13 @@ specification declarative" is finishing this, not inventing it.
   declared, versioned, frozen per experiment.
 - Is size still worth keeping as a graded objective once the quality gate exists,
   or does the gate make it redundant? Section 3a keeps it as a tiebreak, but that
-  is a judgement, not a finding.
+  is a judgement, not a finding, and the `EXPLORATORY_LEAP` defect argues
+  against keeping it at all. If it is kept, it must normalise against the
+  operator's own `MutationBounds`, not against a single CLI flag.
+- Should the three `MutationBounds` permission flags (`publicApiChange`,
+  `persistenceChange`, `productionConfigChange`) become active? They are `false`
+  for every operator today, so they express no policy, and they are the obvious
+  home for blast radius that is not about size.
 - What are the behavioural descriptors for archive cells? They must be
   observable without being score-derived.
 - Who builds the labelled corpus for weight calibration, and from what?
