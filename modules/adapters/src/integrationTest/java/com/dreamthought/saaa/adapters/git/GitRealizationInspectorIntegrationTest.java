@@ -25,11 +25,12 @@ final class GitRealizationInspectorIntegrationTest {
         git(repo, "commit", "-m", "candidate");
         String sha = git(repo, "rev-parse", "HEAD").trim();
 
-        var summary = new GitRealizationInspector()
-                .inspect(new Candidate("cand-1", "MUT-1", "candidate/toy-MUT-1", repo, sha));
+        var candidate = new Candidate("cand-1", "MUT-1", "candidate/toy-MUT-1", repo, sha);
+        var summary = new GitRealizationInspector().inspect(candidate);
 
         assertThat(summary.filesChanged()).isEqualTo(1);
         assertThat(summary.linesChanged()).isEqualTo(2);
+        assertThat(new JGitChangedPathInspector().inspect(candidate)).containsExactly("workflow.txt");
     }
 
     @Test
@@ -58,11 +59,12 @@ final class GitRealizationInspectorIntegrationTest {
         git(repo, "commit", "-m", "candidate");
         String sha = git(repo, "rev-parse", "HEAD").trim();
 
-        var summary = new GitRealizationInspector()
-                .inspect(new Candidate("cand-1", "MUT-1", "candidate/toy-MUT-1", repo, sha));
+        var candidate = new Candidate("cand-1", "MUT-1", "candidate/toy-MUT-1", repo, sha);
+        var summary = new GitRealizationInspector().inspect(candidate);
 
         assertThat(summary.filesChanged()).isEqualTo(1);
         assertThat(summary.linesChanged()).isEqualTo(2);
+        assertThat(new JGitChangedPathInspector().inspect(candidate)).containsExactly("workflow.txt");
     }
 
     private static String git(Path dir, String... args) throws Exception {

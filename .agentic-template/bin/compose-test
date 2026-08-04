@@ -64,7 +64,7 @@ def main():
     finally:
         print("cleaning up compose topology...")
         subprocess.run(
-            compose + ["down", "--volumes"],
+            compose + ["down"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,

@@ -1,3 +1,33 @@
 name: self-adapting-agentic-architecture
 
-services: {}
+services:
+  neo4j:
+    image: neo4j:5.26.28-community-ubi10@sha256:56cdf7d9cf639e9b6bdacd9222758457076de08afbc66f79d0965cb56e1cdc5b
+    restart: "no"
+    ports:
+      - "127.0.0.1:7687:7687"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      NEO4J_AUTH: "neo4j/${SAAA_NEO4J_PASSWORD:-saaa-local-only}"
+      NEO4J_server_http_enabled: "false"
+      NEO4J_server_https_enabled: "false"
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+      NEO4J_server_jvm_additional: -XX:+ExitOnOutOfMemoryError
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          cypher-shell -a bolt://localhost:7687 -u neo4j
+          -p "$${NEO4J_AUTH#*/}" "RETURN 1" >/dev/null 2>&1
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+
+volumes:
+  neo4j-data:

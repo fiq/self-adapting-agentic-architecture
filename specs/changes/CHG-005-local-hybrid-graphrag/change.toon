@@ -1,0 +1,173 @@
+change:
+  id: CHG-005
+  title: Local hybrid GraphRAG and evolutionary memory
+  status: delivered
+  intent: Experimentally compare no, semantic, structural and hybrid retrieval treatments while preserving deterministic fitness as the sole selection authority.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - ARCH-001
+    - ARCH-002
+    - ADR-0004
+    - RISK-001
+    - RISK-004
+    - RISK-005
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: The mutation proposer receives an explicit bounded retrieval bundle selected before model invocation, while candidate validation, fitness and promotion semantics remain unchanged.
+    scenarios:
+      - id: S1
+        when: HYBRID retrieval runs for a known production target whose implementation is semantically relevant and whose connected test or constraint is not among the closest vector matches
+        then: the bundle contains both semantic implementation and structurally connected evidence, excludes unrelated evidence and fits the configured evidence/context budgets
+        and:
+          - every item has stable provenance, authority/status and selection reasons
+          - the exact bundle reaches the mutation proposer
+          - candidate provenance records retrieval mode, configuration and evidence ids
+          - deterministic evaluation receives the same candidate/evidence types and remains authoritative
+      - id: S2
+        when: retrieval mode is NONE
+        then: no Neo4j or embedding dependency is constructed and existing proposal/candidate semantics are preserved
+        and:
+          - the empty retrieval bundle is recorded with the NONE treatment
+      - id: S3
+        when: repository evidence is indexed twice at the same revision or a source is removed
+        then: stable identities and content revisions are deterministic, repeated indexing is idempotent and stale repository projections are removed
+        and:
+          - Neo4j deletion remains recoverable by rebuilding from repository sources
+      - id: S4
+        when: GRAPH or HYBRID is configured and Neo4j is unavailable, unindexed or projected from a different repository revision
+        then: the run fails clearly before model invocation and candidate creation
+        and:
+          - the run never silently changes treatment to NONE
+          - stale projection diagnostics direct the operator to saaa-index update
+      - id: S5
+        when: an unchanged semantic document is indexed with the same embedding model
+        then: its model-id/content-hash embedding is reused and a different content hash or model id invalidates the cache
+        and:
+          - embedding failure does not publish a partial graph revision
+      - id: S6
+        when: deterministic evaluation completes
+        then: observable mutation, candidate, retrieved-evidence, changed-subject, check, benchmark, fitness and decision facts can be projected for bounded future retrieval
+        and:
+          - historical weighting is capped and visible
+          - historical evidence cannot bypass a new deterministic evaluation
+      - id: S7
+        when: the same task corpus is run under NONE, VECTOR, GRAPH and HYBRID
+        then: an ablation report compares accepted fitness improvement per mutation cost and acceptance per attempt with retrieval/token/cache diagnostics
+        and:
+          - the report makes no improvement claim without measured runs
+      - id: S8
+        when: deterministic evaluation completes and local SQLite state is later absent
+        then: a compact Git-visible experiment envelope retains both subject and SAAA process revisions, strategy/configuration IDs and observable deterministic outcomes and can rehydrate the evolutionary-memory ledger used to rebuild the graph
+        and:
+          - prompts, raw model responses, embeddings and private reasoning are excluded
+          - the generated wiki experiment page is visibly non-authoritative
+      - id: S9
+        when: accumulated experiment history exceeds the graph working-set policy
+        then: the versioned lineage-novelty policy selects a bounded set using champions, known ancestry, failure fingerprints, novelty and a deterministic exploration reservoir rather than age
+        and:
+          - policy bounds are overrideable without silently changing the policy id
+          - durable envelopes are not deleted and retained strategies gain no automatic fitness authority
+      - id: S10
+        when: an historic repository revision is explicitly re-inflated
+        then: repository facts come from that commit and only outcome records compatible with that revision enter the bounded graph working set
+        and:
+          - JGit is the zero-setup primary API and native Git fallback is visible
+          - the current checkout is not modified
+      - id: S11
+        when: a subject implementation is evolved by a versioned SAAA process
+        then: one Neo4j database partitions both repository projections and links an explicit evolution context to subject, process and retrieval configuration identities
+        and:
+          - replacing one repository projection does not erase another
+          - public command tokens use the saaa- namespace rather than generic tool names
+
+acceptance:
+  - scenario: S1
+    test_id: deterministic/HybridRetrievalAcceptanceTest.suppliesSemanticAndStructurallyConnectedEvidenceWithinBudgetToTheProposer
+    layer: component
+  - scenario: S2
+    test_id: deterministic/HybridRetrievalAcceptanceTest.noneSuppliesAnEmptyBundleWithoutGraphAccess
+    layer: component
+  - scenario: S3
+    test_id: adapters/RepositoryEvidenceIndexerTest.isIdempotentAndRemovesStaleProjectionFacts
+    layer: unit
+  - scenario: S4
+    test_id: adapters/Neo4jEvidenceGraphIntegrationTest.unavailableGraphFailsConfiguredRetrievalBeforeProposal
+    layer: integration
+  - scenario: S5
+    test_id: adapters/SqliteRetrievalProjectionStoreIntegrationTest.reusesAndInvalidatesEmbeddingsByModelAndContentHash
+    layer: integration
+  - scenario: S6
+    test_id: deterministic/EvolutionaryMemoryProjectorTest.projectsOnlyObservableOutcomeEvidenceWithBoundedHistoricalWeight
+    layer: unit
+  - scenario: S7
+    test_id: deterministic/RetrievalAblationRunnerTest.comparesIdenticalTasksAcrossAllRetrievalModes
+    layer: unit
+  - scenario: S8
+    test_id: adapters/GitExperimentEnvelopeStoreIntegrationTest.roundTripsReviewableEnvelopeAndGeneratesANonAuthoritativeWikiProjection
+    layer: integration
+  - scenario: S9
+    test_id: deterministic/LineageNoveltyMemoryPolicyTest.selectsByEvolutionaryValueAndKeepsKnownChampionLineageWithinABound
+    layer: unit
+  - scenario: S10
+    test_id: adapters/GitRepositoryRevisionIntegrationTest.createsAndCleansAnHistoricSnapshotWithoutChangingTheCheckout
+    layer: integration
+  - scenario: S11
+    test_id: adapters/Neo4jEvidenceGraphIntegrationTest.replacesRepositoryProjectionAndTraversesAnExplicitStructuralRelationship
+    layer: integration
+
+tasks:
+  - id: T1
+    slice: record the intentional undefer decision, retrieval contracts, explicit proposer request seam, NONE behavior and provenance scaffolding
+    status: completed
+  - id: T2
+    slice: add on-demand Neo4j Community Compose, deterministic repository projection and bounded GRAPH retrieval
+    status: completed
+  - id: T3
+    slice: add versioned Evidence Capsule compilation and separate SQLite memoisation/provenance storage
+    status: completed
+  - id: T4
+    slice: add provider-neutral embeddings, LangChain4j adapter, embedding cache and Neo4j vector index for VECTOR
+    status: completed
+  - id: T5
+    slice: add exact seeds, deterministic reciprocal-rank fusion, HYBRID budgets and complete proposer provenance
+    status: completed
+  - id: T6
+    slice: project observable evaluation outcomes as bounded evolutionary memory
+    status: completed
+  - id: T7
+    slice: add identical-corpus retrieval ablation metrics and structured reports
+    status: completed
+  - id: T8
+    slice: document operation, measured results and the Neo4j justification decision after validation
+    status: completed
+  - id: T9
+    slice: separate durable experiment memory from disposable retrieval caches and add Git envelopes plus a generated non-authoritative wiki projection
+    status: completed
+  - id: T10
+    slice: add versioned evolutionary-value graph working-set policy and explicit historic reinflation
+    status: completed
+  - id: T11
+    slice: relate subject and process repository revisions in one partitioned graph and namespace public command tokens
+    status: completed
+  - id: T12
+    slice: prefer pinned JGit APIs for read-only repository operations with visible native Git fallback and security evidence
+    status: completed
+
+non_goals:
+  - generic RAG platform or background indexing service
+  - OpenSearch, Elasticsearch or another vector database
+  - broad AST framework or LSP integration
+  - distributed workers, Kubernetes or production deployment
+  - LLM reranking
+  - model-authored score, approval or promotion
+  - automatic merge to main
+
+risks:
+  - RISK-004 stale or historically self-reinforcing evidence can contaminate retrieval experiments
+  - RISK-005 current Neo4j images contain known Java findings; the selected digest is loopback-only and HTTP-disabled until an upstream patched image is available
+  - Neo4j may add more operational cost than distinct structural evidence value
+  - the live loop remains on transitional Mutation while MutationContract is not yet wired end to end
+  - semantic retrieval quality cannot be claimed from deterministic fake embeddings used by tests

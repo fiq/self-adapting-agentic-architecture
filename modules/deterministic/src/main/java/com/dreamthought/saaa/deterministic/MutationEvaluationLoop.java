@@ -5,6 +5,8 @@ import com.dreamthought.saaa.domain.CandidateBranchRef;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.MutationProposalRequest;
+import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
 import com.dreamthought.saaa.domain.ValidationResult;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.time.Clock;
@@ -22,6 +24,8 @@ public final class MutationEvaluationLoop {
     private final CandidateDecisionSink decisionSink;
     private final EvolutionReporter reporter;
     private final Clock clock;
+    private final EvidenceRetriever evidenceRetriever;
+    private final EvolutionaryMemoryProjector memoryProjector;
 
     public MutationEvaluationLoop(
             MutationProposer mutationProposer,
@@ -43,7 +47,9 @@ public final class MutationEvaluationLoop {
                 metadataStore,
                 decisionSink,
                 EvolutionReporter.NO_OP,
-                Clock.systemUTC()
+                Clock.systemUTC(),
+                EvidenceRetriever.none("retrieval-config-v1"),
+                EvolutionaryMemoryProjector.disabled()
         );
     }
 
@@ -68,7 +74,9 @@ public final class MutationEvaluationLoop {
                 metadataStore,
                 decisionSink,
                 EvolutionReporter.NO_OP,
-                clock
+                clock,
+                EvidenceRetriever.none("retrieval-config-v1"),
+                EvolutionaryMemoryProjector.disabled()
         );
     }
 
@@ -84,6 +92,54 @@ public final class MutationEvaluationLoop {
             EvolutionReporter reporter,
             Clock clock
     ) {
+        this(
+                mutationProposer,
+                mutationValidator,
+                candidateWorkspace,
+                checkRunner,
+                benchmarkRunner,
+                fitnessScorer,
+                metadataStore,
+                decisionSink,
+                reporter,
+                clock,
+                EvidenceRetriever.none("retrieval-config-v1"),
+                EvolutionaryMemoryProjector.disabled()
+        );
+    }
+
+    public MutationEvaluationLoop(
+            MutationProposer mutationProposer,
+            MutationValidator mutationValidator,
+            CandidateWorkspace candidateWorkspace,
+            CheckRunner checkRunner,
+            BenchmarkRunner benchmarkRunner,
+            FitnessScorer fitnessScorer,
+            ExperimentMetadataStore metadataStore,
+            CandidateDecisionSink decisionSink,
+            EvolutionReporter reporter,
+            Clock clock,
+            EvidenceRetriever evidenceRetriever
+    ) {
+        this(mutationProposer, mutationValidator, candidateWorkspace, checkRunner, benchmarkRunner,
+                fitnessScorer, metadataStore, decisionSink, reporter, clock, evidenceRetriever,
+                EvolutionaryMemoryProjector.disabled());
+    }
+
+    public MutationEvaluationLoop(
+            MutationProposer mutationProposer,
+            MutationValidator mutationValidator,
+            CandidateWorkspace candidateWorkspace,
+            CheckRunner checkRunner,
+            BenchmarkRunner benchmarkRunner,
+            FitnessScorer fitnessScorer,
+            ExperimentMetadataStore metadataStore,
+            CandidateDecisionSink decisionSink,
+            EvolutionReporter reporter,
+            Clock clock,
+            EvidenceRetriever evidenceRetriever,
+            EvolutionaryMemoryProjector memoryProjector
+    ) {
         this.mutationProposer = Objects.requireNonNull(mutationProposer, "mutationProposer");
         this.mutationValidator = Objects.requireNonNull(mutationValidator, "mutationValidator");
         this.candidateWorkspace = Objects.requireNonNull(candidateWorkspace, "candidateWorkspace");
@@ -94,12 +150,35 @@ public final class MutationEvaluationLoop {
         this.decisionSink = Objects.requireNonNull(decisionSink, "decisionSink");
         this.reporter = Objects.requireNonNull(reporter, "reporter");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.evidenceRetriever = Objects.requireNonNull(evidenceRetriever, "evidenceRetriever");
+        this.memoryProjector = Objects.requireNonNull(memoryProjector, "memoryProjector");
     }
 
     public FitnessResult evaluate(WorkflowGraph baseline) {
         Objects.requireNonNull(baseline, "baseline");
 
         Mutation mutation = Objects.requireNonNull(mutationProposer.proposeFor(baseline), "mutation");
+        return evaluateProposed(baseline, mutation);
+    }
+
+    public FitnessResult evaluate(MutationProposalRequest request) {
+        Objects.requireNonNull(request, "request");
+        var retrieval = Objects.requireNonNull(
+                evidenceRetriever.retrieve(request.retrievalQuery()), "retrieval bundle");
+        reporter.retrievalPrepared(retrieval);
+        Mutation mutation = Objects.requireNonNull(
+                mutationProposer.proposeFor(new PreparedMutationProposalRequest(
+                        request.baseline(), request.retrievalQuery(), retrieval)),
+                "mutation");
+        return evaluateProposed(request.baseline(), mutation, retrieval);
+    }
+
+    private FitnessResult evaluateProposed(WorkflowGraph baseline, Mutation mutation) {
+        return evaluateProposed(baseline, mutation, null);
+    }
+
+    private FitnessResult evaluateProposed(
+            WorkflowGraph baseline, Mutation mutation, com.dreamthought.saaa.domain.RetrievalBundle retrieval) {
         reporter.proposed(mutation);
         ValidationResult validation = Objects.requireNonNull(
                 mutationValidator.validate(baseline, mutation),
@@ -135,6 +214,9 @@ public final class MutationEvaluationLoop {
         switch (result.decision()) {
             case PROMOTE -> decisionSink.recordPromotedCandidateBranch(candidateBranchRef, result);
             case DISCARD -> decisionSink.recordDiscardedCandidateBranch(candidateBranchRef, result);
+        }
+        if (retrieval != null) {
+            memoryProjector.project(mutation, retrieval, result);
         }
 
         return result;

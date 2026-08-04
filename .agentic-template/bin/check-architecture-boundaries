@@ -22,6 +22,8 @@ CONFINED_DEPENDENCIES = [
     ("dev.langchain4j", "/adapters/langchain4j/", "LangChain4j is confined to the adapters/langchain4j package"),
     ("org.sqlite", "/adapters/sqlite/", "SQLite is confined to the adapters/sqlite package"),
     ("org.flywaydb", "/adapters/sqlite/", "Flyway is confined to the adapters/sqlite package"),
+    ("org.neo4j.driver", "/adapters/neo4j/", "Neo4j driver is confined to the adapters/neo4j package"),
+    ("org.eclipse.jgit", "/adapters/git/", "JGit is confined to the adapters/git package"),
     ("picocli.", "modules/cli/", "picocli is confined to modules/cli"),
     ("org.openjdk.jmh", "modules/benchmarks/", "JMH is confined to modules/benchmarks"),
 ]

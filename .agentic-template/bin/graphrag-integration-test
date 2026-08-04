@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Run the opt-in Neo4j adapter integration test with explicit local lifecycle."""
+from pathlib import Path
+import os
+import subprocess
+import sys
+
+
+ROOT = Path.cwd()
+BIN = Path(__file__).resolve().parent
+PASSWORD = os.environ.get("SAAA_NEO4J_PASSWORD", "saaa-local-only")
+
+
+def run(command, env=None):
+    return subprocess.run(command, cwd=ROOT, env=env).returncode
+
+
+def main():
+    compose = ["docker", "compose", "-f", "compose.yaml"]
+    environment = dict(os.environ)
+    environment["SAAA_NEO4J_PASSWORD"] = PASSWORD
+    environment["SAAA_NEO4J_INTEGRATION"] = "true"
+    up = run(compose + ["up", "-d", "--wait", "neo4j"], environment)
+    if up:
+        return up
+    try:
+        return run([
+            str(BIN / "gradle-command"),
+            ":adapters:integrationTest",
+            "--rerun-tasks",
+            "--tests",
+            "com.dreamthought.saaa.adapters.neo4j.Neo4jEvidenceGraphIntegrationTest",
+        ], environment)
+    finally:
+        run(compose + ["down"], environment)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
