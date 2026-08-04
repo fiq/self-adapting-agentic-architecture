@@ -24,7 +24,15 @@ public final class RepositoryEmbeddingIndexer {
     }
 
     public EmbeddedRepositoryProjection build(Path repositoryRoot, String repositoryRevision) {
-        RepositoryProjection repository = extractor.extract(repositoryRoot, repositoryRevision);
+        return publish(extractor.extract(repositoryRoot, repositoryRevision));
+    }
+
+    public EmbeddedRepositoryProjection build(
+            Path repositoryRoot, String repositoryRevision, String repositoryId) {
+        return publish(extractor.extract(repositoryRoot, repositoryRevision, repositoryId));
+    }
+
+    private EmbeddedRepositoryProjection publish(RepositoryProjection repository) {
         var vectors = new LinkedHashMap<String, java.util.List<Float>>();
         for (var document : repository.nodes()) {
             vectors.put(document.stableId(), embeddings.embed(document.contentHash(), document.semanticText()).vector());

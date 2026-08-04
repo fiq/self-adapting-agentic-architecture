@@ -19,6 +19,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 final class RepositoryEmbeddingIndexerTest {
+    /**
+     * Arranged rather than resolved from Git: this test covers atomic publication, so repository
+     * identity is an input. Resolving it would make the test depend on whichever repository
+     * happens to enclose the temp directory.
+     */
+    private static final String REPOSITORY_ID = "fixture";
+
     @TempDir Path temporaryDirectory;
 
     @Test
@@ -38,7 +45,8 @@ final class RepositoryEmbeddingIndexerTest {
         var store = new RecordingStore();
 
         assertThatThrownBy(() -> new RepositoryEmbeddingIndexer(
-                new RepositoryEvidenceExtractor(), model, store).build(temporaryDirectory, "rev-1"))
+                new RepositoryEvidenceExtractor(), model, store)
+                .build(temporaryDirectory, "rev-1", REPOSITORY_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("fixture embedding failed");
         assertThat(store.published).isFalse();
@@ -49,7 +57,7 @@ final class RepositoryEmbeddingIndexerTest {
         public void replaceRepositoryProjection(RepositoryProjection projection) { published = true; }
         public void replaceEmbeddedRepositoryProjection(EmbeddedRepositoryProjection projection) { published = true; }
         public ProjectionStatus status() {
-            return new ProjectionStatus("fixture", Optional.empty(), Optional.empty(), 0, 0);
+            return new ProjectionStatus(REPOSITORY_ID, Optional.empty(), Optional.empty(), 0, 0);
         }
     }
 
