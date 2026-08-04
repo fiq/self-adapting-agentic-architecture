@@ -1,18 +1,43 @@
 session:
   updated: 2026-08-02
-  status: chg_004_l3_behaviour_plumbed_locally
-  branch: feat/chg-004-plumb-l3-behaviour
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecutre
-  head: local branch from origin/main after PR #16 merged
-  head_note: PRs #14, #15 and #16 are merged; local stale worktrees were cleaned. Current branch implements CHG-004 L3 behaviour plumbing and is not yet pushed.
+  status: chg_005_bounded_implementation_validated_ablation_unmeasured
+  branch: feat/chg-005-hybrid-graphrag
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-005-hybrid-graphrag
+  head: branch from origin/main at c40cb88 after PR #17 merged
+  head_note: active checkout was clean; CHG-005 work is isolated in its own worktree and has not been pushed
   dirty: true
   pushed: false
 
 goal:
-  current: finish wiring missing CHG-004 L3 behaviours through existing ports
-  phase: implementation_validation
+  current: implement and measure bounded local hybrid GraphRAG plus evolutionary memory without weakening deterministic fitness authority
+  phase: chg_005_ready_for_pr_review
 
 completed:
+  - ran repository startup, read the canonical context in prescribed order, searched relevant knowledge, inspected CHG-001 through CHG-004 and the live mutation/proposer/worktree/SQLite/scoring/reporting path
+  - confirmed the original semantic retrieval and container deferrals were conditional and that their recorded revisit trigger has now been explicitly reached
+  - created isolated worktree `.worktrees/feat-chg-005-hybrid-graphrag` from clean `origin/main` at `c40cb88`; the coordination checkout was not modified
+  - recorded ADR-0004, ARCH-002, RISK-004 and CHG-005 while preserving the rationale for the earlier deferral
+  - completed CHG-005 slice 1 outside-in: retrieval modes/config/query/bundle/capsule/provenance records, deterministic exact/vector/graph fusion seam, NONE mode, explicit `MutationProposalRequest`, retrieval-aware loop/proposer seam, CLI/MCP treatment inputs and candidate provenance rendering
+  - extended the LangChain4j prompt with bounded capsule context and advisory/authority instructions; LangChain4j still does not select retrieval treatment
+  - completed CHG-005 structural slice: pinned on-demand Neo4j Community Compose, deterministic repository knowledge/Java type/import/test projection, stable logical IDs, transactional stale removal, exact lookup and depth/fan-out/relationship-bounded traversal
+  - completed context-compilation slice: query-independent Evidence Capsule materialisations are keyed by logical subject plus revision plus projection version in separate `.saaa/retrieval.sqlite`; query-specific selection reasons are never cached
+  - completed vector/hybrid slice: provider-neutral embedding port, LangChain4j OpenAI-compatible edge adapter, model-ID/content-hash SQLite cache, atomic all-embeddings-before-graph publication, Neo4j vector index and deterministic reciprocal-rank fusion
+  - completed evolutionary-memory slice: observable mutation/candidate/retrieval/check/benchmark/fitness/decision facts persist through a dedicated store in `.saaa/experiments.sqlite`, replay after graph rebuild and project as explicit Neo4j relationships; historical contribution is decision-neutral, bounded to three outcomes per subject and capped/visible in ranking diagnostics
+  - separated durable memory from disposable retrieval state: `.saaa/retrieval.sqlite` now owns only embedding/capsule/provenance projections; Git-visible `experiments/ledger/*.toon` envelopes can rehydrate the evolutionary-memory tables used to rebuild Neo4j, while pre-existing candidate metadata retains its local lifecycle
+  - added generated `docs/wiki/experiments.md` as an explicitly non-authoritative human projection; all documented strategies remain visible without gaining retrieval or selection weight
+  - added overrideable `lineage-novelty-v1` hot-graph policy using bounded champions, known ancestors, distinct failure fingerprints, evidence novelty and a deterministic exploration reservoir rather than age-based expiry
+  - added explicit historic reinflation from a requested Git revision plus compatible outcome envelopes; JGit materialises a read-only snapshot without touching the checkout and native Git is a visible fallback
+  - related project-under-evolution (`SUBJECT`) and SAAA workflow (`PROCESS`) revisions in one repository-partitioned Neo4j database through explicit EVOLVES, EXECUTES_WITH and USES_CONFIG context relationships
+  - renamed the installed Gradle application to `saaa`, prefixed public CLI command tokens (`saaa-index`, `saaa-retrieve`, `saaa-evolve`, `saaa-ablate`, `saaa-reinflate`, `saaa-mcp`) and renamed the MCP tool to `saaa_evolve`
+  - added pinned JGit 7.6.0 as the zero-setup primary read-only Git API; dependency resolution shows only JavaEWAH, SLF4J and Commons Codec transitively, and the version is newer than fixes for CVE-2025-4949 and CVE-2023-4759
+  - completed ablation slice: identical TSV corpus tasks run under explicit NONE/VECTOR/GRAPH/HYBRID treatments with namespaced candidates and structured acceptance, fitness, invalid/gate/regression, diff, token/cost, timing, graph/evidence/context/cache and configuration metrics; reports make no improvement claim
+  - replaced the live EvolveRunner metadata no-op with `SqliteExperimentMetadataStore` at `.saaa/experiments.sqlite`; retrieval projections remain a separate SQLite responsibility
+  - updated PROJECT_PROFILE, README, context-store/module-boundary/validation docs and CHG-005 design while retaining the original deferral rationale and marking only the bounded ADR-0004 experiment as revisited
+  - completed lead self-review fixes: repository-partitioned vector indexes, per-seed graph fan-out, direct lineage slot accounting, single capped historical fusion contribution, query-independent capsule caching with fresh historical outcomes, safe Gitlink handling and true no-op disabled memory
+  - changed evolutionary memory from inferred provenance to observed JGit candidate diffs; changed paths persist in envelope schema v2 and SQLite and project as Candidate-CHANGED-Evidence/path relationships for later retrieval
+  - made configured retrieval fail closed unless query, active working tree and Neo4j projection revisions match exactly; the live Nix operator test proved an historic HEAD projection cannot be mistaken for the dirty active checkout and reports `saaa-index update` as the remedy
+  - pinned official Community LTS `neo4j:5.26.28-community-ubi10` by multi-architecture digest, disabled HTTP/HTTPS, limited authenticated Bolt to loopback and recorded residual vendor Java findings in RISK-005; the named volume is retained while the container is stopped
+  - constrained transitive Jackson 3 databind to 3.1.5 after the installed-distribution scan found GHSA-5gvw-p9qm-jgwh in 3.1.4; the repeat Grype scan reports no vulnerabilities
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
   - read `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md`, `.agents/knowledge/index.md` and the `CHG-003` change and design
   - confirmed PR #1 merged on 2026-07-30, so `CHG-003` was already on `main` at 10ce37f when this session started
@@ -91,10 +116,12 @@ completed:
   - addressed Claude PR #17 review blockers: the credential-scrub CLI acceptance test now runs the CLI in a child JVM with `SAAA_MODEL_API_KEY` set in the parent environment, the journal ignore acceptance test copies this repository's actual `.gitignore` into its scratch repo, and PR CI now runs component and integration tests in the fast job
   - addressed PR #17 review maintainability points: `CandidateBranchRef` rejects traversal-shaped candidate refs, discard recording is named `recordDiscardedCandidateBranch`, and the no-auto-merge command scan moved into `check-architecture-boundaries` so it covers deterministic, adapter and CLI main sources
 
-in_progress:
-  - validate and publish `feat/chg-004-plumb-l3-behaviour` for CHG-004 L3 behaviour plumbing
+in_progress: []
 
 next:
+  - run a fixed, reviewed mutation corpus with a real proposer/embedding provider across NONE, VECTOR, GRAPH and HYBRID; no GraphRAG benefit has been measured yet
+  - use the first measured ablation to decide whether Neo4j relationship traversal contributes enough distinct evidence to retain ADR-0004's experiment
+  - open the bounded CHG-005 branch as a PR after final review; do not merge automatically
   - push PR #17 review fixes, wait for GitHub fast CI, then request Claude or human re-review
   - close CHG-004 with `T11/T12`: README/wiki/profile/handoff updates for the openai-compatible profile, MCP surface, classical guards, Layer-3 constraints and Q-001 answer
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
@@ -107,6 +134,20 @@ next:
   - housekeeping: `feat/first-vertical-slice` still exists locally and on the remote although PR #1 merged 2026-07-30; delete when convenient
 
 decisions:
+  - id: bounded_evolutionary_memory_archive
+    summary: Git TOON envelopes are durable rebuild input, experiment SQLite is the current efficient ledger, the wiki is a non-authoritative projection and Neo4j is a policy-bounded working graph
+  - id: subject_process_evolution_context
+    summary: one partitioned graph relates both subject and SAAA process revisions to each deterministic evaluation and retrieval configuration
+  - id: jgit_first_native_fallback
+    summary: comparable read-only Git operations use pinned JGit with no manual setup; native Git fallback is visible and remains for established linked candidate-worktree semantics
+  - id: saaa_command_namespace
+    summary: installed binary is saaa and public CLI/MCP command tokens carry a saaa prefix to avoid generic aliases
+  - id: local_hybrid_graphrag_experiment
+    summary: ADR-0004 intentionally revisits the earlier deferral with optional local Neo4j and a separate derived retrieval SQLite lifecycle; repository artifacts remain canonical
+  - id: retrieval_evidence_not_authority
+    summary: retrieval treatment is explicit before LangChain4j invocation; evidence biases proposals while the unchanged deterministic loop decides survival
+  - id: mutation_contract_retrieval_bridge
+    summary: RetrievalQuery references optional MutationContract and uses transitional task text only until the live loop converges on MutationContract
   - id: langchain4j_adapter_boundary
     summary: LangChain4j stays in the `adapters/langchain4j` package of `modules/adapters`; `modules/domain` and `modules/deterministic` stay provider-free
   - id: deterministic_approval_boundary
@@ -131,9 +172,15 @@ decisions:
 blocking_questions: []
 
 risks:
+  - RISK-004: revision-unsafe caches or uncapped historical outcome evidence could contaminate ablation treatments and create self-reinforcing search bias
+  - RISK-005: current official Neo4j Community images retain vendor Java dependency findings even though the selected UBI image has no high/critical OS-package findings; keep Bolt loopback-only and upgrade/retest when the vendor ships fixes
+  - `lineage-novelty-v1` is a plausible policy, not a proven one; its slot mix may discard useful historical niches, so envelopes remain durable and policy IDs/overrides must be included in ablation
+  - policy selection currently scans the Git envelope archive in memory and graph memory replay writes at most 96 retained records one transaction at a time; this is bounded in the active graph but not yet measured at a large archive, so batch/index only after profiling shows pressure
+  - cross-repository process facts and subject facts coexist in one graph but the first retrieval bundle remains scoped to the configured repository; explicit context links enable analysis now while cross-repository evidence fusion needs its own measured slice
+  - Neo4j is justified only if bounded relationship traversal contributes distinct evidence; the ablation result must be allowed to reject it
   - PR fast CI now includes component and integration tests because CHG-004 uses those suites as load-bearing evidence; watch GitHub Actions duration and split further only when measured runtime or quota pressure justifies it
   - RISK-002: the scorer enforces its own fixed gates and never sees the contract, so a declared `required_evidence_present` gate can pass without the evidence it names; tracked as `T4b`
-  - RISK-003: candidate worktree names derive only from workflow and mutation ids, so a repeat run of the same mutation against one folder fails until `.worktrees/candidate-*` is removed; blocking at the population slice
+  - RISK-003: ordinary single evolve runs still derive candidate names from workflow and mutation ids; the ablation harness now supplies a stable experiment/task/mode/attempt namespace, while a general population naming policy remains deferred
   - Q-007: canonical IR preserves declared order for set-like fields, so contracts differing only in evidence order canonicalize differently
   - Q-009: Quarkus may become useful when SAAA has a durable HTTP/MCP runtime shell, but adopting it now would risk moving focus from mutation-loop behaviour to framework integration
   - MCP `targetFolder` accepts any local Git repository visible to the stdio server process and executes declared check scripts from that repository; acceptable for the local developer tool, but unsafe as-is for a remote or multi-user service
@@ -146,11 +193,35 @@ risks:
   - the non-empty realization gate rejects a no-op candidate but says nothing about whether the change is meaningful; a one-character whitespace edit still passes it, so parsimony's pull toward the smallest diff is bounded rather than removed
   - `journal.md` is written into the user's target folder, so the command writes outside its own repository
   - the `.saaa` pathspec exclusion in `GitRealizationInspector` is coupled by convention to `GitCandidateWorkspace`, which writes bookkeeping under `.saaa/candidates/`; a future adapter writing bookkeeping elsewhere would need the exclusion updated
-  - `ExperimentMetadataStore` is a no-op in the CLI wiring; persistent experiment metadata arrives with `CHG-002` task `T5`
+  - model/provider cost is reported only when supplied; current LangChain4j evidence captures input/output tokens but has no configured price schedule, so ablation cost falls back to token count
   - reporters print only check name and status, so a behaviour case that fails for its own reasons shows no diagnostics; tracked as `CHG-003` task `T9`
   - the CLI pre-flight inspects the working tree while checks run against `HEAD`, so an uncommitted or mode-mismatched script passes pre-flight and then fails to start inside the candidate; tracked as `CHG-003` task `T12`
   - check scripts run in a worktree created from `HEAD`, so a new check script must be committed before it can gate a run
   - the behaviour case convention is POSIX-shaped, so `evolve` is effectively Linux and macOS only; on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`
+
+chg_005_files_changed:
+  tracked_modified: 36
+  new: 102
+  paths:
+    - .agentic-template/bin/{project,compose-test,check-architecture-boundaries,graphrag-integration-test}
+    - .agents/knowledge/{decisions/ADR-0004-local-hybrid-graphrag-experiment.md,architecture/ARCH-002-retrieval-evidence-boundary.md,risks/RISK-004-retrieval-bias-and-staleness.md,risks/RISK-005-local-neo4j-supply-chain.md}
+    - HANDOFF.toon
+    - PROJECT_PROFILE.toon
+    - README.md
+    - compose.yaml
+    - flake.nix
+    - gradle/libs.versions.toml
+    - docs/{architecture/module-boundaries.md,context-store.md,decisions/0004-local-hybrid-graphrag-experiment.md,validation.md}
+    - docs/wiki/{index.md,operations.md,experiments.md}
+    - specs/changes/CHG-005-local-hybrid-graphrag/**
+    - modules/domain/src/{main,test}/java/**/saaa/domain/*Retrieval*.java
+    - modules/domain/src/{main,test}/java/**/saaa/domain/{Evidence*,EmbeddedRepositoryProjection,Evolution*,GraphEdge,HistoricalOutcome,MutationProposalRequest,PreparedMutationProposalRequest,ProjectionStatus,RelationshipType,RepositoryProjection,RepositoryRole,SourceReference}.java
+    - modules/deterministic/src/{main,test,acceptanceTest}/java/**/saaa/deterministic/{*Retriev*,*Evidence*,*Embedding*,*Evolution*,ChangedPathInspector,HybridEvidenceRetriever,LineageNoveltyMemoryPolicy,VectorEvidenceStore}.java
+    - modules/adapters/src/{main,test,integrationTest}/java/**/saaa/adapters/{neo4j,repository,retrieval,experiments}/**
+    - modules/adapters/src/{main,test,integrationTest}/java/**/saaa/adapters/{sqlite,git,langchain4j,evolve}/**
+    - modules/adapters/{build.gradle.kts,src/main/java/**/mcp/EvolveMcpRequest.java,src/main/java/**/mcp/EvolveMcpServer.java}
+    - modules/cli/{build.gradle.kts,src/main/java/**/cli/{BenchmarkCommand,IndexCommand,ReinflateCommand,RetrieveCommand,EvolveCommand,McpCommand,MutationLoopCli,ConsoleReporter}.java,src/acceptanceTest/**}
+  note: the exact 138-path list is reproducible with `git status --porcelain=v1 -uall`; the older cumulative `files_changed` list below remains historical handoff context
 
 files_changed:
   - .github/workflows/ci.yml
@@ -217,6 +288,22 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-02 `.agentic-template/bin/project test`: pass after final stale-revision and Jackson security fixes; all domain, deterministic, adapter and CLI unit tests green
+  - 2026-08-02 `.agentic-template/bin/project component-test`: pass; HYBRID acceptance proves semantic plus structurally connected evidence reaches the proposer within budget and NONE remains graph-free
+  - 2026-08-02 `.agentic-template/bin/project integration-test`: pass; real Git/JGit, SQLite, command, envelope/wiki and JMH adapter semantics green
+  - 2026-08-02 `.agentic-template/bin/project graphrag-integration-test`: pass against pinned Neo4j Compose; covers projection replacement, bounded traversal/vector search, repository partitioning, observed CHANGED-path memory retrieval and configured-unavailable failure
+  - 2026-08-02 `.agentic-template/bin/project check`: pass; repository, profile, handoff, knowledge, change, tooling, MCP and architecture checks green
+  - 2026-08-02 `.agentic-template/bin/project lint`: pass; provider and persistence adapters remain out of domain/deterministic layers
+  - 2026-08-02 `.agentic-template/bin/project ready`: READY PASS with 16 passed, 1 not applicable and 0 failed
+  - 2026-08-02 `.agentic-template/bin/project compose-config`: pass for the pinned local Neo4j topology
+  - 2026-08-02 `nix flake check`: pass for package, `saaa` app, repo-contract check and dev shell; aarch64-linux evaluation remains outside the current x86_64-linux flake output
+  - 2026-08-02 `nix run . -- --help`: pass; installed `saaa` exposes only namespaced `saaa-*` commands
+  - 2026-08-02 live Nix operator flow: `saaa-index update` projected 478 nodes/1534 relationships, GRAPH retrieval returned 8 capsules/532 estimated tokens/12 considered nodes, `saaa-reinflate --revision HEAD` projected 279 nodes/852 relationships, current retrieval then failed closed on the exact revision mismatch, and `saaa-index update` restored the active projection
+  - 2026-08-02 Grype 0.115.0 installed-distribution scan: first found only medium GHSA-5gvw-p9qm-jgwh in Jackson 3.1.4; after the 3.1.5 constraint, repeat `--only-fixed --fail-on high` scan reports no vulnerabilities
+  - 2026-08-02 recorded image scan: selected Neo4j UBI10 image has zero high/critical OS-package findings; residual vendor Java findings are recorded, mitigated and not represented as fixed
+  - 2026-08-02 `.agentic-template/bin/project component-test`: red first because the retrieval contracts/seam did not exist; green after CHG-005 slice 1, including HYBRID semantic-plus-structural evidence and NONE behavior
+  - 2026-08-02 `.agentic-template/bin/project test`: pass after retrieval-aware LangChain4j, CLI/MCP and provenance integration
+  - 2026-08-02 `.agentic-template/bin/project lint`: pass after slice 1; provider and dependency boundaries unchanged
   - 2026-08-02 `nix develop --command .agentic-template/bin/project test`: pass after Claude PR #17 review fixes; includes `CandidateBranchRef` traversal rejection, promotion sink type shape and existing unit suites
   - 2026-08-02 `nix develop --command .agentic-template/bin/project component-test`: pass after Claude PR #17 review fixes; includes child-JVM CLI acceptance test with `SAAA_MODEL_API_KEY` actually present in the parent process and journal-ignore test using this repository's `.gitignore`
   - 2026-08-02 `nix develop --command .agentic-template/bin/project integration-test`: pass after Claude PR #17 review fixes; includes non-vacuous `CommandCheckRunner` environment scrub test
@@ -369,14 +456,24 @@ knowledge:
   consulted:
     - .agents/knowledge/index.md
     - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
+    - .agents/knowledge/architecture/ARCH-002-retrieval-evidence-boundary.md
     - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
     - .agents/knowledge/decisions/ADR-0003-smart-bridge-northbound-interfaces.md
+    - .agents/knowledge/decisions/ADR-0004-local-hybrid-graphrag-experiment.md
     - .agents/knowledge/risks/RISK-002-declared-hard-gates-not-enforced.md
     - .agents/knowledge/risks/RISK-003-candidate-worktree-name-collision.md
+    - .agents/knowledge/risks/RISK-004-retrieval-bias-and-staleness.md
+    - .agents/knowledge/risks/RISK-005-local-neo4j-supply-chain.md
     - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
     - specs/changes/CHG-003-first-vertical-slice/change.toon
     - specs/changes/CHG-003-first-vertical-slice/design.md
   proposals:
+    - specs/changes/CHG-005-local-hybrid-graphrag/change.toon
+    - docs/decisions/0004-local-hybrid-graphrag-experiment.md
+    - .agents/knowledge/decisions/ADR-0004-local-hybrid-graphrag-experiment.md
+    - .agents/knowledge/architecture/ARCH-002-retrieval-evidence-boundary.md
+    - .agents/knowledge/risks/RISK-004-retrieval-bias-and-staleness.md
+    - .agents/knowledge/risks/RISK-005-local-neo4j-supply-chain.md
     - docs/decisions/0002-three-layer-vision.md
     - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
     - PROJECT_PROFILE.toon (added `three_layer_vision_with_vertical_slices` under `decisions`, status `proposed`)
@@ -388,7 +485,8 @@ knowledge:
 
 team_fallback:
   current: single_lead_with_pr_review_gate
-  reason: PR tooling works, so `CHG-003` went through PR #1 and `T10` went through PR #2. Pushing over SSH still fails with `Permission denied (publickey)`; the HTTPS remote URL works. No subagent actor review was requested for this change; human review on the PR is the merge gate.
+  reason: the active collaboration contract prohibited spawning subagents for CHG-005, so the lead performed explicit architecture/security/efficiency self-review and preserved human review as the required PR merge gate; no merge or push was attempted
+  chg_005_lost_challenge: no independent actor reviewed this large slice before handoff; compensating evidence is outside-in acceptance coverage, real Git/SQLite/Neo4j integration, Nix operator exercises, dependency/image scanning and an explicit 14-question lead challenge, but a human or independent PR reviewer is still required
   chg_003_outcome: PR #1 "Run one mutation evaluation end to end (CHG-003)" merged 2026-07-30; two independent actor reviews during its development, the second of which found a surviving promotion-integrity hole and returned do-not-merge before the `T11` fix
   t10_outcome: PR #2 "Hard-gate a candidate whose realization changed nothing (CHG-003 T10)" merged 2026-07-31 as `36d01f8` after human review; the code change had lead self-review only, no independent actor review, but was covered test-first and the failing acceptance test was observed reporting PROMOTE before the gate existed
   readme_rework_outcome: pushed directly to `main` as `d1b9a71` under explicit user authorization, no PR; lead self-review only, no actor or human review pass, no code changes

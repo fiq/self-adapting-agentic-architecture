@@ -54,6 +54,42 @@ checks adapters cannot import LangChain4j even though they now share a compile
 classpath with it, and it fails when a scanned layer directory is missing rather
 than reporting OK while scanning nothing.
 
+The CHG-005 retrieval boundary adds an opt-in real-dependency check:
+
+```sh
+.agentic-template/bin/project graphrag-integration-test
+```
+
+It explicitly starts the pinned Neo4j Community Compose service, runs the
+focused projection/traversal/vector/outcome-memory integration test and shuts
+the container down while retaining the named rebuildable volume. Ordinary unit,
+component and integration commands do not require Docker or Neo4j.
+
+The ordinary integration suite also proves JGit-first clean/dirty revision
+identity, Git-visible experiment-envelope/SQLite round trips, generated wiki
+projection and historic snapshot cleanup. Native Git fallback is diagnostic;
+tests require the normal JGit path so a missing API cannot silently become the
+default. The resolved JGit 7.6.0 runtime subtree is limited to JavaEWAH, SLF4J
+and Commons Codec and was checked against the published affected ranges for
+CVE-2025-4949 and CVE-2023-4759.
+
+A Grype 0.115 scan of the complete installed `saaa/lib` distribution on
+2026-08-02 found no high/critical Java finding with an available fix. This
+complements the focused JGit advisory check and should be rerun when dependency
+pins change.
+
+The Neo4j image was compared with Trivy 0.72 on 2026-08-02. The selected exact
+Community UBI10 manifest had zero high/critical operating-system findings; the
+current Debian image had 94. Ten high Java findings remain because no released
+Neo4j image yet carries their fixed dependency versions. RISK-005 records the
+containment and upgrade obligation. Reproduce the scan from the Nix ecosystem:
+
+```sh
+nix shell nixpkgs#trivy --command trivy image --scanners vuln \
+  --severity HIGH,CRITICAL \
+  'neo4j:5.26.28-community-ubi10@sha256:56cdf7d9cf639e9b6bdacd9222758457076de08afbc66f79d0965cb56e1cdc5b'
+```
+
 ## Required Recording
 
 Record meaningful validation in `HANDOFF.toon.tests_run`.

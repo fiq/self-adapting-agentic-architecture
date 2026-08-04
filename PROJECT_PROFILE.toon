@@ -22,7 +22,7 @@ audience:
   right_sizing:
     smallest_sufficient: local Gradle Java CLI evaluating one Git-worktree candidate at a time through plain Java ports and deterministic policies
     deliberately_excluded:
-      - OpenSearch and vector storage because the first slice has no large retrieval corpus or semantic search evidence
+      - OpenSearch, generic vector platforms and production retrieval infrastructure; the earlier blanket vector deferral is now intentionally revisited only by the bounded local Neo4j experiment in ADR-0004
       - AST mutation because bounded behavior-first mutation contracts can be realized through ordinary Git diffs before AST infrastructure is justified
       - LSP integration because repair diagnostics can start from deterministic validation output
       - distributed workers because local sequential evaluation is sufficient until benchmark throughput becomes a measured bottleneck
@@ -121,6 +121,26 @@ decisions:
       - README.md
       - .agentic-template/bin/project ready
     consequence_if_changed: distribution work could distract from validating the mutation loop
+  - id: bounded_local_hybrid_graphrag_experiment
+    decision: intentionally revisit the earlier vector/container deferral with an on-demand bounded Neo4j Community projection, provider-neutral embeddings, versioned Evidence Capsules, a disposable retrieval SQLite projection and Git-rehydratable evolutionary memory
+    reason:
+      - the recorded semantic-search revisit trigger has been reached by an explicit owner experiment
+      - structural, semantic and prior evaluation evidence must be compared under NONE, VECTOR, GRAPH and HYBRID treatments
+      - Neo4j remains rebuildable from repository artifacts and observable outcomes rather than becoming canonical storage
+      - compact Git experiment envelopes preserve observable outcomes while a generated wiki page remains a non-authoritative human projection
+      - lineage-novelty-v1 bounds the hot graph by evolutionary value rather than age and supports explicit historic reinflation
+      - one graph relates partitioned subject and SAAA process repository revisions through explicit evolution contexts
+      - JGit is the zero-setup primary API for read-only Git access, with native Git as a visible compatibility fallback and for linked candidate worktrees
+      - retrieval biases search while deterministic fitness remains the sole survival authority
+      - the Neo4j Community UBI10 manifest is digest-pinned, HTTP-disabled and loopback-only; RISK-005 tracks Java findings pending an upstream patched image
+    confidence: medium
+    status: experimental
+    validation:
+      - docs/decisions/0004-local-hybrid-graphrag-experiment.md
+      - specs/changes/CHG-005-local-hybrid-graphrag/
+      - .agentic-template/bin/project graphrag-integration-test
+      - .agentic-template/bin/project component-test
+    consequence_if_changed: remove or simplify the projection only after the ablation evidence and owner review are recorded; do not erase the original deferral history
   - id: staged_ci_validation_profiles
     decision: pull-request CI runs the fast feedback profile with repository checks, README checks, unit tests, component tests, integration tests and architecture lint, while pushes to `main`, `v*` tags and manual full dispatch run that profile plus full readiness
     reason:
@@ -303,6 +323,7 @@ unknowns:
 rejected_options:
   - id: opensearch_vector_storage_now
     option: add OpenSearch, vector storage or external memory now
+    status: revisited_for_bounded_experiment
     reason_rejected:
       - no retrieval scale evidence exists
       - repo-native context and SQLite metadata are sufficient for the first slice
@@ -311,6 +332,10 @@ rejected_options:
       - docs/context-store.md
     revisit_when:
       - workflow/evidence corpus needs semantic retrieval with measured local limits
+    revisit_outcome:
+      - trigger reached by explicit owner direction on 2026-08-02
+      - ADR-0004 authorizes only a local Neo4j Community experiment plus derived SQLite projections
+      - OpenSearch, generic vector infrastructure and production memory services remain rejected
   - id: ast_mutation_now
     option: mutate Java AST or workflow source using typed code transformations in the first slice
     reason_rejected:
@@ -354,17 +379,21 @@ architecture:
   module_naming: layers are named for what they may know; domain has no dependencies, deterministic holds validation, scoring, promotion and ports, and nothing provider-aware or nondeterministic may live there
   integrations:
     model_access: LangChain4j typed service through provider-neutral adapter construction
-    git: local Git worktrees through adapter
+    git: JGit-first read-only repository access plus native Git linked candidate worktrees through adapter
     checks: deterministic command execution through adapter
     benchmarks: JMH evidence adapter
     messaging: none
     external_services:
       - OpenAI via LangChain4j official adapter proposed for first live provider
+      - optional local Neo4j Community projection for GRAPH, VECTOR and HYBRID experiments
   persistence:
-    kind: relational
-    engine: sqlite
-    provider: local_file
-    migrations: initial_schema_migration_in_adapter
+    canonical_repository: Git-versioned source, specs, ADRs and knowledge
+    experiment_metadata: local .saaa/experiments.sqlite through separate ExperimentMetadataStore and EvolutionaryMemoryStore ports/classes/tables
+    experiment_rebuild_source: compact Git-versioned experiments/ledger/*.toon envelopes with generated non-authoritative docs/wiki/experiments.md projection
+    retrieval_projection_cache: disposable local .saaa/retrieval.sqlite for embeddings, capsules and retrieval provenance
+    graph_projection: rebuildable bounded local Neo4j Community named volume inflated from repository revisions plus policy-selected experiment memory
+    graph_scope: one database with repository-partitioned SUBJECT and PROCESS projections linked by explicit evolution contexts
+    migrations: adapter-owned schemas; retrieval cache and durable experiment responsibilities remain separate
 
 testing:
   harness: gradle_junit5_assertj_jqwik_jmh
@@ -402,10 +431,15 @@ containers:
   application_image: not_applicable
   reason: initial project is a local experimental CLI, not a deployable service or web application
   image_test: not_applicable
-  compose: empty_no_services
+  compose: one explicit on-demand neo4j_community_service
+  compose_image: neo4j:5.26.28-community-ubi10@sha256:56cdf7d9cf639e9b6bdacd9222758457076de08afbc66f79d0965cb56e1cdc5b
+  compose_lifecycle: explicit_start_and_shutdown_with_named_rebuildable_volume
+  ordinary_tests_require_compose: false
 
 infrastructure:
-  local_topology: nix_gradle_local_git_sqlite
+  local_topology: nix_gradle_local_git_sqlite_plus_optional_neo4j_projection
+  development_environment: flake_dev_shell_includes_java_gradle_docker_client_and_compose; nix_run_exposes_the_saaa_java_binary; JGit_requires_no_manual_setup; host_docker_daemon_required_for_neo4j; devenv_not_required
+  command_namespace: installed_binary_saaa_with_saaa_prefixed_public_command_tokens
   deployment_target: local_cli
   iac:
     status: not_applicable

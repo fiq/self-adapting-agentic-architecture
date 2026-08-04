@@ -13,6 +13,7 @@ first and link to deeper detail.
 | Runtime and boundaries | [Architecture](architecture.md) |
 | Validation strategy | [Testing](testing.md) |
 | Operational repeatability | [Operations](operations.md) |
+| Experiment strategies and outcomes | [Experiment memory](experiments.md) |
 
 ## Pages
 
@@ -23,3 +24,4 @@ first and link to deeper detail.
 - [Operations](operations.md)
 - [Agents](agents.md)
 - [Glossary](glossary.md)
+- [Experiment memory](experiments.md) — generated, non-authoritative projection
