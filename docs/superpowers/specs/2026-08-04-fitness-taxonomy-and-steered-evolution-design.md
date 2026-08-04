@@ -463,13 +463,42 @@ answer from the codebase diverges from the community-norm answer, this codebase
 is unusual, and that is the fact a human should be handed rather than have
 averaged away.
 
-**Who may set what** follows the severity class that already orders comparison:
+**Who may set what** follows the severity class that already orders comparison;
+see section 12. Regardless of consensus, the safety class never auto-persists.
+Agreement is necessary there, never sufficient.
 
-| Class | Threshold set by |
-|---|---|
-| safety | human only |
-| correctness | human, or quorum with human ratification |
-| shape | quorum-proposed, persisted, human-modifiable |
+**Dispersion must see modality, not just spread.** Variance is the wrong
+instrument: six estimators scattered uniformly and two tight camps of three have
+identical variance and mean opposite things. The first is noise; the second is a
+reason, and averaging destroys it. With n of roughly four to eight heterogeneous
+estimators, Hartigan's dip test is underpowered, so use the largest relative
+gap:
+
+```
+sort estimates e1..ek
+spread = ek - e1
+maxgap = max(e[i+1] - e[i])
+
+spread <= tolerance      -> consensus   persist median
+maxgap / spread >= 0.5   -> bimodal     escalate, naming both camps
+otherwise                -> diffuse     escalate as underdetermined
+```
+
+Three outcomes needing three different handlings:
+
+| Outcome | Meaning | Action |
+|---|---|---|
+| consensus | estimators agree | persist median with rationale |
+| bimodal | two coherent positions | escalate; a human adjudicates named camps in seconds |
+| diffuse | nobody knows | escalate as underdetermined; usually a badly posed question or a novel target kind |
+
+**The diagnostic test: do the modes align with the computed/reasoned split?** If
+the camps fall along that line, this codebase is unusual relative to the
+language norm, and that is the single most informative fact to hand a human. If
+they cut across it, it is closer to noise.
+
+Do not weight estimators to force agreement; that reintroduces the exchange rate
+section 2 removed. Report the partition instead.
 
 **Existing tool defaults are an input to the proposal, not a replacement for
 it.** PMD and Checkstyle ship community-argued numbers for Java and nothing for
@@ -482,6 +511,45 @@ appropriateness as the codebase moves. `.agents/knowledge/` entries already
 carry `review_after` for exactly this, and the threshold set should be versioned
 as `analysis_policy_id`, hashed into the ledger envelope alongside
 `scoring_policy_id`.
+
+### 12. Severity classes
+
+Partition by what a violation costs and whether it can be undone. That principle
+also yields the threshold-authority mapping, because the less reversible the
+consequence, the more human authority it warrants.
+
+| Class | Test | Orders | Threshold set by |
+|---|---|---|---|
+| integrity | can we trust this measurement at all? | voids, does not rank | human only |
+| safety | could this harm something outside the experiment? | 1st | human only |
+| correctness | does it do the job? | 2nd | human, or quorum ratified |
+| shape | is it well-formed? | 3rd | quorum, persisted, modifiable |
+
+**Integrity voids the run rather than ranking it.** A candidate that rewrote its
+own check script, produced no evidence, realised nothing, or returned missing or
+out-of-range objective scores has not made a statement about fitness. It has
+told us the measurement is untrustworthy. Ranking it would imply its evidence
+means something.
+
+Consequence for the steering design in section 5: **integrity failures must be
+kept out of the archive and must never become exemplars.** A measured failure is
+useful and belongs in the archive as a near-miss; a compromised measurement is
+not a near-miss of anything.
+
+**Safety** is blast radius escaping the declared envelope: persistence, public
+API, production config, credentials. Externally visible or irreversible, which
+is why it is human-only regardless of quorum consensus.
+
+**Correctness** is behaviour cases and deterministic checks. Reversible, because
+it lives in a candidate worktree, and it carries the core signal.
+
+**Shape** is complexity, cohesion and style. It ranks last because a
+correct-but-ugly candidate is more useful than an elegant-but-wrong one.
+
+One placement is already settled by existing enforcement:
+`process.invariant.layer_boundaries` is **correctness**, not shape, because
+Gradle makes a layer violation a compile error. It fails the build rather than
+offending taste.
 
 ## What this depends on
 
@@ -540,9 +608,9 @@ These have a position but no evidence from a real run behind them.
 
 ## Open questions
 
-- What are the severity classes, exactly, and which invariant belongs to which?
-  Recommendation 3 and section 11 both depend on that partition, and neither
-  defines it.
+- Which existing invariant maps to which class? Section 12 defines the partition
+  and places `layer_boundaries`, but the full mapping of today's four gates has
+  not been written down.
 - What are the behavioural descriptors for archive cells? They must be
   observable without being score-derived.
 - Who builds the labelled corpus for weight calibration, and from what?
@@ -553,11 +621,12 @@ These have a position but no evidence from a real run behind them.
   candidate evolving a file in this repository can break a layer boundary, and
   today nothing stops it unless the operator declared a behaviour case that runs
   `project lint`.
-- Which estimators form the quorum for a given target kind, and what dispersion
-  counts as "wide"? Section 11 relies on the distinction without quantifying it.
-  Note that with heterogeneous estimators the spread is not a sampling
-  statistic, so a variance threshold may be the wrong instrument; disagreement
-  between the computed and reasoned classes may matter more than raw spread.
+- Which estimators form the quorum for a given target kind? Section 11 gives the
+  modality test and the gap rule but not the estimator set, and the set is
+  necessarily per-language.
+- Are `tolerance` and the `0.5` gap ratio in section 11 themselves magic
+  numbers of the kind section 4 objects to? They probably need the same
+  treatment they govern.
 - What are the behavioural descriptors for archive cells? They must be
   observable without being score-derived.
 - Who builds the labelled corpus for weight calibration, and from what?
