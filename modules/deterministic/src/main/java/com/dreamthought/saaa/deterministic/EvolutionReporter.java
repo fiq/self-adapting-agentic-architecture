@@ -4,6 +4,7 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.RetrievalBundle;
 
 /**
  * Progress events from one evaluation. The loop reports; it never prints. That keeps a terminal, a
@@ -13,6 +14,8 @@ public interface EvolutionReporter {
     EvolutionReporter NO_OP = new EvolutionReporter() { };
 
     default void proposed(Mutation mutation) { }
+
+    default void retrievalPrepared(RetrievalBundle retrieval) { }
 
     default void candidateCreated(Candidate candidate) { }
 
