@@ -13,6 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 final class RepositoryEvidenceIndexerTest {
+    /**
+     * Arranged rather than resolved from Git: the unit under test is projection building, so
+     * repository identity is an input. Letting it fall through to {@code GitRepositoryRevision}
+     * would make the result depend on whichever repository happens to enclose the temp directory.
+     */
+    private static final String REPOSITORY_ID = "repo";
+
     @TempDir Path temp;
 
     @Test
@@ -35,11 +42,11 @@ final class RepositoryEvidenceIndexerTest {
         Files.createDirectories(source.getParent());
         Files.writeString(source, "package example;\npublic final class Loop {}\n");
 
-        var store = new ReplacingStore(root.getFileName().toString());
+        var store = new ReplacingStore(REPOSITORY_ID);
         var indexer = new RepositoryEvidenceIndexer(new RepositoryEvidenceExtractor(), store);
 
-        RepositoryProjection first = indexer.build(root, "rev-1");
-        RepositoryProjection second = indexer.build(root, "rev-1");
+        RepositoryProjection first = indexer.build(root, "rev-1", REPOSITORY_ID);
+        RepositoryProjection second = indexer.build(root, "rev-1", REPOSITORY_ID);
 
         assertThat(second.nodes()).isEqualTo(first.nodes());
         assertThat(second.edges()).isEqualTo(first.edges());
@@ -47,7 +54,7 @@ final class RepositoryEvidenceIndexerTest {
                 .contains("ARCH-001", "type:example.Loop");
 
         Files.delete(source);
-        RepositoryProjection third = indexer.build(root, "rev-2");
+        RepositoryProjection third = indexer.build(root, "rev-2", REPOSITORY_ID);
 
         assertThat(third.nodes()).extracting(node -> node.stableId())
                 .contains("ARCH-001")
