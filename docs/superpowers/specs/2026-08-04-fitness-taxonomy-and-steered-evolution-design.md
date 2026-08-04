@@ -134,9 +134,12 @@ varies by language.
 blending:
 
 - **Quality becomes an invariant.** Threshold-crossing, not any-increase: "no
-  method crosses cyclomatic 15", not "complexity must never rise", because the
-  correct fix sometimes adds branches and input validation must not be blocked.
-  Binary, non-tradeable, in the violation aggregate.
+  method crosses the configured complexity threshold", not "complexity must
+  never rise", because the correct fix sometimes adds branches and input
+  validation must not be blocked. Binary for the decision, but carrying distance
+  past threshold as its magnitude so steering keeps a gradient. Section 11
+  covers both where the threshold comes from and why the boolean does not
+  destroy the grey.
 - **Size survives as a graded objective**, and is now safe, because the quality
   gate has already refused the golf hack that size alone would have rewarded.
 
@@ -389,6 +392,67 @@ principle read carefully: structure the approval, free the proposal.
 `AGENTS.md` currently puts mutation IR and fitness predicates under one
 S-expression rule; those two deserve splitting.
 
+### 11. Gates keep their grey, and where thresholds come from
+
+**The objection.** Binary gates destroy the gradient needed to pivot. Feedback
+that tells you which way to move is grey; `0.00 / DISCARD` tells the next round
+nothing.
+
+**The answer is not to loosen the gates.** It is that a gate and its magnitude
+have different consumers.
+
+```
+gate boolean   -> the promote/discard decision      (binary, non-tradeable)
+gate magnitude -> steering, ranking, exemplars      (graded, informative)
+```
+
+Deb's rules exist precisely so infeasible candidates still order: one failing
+case ranks above four. The gradient lives inside the infeasible region, which is
+where a pivot signal is wanted. Today that information is destroyed, because
+every gate failure collapses to the same `0.00`.
+
+**Magnitude is distance past threshold, not count of violations.** Cyclomatic 16
+and cyclomatic 40 both fail at 15, and scoring them identically discards the
+signal. Distances compare within an invariant; across invariants the severity
+class orders first (Recommendation 3), so nothing incommensurable is ever
+summed.
+
+**Threshold provenance.** Reasoning models propose defaults from context —
+domain, existing code, language, target kind — and a human can always override.
+This is safe by the same test as weights in section 4: the value is fixed before
+any candidate exists and is identical across everything being compared, so a
+proposer cannot influence the bar it is judged against.
+
+Draw the proposal as a quorum (self-consistency sampling: k draws, take the
+median) rather than a single shot. The dispersion is itself a signal:
+
+| Quorum spread | Action |
+|---|---|
+| tight | persist with recorded rationale |
+| wide | the threshold is arbitrary; do not persist, escalate to a human |
+
+That turns human involvement from a fallback into a triggered gate.
+
+**Who may set what** follows the severity class that already orders comparison:
+
+| Class | Threshold set by |
+|---|---|
+| safety | human only |
+| correctness | human, or quorum with human ratification |
+| shape | quorum-proposed, persisted, human-modifiable |
+
+**Existing tool defaults are an input to the proposal, not a replacement for
+it.** PMD and Checkstyle ship community-argued numbers for Java and nothing for
+a prompt file or a workflow definition, so tooling alone cannot answer the
+question for every target kind. Where a mature default exists the quorum should
+be told about it.
+
+**Persisted thresholds need a revisit trigger** or they drift out of
+appropriateness as the codebase moves. `.agents/knowledge/` entries already
+carry `review_after` for exactly this, and the threshold set should be versioned
+as `analysis_policy_id`, hashed into the ledger envelope alongside
+`scoring_policy_id`.
+
 ## What this depends on
 
 `RISK-002` / task `T4b`. `PhenotypeFitnessScorer` never receives the
@@ -414,24 +478,53 @@ specification declarative" is finishing this, not inventing it.
 8. Guidance capsule kinds and the blend policy.
 9. Population, then NSGA-II when there is a front to sort.
 
+## Recommendations, not yet tested
+
+These have a position but no evidence from a real run behind them.
+
+1. **Drop size as a graded objective entirely.** Normalising against operator
+   bounds turns it into "fraction of granted budget used", which rewards not
+   spending a budget that was deliberately widened, so it restates the
+   `EXPLORATORY_LEAP` defect rather than fixing it. The remaining argument was
+   tiebreaking, and that dissolves once the archive exists: MAP-Elites needs
+   cell placement, not a total order. Keep both candidates and bin them.
+
+2. **Activate the `MutationBounds` permission flags, attached to the target
+   rather than the operator, and split declare from detect.** What a change
+   touches is a fact about the subject; `SIMPLIFY` may legitimately touch public
+   API and `REPAIR` sometimes must, so operator intent is the wrong axis. The
+   contract declares a permission, the realisation inspector detects what was
+   actually touched, and a mismatch is an invariant violation. Implementation is
+   path matching over the diff, not analysis. A `may not touch check scripts`
+   permission would also close the reward-hacking hole recorded in
+   `HANDOFF.toon`, where `--workflow-file workflow-check.sh --behaviour-case
+   workflow-check` lets a proposal rewrite the script that grades it.
+
+3. **Order violations lexicographically by severity class, then by magnitude
+   within class.** Deb's rules need an ordering, not a sum. `(class, magnitude)`
+   gives a total order without ever adding incommensurables, so "3 failed
+   behaviour cases" never has to be weighed against "2 methods over threshold".
+
+4. **Thresholds are model-proposed from context with human override**, per
+   section 11, versioned as `analysis_policy_id` and revisited on a trigger.
+
 ## Open questions
 
-- What is the violation magnitude for each invariant, and is it comparable
-  across invariants without reintroducing weights by the back door? Counts of
-  the same kind of thing compose; "3 failed cases" against "2 methods over
-  threshold" may not.
-- Which complexity thresholds, and who sets them? A threshold is a magic number
-  of exactly the kind section 4 objects to, so it needs the same treatment:
-  declared, versioned, frozen per experiment.
-- Is size still worth keeping as a graded objective once the quality gate exists,
-  or does the gate make it redundant? Section 3a keeps it as a tiebreak, but that
-  is a judgement, not a finding, and the `EXPLORATORY_LEAP` defect argues
-  against keeping it at all. If it is kept, it must normalise against the
-  operator's own `MutationBounds`, not against a single CLI flag.
-- Should the three `MutationBounds` permission flags (`publicApiChange`,
-  `persistenceChange`, `productionConfigChange`) become active? They are `false`
-  for every operator today, so they express no policy, and they are the obvious
-  home for blast radius that is not about size.
+- What are the severity classes, exactly, and which invariant belongs to which?
+  Recommendation 3 and section 11 both depend on that partition, and neither
+  defines it.
+- What are the behavioural descriptors for archive cells? They must be
+  observable without being score-derived.
+- Who builds the labelled corpus for weight calibration, and from what?
+- Does the requirement predicate live on `MutationContract`, or in a new type
+  that precedes it? A contract is authored by the proposer; a requirement must
+  not be.
+- Does `process.invariant.*` gate a candidate, or only SAAA's own CI? A
+  candidate evolving a file in this repository can break a layer boundary, and
+  today nothing stops it unless the operator declared a behaviour case that runs
+  `project lint`.
+- What is the quorum size k, and what dispersion counts as "wide"? Section 11
+  relies on the distinction without quantifying it.
 - What are the behavioural descriptors for archive cells? They must be
   observable without being score-derived.
 - Who builds the labelled corpus for weight calibration, and from what?
