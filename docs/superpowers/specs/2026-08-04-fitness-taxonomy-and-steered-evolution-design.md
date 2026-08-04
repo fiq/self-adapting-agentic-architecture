@@ -423,8 +423,8 @@ This is safe by the same test as weights in section 4: the value is fixed before
 any candidate exists and is identical across everything being compared, so a
 proposer cannot influence the bar it is judged against.
 
-Draw the proposal as a quorum (self-consistency sampling: k draws, take the
-median) rather than a single shot. The dispersion is itself a signal:
+Draw the proposal as a quorum rather than a single shot. The dispersion is
+itself a signal:
 
 | Quorum spread | Action |
 |---|---|
@@ -432,6 +432,36 @@ median) rather than a single shot. The dispersion is itself a signal:
 | wide | the threshold is arbitrary; do not persist, escalate to a human |
 
 That turns human involvement from a fallback into a triggered gate.
+
+**The quorum is over distinct estimators, not repeated samples of one.**
+Self-consistency sampling (k draws of the same prompt) measures confidence, not
+correctness: a confidently wrong model returns a tight cluster, so the
+dispersion rule above would persist a bad threshold precisely when it should
+escalate. Resampling one framing cannot detect a bad framing, and k draws from
+one prompt share that prompt's biases, so variance collapses after a few draws
+without accuracy improving.
+
+A quorum of *different* queries measures whether the question is
+underdetermined. If several reasonable framings disagree, no amount of
+resampling any one of them helps; the threshold is a judgement call and belongs
+with a human.
+
+Mix computed and reasoned estimators, because some members need no model:
+
+```
+90th percentile cyclomatic in this repository   computed, no model
+where the tail of the distribution begins       computed, no model
+what this language community accepts            reasoned, prior
+what would flag the worst decile here           reasoned, grounded
+```
+
+Every member that can be computed is one the model gets no vote on, which
+shrinks how much of the threshold rests on judgement.
+
+The most informative disagreement is between the two classes. If the empirical
+answer from the codebase diverges from the community-norm answer, this codebase
+is unusual, and that is the fact a human should be handed rather than have
+averaged away.
 
 **Who may set what** follows the severity class that already orders comparison:
 
@@ -523,8 +553,11 @@ These have a position but no evidence from a real run behind them.
   candidate evolving a file in this repository can break a layer boundary, and
   today nothing stops it unless the operator declared a behaviour case that runs
   `project lint`.
-- What is the quorum size k, and what dispersion counts as "wide"? Section 11
-  relies on the distinction without quantifying it.
+- Which estimators form the quorum for a given target kind, and what dispersion
+  counts as "wide"? Section 11 relies on the distinction without quantifying it.
+  Note that with heterogeneous estimators the spread is not a sampling
+  statistic, so a variance threshold may be the wrong instrument; disagreement
+  between the computed and reasoned classes may matter more than raw spread.
 - What are the behavioural descriptors for archive cells? They must be
   observable without being score-derived.
 - Who builds the labelled corpus for weight calibration, and from what?
