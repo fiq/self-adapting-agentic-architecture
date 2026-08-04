@@ -31,8 +31,9 @@ Function, which grades a candidate and shares nothing with this beyond the name.
 ## Benchmark
 
 A measurement instrument. In SAAA a benchmark is a JMH microbenchmark producing
-`BenchmarkEvidence(name, value, unit)`, which is one input to one objective. A
-benchmark never decides anything.
+`BenchmarkEvidence(name, value, unit)`, the intended input to the
+`cost_latency_budget` objective. Nothing in the evaluation loop supplies one
+today. A benchmark never decides anything.
 
 The genetic-programming literature often uses "benchmark" for a fixed evaluation
 suite. SAAA calls those Corpora and reserves "benchmark" for the instrument.
@@ -73,12 +74,20 @@ total miss.
 
 Named `subject.invariant.*` or `process.invariant.*`; see `CON-002`.
 
+This is the target model recorded in `CON-002`. Today any failed gate scores
+0.0 and discards, so no magnitude survives.
+
 ## Knowledge Node
 
 A structured Markdown entry under `.agents/knowledge/`, keyed by its category
 prefix such as `ARCH-*`, `CON-*`, `Q-*` or `RISK-*`. Knowledge nodes preserve
 durable facts, open questions and decisions without turning the wiki into a
 changelog.
+
+## Northbound Interface
+
+An interface exposed by SAAA to callers. `ADR-0003` names MCP and a narrow
+OpenAI-compatible API as complementary northbound interfaces.
 
 ## Objective
 
@@ -87,10 +96,8 @@ every invariant has passed.
 
 Named `subject.objective.*`; see `CON-002`.
 
-## Northbound Interface
-
-An interface exposed by SAAA to callers. `ADR-0003` names MCP and a narrow
-OpenAI-compatible API as complementary northbound interfaces.
+This is the target model recorded in `CON-002`. Today `PhenotypeBridgeScorer`
+computes every objective before the gates are evaluated.
 
 ## Ontology
 
@@ -108,6 +115,9 @@ fitness.
 
 Defined in `CON-002`, which also gives the comparison order and the threshold
 authority for each class.
+
+This is the target model recorded in `CON-002`. No severity partition exists
+in the code yet.
 
 ## Smart Bridge
 

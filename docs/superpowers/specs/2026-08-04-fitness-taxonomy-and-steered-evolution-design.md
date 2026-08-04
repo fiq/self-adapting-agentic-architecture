@@ -547,9 +547,11 @@ it lives in a candidate worktree, and it carries the core signal.
 correct-but-ugly candidate is more useful than an elegant-but-wrong one.
 
 One placement is already settled by existing enforcement:
-`process.invariant.layer_boundaries` is **correctness**, not shape, because
-Gradle makes a layer violation a compile error. It fails the build rather than
-offending taste.
+`process.invariant.layer_boundaries` is correctness rather than shape. The
+module direction is Gradle-enforced and a violation genuinely fails
+compilation; the package-level provider confinement is enforced by
+`check-architecture-boundaries` under `project lint`, because merging the
+adapter modules put the providers on one classpath.
 
 ## What this depends on
 

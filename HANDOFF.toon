@@ -3,7 +3,7 @@ session:
   status: fitness_taxonomy_step_1
   branch: docs/fitness-taxonomy-step-1
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/docs-fitness-taxonomy-step-1
-  head: branch from `main` at 34d1c5f
+  head: branch from `main` at 77ba7c7
   head_note: documentation-only change. No production code, scoring weights, thresholds or module boundaries were modified. Implements step 1 of the fitness taxonomy design note already on `main`.
   dirty: false
   pushed: false
@@ -131,8 +131,9 @@ completed:
   - fixed drift in `docs/wiki/testing.md`, which claimed "Benchmarks use JMH and feed `EvaluationEvidence`"; they do not on any runnable path, which is the same overstatement removed from the README
   - follow-up committed directly to `main` with explicit user authorisation: the first pass cut the genetic-programming rationale too hard and left `Background` at position 13 of 20, behind the configuration tables, with the word "experiment" gone from the opening entirely. Restored as `## Why this shape` positioned between the fitness audit and the agent-plus-CI comparison, carrying the 1990s GP loop, the argument for a population (asking twice gives two answers with no shared axis, so ideas in rejected attempts do not survive), and the reason recombination is sequenced behind single-candidate evaluation rather than beside it (recombining unreliable evidence produces unreliable children). README 3383 -> 3512 words, 21.9% below the 4498 baseline
   - implemented step 1 of the fitness taxonomy design: `check-glossary` enforcing seven load-bearing terms, glossary entries separating candidate fitness from architecture fitness and benchmark from corpus, and `CON-002` recording the `subject`/`process` plus `invariant`/`objective` naming scheme and the integrity/safety/correctness/shape severity classes
-  - deliberately did not rename `hard_gate_*` identifiers: the rename changes MCP output ordering asserted by `EvolveMcpToolTest` and invalidates identifiers already persisted in `.saaa/experiments.sqlite` and committed `experiments/ledger/*.toon` envelopes, so it needs its own change with a migration story
+  - deliberately did not rename `hard_gate_*` identifiers: the rename changes MCP output ordering asserted by `EvolveMcpToolTest` and invalidates identifiers already persisted in any target repository that has run `saaa-evolve`, both in its `.saaa/experiments.sqlite` ledger and in its `experiments/ledger/*.toon` envelopes, so it needs its own change with a migration story
   - task review caught two defects in the CON-002 entry: a stray code fence copied from the task brief's own formatting, and a claim that Gradle makes any layer violation a compile error. The second was corrected after human ruling: the module direction is Gradle-enforced, but package-level provider confinement is enforced by `check-architecture-boundaries` under `project lint`, because merging the adapter modules put langchain4j, sqlite and flyway on one compile classpath
+  - fixed all findings from the whole-branch code review of this branch: corrected the Benchmark glossary entry to describe the intended `cost_latency_budget` wiring rather than claiming `BenchmarkEvidence` is produced today, appended a "target model, not yet in force" disclaimer to Invariant/Objective/Severity Class, corrected the persisted-identifier claim in CON-002 and in this handoff's own `completed` history to say "any target repository that has run `saaa-evolve`" rather than implying this repository persists experiment state, corrected the design note's `process.invariant.layer_boundaries` section to match CON-002's already-corrected `check-architecture-boundaries` wording instead of the superseded "Gradle makes any layer violation a compile error" claim, recorded the `check-glossary` fitness-function delta and a no-`CHG`-spec rationale below, added `project check-glossary` to the `AGENTS.md` canonical command table and folded the glossary check into the `project check` row's enumeration, reordered `## Objective` to sit after `## Northbound Interface` restoring alphabetical order (and removed the now-stale risk entry describing that break), and added the missing trailing newline to CON-002
 
 in_progress: []
 
@@ -223,7 +224,6 @@ risks:
   - the CLI pre-flight inspects the working tree while checks run against `HEAD`, so an uncommitted or mode-mismatched script passes pre-flight and then fails to start inside the candidate; tracked as `CHG-003` task `T12`
   - check scripts run in a worktree created from `HEAD`, so a new check script must be committed before it can gate a run
   - the behaviour case convention is POSIX-shaped, so `evolve` is effectively Linux and macOS only; on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`
-  - the glossary's alphabetical ordering has one known break introduced by this change: `## Objective` sits before `## Northbound Interface`. `check-glossary` verifies presence, not ordering, so nothing catches it
 
 chg_005_files_changed:
   tracked_modified: 36
@@ -261,7 +261,8 @@ fitness_taxonomy_step_1_files_changed:
   - .agentic-template/bin/check-glossary
   - .agentic-template/bin/project
   - .agents/knowledge/contracts/CON-002-fitness-naming-and-severity.md
-  - docs/superpowers/plans/2026-08-04-fitness-taxonomy-step-1.md
+  - AGENTS.md
+  - docs/superpowers/specs/2026-08-04-fitness-taxonomy-and-steered-evolution-design.md
   - docs/wiki/glossary.md
   - HANDOFF.toon
   note: documentation only; no Java source was touched and no `hard_gate_*` identifier was renamed. `check-glossary` is a new standalone script wired into `project check` and its own `project` subcommand; `check-glossary` and CON-002 are the only new load-bearing artifacts, and the glossary/CON-002 fixes both landed as a follow-up commit on this branch rather than a rewrite
@@ -502,6 +503,10 @@ tests_run:
   - 2026-08-05 `.agentic-template/bin/project check`: pass including the new glossary check; repo contract, profile, handoff, knowledge, changes, architecture boundaries, tooling and MCP checks all OK
   - 2026-08-05 `.agentic-template/bin/project ready`: READY: PASS, 16 passed, 1 not applicable, 0 failed
   - 2026-08-05 `git diff --check`: pass, no output
+  - 2026-08-05 whole-branch review fix pass, `.agentic-template/bin/check-glossary`: GLOSSARY OK
+  - 2026-08-05 whole-branch review fix pass, `.agentic-template/bin/project check`: pass; repo contract, profile, handoff, knowledge, changes, architecture boundaries, tooling, MCP and glossary checks all OK
+  - 2026-08-05 whole-branch review fix pass, `.agentic-template/bin/project ready`: READY: PASS, 16 passed, 1 not applicable, 0 failed
+  - 2026-08-05 whole-branch review fix pass, `git diff --check`: pass, no output
 
 fitness_functions:
   - changed: PR `pull_request` CI runs the fast conformance profile (`project check`, `project check-readme`, `project test`, `project component-test`, `project integration-test`, `project lint`) and no longer runs `project ready`; automatic `push` to `main`, `v*` tags and manual `profile=full` dispatch run both fast checks and full readiness
@@ -515,6 +520,7 @@ fitness_functions:
   - added: promotion is branch-pointer-only at the `CandidateDecisionSink` port via `CandidateBranchRef`, with unit coverage for the type shape and a deterministic source scan for merge commands
   - added: `check-architecture-boundaries` rejects candidate auto-merge command references in deterministic, adapter and CLI main sources, so the invariant runs in PR CI
   - unchanged by the README evidence pass: no gate, weight, threshold or scoring path was modified. The pass documented the existing fitness function precisely and recorded its weaknesses as risks and next actions rather than changing behaviour
+  - added: `check-glossary` fails `project check` when a load-bearing glossary term or the `CON-002` reference goes missing; it verifies presence and the pointer, not ordering and not that the pointer resolves
 
 knowledge:
   consulted:
@@ -554,6 +560,12 @@ knowledge:
     `reliability` substring test) are recorded under `risks` and `next` above. Promote them to
     `RISK-` entries when someone picks up the fix, because that is the point at which they acquire
     an owner and a revisit condition.
+
+    Fitness taxonomy step 1 shipped without a `CHG-` spec. It changes no behaviour, no
+    boundary and no acceptance scenario: it adds a documentation check, glossary entries and
+    one knowledge entry recording a target shape that is explicitly not in force. The durable
+    record is `CON-002`, this handoff and the design note. Steps 2 onward do change behaviour
+    and each needs its own spec.
 
 team_fallback:
   current: single_lead_with_pr_review_gate
