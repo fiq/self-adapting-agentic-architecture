@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class EvolveMcpServer {
-    static final String TOOL_NAME = "evolve";
+    static final String TOOL_NAME = "saaa_evolve";
 
     private final EvolveMcpTool evolveTool;
 
