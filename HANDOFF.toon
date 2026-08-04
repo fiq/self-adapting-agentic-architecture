@@ -1,16 +1,17 @@
 session:
   updated: 2026-08-04
-  status: chg_005_merged_ablation_still_unmeasured
-  branch: chore/refresh-chg-005-handoff
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/chore-refresh-chg-005-handoff
-  head: branch from `main` at ace9950 after PR #18 merged CHG-005
-  head_note: CHG-005 is on `main`; its worktree and local/remote branch were removed after the merge. This branch only refreshes bookkeeping.
+  status: readme_evidence_pass_documentation_only
+  branch: docs/readme-evidence-pass
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture
+  head: branch from `main` at aae4b4f
+  head_note: documentation-only change. No production code, scoring weights, thresholds or module boundaries were modified. Implementation concerns found during the audit are recorded as risks, not fixed.
   dirty: false
   pushed: true
 
 goal:
   current: measure whether bounded local hybrid GraphRAG actually improves deterministic fitness per token, now that the implementation is merged
   phase: chg_005_merged_awaiting_first_measured_ablation
+  interlude: README accuracy and structure pass completed against verified runtime evidence; it did not change the ablation goal
 
 completed:
   - ran repository startup, read the canonical context in prescribed order, searched relevant knowledge, inspected CHG-001 through CHG-004 and the live mutation/proposer/worktree/SQLite/scoring/reporting path
@@ -121,10 +122,21 @@ completed:
   - implemented `T10/T10b` acceptance coverage: fixture evolution can target a scratch `AuthorityLanguage.java`, promoted candidates create candidate refs without moving `main`, the CLI exposes no merge/promote flag, and `**/journal.md` is ignored so in-repo L3 runs do not leave an untracked journal
   - addressed Claude PR #17 review blockers: the credential-scrub CLI acceptance test now runs the CLI in a child JVM with `SAAA_MODEL_API_KEY` set in the parent environment, the journal ignore acceptance test copies this repository's actual `.gitignore` into its scratch repo, and PR CI now runs component and integration tests in the fast job
   - addressed PR #17 review maintainability points: `CandidateBranchRef` rejects traversal-shaped candidate refs, discard recording is named `recordDiscardedCandidateBranch`, and the no-auto-merge command scan moved into `check-architecture-boundaries` so it covers deterministic, adapter and CLI main sources
+  - completed a README accuracy and structure pass on `docs/readme-evidence-pass`, built from a claim-to-evidence map rather than the existing narrative: ran the documented quick start, a real DISCARD case, the container retrieval path and every project test target, then rewrote against what the code and runs actually showed
+  - corrected README claims that were wrong against code: the misspelled clone URL and `cd` target, `SAAA_MODEL_PROVIDER` (the real variables are `SAAA_MODEL_BASE_URL`/`API_KEY`/`NAME`), `SAAA_EXPERIMENT_DB` (absent from the codebase; the path is hardcoded), and the worked score `0.40 + 0.20 + 0.20 + 0.10 + 0.10 = 1.00` (parsimony contributes 0.0975, raw sum 0.9975, displayed 1.00)
+  - replaced fabricated sample output with output from real runs: the previous example used a mutation id the fixture cannot produce, an abbreviated SHA the reporter does not print, and omitted both the `retrieval` line and the journal's trailing threshold sentence
+  - corrected README understatement: `--profile openai-compatible` and the `saaa-mcp` stdio server both ship and are tested, but the README described the proposer as canned-only and never mentioned MCP as shipped
+  - documented the fitness audit finding that four of five weighted objectives are pinned at 1.0 for any candidate clearing the gates, so the weighted sum floors at 0.90 and the 0.80 threshold cannot reject an eligible candidate through `PhenotypeBridgeScorer`
+  - split duplicated reference material into the wiki pages that already own those topics: port wiring/module table/extension points to `docs/wiki/architecture.md`, per-suite coverage to `docs/wiki/testing.md`, Neo4j topology, retrieval/memory variables, evolve gotchas and `saaa-ablate` to `docs/wiki/operations.md`
+  - fixed drift in `docs/wiki/testing.md`, which claimed "Benchmarks use JMH and feed `EvaluationEvidence`"; they do not on any runnable path, which is the same overstatement removed from the README
 
 in_progress: []
 
 next:
+  - close the reward-hacking hole found during the README audit: nothing stops `--workflow-file workflow-check.sh --behaviour-case workflow-check`, which lets the proposal rewrite the script that grades it inside the candidate before checks run; the `HEAD`-sourcing protection does not cover a check script chosen as the mutation target
+  - decide what to do about `task_success`, `reliability`, `cost_latency_budget` and `behavioral_safety` all being constant for eligible candidates, which leaves `parsimony` as the only discriminating objective and makes the 0.80 threshold unreachable from below
+  - replace the `reliability` substring test on check summaries; it matches candidate-controlled stdout, so a passing check printing "timed out" is scored 0.0 and discarded
+  - make a repeat fixture run fail before the decision rather than after: the ledger rejects a second differing outcome for the same candidate id, so the run journals its verdict and then exits non-zero with a stack trace
   - run a fixed, reviewed mutation corpus with a real proposer/embedding provider across NONE, VECTOR, GRAPH and HYBRID; no GraphRAG benefit has been measured yet
   - use the first measured ablation to decide whether Neo4j relationship traversal contributes enough distinct evidence to retain ADR-0004's experiment
   - close CHG-004 with `T11/T12`: README/wiki/profile/handoff updates for the openai-compatible profile, MCP surface, classical guards, Layer-3 constraints and Q-001 answer
@@ -176,6 +188,9 @@ decisions:
 blocking_questions: []
 
 risks:
+  - a check script chosen as the mutation target grades its own rewrite: `EvolveRunner` requires only that `--workflow-file` is a regular non-symlink file inside the target folder, so `--workflow-file workflow-check.sh --behaviour-case workflow-check` realizes the proposal into the script the candidate is then measured by. Found during the README evidence pass; not fixed there
+  - the weighted objectives cannot currently reject anything through the wired bridge: `task_success` restates its own hard gate, `reliability` only drops when a check already failed, `cost_latency_budget` has no evidence source because `:cli` does not depend on `:benchmarks` and `EvolveRunner` supplies a constant empty benchmark list, and `behavioral_safety` is the literal `1.0`. The sum floors at 0.90 against a 0.80 threshold, so eligibility is the whole decision and the weights are inert scaffolding
+  - `reliability` is a substring match for `timed out` against a check summary that contains the script's own stdout, so a passing check that prints those words is scored 0.0; that is the only path by which the threshold currently rejects an otherwise eligible candidate
   - a Gradle run reporting `up-to-date` executes nothing, so it is not evidence; a recorded pass from a prior session was carried forward as green when the tests had not run, and clean-checkout CI then failed. Treat unit-test evidence as valid only from a run that actually executed, and prefer `--rerun-tasks` or a clean checkout before claiming a suite passes
   - unit tests that reach ambient environment state can pass locally and fail on clean runners; `graphrag-integration-test` and the Neo4j suite still depend on a local container and never run in CI, so that class of defect has less protection there than the unit suites do
   - RISK-004: revision-unsafe caches or uncapped historical outcome evidence could contaminate ablation treatments and create self-reinforcing search bias
@@ -228,6 +243,14 @@ chg_005_files_changed:
     - modules/adapters/{build.gradle.kts,src/main/java/**/mcp/EvolveMcpRequest.java,src/main/java/**/mcp/EvolveMcpServer.java}
     - modules/cli/{build.gradle.kts,src/main/java/**/cli/{BenchmarkCommand,IndexCommand,ReinflateCommand,RetrieveCommand,EvolveCommand,McpCommand,MutationLoopCli,ConsoleReporter}.java,src/acceptanceTest/**}
   note: the exact 138-path list is reproducible with `git status --porcelain=v1 -uall`; the older cumulative `files_changed` list below remains historical handoff context
+
+readme_evidence_pass_files_changed:
+  - README.md
+  - HANDOFF.toon
+  - docs/wiki/architecture.md
+  - docs/wiki/operations.md
+  - docs/wiki/testing.md
+  note: documentation only; no production source, scoring weight, threshold or module boundary was touched. README went 4498 -> 3383 words (24.8% fewer); the three wiki pages absorbed the reference material rather than losing it
 
 files_changed:
   - .github/workflows/ci.yml
@@ -294,6 +317,13 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-04 README evidence pass, documented quick start `saaa saaa-evolve fixtures/toy-workflow --behaviour-case workflow-check --max-lines 80`: PROMOTE, exit 0; output and journal entry in the README are verbatim from this run
+  - 2026-08-04 README evidence pass, DISCARD path with a canned proposal that keeps `draft-check: skip`: FAILED check, score 0.00, DISCARD, exit 0; confirms a discarded candidate is a successful run
+  - 2026-08-04 README evidence pass, repeat fixture run without clearing `experiments/ledger/`: verdict printed then `IllegalStateException` from `GitExperimentEnvelopeStore.append`, exit 1; recorded as a risk, not fixed
+  - 2026-08-04 README evidence pass, container path: `docker compose up -d --wait neo4j`, `saaa-index build --role SUBJECT_AND_PROCESS` (478 nodes, 1535 relationships), `saaa-retrieve --mode GRAPH --exact ARCH-001` (8 capsules, ~532 tokens), `docker compose down`: pass
+  - 2026-08-04 README evidence pass, `project test` / `lint` / `component-test` / `integration-test` / `graphrag-integration-test`: all pass
+  - 2026-08-04 README evidence pass, `project check`, `project check-readme`, `project check-wiki`: OK; `project ready`: READY: PASS, 16 passed, 1 not applicable, 0 failed
+  - 2026-08-04 README evidence pass, link verification across README and the three edited wiki pages: every GitHub anchor and relative path resolves, no duplicate anchors
   - 2026-08-04 GitHub Actions run 30885307176 (`fast`, PR #18): FAIL in 51s; `:adapters:test` reported 40 tests, 2 failed, both in the repository indexer unit tests. This contradicted the recorded local pass and was the first clean-checkout execution of that suite
   - 2026-08-04 `nix develop --command gradle :adapters:test --rerun-tasks`: pass locally both before and after the fix, confirming the failure was environment-dependent rather than a stale cache
   - 2026-08-04 fresh `git clone` of the pushed branch, full `:adapters:test`: pass; ruled out repository content and on-disk `.saaa` state as the trigger
@@ -466,6 +496,7 @@ fitness_functions:
   - added: behaviour-case child processes run with an explicit allow-listed environment; covered by adapter integration and CLI acceptance tests
   - added: promotion is branch-pointer-only at the `CandidateDecisionSink` port via `CandidateBranchRef`, with unit coverage for the type shape and a deterministic source scan for merge commands
   - added: `check-architecture-boundaries` rejects candidate auto-merge command references in deterministic, adapter and CLI main sources, so the invariant runs in PR CI
+  - unchanged by the README evidence pass: no gate, weight, threshold or scoring path was modified. The pass documented the existing fitness function precisely and recorded its weaknesses as risks and next actions rather than changing behaviour
 
 knowledge:
   consulted:
@@ -497,6 +528,13 @@ knowledge:
   no_record: |
     `T2/T2b` implement tasks already recorded in `CHG-004`; the durable record is the task status,
     the new adapter tests and this handoff rather than a new knowledge entry.
+
+    The README evidence pass created no new knowledge entry. It is documentation-only and changed
+    no behaviour or boundary, so there is no spec delta to record. The three implementation
+    concerns it surfaced (check-script-as-mutation-target, the inert weighted objectives, the
+    `reliability` substring test) are recorded under `risks` and `next` above. Promote them to
+    `RISK-` entries when someone picks up the fix, because that is the point at which they acquire
+    an owner and a revisit condition.
 
 team_fallback:
   current: single_lead_with_pr_review_gate
