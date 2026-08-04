@@ -1,12 +1,12 @@
 session:
-  updated: 2026-08-04
-  status: readme_evidence_pass_documentation_only
-  branch: docs/readme-evidence-pass
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture
-  head: branch from `main` at aae4b4f
-  head_note: documentation-only change. No production code, scoring weights, thresholds or module boundaries were modified. Implementation concerns found during the audit are recorded as risks, not fixed.
+  updated: 2026-08-05
+  status: fitness_taxonomy_step_1
+  branch: docs/fitness-taxonomy-step-1
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/docs-fitness-taxonomy-step-1
+  head: branch from `main` at 34d1c5f
+  head_note: documentation-only change. No production code, scoring weights, thresholds or module boundaries were modified. Implements step 1 of the fitness taxonomy design note already on `main`.
   dirty: false
-  pushed: true
+  pushed: false
 
 goal:
   current: measure whether bounded local hybrid GraphRAG actually improves deterministic fitness per token, now that the implementation is merged
@@ -130,6 +130,9 @@ completed:
   - split duplicated reference material into the wiki pages that already own those topics: port wiring/module table/extension points to `docs/wiki/architecture.md`, per-suite coverage to `docs/wiki/testing.md`, Neo4j topology, retrieval/memory variables, evolve gotchas and `saaa-ablate` to `docs/wiki/operations.md`
   - fixed drift in `docs/wiki/testing.md`, which claimed "Benchmarks use JMH and feed `EvaluationEvidence`"; they do not on any runnable path, which is the same overstatement removed from the README
   - follow-up committed directly to `main` with explicit user authorisation: the first pass cut the genetic-programming rationale too hard and left `Background` at position 13 of 20, behind the configuration tables, with the word "experiment" gone from the opening entirely. Restored as `## Why this shape` positioned between the fitness audit and the agent-plus-CI comparison, carrying the 1990s GP loop, the argument for a population (asking twice gives two answers with no shared axis, so ideas in rejected attempts do not survive), and the reason recombination is sequenced behind single-candidate evaluation rather than beside it (recombining unreliable evidence produces unreliable children). README 3383 -> 3512 words, 21.9% below the 4498 baseline
+  - implemented step 1 of the fitness taxonomy design: `check-glossary` enforcing seven load-bearing terms, glossary entries separating candidate fitness from architecture fitness and benchmark from corpus, and `CON-002` recording the `subject`/`process` plus `invariant`/`objective` naming scheme and the integrity/safety/correctness/shape severity classes
+  - deliberately did not rename `hard_gate_*` identifiers: the rename changes MCP output ordering asserted by `EvolveMcpToolTest` and invalidates identifiers already persisted in `.saaa/experiments.sqlite` and committed `experiments/ledger/*.toon` envelopes, so it needs its own change with a migration story
+  - task review caught two defects in the CON-002 entry: a stray code fence copied from the task brief's own formatting, and a claim that Gradle makes any layer violation a compile error. The second was corrected after human ruling: the module direction is Gradle-enforced, but package-level provider confinement is enforced by `check-architecture-boundaries` under `project lint`, because merging the adapter modules put langchain4j, sqlite and flyway on one compile classpath
 
 in_progress: []
 
@@ -220,6 +223,7 @@ risks:
   - the CLI pre-flight inspects the working tree while checks run against `HEAD`, so an uncommitted or mode-mismatched script passes pre-flight and then fails to start inside the candidate; tracked as `CHG-003` task `T12`
   - check scripts run in a worktree created from `HEAD`, so a new check script must be committed before it can gate a run
   - the behaviour case convention is POSIX-shaped, so `evolve` is effectively Linux and macOS only; on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`
+  - the glossary's alphabetical ordering has one known break introduced by this change: `## Objective` sits before `## Northbound Interface`. `check-glossary` verifies presence, not ordering, so nothing catches it
 
 chg_005_files_changed:
   tracked_modified: 36
@@ -252,6 +256,15 @@ readme_evidence_pass_files_changed:
   - docs/wiki/operations.md
   - docs/wiki/testing.md
   note: documentation only; no production source, scoring weight, threshold or module boundary was touched. README went 4498 -> 3383 words (24.8% fewer); the three wiki pages absorbed the reference material rather than losing it
+
+fitness_taxonomy_step_1_files_changed:
+  - .agentic-template/bin/check-glossary
+  - .agentic-template/bin/project
+  - .agents/knowledge/contracts/CON-002-fitness-naming-and-severity.md
+  - docs/superpowers/plans/2026-08-04-fitness-taxonomy-step-1.md
+  - docs/wiki/glossary.md
+  - HANDOFF.toon
+  note: documentation only; no Java source was touched and no `hard_gate_*` identifier was renamed. `check-glossary` is a new standalone script wired into `project check` and its own `project` subcommand; `check-glossary` and CON-002 are the only new load-bearing artifacts, and the glossary/CON-002 fixes both landed as a follow-up commit on this branch rather than a rewrite
 
 files_changed:
   - .github/workflows/ci.yml
@@ -485,6 +498,10 @@ tests_run:
   - 2026-07-31 after `T10`: 78 tests, 0 failures, 0 errors across unit, component, acceptance and integration suites with `--rerun-tasks`
   - 2026-07-31 `.agentic-template/bin/project check-changes`: CHANGES OK
   - 2026-07-31 `.agentic-template/bin/project lint`: ARCHITECTURE BOUNDARIES OK
+  - 2026-08-05 `.agentic-template/bin/check-glossary`: GLOSSARY OK
+  - 2026-08-05 `.agentic-template/bin/project check`: pass including the new glossary check; repo contract, profile, handoff, knowledge, changes, architecture boundaries, tooling and MCP checks all OK
+  - 2026-08-05 `.agentic-template/bin/project ready`: READY: PASS, 16 passed, 1 not applicable, 0 failed
+  - 2026-08-05 `git diff --check`: pass, no output
 
 fitness_functions:
   - changed: PR `pull_request` CI runs the fast conformance profile (`project check`, `project check-readme`, `project test`, `project component-test`, `project integration-test`, `project lint`) and no longer runs `project ready`; automatic `push` to `main`, `v*` tags and manual `profile=full` dispatch run both fast checks and full readiness
@@ -526,6 +543,7 @@ knowledge:
     - PROJECT_PROFILE.toon (added `three_layer_vision_with_vertical_slices` under `decisions`, status `proposed`)
     - pending separate docs/quality branch: Java static-analysis policy follow-up for Checkstyle/SpotBugs/Error Prone-style gates
     - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
+    - .agents/knowledge/contracts/CON-002-fitness-naming-and-severity.md
   no_record: |
     `T2/T2b` implement tasks already recorded in `CHG-004`; the durable record is the task status,
     the new adapter tests and this handoff rather than a new knowledge entry.
