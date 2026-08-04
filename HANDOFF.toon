@@ -1,16 +1,16 @@
 session:
-  updated: 2026-08-02
-  status: chg_005_bounded_implementation_validated_ablation_unmeasured
-  branch: feat/chg-005-hybrid-graphrag
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-005-hybrid-graphrag
-  head: branch from origin/main at c40cb88 after PR #17 merged
-  head_note: active checkout was clean; CHG-005 work is isolated in its own worktree and has not been pushed
-  dirty: true
-  pushed: false
+  updated: 2026-08-04
+  status: chg_005_merged_ablation_still_unmeasured
+  branch: chore/refresh-chg-005-handoff
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/chore-refresh-chg-005-handoff
+  head: branch from `main` at ace9950 after PR #18 merged CHG-005
+  head_note: CHG-005 is on `main`; its worktree and local/remote branch were removed after the merge. This branch only refreshes bookkeeping.
+  dirty: false
+  pushed: true
 
 goal:
-  current: implement and measure bounded local hybrid GraphRAG plus evolutionary memory without weakening deterministic fitness authority
-  phase: chg_005_ready_for_pr_review
+  current: measure whether bounded local hybrid GraphRAG actually improves deterministic fitness per token, now that the implementation is merged
+  phase: chg_005_merged_awaiting_first_measured_ablation
 
 completed:
   - ran repository startup, read the canonical context in prescribed order, searched relevant knowledge, inspected CHG-001 through CHG-004 and the live mutation/proposer/worktree/SQLite/scoring/reporting path
@@ -38,6 +38,12 @@ completed:
   - made configured retrieval fail closed unless query, active working tree and Neo4j projection revisions match exactly; the live Nix operator test proved an historic HEAD projection cannot be mistaken for the dirty active checkout and reports `saaa-index update` as the remedy
   - pinned official Community LTS `neo4j:5.26.28-community-ubi10` by multi-architecture digest, disabled HTTP/HTTPS, limited authenticated Bolt to loopback and recorded residual vendor Java findings in RISK-005; the named volume is retained while the container is stopped
   - constrained transitive Jackson 3 databind to 3.1.5 after the installed-distribution scan found GHSA-5gvw-p9qm-jgwh in 3.1.4; the repeat Grype scan reports no vulnerabilities
+  - split the single 138-path CHG-005 commit into 18 reviewable commits by concern (decision records, environment/pins, domain vocabulary, deterministic retrieval, memory, ablation, adapters, CLI, docs); the resulting tree hash was byte-identical to the unsplit commit, so reviewability changed and content did not
+  - fixed a test-isolation defect that clean-checkout CI caught and the local run did not: `RepositoryEvidenceIndexerTest` and `RepositoryEmbeddingIndexerTest` called the two-argument `build`, which resolves identity through `GitRepositoryRevision` by walking up for a `.git`; locally Gradle puts the test temp directory under `build/tmp/test` inside the checkout so identity resolved and the tests passed, while a clean runner found nothing and threw
+  - made repository identity an arranged test input rather than ambient state, adding the explicit-identity `build` overload to `RepositoryEmbeddingIndexer` that `RepositoryEvidenceIndexer` already had; verified by absence, since the `JGit could not read repository identity` fallback warning no longer appears anywhere in unit-test output
+  - replaced the `git@github.com:...` string in the Git identity fixture with an RFC 2606 `.invalid` host; nothing ever contacted it because `repositoryId` only parses configured text, but a real-looking host made the fixture read as though it depended on an upstream repository
+  - PR #18 merged 2026-08-04 as `ace9950` after human review; post-merge `main` CI ran both `fast` and `full-readiness` green, which is the first time `full-readiness` executed against this code
+  - removed the merged CHG-005 worktree and deleted its local and remote branch after confirming a clean tree and a fully merged, pushed state
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
   - read `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md`, `.agents/knowledge/index.md` and the `CHG-003` change and design
   - confirmed PR #1 merged on 2026-07-30, so `CHG-003` was already on `main` at 10ce37f when this session started
@@ -121,8 +127,6 @@ in_progress: []
 next:
   - run a fixed, reviewed mutation corpus with a real proposer/embedding provider across NONE, VECTOR, GRAPH and HYBRID; no GraphRAG benefit has been measured yet
   - use the first measured ablation to decide whether Neo4j relationship traversal contributes enough distinct evidence to retain ADR-0004's experiment
-  - open the bounded CHG-005 branch as a PR after final review; do not merge automatically
-  - push PR #17 review fixes, wait for GitHub fast CI, then request Claude or human re-review
   - close CHG-004 with `T11/T12`: README/wiki/profile/handoff updates for the openai-compatible profile, MCP surface, classical guards, Layer-3 constraints and Q-001 answer
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
@@ -172,6 +176,8 @@ decisions:
 blocking_questions: []
 
 risks:
+  - a Gradle run reporting `up-to-date` executes nothing, so it is not evidence; a recorded pass from a prior session was carried forward as green when the tests had not run, and clean-checkout CI then failed. Treat unit-test evidence as valid only from a run that actually executed, and prefer `--rerun-tasks` or a clean checkout before claiming a suite passes
+  - unit tests that reach ambient environment state can pass locally and fail on clean runners; `graphrag-integration-test` and the Neo4j suite still depend on a local container and never run in CI, so that class of defect has less protection there than the unit suites do
   - RISK-004: revision-unsafe caches or uncapped historical outcome evidence could contaminate ablation treatments and create self-reinforcing search bias
   - RISK-005: current official Neo4j Community images retain vendor Java dependency findings even though the selected UBI image has no high/critical OS-package findings; keep Bolt loopback-only and upgrade/retest when the vendor ships fixes
   - `lineage-novelty-v1` is a plausible policy, not a proven one; its slot mix may discard useful historical niches, so envelopes remain durable and policy IDs/overrides must be included in ablation
@@ -288,6 +294,15 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-04 GitHub Actions run 30885307176 (`fast`, PR #18): FAIL in 51s; `:adapters:test` reported 40 tests, 2 failed, both in the repository indexer unit tests. This contradicted the recorded local pass and was the first clean-checkout execution of that suite
+  - 2026-08-04 `nix develop --command gradle :adapters:test --rerun-tasks`: pass locally both before and after the fix, confirming the failure was environment-dependent rather than a stale cache
+  - 2026-08-04 fresh `git clone` of the pushed branch, full `:adapters:test`: pass; ruled out repository content and on-disk `.saaa` state as the trigger
+  - 2026-08-04 negative check after the fix: `warning: JGit could not read repository identity` appears in no unit-test result XML, so no unit test reaches ambient Git; the same warning was present for both failing classes beforehand
+  - 2026-08-04 `.agentic-template/bin/project test`, `component-test`, `integration-test`, `lint`: all exit 0 locally with no containers running, so integration coverage tolerates an absent Neo4j
+  - 2026-08-04 `.agentic-template/bin/project check`: pass; architecture boundaries OK
+  - 2026-08-04 GitHub Actions run 30885958057 (`fast`, PR #18): pass in 1m22s after the test-isolation fix
+  - 2026-08-04 GitHub Actions run 30886135755 (`fast`, PR #18): pass in 1m7s after the fixture URL change
+  - 2026-08-04 GitHub Actions run 30887690785 (`main`, post-merge): `fast` and `full-readiness` both success; first execution of `full-readiness` against CHG-005
   - 2026-08-02 `.agentic-template/bin/project test`: pass after final stale-revision and Jackson security fixes; all domain, deterministic, adapter and CLI unit tests green
   - 2026-08-02 `.agentic-template/bin/project component-test`: pass; HYBRID acceptance proves semantic plus structurally connected evidence reaches the proposer within budget and NONE remains graph-free
   - 2026-08-02 `.agentic-template/bin/project integration-test`: pass; real Git/JGit, SQLite, command, envelope/wiki and JMH adapter semantics green
@@ -486,7 +501,8 @@ knowledge:
 team_fallback:
   current: single_lead_with_pr_review_gate
   reason: the active collaboration contract prohibited spawning subagents for CHG-005, so the lead performed explicit architecture/security/efficiency self-review and preserved human review as the required PR merge gate; no merge or push was attempted
-  chg_005_lost_challenge: no independent actor reviewed this large slice before handoff; compensating evidence is outside-in acceptance coverage, real Git/SQLite/Neo4j integration, Nix operator exercises, dependency/image scanning and an explicit 14-question lead challenge, but a human or independent PR reviewer is still required
+  chg_005_lost_challenge: no independent actor reviewed this large slice before handoff; compensating evidence is outside-in acceptance coverage, real Git/SQLite/Neo4j integration, Nix operator exercises, dependency/image scanning and an explicit 14-question lead challenge
+  chg_005_outcome: PR #18 merged 2026-08-04 as `ace9950` after human review; the merge gate was human review plus clean-checkout CI. Clean-checkout CI, not review, is what caught the test-isolation defect, which is evidence that the missing independent-actor challenge was a real gap rather than a formality
   chg_003_outcome: PR #1 "Run one mutation evaluation end to end (CHG-003)" merged 2026-07-30; two independent actor reviews during its development, the second of which found a surviving promotion-integrity hole and returned do-not-merge before the `T11` fix
   t10_outcome: PR #2 "Hard-gate a candidate whose realization changed nothing (CHG-003 T10)" merged 2026-07-31 as `36d01f8` after human review; the code change had lead self-review only, no independent actor review, but was covered test-first and the failing acceptance test was observed reporting PROMOTE before the gate existed
   readme_rework_outcome: pushed directly to `main` as `d1b9a71` under explicit user authorization, no PR; lead self-review only, no actor or human review pass, no code changes
