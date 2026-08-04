@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Callable;
+import com.dreamthought.saaa.domain.RetrievalMode;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
@@ -13,7 +14,7 @@ import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Spec;
 
 @Command(
-        name = "evolve",
+        name = "saaa-evolve",
         description = "Run one mutation evaluation against a target folder."
 )
 public final class EvolveCommand implements Callable<Integer> {
@@ -35,6 +36,14 @@ public final class EvolveCommand implements Callable<Integer> {
             description = "Change budget that parsimony is scored against.")
     private int maxLines;
 
+    @Option(names = "--retrieval", defaultValue = "NONE",
+            description = "Retrieval treatment: ${COMPLETION-CANDIDATES}.")
+    private RetrievalMode retrievalMode;
+
+    @Option(names = "--task", defaultValue = "Improve the target while preserving all declared behaviour cases",
+            description = "Mutation goal used to retrieve evidence before proposal.")
+    private String task;
+
     @Spec
     private CommandSpec spec;
 
@@ -42,7 +51,8 @@ public final class EvolveCommand implements Callable<Integer> {
     public Integer call() {
         PrintWriter out = spec.commandLine().getOut();
         var result = new EvolveRunner().run(
-                new EvolveRunRequest(targetFolder, profile, workflowFile, behaviourCases, maxLines),
+                new EvolveRunRequest(
+                        targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task),
                 new ConsoleReporter(out));
         out.printf("  journal    %s%n", result.journalPath());
         out.flush();

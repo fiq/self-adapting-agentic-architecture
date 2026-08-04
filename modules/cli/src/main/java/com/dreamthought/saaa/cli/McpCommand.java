@@ -5,7 +5,7 @@ import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
 
 @Command(
-        name = "mcp",
+        name = "saaa-mcp",
         description = "Start the SAAA MCP server over stdio."
 )
 public final class McpCommand implements Callable<Integer> {

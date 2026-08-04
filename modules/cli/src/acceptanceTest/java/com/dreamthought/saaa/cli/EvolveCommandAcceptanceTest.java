@@ -38,7 +38,7 @@ final class EvolveCommandAcceptanceTest {
         initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--profile", "fixture",
                 "--behaviour-case", "workflow-check",
                 "--max-lines", "80");
@@ -66,7 +66,7 @@ final class EvolveCommandAcceptanceTest {
         initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--behaviour-case", "workflow-check",
                 "--behaviour-case", "second-check");
 
@@ -100,7 +100,7 @@ final class EvolveCommandAcceptanceTest {
         initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--behaviour-case", "workflow-check",
                 "--behaviour-case", "second-check");
 
@@ -129,7 +129,7 @@ final class EvolveCommandAcceptanceTest {
         initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", repo.toString(),
+                "saaa-evolve", repo.toString(),
                 "--behaviour-case", "workflow-check");
 
         assertThat(exitCode).isZero();
@@ -158,7 +158,7 @@ final class EvolveCommandAcceptanceTest {
         initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--behaviour-case", "workflow-check");
 
         assertThat(exitCode).isNotZero();
@@ -187,7 +187,7 @@ final class EvolveCommandAcceptanceTest {
         initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--behaviour-case", "workflow-check");
 
         assertThat(exitCode).isZero();
@@ -208,7 +208,7 @@ final class EvolveCommandAcceptanceTest {
         initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--behaviour-case", "workflow-check",
                 "--behaviour-case", "absent-check");
 
@@ -239,7 +239,7 @@ final class EvolveCommandAcceptanceTest {
         initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--profile", "fixture",
                 "--behaviour-case", "workflow-check",
                 "--max-lines", "1");
@@ -267,7 +267,7 @@ final class EvolveCommandAcceptanceTest {
             initRepo(repo);
 
             int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                    "evolve", target.toString(),
+                    "saaa-evolve", target.toString(),
                     "--profile", "openai-compatible",
                     "--behaviour-case", "workflow-check",
                     "--max-lines", "8");
@@ -308,7 +308,7 @@ final class EvolveCommandAcceptanceTest {
 
         int exitCode = runCliWithEnvironment(
                 Map.of("SAAA_MODEL_API_KEY", "sk-parent-process-secret"),
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--behaviour-case", "credential-check");
 
         assertThat(exitCode).isZero();
@@ -319,7 +319,7 @@ final class EvolveCommandAcceptanceTest {
 
     @Test
     void hasNoFlagThatTurnsAnyScoreIntoAMerge() {
-        var evolve = new CommandLine(new MutationLoopCli()).getCommandSpec().subcommands().get("evolve");
+        var evolve = new CommandLine(new MutationLoopCli()).getCommandSpec().subcommands().get("saaa-evolve");
 
         assertThat(evolve.getCommandSpec().options())
                 .extracting(option -> String.join(",", option.names()))
@@ -342,7 +342,7 @@ final class EvolveCommandAcceptanceTest {
         String mainBefore = gitOutput(repo, "rev-parse", "main").strip();
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--behaviour-case", "workflow-check");
 
         assertThat(exitCode).isZero();
@@ -384,7 +384,7 @@ final class EvolveCommandAcceptanceTest {
         initRepo(repo);
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
-                "evolve", target.toString(),
+                "saaa-evolve", target.toString(),
                 "--workflow-file", "AuthorityLanguage.java",
                 "--behaviour-case", "authority-language-check",
                 "--max-lines", "20");
