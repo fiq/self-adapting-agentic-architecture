@@ -65,10 +65,13 @@ reported that the measurement cannot be trusted. Such runs stay out of the
 evolutionary archive and never become exemplars, whereas a measured failure is a
 useful near miss and belongs there.
 
-`process.invariant.layer_boundaries` is correctness rather than shape, because
-Gradle already makes a layer violation a compile error.
+`process.invariant.layer_boundaries` is correctness rather than shape. The
+module direction is Gradle-enforced and a violation genuinely fails
+compilation; the package-level provider confinement is enforced by
+`check-architecture-boundaries` under `project lint` rather than by the
+compiler, because merging the adapter modules put the providers on one
+classpath.
 
 Comparison is lexicographic: worst class violated decides first, magnitude
 within the class breaks ties. Magnitudes are never summed across classes, so no
 exchange rate between incommensurable violations is ever needed.
-```
