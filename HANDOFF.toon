@@ -129,6 +129,7 @@ completed:
   - documented the fitness audit finding that four of five weighted objectives are pinned at 1.0 for any candidate clearing the gates, so the weighted sum floors at 0.90 and the 0.80 threshold cannot reject an eligible candidate through `PhenotypeBridgeScorer`
   - split duplicated reference material into the wiki pages that already own those topics: port wiring/module table/extension points to `docs/wiki/architecture.md`, per-suite coverage to `docs/wiki/testing.md`, Neo4j topology, retrieval/memory variables, evolve gotchas and `saaa-ablate` to `docs/wiki/operations.md`
   - fixed drift in `docs/wiki/testing.md`, which claimed "Benchmarks use JMH and feed `EvaluationEvidence`"; they do not on any runnable path, which is the same overstatement removed from the README
+  - follow-up committed directly to `main` with explicit user authorisation: the first pass cut the genetic-programming rationale too hard and left `Background` at position 13 of 20, behind the configuration tables, with the word "experiment" gone from the opening entirely. Restored as `## Why this shape` positioned between the fitness audit and the agent-plus-CI comparison, carrying the 1990s GP loop, the argument for a population (asking twice gives two answers with no shared axis, so ideas in rejected attempts do not survive), and the reason recombination is sequenced behind single-candidate evaluation rather than beside it (recombining unreliable evidence produces unreliable children). README 3383 -> 3512 words, 21.9% below the 4498 baseline
 
 in_progress: []
 

@@ -16,9 +16,11 @@ Fixed in code: validation, the hard gates, the weighted objectives, the 0.80
 promotion threshold and the promote-or-discard rule. A model may propose or
 repair a candidate, but it must never approve its own result.
 
-The loop runs end to end for one candidate per run. The default proposer is a
-canned file, so a stock run proves the pipe rather than that a model has good
-ideas, and no benchmark evidence reaches the score.
+This is an experiment, and an early one. The loop runs end to end for one
+candidate per run. The default proposer is a canned file, so a stock run proves
+the pipe rather than that a model has good ideas, and no benchmark evidence
+reaches the score. [Why this shape](#why-this-shape) covers the
+genetic-programming lineage it is borrowing from and what the borrowing is for.
 
 ```sh
 git clone https://github.com/fiq/self-adapting-agentic-architecture
@@ -269,6 +271,37 @@ Ranking several candidates on identical evidence, selecting between them and
 recombining ideas from evaluated parents are not implemented, and the current
 score should not be read as if they were.
 
+## Why this shape
+
+In the 1990s genetic programming was already running this loop: produce many
+candidates, score each against a fitness function, keep what scores well,
+recombine ideas from the survivors, repeat. It needed a strong fitness function,
+cheap evaluation and willingness to throw candidates away. None of the three is
+free. The first is the one this repository is about.
+
+Agentic systems have plenty of deterministic scaffolding: tool calls, MCP
+servers, skills, static analysis, tests, CI. The step that decides is not part
+of it. Scaffolding produces inputs, a model produces the verdict, and encoded
+constraints then drift towards whatever is cheap to express while everything
+harder goes back into reasoning or into model-graded checks. Ask twice and you
+get two answers with no shared axis to compare them on, so a good idea inside a
+rejected attempt rarely survives into the next one.
+
+That last part is the argument for a population, and also why recombination sits
+behind single-candidate evaluation rather than beside it. Recombining unreliable
+evidence produces unreliable children.
+
+So SAAA moves the deciding step into fixed code, and the work becomes growing a
+fitness function that can carry it. The
+[audit above](#why-four-of-those-five-decide-nothing) is how far that has
+actually got: one measured objective out of five.
+
+The second input is
+[Comprehension at AI Speed](https://www.infoq.com/articles/ai-speed-context-store-architecture/)
+(InfoQ, 2026-07-14): the bottleneck is durable context living in the repository
+rather than a chat window. Hence evidence, decisions and journal as versioned
+files beside the code being evolved.
+
 ## Compared with an agent plus CI
 
 For one change against a repository with strong tests and CI, a capable coding
@@ -418,27 +451,6 @@ applicable until a remote execution or deployment target is chosen.
 
 Each is recorded as deferred in `PROJECT_PROFILE.toon` with revisit conditions.
 
-## Background
-
-The shape predates the current agent tooling. Genetic programming produced many
-candidates, scored each against a fitness function, kept what scored well,
-recombined ideas from survivors and repeated. What made it work was a strong
-fitness function, cheap evaluation and willingness to throw candidates away.
-
-Agentic systems already have deterministic scaffolding: tool calls, MCP servers,
-skills, static analysis, tests, CI. What is usually not deterministic is the
-step that decides. The scaffolding produces inputs and a model produces the
-verdict, so encoded constraints drift towards what is cheap to express and the
-rest goes back into reasoning or model-graded checks. SAAA is a bet that the
-decision belongs in fixed code, and that the real work is then growing a fitness
-function that can carry it.
-
-The second input is
-[Comprehension at AI Speed](https://www.infoq.com/articles/ai-speed-context-store-architecture/)
-(InfoQ, 2026-07-14): the bottleneck is durable context living in the repository
-rather than a chat window. Hence evidence, decisions and journal as versioned
-files beside the code being evolved.
-
 ## Roadmap
 
 Three layers, detailed in
@@ -450,8 +462,10 @@ the same loop on product code gated by existing tests and benchmarks
 replacement and no benchmark gating exists).
 
 Population and conceptual crossover stay foundation slices that upgrade all
-three at once. Both are blocked on the same thing: objectives that actually vary
-between passing candidates.
+three at once. Both are blocked on the same thing, and it is the thing described
+in [Why this shape](#why-this-shape): objectives that actually vary between
+passing candidates. Ranking candidates on a score that cannot separate them
+would be theatre.
 
 ## Agent startup
 
