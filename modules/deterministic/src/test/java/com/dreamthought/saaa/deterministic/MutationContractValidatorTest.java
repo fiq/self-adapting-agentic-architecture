@@ -35,7 +35,7 @@ final class MutationContractValidatorTest {
                 List.of("method_body"),
                 new MutationBounds(6, 240, true, false, false),
                 List.of("unit_tests_pass"),
-                List.of("deterministic_checks_pass"),
+                List.of("subject.invariant.deterministic_checks_pass"),
                 defaultObjectives(),
                 Optional.empty(),
                 List.of()
@@ -49,7 +49,7 @@ final class MutationContractValidatorTest {
                 "publicApiChange is not allowed for targeted-behavior-change",
                 "required evidence is missing: property_tests_pass",
                 "required evidence is missing: benchmark_not_worse_than_baseline",
-                "hard gate is missing: required_evidence_present"
+                "hard gate is missing: subject.invariant.required_evidence_present"
         );
     }
 
@@ -67,10 +67,10 @@ final class MutationContractValidatorTest {
                 List.of("method_body"),
                 new MutationBounds(2, 80, false, false, false),
                 List.of("unit_tests_pass", "property_tests_pass", "benchmark_not_worse_than_baseline"),
-                List.of("deterministic_checks_pass", "required_evidence_present"),
+                List.of("subject.invariant.deterministic_checks_pass", "subject.invariant.required_evidence_present"),
                 List.of(
-                        new FitnessObjective("task_success", 0.90),
-                        new FitnessObjective("reliability", 0.10)
+                        new FitnessObjective("subject.objective.task_success", 0.90),
+                        new FitnessObjective("subject.objective.reliability", 0.10)
                 ),
                 Optional.empty(),
                 List.of()
@@ -96,7 +96,7 @@ final class MutationContractValidatorTest {
                 List.of("method_body", "adjacent_unit_tests"),
                 new MutationBounds(2, 80, false, false, false),
                 List.of("unit_tests_pass", "property_tests_pass", "benchmark_not_worse_than_baseline"),
-                List.of("deterministic_checks_pass", "required_evidence_present"),
+                List.of("subject.invariant.deterministic_checks_pass", "subject.invariant.required_evidence_present"),
                 defaultObjectives(),
                 Optional.empty(),
                 List.of()
@@ -105,11 +105,11 @@ final class MutationContractValidatorTest {
 
     private static List<FitnessObjective> defaultObjectives() {
         return List.of(
-                new FitnessObjective("task_success", 0.40),
-                new FitnessObjective("reliability", 0.20),
-                new FitnessObjective("cost_latency_budget", 0.20),
-                new FitnessObjective("behavioral_safety", 0.10),
-                new FitnessObjective("parsimony", 0.10)
+                new FitnessObjective("subject.objective.task_success", 0.40),
+                new FitnessObjective("subject.objective.reliability", 0.20),
+                new FitnessObjective("subject.objective.cost_latency_budget", 0.20),
+                new FitnessObjective("subject.objective.behavioral_safety", 0.10),
+                new FitnessObjective("subject.objective.parsimony", 0.10)
         );
     }
 }

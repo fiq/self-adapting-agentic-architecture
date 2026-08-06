@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.deterministic;
 
 import com.dreamthought.saaa.domain.FitnessObjective;
+import com.dreamthought.saaa.domain.FitnessSignalId;
 import com.dreamthought.saaa.domain.MutationBounds;
 import com.dreamthought.saaa.domain.MutationOperatorType;
 import java.util.List;
@@ -13,15 +14,16 @@ import java.util.Objects;
  * operators differ only in how much change they may realize and what evidence they must produce.
  */
 public final class MutationOperatorPolicy {
-    public static final List<String> DEFAULT_HARD_GATES =
-            List.of("deterministic_checks_pass", "required_evidence_present");
+    public static final List<String> DEFAULT_HARD_GATES = List.of(
+            FitnessSignalId.invariant("deterministic_checks_pass").canonical(),
+            FitnessSignalId.invariant("required_evidence_present").canonical());
 
     public static final List<FitnessObjective> DEFAULT_OBJECTIVES = List.of(
-            new FitnessObjective("task_success", 0.40),
-            new FitnessObjective("reliability", 0.20),
-            new FitnessObjective("cost_latency_budget", 0.20),
-            new FitnessObjective("behavioral_safety", 0.10),
-            new FitnessObjective("parsimony", 0.10)
+            new FitnessObjective(FitnessSignalId.objective("task_success").canonical(), 0.40),
+            new FitnessObjective(FitnessSignalId.objective("reliability").canonical(), 0.20),
+            new FitnessObjective(FitnessSignalId.objective("cost_latency_budget").canonical(), 0.20),
+            new FitnessObjective(FitnessSignalId.objective("behavioral_safety").canonical(), 0.10),
+            new FitnessObjective(FitnessSignalId.objective("parsimony").canonical(), 0.10)
     );
 
     private static final Map<MutationOperatorType, MutationOperatorDefaults> DEFAULTS = Map.of(

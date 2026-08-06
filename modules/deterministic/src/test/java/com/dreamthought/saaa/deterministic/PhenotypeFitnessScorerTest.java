@@ -51,7 +51,7 @@ final class PhenotypeFitnessScorerTest {
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
-        assertThat(result.objectives()).containsEntry("hard_gate_required_behavior_cases", 0.0);
+        assertThat(result.objectives()).containsEntry("subject.invariant.required_behavior_cases", 0.0);
     }
 
     @Test
@@ -63,11 +63,11 @@ final class PhenotypeFitnessScorerTest {
                         BehaviorCaseEvidence.passed("publishes-review", "review transition works")
                 ),
                 Map.of(
-                        "task_success", 0.90,
-                        "reliability", 0.90,
-                        "cost_latency_budget", 0.80,
-                        "behavioral_safety", 1.00,
-                        "parsimony", 0.70
+                        "subject.objective.task_success", 0.90,
+                        "subject.objective.reliability", 0.90,
+                        "subject.objective.cost_latency_budget", 0.80,
+                        "subject.objective.behavioral_safety", 1.00,
+                        "subject.objective.parsimony", 0.70
                 ),
                 realized()
         ));
@@ -88,7 +88,7 @@ final class PhenotypeFitnessScorerTest {
         assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.aggregateScore()).isZero();
         assertThat(result.objectives())
-                .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE, 0.0);
+                .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 0.0);
     }
 
     /**
@@ -109,13 +109,13 @@ final class PhenotypeFitnessScorerTest {
         assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.aggregateScore()).isZero();
         assertThat(result.objectives())
-                .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE, 0.0);
+                .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical(), 0.0);
     }
 
     @Test
     void keepsRecordedGateOutcomesWhenEvidenceSuppliesGateKeys() {
         Map<String, Double> forged = new HashMap<>(perfectObjectiveScores());
-        forged.put(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE, 1.0);
+        forged.put(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 1.0);
 
         var result = scorer.score(candidate(), new PhenotypeEvidence(
                 new EvaluationEvidence(
@@ -130,7 +130,7 @@ final class PhenotypeFitnessScorerTest {
 
         assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.objectives())
-                .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE, 0.0);
+                .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 0.0);
     }
 
     @Test
@@ -139,11 +139,11 @@ final class PhenotypeFitnessScorerTest {
                 evidence(),
                 List.of(BehaviorCaseEvidence.passed("renders-draft", "draft pages render")),
                 Map.of(
-                        "task_success", 1.00,
-                        "reliability", 1.00,
-                        "cost_latency_budget", 0.975,
-                        "behavioral_safety", 0.00,
-                        "parsimony", 0.00
+                        "subject.objective.task_success", 1.00,
+                        "subject.objective.reliability", 1.00,
+                        "subject.objective.cost_latency_budget", 0.975,
+                        "subject.objective.behavioral_safety", 0.00,
+                        "subject.objective.parsimony", 0.00
                 ),
                 realized()
         ));
@@ -172,11 +172,11 @@ final class PhenotypeFitnessScorerTest {
 
     private static Map<String, Double> perfectObjectiveScores() {
         return Map.of(
-                "task_success", 1.0,
-                "reliability", 1.0,
-                "cost_latency_budget", 1.0,
-                "behavioral_safety", 1.0,
-                "parsimony", 1.0
+                "subject.objective.task_success", 1.0,
+                "subject.objective.reliability", 1.0,
+                "subject.objective.cost_latency_budget", 1.0,
+                "subject.objective.behavioral_safety", 1.0,
+                "subject.objective.parsimony", 1.0
         );
     }
 
