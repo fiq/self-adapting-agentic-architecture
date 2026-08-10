@@ -31,15 +31,16 @@ import java.util.Set;
  * <p>Coverage floor met here (see CHG-004 S7):
  * <ul>
  *   <li>one entry per hard gate that can fire through the bridge: {@code checks},
- *       {@code required_behavior_cases}, {@code non_empty_realization} (three of four gates);
- *   <li>the fourth gate, {@code required_objective_scores}, cannot fire through the bridge because
+ *       {@code subject.invariant.required_behavior_cases}, {@code subject.invariant.non_empty_realization}
+ *       (three of four gates);
+ *   <li>the fourth gate, {@code subject.invariant.required_objective_scores}, cannot fire through the bridge because
  *       the bridge always produces all five objective values, so it is covered instead by
  *       {@link PhenotypeFitnessScorerTest} and by property {@code noObjectiveCombinationCanPromoteWhileAGateFails}
  *       in {@link PhenotypeFitnessScorerPropertyTest};
  *   <li>two {@code PROMOTE} entries with different objective profiles;
  *   <li>one entry that scores exactly {@code PROMOTION_THRESHOLD} and promotes;
  *   <li>one entry that scores just below {@code PROMOTION_THRESHOLD} and discards;
- *   <li>one entry that would score high on {@code task_success} alone but is rescued from
+ *   <li>one entry that would score high on {@code subject.objective.task_success} alone but is rescued from
  *       over-promotion by the non-empty-realization gate (the {@code CHG-003 T10} case);
  *   <li>one entry captured from a real CHG-003 fixture acceptance run so the corpus is grounded
  *       in observed evidence rather than only constructed cases.
@@ -64,8 +65,8 @@ final class GoldenCorpus {
     }
 
     /**
-     * Gate: {@code hard_gate_deterministic_checks}. Empty {@code checks} list violates the "absent
-     * evidence is not passing evidence" invariant.
+     * Gate: {@code subject.invariant.deterministic_checks}. Empty {@code checks} list violates the
+     * "absent evidence is not passing evidence" invariant.
      */
     private static Entry gateChecksFires() {
         return new Entry(
@@ -81,8 +82,8 @@ final class GoldenCorpus {
     }
 
     /**
-     * Gate: {@code hard_gate_required_behavior_cases}. A declared case with a FAILED check entry
-     * fails the gate.
+     * Gate: {@code subject.invariant.required_behavior_cases}. A declared case with a FAILED check
+     * entry fails the gate.
      */
     private static Entry gateBehaviourCasesFires() {
         return new Entry(
@@ -101,8 +102,9 @@ final class GoldenCorpus {
     }
 
     /**
-     * Gate: {@code hard_gate_non_empty_realization}. A candidate that changed no file scores
-     * {@code parsimony} 1.0 but must not promote — this is the {@code CHG-003 T10} invariant.
+     * Gate: {@code subject.invariant.non_empty_realization}. A candidate that changed no file scores
+     * {@code subject.objective.parsimony} 1.0 but must not promote — this is the {@code CHG-003 T10}
+     * invariant.
      */
     private static Entry gateNonEmptyRealizationFires() {
         return new Entry(
@@ -167,7 +169,7 @@ final class GoldenCorpus {
      * parsimony at {@code 1 - 80/80 = 0}, giving weighted sum {@code 0.90}. Choose realization to
      * push weighted sum to exactly {@code 0.80}: parsimony must contribute exactly {@code 0.00} to
      * bring the total to {@code 0.90}, so we need weight * parsimony = 0.10 * X = -0.10 which is
-     * impossible for positive X. Solve differently: reduce {@code task_success} instead — with
+     * impossible for positive X. Solve differently: reduce {@code subject.objective.task_success} instead — with
      * {@code task_success = 0.5}, weighted = {@code 0.5*0.4 + 1*0.7 = 0.20 + 0.70 = 0.90}. Still
      * over. To hit exactly 0.80 with defaults elsewhere, use {@code cost_latency_budget = 0.5} via
      * a benchmark budget half of measured, giving {@code 0.40 + 0.20 + 0.10 + 0.10 + 0.10 = 0.90}.

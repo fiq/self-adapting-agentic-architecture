@@ -152,7 +152,7 @@ public final class BenchmarkCommand implements Callable<Integer> {
                 .append("\n      accepted: ").append(value.accepted())
                 .append("\n      fitness: ").append(value.fitness())
                 .append("\n      fitness_delta: ").append(value.fitnessDelta())
-                .append("\n      hard_gate_failures: ").append(value.hardGateFailures())
+                .append("\n      invariant_failures: ").append(value.hardGateFailures())
                 .append("\n      invalid_mutations: ").append(value.invalidMutations())
                 .append("\n      regressions: ").append(value.regressions())
                 .append("\n      files_changed: ").append(value.filesChanged())

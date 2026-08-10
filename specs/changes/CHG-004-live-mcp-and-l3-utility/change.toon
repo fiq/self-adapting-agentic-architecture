@@ -62,7 +62,7 @@ deltas:
         and:
           - the property tests are seeded so failures are reproducible
           - the properties cover the audit-trail invariant: gate outcomes recorded in the result cannot be overwritten by evidence-supplied keys
-          - monotonicity: with every other input held constant, a strictly smaller realization can never score `parsimony` worse than a larger one, and a strictly larger set of passing behaviour cases can never score `task_success` worse
+          - monotonicity: with every other input held constant, a strictly smaller realization can never score `subject.objective.parsimony` worse than a larger one, and a strictly larger set of passing behaviour cases can never score `subject.objective.task_success` worse
           - promotion boundary: a candidate whose raw weighted sum is exactly `PROMOTION_THRESHOLD` promotes, and a candidate whose raw sum is strictly less discards, regardless of how the reported score rounds
           - rounding is display-only: the decision is derived from the raw weighted sum, never from `aggregateScore` after rounding, so a scorer mutation that flips the two would be caught
       - id: S7
@@ -238,7 +238,7 @@ tasks:
   - id: T5
     slice: define the MCP tool response contract as a stable JSON serialisation of `FitnessResult` where gate outcomes are written after measured objective scores so the audit-trail invariant survives serialisation, `aggregateScore` is emitted both as the raw double under `aggregateScore` and as a two-decimal string under `aggregateScoreDisplay`, `journalPath` is an absolute path so an outer agent process with a different cwd can still read it, and per-field string values are individually capped (`checkSummary <= 4000 chars`, error message `<= 8000 chars`) with the total serialised response also capped so a hostile candidate cannot DoS the stdio transport
     status: completed
-    note: `EvolveMcpResponseSerializer` emits stable JSON with candidate, evidence, objectives, aggregate score, display score, decision and absolute journal path; measured objective keys are emitted before `hard_gate_*` keys and each group is sorted by key so `FitnessResult` map-copy randomisation cannot perturb output; check summaries, error messages and total responses are capped before return to the MCP transport, with caps applied to field values rather than by truncating a complete JSON envelope.
+    note: `EvolveMcpResponseSerializer` emits stable JSON with candidate, evidence, objectives, aggregate score, display score, decision and absolute journal path; `subject.objective.*` keys are emitted before `subject.invariant.*` keys and each group is sorted by canonical key so `FitnessResult` map-copy randomisation cannot perturb output. Legacy unscoped and `hard_gate_*` keys are accepted on read and re-emitted canonically; check summaries, error messages and total responses are capped before return to the MCP transport, with caps applied to field values rather than by truncating a complete JSON envelope.
   - id: T6
     slice: enforce that MCP input can never carry a field that overrides a gate outcome, forces a promotion, enables an auto-merge, or transports credentials; the schema is closed (unknown keys are a schema violation) and any candidate input field must resolve to an existing CLI flag with the same meaning
     status: completed

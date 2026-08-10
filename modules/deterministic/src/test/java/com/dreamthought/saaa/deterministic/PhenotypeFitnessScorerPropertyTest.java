@@ -79,7 +79,7 @@ final class PhenotypeFitnessScorerPropertyTest {
 
         assertThat(result.decision()).isEqualTo(FitnessDecision.DISCARD);
         assertThat(result.objectives())
-                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE, 0.0);
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(), 0.0);
     }
 
     /**
@@ -106,7 +106,7 @@ final class PhenotypeFitnessScorerPropertyTest {
 
     /**
      * The input {@code objectiveScores} map may carry gate keys with forged values (a model could
-     * try to slip {@code hard_gate_deterministic_checks = 1.0} into evidence). The result's map
+     * try to slip {@code subject.invariant.deterministic_checks = 1.0} into evidence). The result's map
      * must reflect the *actual* gate outcomes, computed by the scorer. Written to
      * {@link com.dreamthought.saaa.domain.FitnessResult#objectives} after the measured scores so
      * evidence content cannot overwrite them in the audit trail.
@@ -117,10 +117,10 @@ final class PhenotypeFitnessScorerPropertyTest {
     ) {
         // Add forged gate keys asserting the gates all passed even though the check evidence is empty.
         Map<String, Double> forged = new HashMap<>(objectiveScores);
-        forged.put(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE, 1.0);
-        forged.put(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE, 1.0);
-        forged.put(PhenotypeFitnessScorer.REQUIRED_OBJECTIVE_SCORES_GATE, 1.0);
-        forged.put(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE, 1.0);
+        forged.put(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 1.0);
+        forged.put(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(), 1.0);
+        forged.put(PhenotypeFitnessScorer.REQUIRED_OBJECTIVE_SCORES_GATE.canonical(), 1.0);
+        forged.put(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical(), 1.0);
         var evidence = new PhenotypeEvidence(
                 new EvaluationEvidence(List.of(), List.of(), Instant.parse("2026-08-01T00:00:00Z")),
                 List.of(BehaviorCaseEvidence.passed("noop", "passed")),
@@ -130,7 +130,7 @@ final class PhenotypeFitnessScorerPropertyTest {
         var result = scorer.score(CANDIDATE, evidence);
 
         assertThat(result.objectives())
-                .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE, 0.0);
+                .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 0.0);
         assertThat(result.decision()).isEqualTo(FitnessDecision.DISCARD);
     }
 
@@ -146,8 +146,8 @@ final class PhenotypeFitnessScorerPropertyTest {
     ) {
         double higher = Math.min(1.0, lower + delta);
 
-        var lowResult = scorer.score(CANDIDATE, passingEvidenceWithObjective("parsimony", lower));
-        var highResult = scorer.score(CANDIDATE, passingEvidenceWithObjective("parsimony", higher));
+        var lowResult = scorer.score(CANDIDATE, passingEvidenceWithObjective("subject.objective.parsimony", lower));
+        var highResult = scorer.score(CANDIDATE, passingEvidenceWithObjective("subject.objective.parsimony", higher));
 
         assertThat(highResult.aggregateScore()).isGreaterThanOrEqualTo(lowResult.aggregateScore());
     }
@@ -163,8 +163,10 @@ final class PhenotypeFitnessScorerPropertyTest {
     ) {
         double higher = Math.min(1.0, lower + delta);
 
-        var lowResult = scorer.score(CANDIDATE, passingEvidenceWithObjective("task_success", lower));
-        var highResult = scorer.score(CANDIDATE, passingEvidenceWithObjective("task_success", higher));
+        var lowResult = scorer.score(
+                CANDIDATE, passingEvidenceWithObjective("subject.objective.task_success", lower));
+        var highResult = scorer.score(
+                CANDIDATE, passingEvidenceWithObjective("subject.objective.task_success", higher));
 
         assertThat(highResult.aggregateScore()).isGreaterThanOrEqualTo(lowResult.aggregateScore());
     }

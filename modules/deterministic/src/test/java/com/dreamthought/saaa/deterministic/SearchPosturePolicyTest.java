@@ -100,11 +100,11 @@ final class SearchPosturePolicyTest {
                 defaults.requiredEvidence(),
                 defaults.hardGates(),
                 List.of(
-                        new FitnessObjective("task_success", 0.40),
-                        new FitnessObjective("reliability", 0.20),
-                        new FitnessObjective("cost_latency_budget", 0.20),
-                        new FitnessObjective("behavioral_safety", 0.10),
-                        new FitnessObjective("parsimony", 0.10)
+                        new FitnessObjective("subject.objective.task_success", 0.40),
+                        new FitnessObjective("subject.objective.reliability", 0.20),
+                        new FitnessObjective("subject.objective.cost_latency_budget", 0.20),
+                        new FitnessObjective("subject.objective.behavioral_safety", 0.10),
+                        new FitnessObjective("subject.objective.parsimony", 0.10)
                 ),
                 Optional.ofNullable(searchPosture),
                 List.of()

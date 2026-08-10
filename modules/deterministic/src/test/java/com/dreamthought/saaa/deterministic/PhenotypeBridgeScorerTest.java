@@ -33,7 +33,7 @@ final class PhenotypeBridgeScorerTest {
         assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.aggregateScore()).isZero();
         assertThat(result.objectives())
-                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE, 0.0);
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(), 0.0);
     }
 
     @Test
@@ -46,7 +46,7 @@ final class PhenotypeBridgeScorerTest {
                 Instant.parse("2026-07-28T00:00:00Z")));
 
         assertThat(result.decision()).isEqualTo(PROMOTE);
-        assertThat(result.objectives()).containsEntry("task_success", 1.0);
+        assertThat(result.objectives()).containsEntry("subject.objective.task_success", 1.0);
     }
 
     /**
@@ -68,7 +68,7 @@ final class PhenotypeBridgeScorerTest {
 
         assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.objectives())
-                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE, 0.0);
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(), 0.0);
     }
 
     /**
@@ -88,7 +88,7 @@ final class PhenotypeBridgeScorerTest {
                 Instant.parse("2026-07-28T00:00:00Z")));
 
         assertThat(result.objectives())
-                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE, 0.0);
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(), 0.0);
         assertThat(result.decision()).isEqualTo(DISCARD);
     }
 
@@ -107,7 +107,7 @@ final class PhenotypeBridgeScorerTest {
                 Instant.parse("2026-07-28T00:00:00Z")));
 
         assertThat(result.objectives())
-                .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE, 0.0);
+                .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical(), 0.0);
         assertThat(result.decision()).isEqualTo(DISCARD);
     }
 
@@ -121,11 +121,12 @@ final class PhenotypeBridgeScorerTest {
                 List.of(),
                 Instant.parse("2026-07-28T00:00:00Z"));
 
-        assertThat(tight.score(CANDIDATE, evidence).objectives()).containsEntry("parsimony", 0.9);
+        assertThat(tight.score(CANDIDATE, evidence).objectives())
+                .containsEntry("subject.objective.parsimony", 0.9);
         // 1.0 - 72.0/80.0 is not exactly 0.1 in double arithmetic; 72.0/80.0 rounds to the nearest
         // double for 0.9, and 1.0 minus that is 0.09999999999999998, not 0.1.
         assertThat(sprawling.score(CANDIDATE, evidence).objectives())
-                .containsEntry("parsimony", 0.09999999999999998);
+                .containsEntry("subject.objective.parsimony", 0.09999999999999998);
         assertThat(tight.score(CANDIDATE, evidence).aggregateScore())
                 .isGreaterThan(sprawling.score(CANDIDATE, evidence).aggregateScore());
     }
@@ -141,7 +142,7 @@ final class PhenotypeBridgeScorerTest {
                 List.of(BenchmarkEvidence.measurement("publish-latency", 100.0, "ms")),
                 Instant.parse("2026-07-28T00:00:00Z")));
 
-        assertThat(result.objectives()).containsEntry("cost_latency_budget", 0.5);
+        assertThat(result.objectives()).containsEntry("subject.objective.cost_latency_budget", 0.5);
     }
 
     private static PhenotypeBridgeScorer scorer(RealizationSummary summary, int maxLinesChanged) {

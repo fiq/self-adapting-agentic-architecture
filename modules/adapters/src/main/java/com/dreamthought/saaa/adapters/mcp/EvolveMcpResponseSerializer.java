@@ -3,7 +3,9 @@ package com.dreamthought.saaa.adapters.mcp;
 import com.dreamthought.saaa.adapters.evolve.EvolveRunResult;
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.CheckEvidence;
+import com.dreamthought.saaa.domain.FitnessForce;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessSignalId;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
@@ -133,15 +135,24 @@ public final class EvolveMcpResponseSerializer {
             StringBuilder json,
             boolean first,
             Map<String, Double> objectives,
-            boolean hardGate) {
+            boolean invariant) {
         var ordered = objectives.entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith("hard_gate_") == hardGate)
+                .filter(entry -> isInvariant(entry.getKey()) == invariant)
+                .map(entry -> Map.entry(FitnessSignalId.parse(entry.getKey()).canonical(), entry.getValue()))
                 .sorted(Map.Entry.comparingByKey())
                 .toList();
         for (var entry : ordered) {
             first = appendObjective(json, first, entry);
         }
         return first;
+    }
+
+    /**
+     * The force is the discriminator for response grouping; a signal name cannot smuggle an
+     * objective into the invariant group by resembling a legacy gate name.
+     */
+    private static boolean isInvariant(String key) {
+        return FitnessSignalId.parse(key).force() == FitnessForce.INVARIANT;
     }
 
     private static boolean appendObjective(StringBuilder json, boolean first, Map.Entry<String, Double> entry) {

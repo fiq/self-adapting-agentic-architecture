@@ -32,7 +32,7 @@ Function, which grades a candidate and shares nothing with this beyond the name.
 
 A measurement instrument. In SAAA a benchmark is a JMH microbenchmark producing
 `BenchmarkEvidence(name, value, unit)`, the intended input to the
-`cost_latency_budget` objective. Nothing in the evaluation loop supplies one
+`subject.objective.cost_latency_budget` objective. Nothing in the evaluation loop supplies one
 today. A benchmark never decides anything.
 
 The genetic-programming literature often uses "benchmark" for a fixed evaluation
@@ -74,7 +74,7 @@ total miss.
 
 Named `subject.invariant.*` or `process.invariant.*`; see `CON-002`.
 
-This is the target model recorded in `CON-002`. Today any failed gate scores
+The naming scheme is in force; see `CON-002`. Today any failed gate scores
 0.0 and discards, so no magnitude survives.
 
 ## Knowledge Node
@@ -96,7 +96,7 @@ every invariant has passed.
 
 Named `subject.objective.*`; see `CON-002`.
 
-This is the target model recorded in `CON-002`. Today `PhenotypeBridgeScorer`
+The naming scheme is in force; see `CON-002`. Today `PhenotypeBridgeScorer`
 computes every objective before the gates are evaluated.
 
 ## Ontology

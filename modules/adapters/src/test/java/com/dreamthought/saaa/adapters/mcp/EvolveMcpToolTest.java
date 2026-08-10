@@ -48,10 +48,10 @@ final class EvolveMcpToolTest {
                 "targetFolder", "/tmp/repo/toy",
                 "behaviourCases", List.of("workflow-check")));
 
-        assertThat(response.json().indexOf("\"task_success\""))
-                .isLessThan(response.json().indexOf("\"hard_gate_deterministic_checks\""));
-        assertThat(response.json().indexOf("\"parsimony\""))
-                .isLessThan(response.json().indexOf("\"hard_gate_non_empty_realization\""));
+        assertThat(response.json().indexOf("\"subject.objective.task_success\""))
+                .isLessThan(response.json().indexOf("\"subject.invariant.deterministic_checks\""));
+        assertThat(response.json().indexOf("\"subject.objective.parsimony\""))
+                .isLessThan(response.json().indexOf("\"subject.invariant.non_empty_realization\""));
     }
 
     @Test
@@ -64,10 +64,10 @@ final class EvolveMcpToolTest {
                 "abc123");
         var evidence = new EvaluationEvidence(List.of(), List.of(), Instant.parse("2026-08-01T00:00:00Z"));
         var objectives = new HashMap<String, Double>();
-        objectives.put("task_success", 1.0);
-        objectives.put("hard_gate_z_last", 1.0);
-        objectives.put("parsimony", 0.9);
-        objectives.put("hard_gate_a_first", 1.0);
+        objectives.put("subject.objective.task_success", 1.0);
+        objectives.put("subject.invariant.z_last", 1.0);
+        objectives.put("subject.objective.parsimony", 0.9);
+        objectives.put("subject.invariant.a_first", 1.0);
         var fitness = new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE);
 
         var response = toolReturning(new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md")))
@@ -76,8 +76,21 @@ final class EvolveMcpToolTest {
                         "behaviourCases", List.of("workflow-check")));
 
         assertThat(response.json())
-                .contains("\"objectives\":{\"parsimony\":0.9,\"task_success\":1.0,"
-                        + "\"hard_gate_a_first\":1.0,\"hard_gate_z_last\":1.0}");
+                .contains("\"objectives\":{\"subject.objective.parsimony\":0.9,\"subject.objective.task_success\":1.0,"
+                        + "\"subject.invariant.a_first\":1.0,\"subject.invariant.z_last\":1.0}");
+    }
+
+    @Test
+    void legacyKeysAreReEmittedInCanonicalForm() {
+        var response = toolReturning(legacyKeyRun()).call(Map.of(
+                "targetFolder", "/tmp/repo/toy",
+                "behaviourCases", List.of("workflow-check")));
+
+        assertThat(response.json())
+                .contains("\"subject.objective.task_success\":1.0")
+                .contains("\"subject.invariant.deterministic_checks\":1.0")
+                .doesNotContain("hard_gate_deterministic_checks")
+                .doesNotContain("\"task_success\"");
     }
 
     @Test
@@ -92,9 +105,9 @@ final class EvolveMcpToolTest {
         assertThatThrownBy(() -> EvolveMcpRequest.fromArguments(Map.of(
                 "targetFolder", "/tmp/repo/toy",
                 "behaviourCases", List.of("workflow-check"),
-                "hard_gate_deterministic_checks", 1.0)))
+                "subject.invariant.deterministic_checks", 1.0)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("hard_gate_deterministic_checks");
+                .hasMessageContaining("subject.invariant.deterministic_checks");
     }
 
     @Test
@@ -188,8 +201,8 @@ final class EvolveMcpToolTest {
         }
         var evidence = new EvaluationEvidence(checks, List.of(), Instant.parse("2026-08-01T00:00:00Z"));
         var objectives = new LinkedHashMap<String, Double>();
-        objectives.put("task_success", 1.0);
-        objectives.put("hard_gate_deterministic_checks", 1.0);
+        objectives.put("subject.objective.task_success", 1.0);
+        objectives.put("subject.invariant.deterministic_checks", 1.0);
         var fitness = new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE);
         var response = toolReturning(new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md")))
                 .call(Map.of(
@@ -234,11 +247,30 @@ final class EvolveMcpToolTest {
                 List.of(),
                 Instant.parse("2026-08-01T00:00:00Z"));
         var objectives = new LinkedHashMap<String, Double>();
-        objectives.put("task_success", 1.0);
-        objectives.put("parsimony", 0.9);
-        objectives.put("hard_gate_deterministic_checks", 1.0);
-        objectives.put("hard_gate_non_empty_realization", 1.0);
+        objectives.put("subject.objective.task_success", 1.0);
+        objectives.put("subject.objective.parsimony", 0.9);
+        objectives.put("subject.invariant.deterministic_checks", 1.0);
+        objectives.put("subject.invariant.non_empty_realization", 1.0);
         var fitness = new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE);
         return new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md"));
+    }
+
+    private static EvolveRunResult legacyKeyRun() {
+        var candidate = new Candidate(
+                "candidate-mut-legacy",
+                "mut-legacy",
+                "candidate/toy-mut-legacy",
+                Path.of("/tmp/repo/.worktrees/candidate-toy-mut-legacy"),
+                "legacy123");
+        var evidence = new EvaluationEvidence(
+                List.of(CheckEvidence.passed("workflow-check", "all good")),
+                List.of(),
+                Instant.parse("2026-08-01T00:00:00Z"));
+        var objectives = Map.of(
+                "task_success", 1.0,
+                "hard_gate_deterministic_checks", 1.0);
+        return new EvolveRunResult(
+                new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE),
+                Path.of("/tmp/repo/toy/journal.md"));
     }
 }

@@ -173,10 +173,10 @@ A gate cannot be traded against a high score elsewhere.
 
 | Gate | Fails when |
 |---|---|
-| `hard_gate_deterministic_checks` | any check failed, or no check evidence was produced at all |
-| `hard_gate_required_behavior_cases` | any declared behaviour case failed or produced no evidence of its own |
-| `hard_gate_required_objective_scores` | any objective below is missing, or is not a finite number in `[0, 1]` |
-| `hard_gate_non_empty_realization` | the candidate commit changed no file outside its own `.saaa/` bookkeeping |
+| `subject.invariant.deterministic_checks` | any check failed, or no check evidence was produced at all |
+| `subject.invariant.required_behavior_cases` | any declared behaviour case failed or produced no evidence of its own |
+| `subject.invariant.required_objective_scores` | any objective below is missing, or is not a finite number in `[0, 1]` |
+| `subject.invariant.non_empty_realization` | the candidate commit changed no file outside its own `.saaa/` bookkeeping |
 
 Absent evidence counts as failure everywhere: a behaviour you asked for and got
 no proof of has not been shown to hold. The empty-realisation gate exists
@@ -194,11 +194,11 @@ mutation operator so candidates stay comparable. Values are derived in
 
 | Objective | Weight | Derived from | Varies between eligible candidates? |
 |---|---:|---|---|
-| `task_success` | 0.40 | fraction of declared behaviour cases that passed | No |
-| `reliability` | 0.20 | `1.0` unless some check summary contains the text `timed out` | No, in practice |
-| `cost_latency_budget` | 0.20 | worst `budget / measured` over benchmarks, clamped to `[0, 1]`, starting at `1.0` | No |
-| `behavioral_safety` | 0.10 | the literal `1.0` | No |
-| `parsimony` | 0.10 | `1 - (linesChanged / --max-lines)`, clamped | Yes |
+| `subject.objective.task_success` | 0.40 | fraction of declared behaviour cases that passed | No |
+| `subject.objective.reliability` | 0.20 | `1.0` unless some check summary contains the text `timed out` | No, in practice |
+| `subject.objective.cost_latency_budget` | 0.20 | worst `budget / measured` over benchmarks, clamped to `[0, 1]`, starting at `1.0` | No |
+| `subject.objective.behavioral_safety` | 0.10 | the literal `1.0` | No |
+| `subject.objective.parsimony` | 0.10 | `1 - (linesChanged / --max-lines)`, clamped | Yes |
 
 The threshold compares against the raw sum; the reported score is rounded to two
 decimals for display only, so `0.7950` cannot promote.
@@ -209,16 +209,16 @@ is `0.40 + 0.20 + 0.20 + 0.10 + 0.0975 = 0.9975`, reported as `1.00`.
 
 ### Why four of those five decide nothing
 
-`task_success` duplicates its own gate: every declared case must pass to clear
-`hard_gate_required_behavior_cases`, so the passed fraction is 1.0 by
+`subject.objective.task_success` duplicates its own gate: every declared case must pass to clear
+`subject.invariant.required_behavior_cases`, so the passed fraction is 1.0 by
 construction. Partial credit would need the gate relaxed first.
 
-`reliability` only drops when a check already failed, because a timed-out check
+`subject.objective.reliability` only drops when a check already failed, because a timed-out check
 is recorded as failed. Worse, it is a substring match on the check summary, and
 that summary contains the script's own stdout, so a passing check that prints
 the words `timed out` scores 0.0.
 
-`cost_latency_budget` cannot be measured. `EvolveRunner` wires the benchmark
+`subject.objective.cost_latency_budget` cannot be measured. `EvolveRunner` wires the benchmark
 runner to `candidate -> List.of()`, `ScoringConfig` gets an empty budget map,
 and `:cli` has no Gradle dependency on `:benchmarks`, so the loop never executes
 and the value stays at its `1.0` starting point. `JmhBenchmarkRunner` is real
@@ -226,10 +226,10 @@ and integration-tested; nothing in the loop calls it. A benchmark with a zero
 value or no budget is skipped rather than failed, so absent benchmark evidence
 is invisible rather than a gate failure.
 
-`behavioral_safety` is the literal constant `1.0`. SAAA evaluates no behavioural
+`subject.objective.behavioral_safety` is the literal constant `1.0`. SAAA evaluates no behavioural
 safety property. It contributes 0.10 of unearned weight.
 
-`parsimony` is the one that varies. `linesChanged` comes from the candidate
+`subject.objective.parsimony` is the one that varies. `linesChanged` comes from the candidate
 commit against its first parent through JGit, summing `lengthA + lengthB` per
 edit, so a one-line replacement counts as 2. Paths under `.saaa/` are excluded
 so bookkeeping does not inflate the diff; everything else counts, including
@@ -240,7 +240,7 @@ budget is rejected before a candidate exists and the run exits non-zero.
 So through `PhenotypeBridgeScorer`, the only scorer the CLI wires, the weighted
 sum cannot fall below 0.90 and the 0.80 threshold cannot reject an eligible
 candidate. The gates are the decision; the score is a record of it. The one way
-the threshold currently bites is that `reliability` substring collision, which
+the threshold currently bites is that `subject.objective.reliability` substring collision, which
 discards an otherwise passing candidate. `PhenotypeFitnessScorer` underneath
 compares properly and the golden corpus exercises both sides of the threshold,
 but nothing on the CLI path produces those inputs.
