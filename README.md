@@ -86,6 +86,8 @@ satisfied by the first case alone. The run refuses to start unless every
 declared case has an executable regular file, so a typo is never recorded as
 evidence about the mutation. Checks run in a worktree created from `HEAD`, so a
 new or edited check script must be committed before it can gate a run.
+The mutation target must also be different from every declared check script, so
+a candidate cannot rewrite the file that grades it.
 
 The target folder must sit inside a Git repository, because isolation uses
 `git worktree`. A discarded candidate is a successful run and exits 0; a

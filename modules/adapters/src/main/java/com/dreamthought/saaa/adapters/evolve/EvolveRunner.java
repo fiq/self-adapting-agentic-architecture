@@ -97,6 +97,7 @@ public final class EvolveRunner {
             throw new IllegalArgumentException("workflow file not found: " + workflowPath);
         }
         var checks = BehaviourCaseChecks.forCases(request.behaviourCases(), gitRoot.relativize(folder));
+        requireWorkflowIsNotCheckScript(gitRoot, workflowPath, checks);
         requireRunnableCheckScripts(gitRoot, checks);
 
         String relativeWorkflow = gitRoot.relativize(workflowPath).toString();
@@ -159,6 +160,19 @@ public final class EvolveRunner {
             if (!Files.isExecutable(script)) {
                 throw new IllegalArgumentException(
                         "behaviour case " + check.name() + " has a script that is not executable: " + script);
+            }
+        }
+    }
+
+    private static void requireWorkflowIsNotCheckScript(
+            Path gitRoot, Path workflowPath, List<CommandCheck> checks) {
+        Path normalizedWorkflow = workflowPath.normalize();
+        for (CommandCheck check : checks) {
+            Path script = gitRoot.resolve(check.command().get(0)).normalize();
+            if (normalizedWorkflow.equals(script)) {
+                throw new IllegalArgumentException(
+                        "workflowFile must not target the behaviour-case check script "
+                                + script + "; a candidate cannot rewrite the file that grades it");
             }
         }
     }
