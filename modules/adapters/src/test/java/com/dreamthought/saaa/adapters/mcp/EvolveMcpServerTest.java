@@ -70,8 +70,8 @@ final class EvolveMcpServerTest {
                 List.of(),
                 Instant.parse("2026-08-01T00:00:00Z"));
         var objectives = new LinkedHashMap<String, Double>();
-        objectives.put("task_success", 1.0);
-        objectives.put("hard_gate_deterministic_checks", 1.0);
+        objectives.put("subject.objective.task_success", 1.0);
+        objectives.put("subject.invariant.deterministic_checks", 1.0);
         var fitness = new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE);
         return new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md"));
     }

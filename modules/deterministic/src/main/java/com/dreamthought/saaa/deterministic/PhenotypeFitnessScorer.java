@@ -5,6 +5,7 @@ import com.dreamthought.saaa.domain.CheckStatus;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessObjective;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessSignalId;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -19,10 +20,14 @@ import java.util.Objects;
 public final class PhenotypeFitnessScorer {
     public static final double PROMOTION_THRESHOLD = 0.80;
 
-    public static final String DETERMINISTIC_CHECKS_GATE = "hard_gate_deterministic_checks";
-    public static final String REQUIRED_BEHAVIOR_CASES_GATE = "hard_gate_required_behavior_cases";
-    public static final String REQUIRED_OBJECTIVE_SCORES_GATE = "hard_gate_required_objective_scores";
-    public static final String NON_EMPTY_REALIZATION_GATE = "hard_gate_non_empty_realization";
+    public static final FitnessSignalId DETERMINISTIC_CHECKS_GATE =
+            FitnessSignalId.invariant("deterministic_checks");
+    public static final FitnessSignalId REQUIRED_BEHAVIOR_CASES_GATE =
+            FitnessSignalId.invariant("required_behavior_cases");
+    public static final FitnessSignalId REQUIRED_OBJECTIVE_SCORES_GATE =
+            FitnessSignalId.invariant("required_objective_scores");
+    public static final FitnessSignalId NON_EMPTY_REALIZATION_GATE =
+            FitnessSignalId.invariant("non_empty_realization");
 
     private static final double GATE_PASSED = 1.0;
     private static final double GATE_FAILED = 0.0;
@@ -51,10 +56,10 @@ public final class PhenotypeFitnessScorer {
         // Gate outcomes are written after the measured scores so evidence content can never overwrite
         // a recorded gate result in the audit trail.
         Map<String, Double> objectives = new LinkedHashMap<>(phenotype.objectiveScores());
-        objectives.put(DETERMINISTIC_CHECKS_GATE, gateValue(checksPassed));
-        objectives.put(REQUIRED_BEHAVIOR_CASES_GATE, gateValue(behaviorCasesPassed));
-        objectives.put(REQUIRED_OBJECTIVE_SCORES_GATE, gateValue(objectiveScoresPresent));
-        objectives.put(NON_EMPTY_REALIZATION_GATE, gateValue(realizationNonEmpty));
+        objectives.put(DETERMINISTIC_CHECKS_GATE.canonical(), gateValue(checksPassed));
+        objectives.put(REQUIRED_BEHAVIOR_CASES_GATE.canonical(), gateValue(behaviorCasesPassed));
+        objectives.put(REQUIRED_OBJECTIVE_SCORES_GATE.canonical(), gateValue(objectiveScoresPresent));
+        objectives.put(NON_EMPTY_REALIZATION_GATE.canonical(), gateValue(realizationNonEmpty));
 
         return new FitnessResult(candidate, phenotype.evidence(), objectives, round(rawScore), decision);
     }

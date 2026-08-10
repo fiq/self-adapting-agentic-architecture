@@ -22,11 +22,11 @@ final class MutationOperatorTypeTest {
                     assertThat(defaults.objectives())
                             .extracting(FitnessObjective::id)
                             .containsExactly(
-                                    "task_success",
-                                    "reliability",
-                                    "cost_latency_budget",
-                                    "behavioral_safety",
-                                    "parsimony"
+                                    "subject.objective.task_success",
+                                    "subject.objective.reliability",
+                                    "subject.objective.cost_latency_budget",
+                                    "subject.objective.behavioral_safety",
+                                    "subject.objective.parsimony"
                             );
                     assertThat(defaults.objectives().stream().mapToDouble(FitnessObjective::weight).sum())
                             .isEqualTo(1.0);

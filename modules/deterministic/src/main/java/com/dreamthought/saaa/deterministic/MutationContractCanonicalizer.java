@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.deterministic;
 
 import com.dreamthought.saaa.domain.FitnessObjective;
+import com.dreamthought.saaa.domain.FitnessSignalId;
 import com.dreamthought.saaa.domain.MutationBounds;
 import com.dreamthought.saaa.domain.MutationContract;
 import com.dreamthought.saaa.domain.MutationTarget;
@@ -84,14 +85,25 @@ public final class MutationContractCanonicalizer {
     private static void appendFitness(StringBuilder out, MutationContract contract) {
         out.append(" (fitness");
         for (String gate : contract.hardGates()) {
-            out.append(" (gate ").append(atom(gate)).append(')');
+            appendSignal(out, "gate", FitnessSignalId.parse(gate));
+            out.append(')');
         }
         for (FitnessObjective objective : contract.objectives()) {
-            out.append(" (objective ").append(atom(objective.id()))
-                    .append(' ').append(String.format(Locale.ROOT, "%.2f", objective.weight()))
-                    .append(')');
+            appendSignal(out, "objective", FitnessSignalId.parse(objective.id()));
+            out.append(' ').append(String.format(Locale.ROOT, "%.2f", objective.weight())).append(')');
         }
         out.append(')');
+    }
+
+    /**
+     * Position decides role: a signal is a gate because it sits inside a {@code (gate …)} node, not
+     * because of anything in its name. The force is therefore not rendered — the head carries it.
+     */
+    private static void appendSignal(StringBuilder out, String head, FitnessSignalId id) {
+        out.append(" (").append(head)
+                .append(" (scope ").append(atom(id.scope().name()))
+                .append(") (name ").append(atom(id.name()))
+                .append(')');
     }
 
     private static void appendTokenList(StringBuilder out, String head, Iterable<String> tokens) {

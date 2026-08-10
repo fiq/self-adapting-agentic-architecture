@@ -6,6 +6,7 @@ import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.CheckStatus;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessSignalId;
 import com.dreamthought.saaa.domain.RealizationSummary;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,11 +57,12 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
                 inspector.inspect(candidate), "realization summary");
 
         Map<String, Double> objectives = new LinkedHashMap<>();
-        objectives.put("task_success", passedFraction(behaviorCases));
-        objectives.put("reliability", allChecksRan(evidence) ? 1.0 : 0.0);
-        objectives.put("cost_latency_budget", budgetScore(evidence.benchmarks()));
-        objectives.put("behavioral_safety", 1.0);
-        objectives.put("parsimony", parsimony(realization));
+        objectives.put(FitnessSignalId.objective("task_success").canonical(), passedFraction(behaviorCases));
+        objectives.put(FitnessSignalId.objective("reliability").canonical(), allChecksRan(evidence) ? 1.0 : 0.0);
+        objectives.put(
+                FitnessSignalId.objective("cost_latency_budget").canonical(), budgetScore(evidence.benchmarks()));
+        objectives.put(FitnessSignalId.objective("behavioral_safety").canonical(), 1.0);
+        objectives.put(FitnessSignalId.objective("parsimony").canonical(), parsimony(realization));
 
         return delegate.score(
                 candidate, new PhenotypeEvidence(evidence, behaviorCases, objectives, realization));

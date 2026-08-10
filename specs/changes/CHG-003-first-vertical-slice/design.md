@@ -104,15 +104,15 @@ All five derivations are deterministic and evidence-only.
 
 | Objective | Derivation |
 |---|---|
-| `task_success` | passed behaviour cases divided by total behaviour cases |
-| `reliability` | 1.0 when no check timed out or errored, otherwise 0.0 |
-| `cost_latency_budget` | the lowest `budget / measured` across all benchmarks, clamped to the unit interval, so being twice the budget scores 0.5 and being under budget scores 1.0 |
-| `behavioral_safety` | fixed at 1.0 |
-| `parsimony` | `1 - (linesChanged / maxLinesChanged)`, clamped to the unit interval |
+| `subject.objective.task_success` | passed behaviour cases divided by total behaviour cases |
+| `subject.objective.reliability` | 1.0 when no check timed out or errored, otherwise 0.0 |
+| `subject.objective.cost_latency_budget` | the lowest `budget / measured` across all benchmarks, clamped to the unit interval, so being twice the budget scores 0.5 and being under budget scores 1.0 |
+| `subject.objective.behavioral_safety` | fixed at 1.0 |
+| `subject.objective.parsimony` | `1 - (linesChanged / maxLinesChanged)`, clamped to the unit interval |
 
 ### Where the diff size comes from
 
-`parsimony` needs the realized diff size, which only Git knows. The scorer must
+`subject.objective.parsimony` needs the realized diff size, which only Git knows. The scorer must
 not shell out to Git: that would put infrastructure inside the deterministic
 layer. So realization size arrives as evidence, through a port:
 
@@ -145,7 +145,7 @@ this slice still runs the transitional `Mutation` stack and no `MutationContract
 flows through the loop. That is a known seam, not an oversight; it closes when
 `CHG-002` task `T4b` threads the contract through.
 
-`parsimony` is the one that makes candidates genuinely differ, because it reads
+`subject.objective.parsimony` is the one that makes candidates genuinely differ, because it reads
 the realized diff. A mutation that changes eighty lines to achieve what another
 achieved in six scores lower. That is real selection pressure rather than
 decoration.
@@ -153,27 +153,27 @@ decoration.
 ### Why an empty realization is a hard gate
 
 Rewarding a smaller diff rewards the empty diff most of all: a realization that
-wrote the file back unchanged measures zero lines and scores `parsimony` 1.0,
+wrote the file back unchanged measures zero lines and scores `subject.objective.parsimony` 1.0,
 while every other objective reads evidence about a candidate identical to the
 baseline. Such a candidate promotes on the baseline's own passing checks, and
 ranking several candidates would select for changing nothing.
 
-So `hard_gate_non_empty_realization` fails closed when the realization changed no
+So `subject.invariant.non_empty_realization` fails closed when the realization changed no
 file. It lives in `PhenotypeFitnessScorer` next to the other gates, not in the
 bridge or the CLI, for the same reason as the behaviour-case gate: promotion
 integrity must not depend on whoever assembled the evidence having wired it
 correctly. `PhenotypeEvidence` therefore carries the `RealizationSummary` the
-bridge already obtained for `parsimony`.
+bridge already obtained for `subject.objective.parsimony`.
 
 The measure is `filesChanged`, not `linesChanged`, so a mode-only change — making
 a script executable, for instance — still counts as a realization.
 
-`behavioral_safety` is honest but inert this slice: an invalid or
+`subject.objective.behavioral_safety` is honest but inert this slice: an invalid or
 authority-bearing contract is rejected before scoring, so no candidate reaching
 the scorer can score anything but 1.0. It gains a real source when reviewer
 evidence lands in `CHG-002` task `T6`.
 
-`cost_latency_budget` is 1.0 whenever no benchmarks are configured, which is the
+`subject.objective.cost_latency_budget` is 1.0 whenever no benchmarks are configured, which is the
 fixture case. Benchmarks are wired but unused in this slice.
 
 ## Reporting

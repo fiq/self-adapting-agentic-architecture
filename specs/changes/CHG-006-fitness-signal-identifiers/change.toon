@@ -1,0 +1,75 @@
+change:
+  id: CHG-006
+  title: Typed fitness signal identifiers
+  status: delivered
+  intent: Replace role-bearing fitness name prefixes with typed, canonical identifiers while preserving scoring behavior and providing a compatibility path for existing result keys.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - CON-002
+    - ARCH-001
+    - Q-004
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: Fitness signals use `subject.invariant.<name>`, `subject.objective.<name>` or `process.invariant.<name>` identifiers. Scope and force are represented by `FitnessSignalId`; weights, threshold, derivations and decisions remain unchanged.
+    scenarios:
+      - id: S1
+        when: deterministic scoring, policy construction or bridge derivation creates a fitness signal
+        then: the signal is constructed through `FitnessSignalId` and exposed as its canonical string form
+        and:
+          - no consumer infers force by inspecting a name prefix
+          - existing score values and promotion decisions are unchanged
+      - id: S2
+        when: a mutation contract is rendered as canonical S-expression IR
+        then: scope and name are rendered as nested atoms and gate/objective position carries the role
+        and:
+          - a name cannot move a signal between roles
+          - names remain safe canonical atoms
+      - id: S3
+        when: MCP output serializes measured and invariant fitness signals
+        then: measured objectives precede invariants and each group is sorted by canonical identifier
+        and:
+          - legacy unscoped and `hard_gate_*` keys are accepted on read and emitted canonically
+          - output remains valid, bounded JSON
+
+acceptance:
+  - scenario: S1
+    test_id: domain/FitnessSignalIdTest.acceptsLegacyKeysSoPersistedResultsCanBeReEmittedCanonically
+    layer: unit
+  - scenario: S1
+    test_id: deterministic/PhenotypeFitnessScorerTest
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/MutationContractCanonicalizerTest.renderingPlacesRoleInThePositionNotTheName
+    layer: unit
+  - scenario: S3
+    test_id: adapters/EvolveMcpToolTest.legacyKeysAreReEmittedInCanonicalForm
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: add the domain identifier type and legacy parsing compatibility
+    status: completed
+  - id: T2
+    slice: migrate deterministic scoring, policy and bridge identifiers without changing numeric behavior
+    status: completed
+  - id: T3
+    slice: render fitness signals structurally in the canonical S-expression IR
+    status: completed
+  - id: T4
+    slice: partition MCP output by typed force and normalize legacy keys at the output boundary
+    status: completed
+  - id: T5
+    slice: update README, glossary, knowledge, change records and handoff to describe the applied scheme and its remaining severity-class deferral
+    status: completed
+
+non_goals:
+  - enforce the proposed integrity, safety, correctness and shape severity classes
+  - add process-scoped signals to the live candidate scorer
+  - change objective weights, promotion threshold or score derivation
+  - migrate or rewrite historical ledger files in place
+
+risks:
+  - legacy result maps may contain identifiers outside the known old naming forms; those fail closed at the typed parsing boundary

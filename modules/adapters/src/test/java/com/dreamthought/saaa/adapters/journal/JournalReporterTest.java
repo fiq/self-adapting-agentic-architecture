@@ -35,7 +35,7 @@ final class JournalReporterTest {
         reporter.candidateCreated(CANDIDATE);
         reporter.evidenceCollected(evidence());
         reporter.scored(new FitnessResult(CANDIDATE, evidence(),
-                Map.of("parsimony", 0.9), 0.87, FitnessDecision.PROMOTE));
+                Map.of("subject.objective.parsimony", 0.9), 0.87, FitnessDecision.PROMOTE));
 
         String written = Files.readString(journal);
         assertThat(written)

@@ -59,15 +59,15 @@ of `FitnessResult`:
 {
   "candidate": { "id": "...", "commitSha": "..." },
   "objectives": {
-    "task_success": 1.0,
-    "reliability": 1.0,
-    "cost_latency_budget": 1.0,
-    "behavioral_safety": 1.0,
-    "parsimony": 0.9,
-    "hard_gate_deterministic_checks": 1.0,
-    "hard_gate_required_behavior_cases": 1.0,
-    "hard_gate_required_objective_scores": 1.0,
-    "hard_gate_non_empty_realization": 1.0
+    "subject.objective.task_success": 1.0,
+    "subject.objective.reliability": 1.0,
+    "subject.objective.cost_latency_budget": 1.0,
+    "subject.objective.behavioral_safety": 1.0,
+    "subject.objective.parsimony": 0.9,
+    "subject.invariant.deterministic_checks": 1.0,
+    "subject.invariant.required_behavior_cases": 1.0,
+    "subject.invariant.required_objective_scores": 1.0,
+    "subject.invariant.non_empty_realization": 1.0
   },
   "aggregateScore": 0.99,
   "aggregateScoreDisplay": "0.99",
@@ -152,12 +152,12 @@ satisfy them while breaking meaning:
    `FitnessResult.objectives` cannot be overwritten by keys present in the
    input `PhenotypeEvidence.objectiveScores`.
 5. **Parsimony monotonicity.** With every other input held constant, a
-   strictly smaller realization can never score `parsimony` worse than a
+   strictly smaller realization can never score `subject.objective.parsimony` worse than a
    larger one. A scorer mutation that inverts the sign of the parsimony
    formula would pass invariants 1–4 but fail this one.
 6. **Task-success monotonicity.** With every other input held constant, a
    strictly larger set of passing behaviour cases can never score
-   `task_success` worse.
+   `subject.objective.task_success` worse.
 7. **Threshold boundary.** A candidate whose raw weighted sum is exactly
    `PROMOTION_THRESHOLD` promotes; a candidate whose raw sum is strictly
    less discards. Regardless of how the reported score rounds.
