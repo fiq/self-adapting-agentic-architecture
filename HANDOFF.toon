@@ -3,9 +3,9 @@ session:
   status: fitness_signal_id_applied
   branch: feat/fitness-signal-id
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-fitness-signal-id
-  head: ca0db57
+  head: 9909120
   head_note: typed fitness identifiers are being migrated through the deterministic, IR, MCP and documentation surfaces; legacy result keys are accepted on read and emitted canonically.
-  dirty: true
+  dirty: false
   pushed: false
 
 goal:
