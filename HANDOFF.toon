@@ -1,19 +1,22 @@
 session:
   updated: 2026-08-11
-  status: reward_hacking_check_target_guard
-  branch: fix/reward-hacking-check-target
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-reward-hacking-check-target
-  head: 91d0261
-  head_note: fresh branch from merged PR #21; rejects using a declared behaviour-case grader as the mutation target.
-  dirty: false
-  pushed: true
+  status: structured_reliability_evidence
+  branch: fix/reliability-check-status
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-reliability-check-status
+  head: not_yet_committed
+  head_note: timeout is structured CheckStatus.TIMED_OUT evidence; candidate-controlled summaries cannot spoof reliability.
+  dirty: true
+  pushed: false
 
 goal:
-  current: close the reward-hacking hole that lets a candidate rewrite its own declared grading script
-  phase: reward_hacking_guard_in_progress
-  interlude: PR #21 merged as `9456744`; the next bounded fix starts from that merge and leaves scoring weights and thresholds unchanged
+  current: prevent candidate-controlled check output from changing the reliability objective
+  phase: structured_reliability_evidence_in_progress
+  interlude: PR #21 merged as `9456744` and PR #22 merged as `d15cc22`; this slice leaves scoring weights and thresholds unchanged
 
 completed:
+  - PR #22 merged as `d15cc22`; the reward-hacking pre-flight guard now rejects a workflow target equal to a declared grading script
+  - added `CheckStatus.TIMED_OUT`, emitted it from `CommandCheckRunner`, and made reliability derive from structured status rather than summary text
+  - added CHG-008, README/wiki documentation and unit/integration regression coverage for timeout evidence and candidate output containing `timed out`
   - merged PR #21 `Complete typed fitness signal identifier migration` as `9456744`; remote SSH push succeeded after the authorized key was loaded
   - added the first outside-in regression for a workflow target equal to its declared behaviour-case script; the pre-flight guard passes the focused acceptance test
   - applied the CON-002 naming scheme through typed `FitnessSignalId` values; signal role now comes from scope/force and IR position rather than a name prefix, with legacy result keys accepted on read and emitted canonically
@@ -141,10 +144,9 @@ completed:
 in_progress: []
 
 next:
-  - run full unit/component/integration/readiness validation, then open a PR for the reward-hacking guard
-  - return to the measured NONE/VECTOR/GRAPH/HYBRID ablation after this guard lands
+  - run full unit/component/integration/readiness validation, then open a PR for the structured reliability fix
+  - decide how to transport `MutationContract` through the live loop before implementing contract-aware scoring (RISK-002/T4b)
   - decide what to do about `task_success`, `reliability`, `cost_latency_budget` and `behavioral_safety` all being constant for eligible candidates, which leaves `parsimony` as the only discriminating objective and makes the 0.80 threshold unreachable from below
-  - replace the `reliability` substring test on check summaries; it matches candidate-controlled stdout, so a passing check printing "timed out" is scored 0.0 and discarded
   - make a repeat fixture run fail before the decision rather than after: the ledger rejects a second differing outcome for the same candidate id, so the run journals its verdict and then exits non-zero with a stack trace
   - run a fixed, reviewed mutation corpus with a real proposer/embedding provider across NONE, VECTOR, GRAPH and HYBRID; no GraphRAG benefit has been measured yet
   - use the first measured ablation to decide whether Neo4j relationship traversal contributes enough distinct evidence to retain ADR-0004's experiment
@@ -199,7 +201,7 @@ blocking_questions: []
 risks:
   - a check script chosen as the mutation target grades its own rewrite: `EvolveRunner` requires only that `--workflow-file` is a regular non-symlink file inside the target folder, so `--workflow-file workflow-check.sh --behaviour-case workflow-check` realizes the proposal into the script the candidate is then measured by. Found during the README evidence pass; not fixed there
   - the weighted objectives cannot currently reject anything through the wired bridge: `task_success` restates its own hard gate, `reliability` only drops when a check already failed, `cost_latency_budget` has no evidence source because `:cli` does not depend on `:benchmarks` and `EvolveRunner` supplies a constant empty benchmark list, and `behavioral_safety` is the literal `1.0`. The sum floors at 0.90 against a 0.80 threshold, so eligibility is the whole decision and the weights are inert scaffolding
-  - `reliability` is a substring match for `timed out` against a check summary that contains the script's own stdout, so a passing check that prints those words is scored 0.0; that is the only path by which the threshold currently rejects an otherwise eligible candidate
+  - reliability now uses structured `TIMED_OUT` evidence; legacy envelopes with only diagnostic summaries retain their historical status values but cannot reconstruct timeout semantics unless they were recorded as `TIMED_OUT`
   - a Gradle run reporting `up-to-date` executes nothing, so it is not evidence; a recorded pass from a prior session was carried forward as green when the tests had not run, and clean-checkout CI then failed. Treat unit-test evidence as valid only from a run that actually executed, and prefer `--rerun-tasks` or a clean checkout before claiming a suite passes
   - unit tests that reach ambient environment state can pass locally and fail on clean runners; `graphrag-integration-test` and the Neo4j suite still depend on a local container and never run in CI, so that class of defect has less protection there than the unit suites do
   - RISK-004: revision-unsafe caches or uncapped historical outcome evidence could contaminate ablation treatments and create self-reinforcing search bias
@@ -336,6 +338,8 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-11 `.agentic-template/bin/gradle-command :deterministic:test --tests '*PhenotypeBridgeScorerTest.doesNotTreatCandidateOutputContainingTimeoutWordsAsAnUnreliableCheck'`: pass
+  - 2026-08-11 `.agentic-template/bin/gradle-command :adapters:integrationTest --tests '*CommandCheckRunnerIntegrationTest.recordsTimeoutAsStructuredEvidence'`: pass
   - 2026-08-10 `.agentic-template/bin/gradle-command :cli:acceptanceTest --tests '*EvolveCommandAcceptanceTest.refusesToMutateTheBehaviourCaseCheckScript'`: pass
   - 2026-08-10 `.agentic-template/bin/project test`: pass; all unit suites green
   - 2026-08-10 `.agentic-template/bin/project component-test`: pass; deterministic and CLI acceptance suites green

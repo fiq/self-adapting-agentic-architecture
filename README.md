@@ -197,7 +197,7 @@ mutation operator so candidates stay comparable. Values are derived in
 | Objective | Weight | Derived from | Varies between eligible candidates? |
 |---|---:|---|---|
 | `subject.objective.task_success` | 0.40 | fraction of declared behaviour cases that passed | No |
-| `subject.objective.reliability` | 0.20 | `1.0` unless some check summary contains the text `timed out` | No, in practice |
+| `subject.objective.reliability` | 0.20 | `1.0` unless structured check evidence has status `TIMED_OUT` | No, in practice |
 | `subject.objective.cost_latency_budget` | 0.20 | worst `budget / measured` over benchmarks, clamped to `[0, 1]`, starting at `1.0` | No |
 | `subject.objective.behavioral_safety` | 0.10 | the literal `1.0` | No |
 | `subject.objective.parsimony` | 0.10 | `1 - (linesChanged / --max-lines)`, clamped | Yes |
@@ -216,9 +216,8 @@ is `0.40 + 0.20 + 0.20 + 0.10 + 0.0975 = 0.9975`, reported as `1.00`.
 construction. Partial credit would need the gate relaxed first.
 
 `subject.objective.reliability` only drops when a check already failed, because a timed-out check
-is recorded as failed. Worse, it is a substring match on the check summary, and
-that summary contains the script's own stdout, so a passing check that prints
-the words `timed out` scores 0.0.
+is not eligible for promotion. Timeout is now a structured `TIMED_OUT` check status; the diagnostic
+summary still contains the timeout text, but candidate-controlled stdout cannot spoof reliability.
 
 `subject.objective.cost_latency_budget` cannot be measured. `EvolveRunner` wires the benchmark
 runner to `candidate -> List.of()`, `ScoringConfig` gets an empty budget map,
@@ -241,9 +240,7 @@ budget is rejected before a candidate exists and the run exits non-zero.
 
 So through `PhenotypeBridgeScorer`, the only scorer the CLI wires, the weighted
 sum cannot fall below 0.90 and the 0.80 threshold cannot reject an eligible
-candidate. The gates are the decision; the score is a record of it. The one way
-the threshold currently bites is that `subject.objective.reliability` substring collision, which
-discards an otherwise passing candidate. `PhenotypeFitnessScorer` underneath
+candidate. The gates are the decision; the score is a record of it. `PhenotypeFitnessScorer` underneath
 compares properly and the golden corpus exercises both sides of the threshold,
 but nothing on the CLI path produces those inputs.
 

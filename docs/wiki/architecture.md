@@ -50,6 +50,10 @@ constant empty benchmark list, so no CLI run produces benchmark evidence.
 `JmhBenchmarkRunner` exists and is integration-tested but nothing in the loop
 calls it.
 
+Check execution records timeouts as the structured `CheckStatus.TIMED_OUT`
+value. Reliability therefore ignores candidate-controlled check summaries and
+cannot be spoofed by a passing script that prints the words "timed out".
+
 Extension points that do not touch the loop: register a proposer in
 `ProposerProfileRegistry` for a new `--profile`; write a `<name>.sh` for a new
 behaviour case; supply benchmark budgets through `ScoringConfig` once something

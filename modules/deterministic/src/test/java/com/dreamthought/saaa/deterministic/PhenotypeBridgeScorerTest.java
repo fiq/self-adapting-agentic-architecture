@@ -145,6 +145,19 @@ final class PhenotypeBridgeScorerTest {
         assertThat(result.objectives()).containsEntry("subject.objective.cost_latency_budget", 0.5);
     }
 
+    @Test
+    void doesNotTreatCandidateOutputContainingTimeoutWordsAsAnUnreliableCheck() {
+        var scorer = scorer(new RealizationSummary(1, 8), 80);
+
+        var result = scorer.score(CANDIDATE, new EvaluationEvidence(
+                List.of(passed("publish-guard", "exit=0 output=timed out is mentioned here")),
+                List.of(),
+                Instant.parse("2026-07-28T00:00:00Z")));
+
+        assertThat(result.objectives())
+                .containsEntry("subject.objective.reliability", 1.0);
+    }
+
     private static PhenotypeBridgeScorer scorer(RealizationSummary summary, int maxLinesChanged) {
         return new PhenotypeBridgeScorer(
                 candidate -> summary,
