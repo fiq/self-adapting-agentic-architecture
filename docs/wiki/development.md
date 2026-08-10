@@ -49,6 +49,16 @@ OpenAI-compatible LangChain4j wiring in `CHG-004` is southbound provider
 configuration: SAAA calling a model. A later northbound facade is clients
 calling SAAA.
 
+## Resource-aware model routing
+
+The application does not yet select models by task complexity. `Q-010` records
+the intended strategy: remaining tokens, provider credits, wall-clock budget,
+rate limits and retry allowance should become explicit experiment state that
+can select a model tier or bounded context packet. Routing must be decided and
+audited before proposal, while deterministic validation, fitness and promotion
+remain unchanged. Do not add opaque model-name heuristics until usage evidence
+and an ablation show that routing improves experiment throughput or quality.
+
 ## Documentation Graph
 
 New Markdown should fit the existing graph instead of creating a parallel
