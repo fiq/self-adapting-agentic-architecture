@@ -3,9 +3,9 @@ session:
   status: reward_hacking_check_target_guard
   branch: fix/reward-hacking-check-target
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-reward-hacking-check-target
-  head: 9456744
+  head: 84a6677
   head_note: fresh branch from merged PR #21; rejects using a declared behaviour-case grader as the mutation target.
-  dirty: true
+  dirty: false
   pushed: false
 
 goal:
