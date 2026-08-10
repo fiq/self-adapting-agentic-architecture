@@ -3,10 +3,10 @@ session:
   status: structured_reliability_evidence
   branch: fix/reliability-check-status
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-reliability-check-status
-  head: 71f93cb
+  head: 90c1e9b
   head_note: timeout is structured CheckStatus.TIMED_OUT evidence; candidate-controlled summaries cannot spoof reliability.
   dirty: false
-  pushed: true
+  pushed: false
 
 goal:
   current: prevent candidate-controlled check output from changing the reliability objective
