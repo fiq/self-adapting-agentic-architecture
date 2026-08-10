@@ -2,6 +2,7 @@ package com.dreamthought.saaa.deterministic;
 
 import static com.dreamthought.saaa.domain.CheckEvidence.failed;
 import static com.dreamthought.saaa.domain.CheckEvidence.passed;
+import static com.dreamthought.saaa.domain.CheckEvidence.timedOut;
 import static com.dreamthought.saaa.domain.FitnessDecision.DISCARD;
 import static com.dreamthought.saaa.domain.FitnessDecision.PROMOTE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -156,6 +157,19 @@ final class PhenotypeBridgeScorerTest {
 
         assertThat(result.objectives())
                 .containsEntry("subject.objective.reliability", 1.0);
+    }
+
+    @Test
+    void scoresStructuredTimeoutAsUnreliableAndDiscardsTheCandidate() {
+        var scorer = scorer(new RealizationSummary(1, 8), 80);
+
+        var result = scorer.score(CANDIDATE, new EvaluationEvidence(
+                List.of(timedOut("publish-guard", "timed out after PT50MS")),
+                List.of(),
+                Instant.parse("2026-07-28T00:00:00Z")));
+
+        assertThat(result.objectives()).containsEntry("subject.objective.reliability", 0.0);
+        assertThat(result.decision()).isEqualTo(DISCARD);
     }
 
     private static PhenotypeBridgeScorer scorer(RealizationSummary summary, int maxLinesChanged) {

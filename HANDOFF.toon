@@ -3,10 +3,10 @@ session:
   status: structured_reliability_evidence
   branch: fix/reliability-check-status
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-reliability-check-status
-  head: not_yet_committed
+  head: 71f93cb
   head_note: timeout is structured CheckStatus.TIMED_OUT evidence; candidate-controlled summaries cannot spoof reliability.
-  dirty: true
-  pushed: false
+  dirty: false
+  pushed: true
 
 goal:
   current: prevent candidate-controlled check output from changing the reliability objective
@@ -340,6 +340,7 @@ files_changed:
 tests_run:
   - 2026-08-11 `.agentic-template/bin/gradle-command :deterministic:test --tests '*PhenotypeBridgeScorerTest.doesNotTreatCandidateOutputContainingTimeoutWordsAsAnUnreliableCheck'`: pass
   - 2026-08-11 `.agentic-template/bin/gradle-command :adapters:integrationTest --tests '*CommandCheckRunnerIntegrationTest.recordsTimeoutAsStructuredEvidence'`: pass
+  - 2026-08-11 GLM 5.2 read-only self-review: found and fixed MCP schema enum drift, README wording, missing timeout scorer assertion, and missing schema enum test; no persistence or hard-gate regression found
   - 2026-08-10 `.agentic-template/bin/gradle-command :cli:acceptanceTest --tests '*EvolveCommandAcceptanceTest.refusesToMutateTheBehaviourCaseCheckScript'`: pass
   - 2026-08-10 `.agentic-template/bin/project test`: pass; all unit suites green
   - 2026-08-10 `.agentic-template/bin/project component-test`: pass; deterministic and CLI acceptance suites green

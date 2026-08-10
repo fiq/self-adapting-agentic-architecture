@@ -15,7 +15,7 @@ deltas:
     scenarios:
       - id: S1
         when: a check exceeds its configured timeout
-        then: its evidence status is `TIMED_OUT` and reliability is zero
+        then: its evidence status is `TIMED_OUT`, reliability is zero and the candidate is discarded
       - id: S2
         when: a passing check's diagnostic output contains the words `timed out`
         then: reliability remains one

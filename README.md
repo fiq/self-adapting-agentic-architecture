@@ -215,9 +215,10 @@ is `0.40 + 0.20 + 0.20 + 0.10 + 0.0975 = 0.9975`, reported as `1.00`.
 `subject.invariant.required_behavior_cases`, so the passed fraction is 1.0 by
 construction. Partial credit would need the gate relaxed first.
 
-`subject.objective.reliability` only drops when a check already failed, because a timed-out check
-is not eligible for promotion. Timeout is now a structured `TIMED_OUT` check status; the diagnostic
-summary still contains the timeout text, but candidate-controlled stdout cannot spoof reliability.
+`subject.objective.reliability` only drops when a check times out and records structured
+`TIMED_OUT` evidence; an ordinary failed check leaves the objective at 1.0, although either result
+fails the deterministic checks gate. The diagnostic summary still contains timeout text, but
+candidate-controlled stdout cannot spoof reliability.
 
 `subject.objective.cost_latency_budget` cannot be measured. `EvolveRunner` wires the benchmark
 runner to `candidate -> List.of()`, `ScoringConfig` gets an empty budget map,
