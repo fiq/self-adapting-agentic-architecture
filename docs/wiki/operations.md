@@ -76,6 +76,10 @@ must be committed before it can gate a run. The pre-flight inspects the working
 tree, so an uncommitted script passes pre-flight and then fails to start inside
 the candidate.
 
+The selected `--workflow-file` must not be one of the declared
+`<behaviour-case>.sh` scripts. This fails before candidate creation so a
+mutation cannot rewrite its own grader.
+
 A check script must not be a symlink. `git worktree add` recreates a tracked
 symlink faithfully, and the program has to resolve inside the candidate. The
 convention is POSIX-shaped, so `saaa-evolve` targets Linux and macOS. Behaviour
