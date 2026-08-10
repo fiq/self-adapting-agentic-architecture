@@ -96,7 +96,7 @@ public final class CommandCheckRunner implements CheckRunner {
             boolean completed = process.waitFor(check.timeout().toMillis(), TimeUnit.MILLISECONDS);
             if (!completed) {
                 terminate(process);
-                return CheckEvidence.failed(check.name(), timeoutSummary(check.timeout(), outputOf(output)));
+                return CheckEvidence.timedOut(check.name(), timeoutSummary(check.timeout(), outputOf(output)));
             }
             int exitCode = process.exitValue();
             String summary = summary(exitCode, outputOf(output));

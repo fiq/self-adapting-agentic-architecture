@@ -228,6 +228,16 @@ final class EvolveMcpToolTest {
                 .contains("checks")
                 .contains("benchmarks")
                 .contains("additionalProperties=false");
+
+        var properties = (Map<?, ?>) schema.get("properties");
+        var evidence = (Map<?, ?>) properties.get("evidence");
+        var evidenceProperties = (Map<?, ?>) evidence.get("properties");
+        var checks = (Map<?, ?>) evidenceProperties.get("checks");
+        var checkItems = (Map<?, ?>) checks.get("items");
+        var checkProperties = (Map<?, ?>) checkItems.get("properties");
+        var status = (Map<?, ?>) checkProperties.get("status");
+        assertThat(status.get("enum"))
+                .isEqualTo(List.of("PASSED", "FAILED", "TIMED_OUT"));
     }
 
     private static EvolveMcpTool toolReturning(EvolveRunResult result) {

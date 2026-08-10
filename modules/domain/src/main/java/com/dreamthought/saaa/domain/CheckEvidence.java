@@ -16,4 +16,8 @@ public record CheckEvidence(String name, CheckStatus status, String summary) {
     public static CheckEvidence failed(String name, String summary) {
         return new CheckEvidence(name, CheckStatus.FAILED, summary);
     }
+
+    public static CheckEvidence timedOut(String name, String summary) {
+        return new CheckEvidence(name, CheckStatus.TIMED_OUT, summary);
+    }
 }
