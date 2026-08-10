@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.adapters.mcp;
 
 import com.dreamthought.saaa.adapters.evolve.EvolveRunner;
+import com.dreamthought.saaa.domain.CheckStatus;
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpSyncServer;
@@ -94,7 +95,8 @@ public final class EvolveMcpServer {
         check.put("required", List.of("name", "status", "summary"));
         check.put("properties", Map.of(
                 "name", Map.of("type", "string"),
-                "status", Map.of("type", "string", "enum", List.of("PASSED", "FAILED")),
+                "status", Map.of("type", "string", "enum", List.of(CheckStatus.values()).stream()
+                        .map(Enum::name).toList()),
                 "summary", Map.of("type", "string")));
 
         var benchmark = new LinkedHashMap<String, Object>();

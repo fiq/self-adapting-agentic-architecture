@@ -57,8 +57,23 @@ final class CommandCheckRunnerIntegrationTest {
         assertThat(evidence.get(2).status()).isEqualTo(CheckStatus.PASSED);
         assertThat(evidence.get(2).summary()).contains("exit=0", "candidate-output", "...");
         assertThat(evidence.get(3).name()).isEqualTo("timeout-check");
-        assertThat(evidence.get(3).status()).isEqualTo(CheckStatus.FAILED);
+        assertThat(evidence.get(3).status()).isEqualTo(CheckStatus.TIMED_OUT);
         assertThat(evidence.get(3).summary()).contains("timed out");
+    }
+
+    @Test
+    void recordsTimeoutAsStructuredEvidence() throws Exception {
+        Path worktree = tempDir.resolve("timeout-only");
+        Files.createDirectories(worktree);
+        var candidate = new Candidate(
+                "candidate-mut-timeout", "mut-timeout", "candidate/baseline-mut-timeout", worktree,
+                "0123456789abcdef0123456789abcdef01234567");
+
+        var evidence = new CommandCheckRunner(List.of(new CommandCheckRunner.CommandCheck(
+                "timeout-check", List.of("sh", "-c", "sleep 1"), Duration.ofMillis(50))))
+                .runChecks(candidate);
+
+        assertThat(evidence).singleElement().extracting(e -> e.status()).isEqualTo(CheckStatus.TIMED_OUT);
     }
 
     /**

@@ -83,9 +83,9 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         return (double) passed / behaviorCases.size();
     }
 
-    /** A check that timed out records "timed out" in its summary; anything else ran to completion. */
+    /** Timeout is structured evidence; summaries remain candidate-controlled diagnostic text. */
     private static boolean allChecksRan(EvaluationEvidence evidence) {
-        return evidence.checks().stream().noneMatch(check -> check.summary().contains("timed out"));
+        return evidence.checks().stream().noneMatch(check -> check.status() == CheckStatus.TIMED_OUT);
     }
 
     private double budgetScore(List<BenchmarkEvidence> benchmarks) {

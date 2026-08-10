@@ -2,5 +2,6 @@ package com.dreamthought.saaa.domain;
 
 public enum CheckStatus {
     PASSED,
-    FAILED
+    FAILED,
+    TIMED_OUT
 }

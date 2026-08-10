@@ -1,0 +1,41 @@
+change:
+  id: CHG-008
+  title: Derive reliability from structured timeout evidence
+  status: delivered
+  intent: Prevent candidate-controlled check output from changing the reliability objective.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - ARCH-001
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: Check execution records timeout as structured evidence and reliability derives only from that status.
+    scenarios:
+      - id: S1
+        when: a check exceeds its configured timeout
+        then: its evidence status is `TIMED_OUT`, reliability is zero and the candidate is discarded
+      - id: S2
+        when: a passing check's diagnostic output contains the words `timed out`
+        then: reliability remains one
+
+acceptance:
+  - scenario: S1
+    test_id: adapters/checks/CommandCheckRunnerIntegrationTest.recordsTimeoutAsStructuredEvidence
+    layer: integration
+  - scenario: S2
+    test_id: deterministic/PhenotypeBridgeScorerTest.doesNotTreatCandidateOutputContainingTimeoutWordsAsAnUnreliableCheck
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: add a structured timeout status and emit it from CommandCheckRunner
+    status: completed
+  - id: T2
+    slice: derive reliability from status and document the anti-spoofing boundary
+    status: completed
+
+non_goals:
+  - redesigning the four non-discriminating fitness objectives
+  - changing weights, thresholds or promotion policy
