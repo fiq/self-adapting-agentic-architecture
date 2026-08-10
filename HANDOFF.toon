@@ -1,19 +1,20 @@
 session:
-  updated: 2026-08-05
-  status: fitness_taxonomy_step_1
-  branch: docs/fitness-taxonomy-step-1
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/docs-fitness-taxonomy-step-1
-  head: branch from `main` at 77ba7c7
-  head_note: documentation-only change. No production code, scoring weights, thresholds or module boundaries were modified. Implements step 1 of the fitness taxonomy design note already on `main`.
-  dirty: false
+  updated: 2026-08-10
+  status: fitness_signal_id_applied
+  branch: feat/fitness-signal-id
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-fitness-signal-id
+  head: ca0db57
+  head_note: typed fitness identifiers are being migrated through the deterministic, IR, MCP and documentation surfaces; legacy result keys are accepted on read and emitted canonically.
+  dirty: true
   pushed: false
 
 goal:
-  current: measure whether bounded local hybrid GraphRAG actually improves deterministic fitness per token, now that the implementation is merged
-  phase: chg_005_merged_awaiting_first_measured_ablation
-  interlude: README accuracy and structure pass completed against verified runtime evidence; it did not change the ablation goal
+  current: finish and validate the typed fitness signal identifier migration before returning to the CHG-005 measured ablation
+  phase: fitness_signal_id_migration_in_progress
+  interlude: the GraphRAG implementation is merged; this branch makes the fitness taxonomy naming scheme real without changing weights, thresholds, derivations or decisions
 
 completed:
+  - applied the CON-002 naming scheme through typed `FitnessSignalId` values; signal role now comes from scope/force and IR position rather than a name prefix, with legacy result keys accepted on read and emitted canonically
   - ran repository startup, read the canonical context in prescribed order, searched relevant knowledge, inspected CHG-001 through CHG-004 and the live mutation/proposer/worktree/SQLite/scoring/reporting path
   - confirmed the original semantic retrieval and container deferrals were conditional and that their recorded revisit trigger has now been explicitly reached
   - created isolated worktree `.worktrees/feat-chg-005-hybrid-graphrag` from clean `origin/main` at `c40cb88`; the coordination checkout was not modified
@@ -138,6 +139,8 @@ completed:
 in_progress: []
 
 next:
+  - finish validation and review of `feat/fitness-signal-id`, then open its PR; do not merge without human review
+  - return to the measured NONE/VECTOR/GRAPH/HYBRID ablation after this migration lands
   - close the reward-hacking hole found during the README audit: nothing stops `--workflow-file workflow-check.sh --behaviour-case workflow-check`, which lets the proposal rewrite the script that grades it inside the candidate before checks run; the `HEAD`-sourcing protection does not cover a check script chosen as the mutation target
   - decide what to do about `task_success`, `reliability`, `cost_latency_budget` and `behavioral_safety` all being constant for eligible candidates, which leaves `parsimony` as the only discriminating objective and makes the 0.80 threshold unreachable from below
   - replace the `reliability` substring test on check summaries; it matches candidate-controlled stdout, so a passing check printing "timed out" is scored 0.0 and discarded
@@ -332,6 +335,12 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-10 `.agentic-template/bin/project test`: pass after typed identifier migration and legacy-key compatibility; domain, deterministic, adapter and CLI unit tests green
+  - 2026-08-10 `.agentic-template/bin/project component-test`: pass; deterministic and CLI acceptance suites green
+  - 2026-08-10 `.agentic-template/bin/project integration-test`: pass; adapter and benchmark integration suites green
+  - 2026-08-10 `.agentic-template/bin/project check`: pass; repository, profile, handoff, knowledge, change, tooling, MCP, architecture and glossary checks green
+  - 2026-08-10 `.agentic-template/bin/project ready`: READY: PASS, 16 passed, 1 not applicable, 0 failed
+  - 2026-08-10 `git diff --check`: pass, no output
   - 2026-08-04 README evidence pass, documented quick start `saaa saaa-evolve fixtures/toy-workflow --behaviour-case workflow-check --max-lines 80`: PROMOTE, exit 0; output and journal entry in the README are verbatim from this run
   - 2026-08-04 README evidence pass, DISCARD path with a canned proposal that keeps `draft-check: skip`: FAILED check, score 0.00, DISCARD, exit 0; confirms a discarded candidate is a successful run
   - 2026-08-04 README evidence pass, repeat fixture run without clearing `experiments/ledger/`: verdict printed then `IllegalStateException` from `GitExperimentEnvelopeStore.append`, exit 1; recorded as a risk, not fixed
@@ -509,6 +518,7 @@ tests_run:
   - 2026-08-05 whole-branch review fix pass, `git diff --check`: pass, no output
 
 fitness_functions:
+  - changed: fitness identifiers now use `subject.invariant.*`, `subject.objective.*` and `process.invariant.*` forms through `FitnessSignalId`; weights, threshold, derivations and decisions are unchanged; MCP grouping uses typed force and legacy keys are normalized at the output boundary
   - changed: PR `pull_request` CI runs the fast conformance profile (`project check`, `project check-readme`, `project test`, `project component-test`, `project integration-test`, `project lint`) and no longer runs `project ready`; automatic `push` to `main`, `v*` tags and manual `profile=full` dispatch run both fast checks and full readiness
   - removed: the separate `repo-contract` workflow is deleted because `project check` runs `check-repo-contract` in the main CI workflow
   - unchanged: T1 adds LangChain4j OpenAI provider wiring only inside `modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j`; the boundary fitness function remains the guard that provider imports do not leak into `modules/domain` or `modules/deterministic`
@@ -525,6 +535,8 @@ fitness_functions:
 knowledge:
   consulted:
     - .agents/knowledge/index.md
+    - .agents/knowledge/contracts/CON-002-fitness-naming-and-severity.md
+    - .agents/knowledge/questions/Q-004-fitness-objectives.md
     - .agents/knowledge/architecture/ARCH-001-deterministic-model-boundary.md
     - .agents/knowledge/architecture/ARCH-002-retrieval-evidence-boundary.md
     - .agents/knowledge/decisions/ADR-0002-three-layer-vision.md
@@ -569,6 +581,7 @@ knowledge:
 
 team_fallback:
   current: single_lead_with_pr_review_gate
+  fitness_signal_id_review: attempted a low-cost local opencode review worker, but the installed CLI could not start model discovery because it could not open its configured log path; no independent worker findings were obtained. Compensating evidence is focused legacy-key regression coverage, full unit/component/integration/readiness validation, lead diff review and the required human PR review gate.
   reason: the active collaboration contract prohibited spawning subagents for CHG-005, so the lead performed explicit architecture/security/efficiency self-review and preserved human review as the required PR merge gate; no merge or push was attempted
   chg_005_lost_challenge: no independent actor reviewed this large slice before handoff; compensating evidence is outside-in acceptance coverage, real Git/SQLite/Neo4j integration, Nix operator exercises, dependency/image scanning and an explicit 14-question lead challenge
   chg_005_outcome: PR #18 merged 2026-08-04 as `ace9950` after human review; the merge gate was human review plus clean-checkout CI. Clean-checkout CI, not review, is what caught the test-isolation defect, which is evidence that the missing independent-actor challenge was a real gap rather than a formality

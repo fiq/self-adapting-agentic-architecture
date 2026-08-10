@@ -2,7 +2,7 @@
 id: CON-002
 type: contract
 title: Fitness identifier naming and severity classes
-status: proposed
+status: canonical
 summary: Fitness identifiers carry a subject/process and invariant/objective prefix, and invariant violations are partitioned into integrity, safety, correctness and shape.
 owners:
   - architect
@@ -15,6 +15,7 @@ evidence:
   - docs/superpowers/specs/2026-08-04-fitness-taxonomy-and-steered-evolution-design.md
   - docs/wiki/glossary.md
 review_after: 2027-02-04
+reviewed_at: 2026-08-10
 ---
 
 # Fitness Identifier Naming and Severity Classes
@@ -38,13 +39,16 @@ The prefix encodes kind, not type. It exists because "fitness function" had
 come to mean both candidate scoring and architecture conformance, and
 `HANDOFF.toon` had begun mixing both under one `fitness_functions` key.
 
-The existing `hard_gate_*` identifiers do not yet follow this scheme. Renaming
-them changes MCP output ordering, which `EvolveMcpToolTest` asserts, and
-invalidates identifiers already persisted in any target repository that has
-run `saaa-evolve`, both in its `.saaa/experiments.sqlite` ledger and in its
-`experiments/ledger/*.toon` envelopes. The rename is therefore a separate
-change with a migration story, and this entry records the target shape rather
-than claiming it is in force.
+The scheme is in force. `FitnessSignalId` in `modules/domain` is the type, and
+`PhenotypeFitnessScorer`, `MutationOperatorPolicy` and `PhenotypeBridgeScorer`
+build every identifier through it. The S-expression IR renders scope and name
+as nested nodes, so a signal is a gate because of where it sits rather than
+what it is called, and `EvolveMcpResponseSerializer` partitions on force rather
+than on a name prefix. Legacy unscoped objective keys and `hard_gate_*` keys are
+accepted on read and re-emitted canonically, so existing result maps can cross
+the representation boundary without silently changing their role.
+
+The severity classes below are not yet enforced anywhere.
 
 ## Severity classes
 

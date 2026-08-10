@@ -39,9 +39,15 @@ final class FitnessSignalIdTest {
     }
 
     @Test
+    void acceptsLegacyKeysSoPersistedResultsCanBeReEmittedCanonically() {
+        assertThat(FitnessSignalId.parse("hard_gate_deterministic_checks").canonical())
+                .isEqualTo("subject.invariant.deterministic_checks");
+        assertThat(FitnessSignalId.parse("task_success").canonical())
+                .isEqualTo("subject.objective.task_success");
+    }
+
+    @Test
     void rejectsAMalformedCanonicalString() {
-        assertThatThrownBy(() -> FitnessSignalId.parse("hard_gate_deterministic_checks"))
-                .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> FitnessSignalId.parse("subject.invariant"))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> FitnessSignalId.parse("nowhere.invariant.x"))

@@ -45,6 +45,14 @@ public record FitnessSignalId(FitnessScope scope, FitnessForce force, String nam
 
     public static FitnessSignalId parse(String canonical) {
         Objects.requireNonNull(canonical, "canonical");
+        if (canonical.startsWith("hard_gate_")) {
+            return invariant(canonical.substring("hard_gate_".length()));
+        }
+        if (SAFE_NAME.matcher(canonical).matches()) {
+            // Legacy measured objective keys were unscoped names. Accept them on read so existing
+            // ledgers and result maps can be re-emitted in the typed canonical form.
+            return objective(canonical);
+        }
         String[] parts = canonical.split("\\.", -1);
         if (parts.length != SEGMENTS) {
             throw new IllegalArgumentException(
