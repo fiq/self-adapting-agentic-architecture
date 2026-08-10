@@ -1,0 +1,52 @@
+change:
+  id: CHG-007
+  title: Prevent mutation of grading scripts
+  status: delivered
+  intent: Prevent a candidate from rewriting a declared behaviour-case script before that script grades the candidate.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - ARCH-001
+    - RISK-001
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: The evolve pre-flight rejects a workflow file that resolves to any declared behaviour-case check script before proposer resolution, candidate creation or journaling.
+    scenarios:
+      - id: S1
+        when: `--workflow-file` names the `<behaviour-case>.sh` script used to grade the run
+        then: the run fails before candidate creation
+        and:
+          - the grading script cannot be rewritten by the mutation
+          - no decision or journal entry is recorded
+          - the error identifies the conflicting check script
+      - id: S2
+        when: `--workflow-file` names a regular non-check file
+        then: the existing evolve path remains available
+        and:
+          - the guard does not change normal workflow mutation behavior
+
+acceptance:
+  - scenario: S1
+    test_id: cli/EvolveCommandAcceptanceTest.refusesToMutateTheBehaviourCaseCheckScript
+    layer: acceptance
+  - scenario: S2
+    test_id: cli/EvolveCommandAcceptanceTest.runsOneGenerationWithFixtureProfileAndReportsADecision
+    layer: acceptance
+
+tasks:
+  - id: T1
+    slice: reject a workflow target that equals a declared check script during EvolveRunner pre-flight
+    status: completed
+  - id: T2
+    slice: add acceptance coverage and document the reward-hacking boundary
+    status: completed
+
+non_goals:
+  - full JVM sandboxing of candidate code
+  - preventing a candidate from changing unrelated helper scripts that are not declared grading cases
+  - changing mutation scope, scoring weights or promotion thresholds
+
+risks:
+  - a future checker that grades through an undeclared helper remains outside this narrow guard and needs explicit modelling if that setup is introduced

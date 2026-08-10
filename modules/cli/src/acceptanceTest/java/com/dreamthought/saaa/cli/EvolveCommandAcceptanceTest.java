@@ -165,6 +165,27 @@ final class EvolveCommandAcceptanceTest {
         assertThat(Files.exists(target.resolve("journal.md"))).isFalse();
     }
 
+    @Test
+    void refusesToMutateTheBehaviourCaseCheckScript(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(),
+                "--workflow-file", "workflow-check.sh",
+                "--behaviour-case", "workflow-check");
+
+        assertThat(exitCode).isNotZero();
+        assertThat(Files.exists(target.resolve("journal.md"))).isFalse();
+    }
+
     /**
      * Parsimony rewards a smaller diff, so a realization that wrote the file back unchanged measures
      * zero lines and scores 1.0. Nothing else in the score notices, so a candidate that changed
