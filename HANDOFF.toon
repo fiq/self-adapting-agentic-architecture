@@ -1,19 +1,21 @@
 session:
   updated: 2026-08-11
-  status: structured_reliability_evidence
-  branch: fix/reliability-check-status
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-reliability-check-status
-  head: 90c1e9b
-  head_note: timeout is structured CheckStatus.TIMED_OUT evidence; candidate-controlled summaries cannot spoof reliability.
-  dirty: false
+  status: resource_aware_model_routing_capture
+  branch: docs/resource-aware-model-routing
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/docs-resource-aware-model-routing
+  head: not_yet_committed
+  head_note: Q-010 captures token, credit, time and retry awareness as explicit routing strategy state.
+  dirty: true
   pushed: false
 
 goal:
-  current: prevent candidate-controlled check output from changing the reliability objective
-  phase: structured_reliability_evidence_in_progress
-  interlude: PR #21 merged as `9456744` and PR #22 merged as `d15cc22`; this slice leaves scoring weights and thresholds unchanged
+  current: capture resource-aware model routing as a bounded strategy question
+  phase: documentation_capture
+  interlude: PR #23 merged as `35d934c`; no runtime routing behavior is being claimed or changed
 
 completed:
+  - captured Q-010: remaining tokens, credits, wall-clock budget, rate limits and retries may inform model-tier/context routing, subject to deterministic audit and safety constraints
+  - documented the current absence of complexity-based routing and the evidence required before implementing it
   - PR #22 merged as `d15cc22`; the reward-hacking pre-flight guard now rejects a workflow target equal to a declared grading script
   - added `CheckStatus.TIMED_OUT`, emitted it from `CommandCheckRunner`, and made reliability derive from structured status rather than summary text
   - added CHG-008, README/wiki documentation and unit/integration regression coverage for timeout evidence and candidate output containing `timed out`
@@ -144,6 +146,7 @@ completed:
 in_progress: []
 
 next:
+  - design a measured `model-routing-change` slice only after proposer usage and provider budget evidence are available
   - run full unit/component/integration/readiness validation, then open a PR for the structured reliability fix
   - decide how to transport `MutationContract` through the live loop before implementing contract-aware scoring (RISK-002/T4b)
   - decide what to do about `task_success`, `reliability`, `cost_latency_budget` and `behavioral_safety` all being constant for eligible candidates, which leaves `parsimony` as the only discriminating objective and makes the 0.80 threshold unreachable from below
@@ -338,6 +341,9 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-11 `.agentic-template/bin/project check`: pass; repository, profile, handoff, knowledge, changes, tooling, MCP, architecture and glossary checks green
+  - 2026-08-11 `.agentic-template/bin/project ready`: blocked by environment permissions; Nix could not write `/home/raf/.cache/nix/fetcher-cache-v4.sqlite` and Docker access to `/var/run/docker.sock` was denied; no runtime changes are present in this documentation-only slice
+  - 2026-08-11 `git diff --check`: pass
   - 2026-08-11 `.agentic-template/bin/gradle-command :deterministic:test --tests '*PhenotypeBridgeScorerTest.doesNotTreatCandidateOutputContainingTimeoutWordsAsAnUnreliableCheck'`: pass
   - 2026-08-11 `.agentic-template/bin/gradle-command :adapters:integrationTest --tests '*CommandCheckRunnerIntegrationTest.recordsTimeoutAsStructuredEvidence'`: pass
   - 2026-08-11 GLM 5.2 read-only self-review: found and fixed MCP schema enum drift, README wording, missing timeout scorer assertion, and missing schema enum test; no persistence or hard-gate regression found
