@@ -16,6 +16,12 @@ The workflow that proposes, realizes, checks, scores and records candidate
 changes. Models may propose or repair, but deterministic code validates and
 scores.
 
+## Agent Harness
+
+The provider- and product-neutral execution boundary through which SAAA invokes
+an external agent or model. A harness returns a proposal and structured usage
+evidence; it never owns SAAA validation, fitness or promotion authority.
+
 ## Architecture Fitness Function
 
 An automated check that a structural characteristic of SAAA itself still holds,
