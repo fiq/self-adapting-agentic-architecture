@@ -234,6 +234,20 @@ decisions:
       - .agents/knowledge/decisions/ADR-0003-smart-bridge-northbound-interfaces.md
       - .agentic-template/bin/project check
     consequence_if_changed: the L2 interface plan and any future northbound OpenAI-compatible facade need replanning before implementation
+  - id: harness_agnostic_southbound_execution
+    decision: SAAA owns a provider-neutral AgentHarness boundary; Goose, OpenCode, Codex, Claude, local processes and direct model APIs remain swappable adapters
+    reason:
+      - a harness is an execution engine, not the authority that validates or promotes a candidate
+      - one neutral contract permits comparable experiments across agent products and providers
+      - route, resource budget, workspace isolation and structured evidence belong to SAAA's control plane
+      - transport and vendor details such as ACP, MCP, CLI and provider SDKs should not leak into domain or deterministic code
+    confidence: medium
+    status: active
+    validation:
+      - specs/changes/CHG-006-agent-harness-boundary/change.toon
+      - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/AgentHarness.java
+      - docs/wiki/architecture.md
+    consequence_if_changed: choosing a single agent product as the architecture would require replanning the southbound adapter boundary and cross-harness experiment strategy
 
 unknowns:
   - id: Q-001
