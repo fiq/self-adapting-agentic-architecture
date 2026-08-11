@@ -1,0 +1,78 @@
+change:
+  id: CHG-006
+  title: Harness-agnostic agent invocation boundary
+  status: proposed
+  intent: Introduce a provider- and harness-neutral invocation contract so Goose, OpenCode, Codex, Claude, direct APIs and local processes can be swapped behind adapters while SAAA retains routing, isolation, evidence, evaluation and promotion authority.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - ARCH-001
+    - ADR-0002
+    - ADR-0003
+    - Q-010
+    - RISK-001
+
+deltas:
+  - op: ADDED
+    capability: agent-harness-boundary
+    requirement: SAAA exposes a provider-neutral AgentHarness port accepting a bounded request and returning structured invocation evidence; external harnesses and model providers remain adapter concerns.
+    scenarios:
+      - id: S1
+        when: an agent invocation is prepared
+        then: the request contains the mutation proposal, isolated workspace, capability allowlist, expected output schema, selected route and remaining resource budget
+        and:
+          - route selection is explicit and auditable before invocation
+          - token, credit, wall-clock and retry limits cannot be negative
+          - an adapter rejects an invocation whose input-token, output-token or wall-clock allowance is exhausted
+      - id: S2
+        when: a harness returns
+        then: the result identifies completion, failure, timeout or rejection and records provider-neutral usage and optional session/output references
+        and:
+          - a completed result contains a mutation
+          - a non-completed result contains no mutation
+      - id: S3
+        when: an existing proposer is exposed through the compatibility adapter
+        then: successful proposals become completed harness results and proposer failures become failed results without approval
+        and:
+          - no provider-specific dependency enters domain or deterministic
+          - deterministic evaluation remains the authority after the harness returns
+
+acceptance:
+  - scenario: S1
+    test_id: domain/AgentRequestTest.rejectsNegativeResourceBudget
+    layer: unit
+  - scenario: S2
+    test_id: domain/AgentRequestTest.requiresCompletedResultToCarryAMutation
+    layer: unit
+  - scenario: S3
+    test_id: adapters/evolve/MutationProposerAgentHarnessTest.exposesSuccessfulLegacyProposerAsAuditedCompletedRun
+    layer: unit
+  - scenario: S3
+    test_id: adapters/evolve/MutationProposerAgentHarnessTest.capturesProposalFailureWithoutApprovingIt
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: add provider-neutral route, budget, usage, request and result records
+    status: completed
+  - id: T2
+    slice: add the deterministic AgentHarness port and legacy proposer compatibility adapter
+    status: completed
+  - id: T3
+    slice: document the harness-agnostic architecture and preserve the deterministic approval boundary
+    status: completed
+  - id: T4
+    slice: add ACP, OpenCode, Goose, Codex and Claude adapters after the neutral contract has measured use
+    status: pending
+
+non_goals:
+  - implementing another general-purpose agent product
+  - putting ACP, MCP, CLI, provider or vendor types in the core boundary
+  - changing mutation validation, fitness weights, thresholds or promotion semantics
+  - routing by opaque model-name heuristics before resource-aware ablation evidence exists
+  - implementing ethical or personal-preference routing in this boundary slice; Q-011 captures that follow-up
+
+risks:
+  - the compatibility adapter currently exercises the legacy baseline-only proposer path; retrieval-aware harness invocation needs a follow-up loop integration
+  - usage fields are evidence supplied by adapters and are not yet independently verified against provider billing
+  - the compatibility adapter treats route as selected intent and rejects exhausted token/time allowance; provider adapters must add provider-specific usage verification

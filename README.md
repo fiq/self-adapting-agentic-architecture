@@ -48,6 +48,21 @@ proposal fixes it, so the run promotes.
 
 ## What is real today
 
+### Harness-agnostic execution boundary
+
+SAAA is being shaped as an agentic harness governor, not as another
+general-purpose coding agent. `AgentHarness` is the provider-neutral boundary
+for calling an execution engine such as Goose, OpenCode, Codex, Claude, a local
+process or a direct model API. The engine is replaceable; SAAA retains the
+route, resource budget, isolated worktree, deterministic checks, fitness,
+promotion and audit evidence.
+
+The first compatibility adapter wraps the existing proposer path. ACP and
+concrete external-agent adapters are deliberately follow-up work so the neutral
+contract can be tested before transport-specific behavior is introduced. See
+[`CHG-006`](specs/changes/CHG-006-agent-harness-boundary/change.toon) and the
+[architecture wiki](docs/wiki/architecture.md).
+
 **Working** means implemented and runnable now. **Partial** means a real
 implementation exists but the useful capability is incomplete. **Not
 implemented** means no code.

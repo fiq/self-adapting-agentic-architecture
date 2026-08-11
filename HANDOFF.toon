@@ -1,19 +1,26 @@
 session:
   updated: 2026-08-11
-  status: resource_aware_model_routing_capture
-  branch: docs/resource-aware-model-routing
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/docs-resource-aware-model-routing
-  head: not_yet_committed
-  head_note: Q-010 captures token, credit, time and retry awareness as explicit routing strategy state.
+  status: agent_harness_boundary
+  branch: feat/agent-harness-boundary
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-agent-harness-boundary
+  head: origin/main at 79e99b7
+  head_note: CHG-006 adds the first harness-agnostic invocation contract; no provider-specific transport or promotion behavior was added.
   dirty: true
   pushed: false
 
 goal:
-  current: capture resource-aware model routing as a bounded strategy question
-  phase: documentation_capture
-  interlude: PR #23 merged as `35d934c`; no runtime routing behavior is being claimed or changed
+  current: establish a harness-agnostic southbound execution boundary for interchangeable agent engines
+  phase: chg_006_agent_harness_boundary
+  interlude: Goose/OpenCode/Codex/Claude are swappable adapters; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
 
 completed:
+  - added CHG-006 with scenarios, acceptance mappings, completed tasks and explicit follow-up for ACP and concrete external harness adapters
+  - added provider-neutral AgentRequest, AgentRoute, ResourceBudget, AgentUsage, AgentRunResult and AgentRunStatus domain records
+  - added deterministic AgentHarness port and a legacy MutationProposer compatibility adapter that captures failures without approving them
+  - documented the harness-agnostic architecture in README, architecture wiki and glossary and recorded the active decision in PROJECT_PROFILE
+  - captured Q-011 for configurable ethical and personal-preference model routing, including local/open-weight/provider/jurisdiction/data-retention constraints
+  - ran `nix develop --command .agentic-template/bin/project test`: pass, including domain, deterministic, adapters and CLI tests
+  - GLM 5.2 read-only review found no blockers; addressed all six should-fix findings before publication
   - captured Q-010: remaining tokens, credits, wall-clock budget, rate limits and retries may inform model-tier/context routing, subject to deterministic audit and safety constraints
   - documented the current absence of complexity-based routing and the evidence required before implementing it
   - PR #22 merged as `d15cc22`; the reward-hacking pre-flight guard now rejects a workflow target equal to a declared grading script
@@ -341,6 +348,10 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-11 `nix develop --command gradle :domain:test :adapters:test :deterministic:test --rerun-tasks`: pass; full domain, adapters and deterministic unit suites executed after GLM review fixes
+  - 2026-08-11 `nix develop --command .agentic-template/bin/project component-test`: pass; deterministic and CLI acceptance suites green
+  - 2026-08-11 `nix develop --command .agentic-template/bin/project check`: pass after review fixes; repository, profile, handoff, knowledge, changes, tooling, MCP, architecture and glossary checks green
+  - 2026-08-11 `nix develop --command gradle :domain:test :adapters:test --rerun-tasks --tests '*AgentRequestTest' --tests '*MutationProposerAgentHarnessTest'`: pass; all 5 focused harness/domain tests executed
   - 2026-08-11 `.agentic-template/bin/project check`: pass; repository, profile, handoff, knowledge, changes, tooling, MCP, architecture and glossary checks green
   - 2026-08-11 `.agentic-template/bin/project ready`: blocked by environment permissions; Nix could not write `/home/raf/.cache/nix/fetcher-cache-v4.sqlite` and Docker access to `/var/run/docker.sock` was denied; no runtime changes are present in this documentation-only slice
   - 2026-08-11 `git diff --check`: pass

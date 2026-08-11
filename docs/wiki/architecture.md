@@ -36,6 +36,7 @@ MutationEvaluationLoop  (deterministic)
   |
   +--> ports
         |-- MutationProposer          -> adapters/fixture, adapters/langchain4j
+        |-- AgentHarness             -> adapters/CLI, adapters/ACP, adapters/providers (planned)
         |-- EvidenceRetriever         -> adapters/retrieval, adapters/neo4j
         |-- CandidateWorkspace        -> adapters/git
         |-- CheckRunner               -> adapters/checks
@@ -64,6 +65,31 @@ configuration.
 The key architecture rule is `ARCH-001`: LangChain4j is an adapter detail, and
 validation, fitness scoring, promotion and rollback remain deterministic Java
 decisions. `RISK-001` tracks the model self-approval failure mode.
+
+## Harness-agnostic southbound execution
+
+`AgentHarness` is the neutral port for invoking an external agent or model. Its
+request carries the selected route, isolated workspace, capability allowlist,
+expected output schema and remaining resource budget. Its result carries only
+provider-neutral status and usage evidence; a completed result is still merely
+an agent proposal.
+
+```text
+SAAA route + budget + worktree
+             |
+       AgentHarness port
+       /       |       \
+    ACP     OpenCode   process/API
+    Goose   Codex      local model
+             |
+ deterministic validation -> fitness -> promote/discard
+```
+
+Goose, OpenCode, Codex, Claude and direct model APIs are intentionally adapters,
+not architectural authorities. This keeps the harness swappable and lets
+experiments compare agent engines under the same candidate, resource and
+fitness policy. `CHG-006` defines the first boundary; ACP and concrete external
+harness adapters remain follow-up work.
 
 Evolutionary operator policy is captured in
 [`docs/architecture/evolutionary-operators.md`](../architecture/evolutionary-operators.md):
