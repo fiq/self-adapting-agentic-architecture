@@ -35,7 +35,7 @@ MutationEvaluationLoop  (deterministic)
   +--> domain records and deterministic policies
   |
   +--> ports
-        |-- MutationProposer          -> adapters/fixture, adapters/langchain4j
+        |-- MutationProposer          -> adapters/fixture, adapters/langchain4j, adapters/acp
         |-- AgentHarness             -> adapters/acp, adapters/CLI, adapters/providers
         |-- EvidenceRetriever         -> adapters/retrieval, adapters/neo4j
         |-- CandidateWorkspace        -> adapters/git
@@ -82,8 +82,22 @@ SAAA route + budget + worktree
     ACP     OpenCode   process/API
     Goose   Codex      local model
              |
- deterministic validation -> fitness -> promote/discard
+deterministic validation -> fitness -> promote/discard
 ```
+
+The live `acp` profile is composed into `MutationProposer` at the adapter edge.
+It receives the prepared retrieval bundle as advisory context, invokes the
+agent in a disposable proposal workspace, requires a completed
+provider-neutral result, and fails before candidate creation when the agent
+fails, times out or exhausts its invocation budget. This is the first end-to-end
+harness path; it intentionally does not add provider selection or automatic
+merge authority.
+
+The ACP adapter can reject a request whose configured token, credit or
+wall-clock allowance is already exhausted. ACP 0.14.0 does not expose provider
+billing or token usage through this adapter, so runtime usage is currently
+authoritative only for wall-clock duration; token, credit and retry values are
+request policy and audit inputs until a richer usage contract is added.
 
 Goose, OpenCode, Codex, Claude and direct model APIs are intentionally adapters,
 not architectural authorities. This keeps the harness swappable and lets
