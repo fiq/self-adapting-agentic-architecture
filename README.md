@@ -57,10 +57,12 @@ process or a direct model API. The engine is replaceable; SAAA retains the
 route, resource budget, isolated worktree, deterministic checks, fitness,
 promotion and audit evidence.
 
-The first compatibility adapter wraps the existing proposer path. ACP and
-concrete external-agent adapters are deliberately follow-up work so the neutral
-contract can be tested before transport-specific behavior is introduced. See
+The first compatibility adapter wraps the existing proposer path. The first
+real external adapter now invokes an ACP-compatible local agent over stdio;
+OpenCode, Goose, Codex and Claude remain selectable command configurations
+rather than hard-coded authorities. See
 [`CHG-006`](specs/changes/CHG-006-agent-harness-boundary/change.toon) and the
+[ACP slice](specs/changes/CHG-009-acp-agent-harness/change.toon), plus the
 [architecture wiki](docs/wiki/architecture.md).
 
 **Working** means implemented and runnable now. **Partial** means a real

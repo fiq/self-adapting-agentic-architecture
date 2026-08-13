@@ -248,6 +248,19 @@ decisions:
       - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/AgentHarness.java
       - docs/wiki/architecture.md
     consequence_if_changed: choosing a single agent product as the architecture would require replanning the southbound adapter boundary and cross-harness experiment strategy
+  - id: acp_stdio_first_external_harness
+    decision: the first real external AgentHarness adapter uses the official ACP Java SDK over a configured local stdio subprocess
+    reason:
+      - ACP provides an existing interoperability seam for OpenCode, Goose, Codex, Claude and other compatible agents
+      - stdio keeps the first adapter local and avoids adding a network service or remote trust boundary
+      - the adapter remains replaceable because ACP types stop at modules/adapters
+    confidence: medium
+    status: experimental
+    validation:
+      - specs/changes/CHG-009-acp-agent-harness/change.toon
+      - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/acp/AcpAgentHarness.java
+      - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/acp/AcpAgentHarnessTest.java
+    consequence_if_changed: a different transport or SDK must preserve the AgentHarness contract and re-establish subprocess, timeout and malformed-output evidence
 
 unknowns:
   - id: Q-001
