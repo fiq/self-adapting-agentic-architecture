@@ -121,6 +121,8 @@ public final class AcpAgentHarness implements AgentHarness {
                 + "\nBaseline version: " + baseline.version()
                 + "\nBaseline definition:\n" + baseline.definition()
                 + "\nTask:\n" + request.proposal().retrievalQuery().semanticText()
+                + request.retrieval().map(bundle -> "\nRetrieved evidence capsule context:\n"
+                        + bundle.flattenedContext()).orElse("")
                 + "\nJSON fields: id, summary, scope, patch. Scope must be one of "
                 + List.of(MutationScope.values());
     }

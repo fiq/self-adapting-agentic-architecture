@@ -1,7 +1,7 @@
 package com.dreamthought.saaa.domain;
 
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Optional;
 import java.util.Objects;
 import java.util.Set;
 
@@ -12,8 +12,20 @@ public record AgentRequest(
         Set<String> allowedCapabilities,
         String expectedOutputSchema,
         AgentRoute route,
-        ResourceBudget budget
+        ResourceBudget budget,
+        Optional<RetrievalBundle> retrieval
 ) {
+    public AgentRequest(
+            MutationProposalRequest proposal,
+            Path workspace,
+            Set<String> allowedCapabilities,
+            String expectedOutputSchema,
+            AgentRoute route,
+            ResourceBudget budget
+    ) {
+        this(proposal, workspace, allowedCapabilities, expectedOutputSchema, route, budget, Optional.empty());
+    }
+
     public AgentRequest {
         proposal = Objects.requireNonNull(proposal, "proposal");
         workspace = Objects.requireNonNull(workspace, "workspace").toAbsolutePath().normalize();
@@ -25,5 +37,13 @@ public record AgentRequest(
         expectedOutputSchema = Require.nonBlank(expectedOutputSchema, "expectedOutputSchema");
         route = Objects.requireNonNull(route, "route");
         budget = Objects.requireNonNull(budget, "budget");
+        retrieval = Objects.requireNonNull(retrieval, "retrieval");
+        if (retrieval.isPresent()) {
+            RetrievalBundle bundle = retrieval.orElseThrow();
+            if (!bundle.mode().equals(proposal.retrievalQuery().mode())
+                    || !bundle.repositoryRevision().equals(proposal.retrievalQuery().repositoryRevision())) {
+                throw new IllegalArgumentException("agent retrieval must match the proposal query");
+            }
+        }
     }
 }

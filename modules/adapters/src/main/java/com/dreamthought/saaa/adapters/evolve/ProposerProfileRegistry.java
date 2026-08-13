@@ -1,8 +1,12 @@
 package com.dreamthought.saaa.adapters.evolve;
 
 import com.dreamthought.saaa.adapters.fixture.FixtureMutationProposer;
+import com.dreamthought.saaa.adapters.acp.AcpAgentConfig;
+import com.dreamthought.saaa.adapters.acp.AcpAgentHarness;
+import com.dreamthought.saaa.deterministic.AgentHarness;
 import com.dreamthought.saaa.adapters.langchain4j.OpenAiCompatibleMutationProposerFactory;
 import com.dreamthought.saaa.deterministic.MutationProposer;
+import com.dreamthought.saaa.domain.AgentRoute;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,10 +26,21 @@ public final class ProposerProfileRegistry {
     }
 
     public ProposerProfileRegistry(Function<Path, MutationProposer> openAiCompatibleFactory) {
+        this(openAiCompatibleFactory, folder -> new AcpAgentHarness(AcpAgentConfig.fromApplicationConfig()));
+    }
+
+    public ProposerProfileRegistry(
+            Function<Path, MutationProposer> openAiCompatibleFactory,
+            Function<Path, AgentHarness> acpFactory) {
         Objects.requireNonNull(openAiCompatibleFactory, "openAiCompatibleFactory");
+        Objects.requireNonNull(acpFactory, "acpFactory");
         factories.put("fixture", folder ->
                 new FixtureMutationProposer(folder.resolve(".saaa/fixture-mutation.txt")));
         factories.put("openai-compatible", openAiCompatibleFactory);
+        factories.put("acp", folder -> new AgentHarnessMutationProposer(
+                acpFactory.apply(folder),
+                new AgentRoute("acp", "configured", "bounded", "explicit ACP harness profile"),
+                AcpAgentConfig.defaultBudget()));
     }
 
     public List<String> knownNames() {

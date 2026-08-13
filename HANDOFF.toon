@@ -1,17 +1,53 @@
 session:
   updated: 2026-08-14
-  status: acp_external_harness
-  branch: feat/acp-agent-harness
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-acp-agent-harness
-  head: origin/main at 25d0081
-  head_note: CHG-009 adds the first real ACP-over-stdio adapter behind AgentHarness; no provider selection or deterministic authority changed.
+  status: live_agentic_harness_loop
+  branch: feat-live-agentic-harness-loop
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-live-agentic-harness-loop
+  head: origin/main at 9744104
+  head_note: CHG-010 composes the ACP AgentHarness into EvolveRunner; retrieval, validation, scoring and promotion remain deterministic.
   dirty: true
   pushed: false
 
 goal:
-  current: invoke interchangeable ACP-compatible agent engines through the harness boundary
-  phase: chg_009_acp_external_harness
+  current: route the live evolution loop through an interchangeable agent harness
+  phase: chg_010_live_agentic_harness_loop
   interlude: ACP is transport interoperability only; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
+
+next_actions:
+  - run full project check, readiness and specialized tests for CHG-010
+  - review the ACP profile composition and failure boundary, then push and open the PR
+  - obtain independent model review if the local OpenCode worker is available; otherwise record the failed/unavailable review honestly
+  - wait for CI, merge the authorized PR and fast-forward the coordination checkout
+
+active_assumptions:
+  - ACP command configuration is local process selection, not automatic complexity or ethics routing
+  - AgentHarnessMutationProposer receives retrieval as advisory context and deterministic policies remain the only approval authority
+  - real OpenCode, Goose, Codex and Claude ACP interoperability remains opt-in until an installed command is available
+
+tests_run:
+  - nix develop --command gradle :adapters:test --tests com.dreamthought.saaa.adapters.evolve.EvolveRunnerTest --no-daemon: pass
+  - nix develop --command gradle :domain:test :adapters:test :cli:test --no-daemon: initial compile caught and fixed AgentRequest lambda and test enum errors
+  - nix develop --command gradle :adapters:test :cli:test --no-daemon: pass after disposable workspace and configurable ACP budget changes
+  - nix develop --command .agentic-template/bin/project check: pass
+  - nix develop --command .agentic-template/bin/project ready: pass, 16 pass and 1 not applicable
+
+review:
+  - actor: neuralwatt/glm-5.2
+    result: six should-fixes identified; all addressed before commit
+    addressed:
+      - disposable temporary proposal workspace prevents ACP agents mutating the target checkout before realization
+      - ACP status is documented as partial until a real installed agent is exercised
+      - token, credit, wall-clock and retry request budgets are configurable; usage limitation is documented
+      - ACP profile resolution, config parsing, successful proposer evidence and timeout failure have tests
+      - harness exceptions are bounded and credential patterns redacted at the proposer edge
+      - whitespace-only ACP argument parsing and system-property configuration are documented by behavior
+
+knowledge_consulted:
+  - docs/context-store.md
+  - .agents/knowledge/index.md
+  - specs/changes/CHG-006-agent-harness-boundary/change.toon
+  - specs/changes/CHG-009-acp-agent-harness/change.toon
+  - no new knowledge node yet; CHG-010 and this handoff carry the bounded decision
 
 completed:
   - added CHG-009 with ACP-over-stdio scenarios, acceptance mappings and opt-in real-agent follow-up
