@@ -65,6 +65,9 @@ rather than hard-coded authorities. See
 [ACP slice](specs/changes/CHG-009-acp-agent-harness/change.toon), plus the
 [architecture wiki](docs/wiki/architecture.md).
 
+The observed setup and first real OpenCode attempt are captured in the
+[ACP interoperability walkthrough](docs/acp-interoperability-walkthrough.md).
+
 **Working** means implemented and runnable now. **Partial** means a real
 implementation exists but the useful capability is incomplete. **Not
 implemented** means no code.
@@ -431,7 +434,7 @@ are using; local Git and SQLite defaults need nothing.
 | `SAAA_MODEL_API_KEY` | model credential |
 | `SAAA_MODEL_NAME` | model id |
 | `SAAA_ACP_COMMAND` | executable for the opt-in `--profile acp` local agent |
-| `SAAA_ACP_ARGS` | whitespace-separated arguments for that ACP executable |
+| `SAAA_ACP_ARGS` | whitespace-separated arguments for that ACP executable; shell quoting is not interpreted |
 | `SAAA_ACP_INPUT_TOKENS` / `SAAA_ACP_OUTPUT_TOKENS` | remaining token budget supplied to the ACP request; ACP currently reports zero token usage |
 | `SAAA_ACP_CREDITS` | remaining credit budget supplied to the ACP request; ACP does not report billing yet |
 | `SAAA_ACP_WALL_CLOCK_MILLIS` | wall-clock deadline for one ACP invocation (default `120000`) |
