@@ -14,9 +14,11 @@ smallrye-config = "3.18.0"
 slf4j = "2.0.18"
 sqlite = "3.53.2.0"
 wiremock = "3.13.2"
+acp = "0.14.0"
 
 [libraries]
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+acp-core = { module = "com.agentclientprotocol:acp-core", version.ref = "acp" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
 jmh-generator-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
