@@ -74,6 +74,7 @@ implemented** means no code.
 | Propose, isolate, commit, check, score, decide, journal | Working | one candidate per `saaa-evolve` run |
 | Canned proposer | Working | `--profile fixture` reads `<target>/.saaa/fixture-mutation.txt` |
 | Live model proposer | Partial | `--profile openai-compatible` via LangChain4j, covered by a WireMock-backed acceptance test, not exercised by the shipped fixture |
+| ACP agent proposer | Partial | `--profile acp` invokes a configured local ACP-over-stdio agent; wiring and fake-harness coverage are complete, while installed-agent interoperability remains opt-in |
 | MCP exposure | Partial | `saaa-mcp` serves the `saaa_evolve` tool over stdio; startup and tool contract are tested, client-disconnect lifecycle is not |
 | Benchmark-backed objectives | Not implemented | `EvolveRunner` wires the benchmark runner to a constant empty list, and `:cli` has no dependency on `:benchmarks` |
 | Behavioural-safety evidence | Not implemented | the objective is the literal `1.0` |
@@ -90,7 +91,7 @@ prefix so `index` and `retrieve` never appear as bare names in a tool registry.
 
 | Option | Default | Purpose |
 |---|---|---|
-| `--profile` | `fixture` | `fixture` or `openai-compatible` |
+| `--profile` | `fixture` | `fixture`, `openai-compatible` or `acp` |
 | `--workflow-file` | `workflow.txt` | the file inside the target folder being replaced |
 | `--behaviour-case` | required | check name that hard-gates promotion; repeatable |
 | `--max-lines` | `80` | change budget; both a pre-realisation validator and the parsimony denominator |
@@ -110,7 +111,11 @@ The target folder must sit inside a Git repository, because isolation uses
 `git worktree`. A discarded candidate is a successful run and exits 0; a
 non-zero exit means the run itself failed. For a live proposal, set the three
 model variables in [configuration](#configuration-and-environment-variables) and
-pass `--profile openai-compatible`.
+pass `--profile openai-compatible`. For an ACP-compatible local agent such as
+OpenCode, Goose, Codex or Claude, set `SAAA_ACP_COMMAND` and optionally
+`SAAA_ACP_ARGS`, then pass `--profile acp`. The agent proposes a mutation; it
+does not decide promotion, and the result still passes deterministic
+validation, candidate isolation, checks and scoring.
 
 Naming rules, the symlink restriction and the two ways a repeat run collides are
 in [docs/wiki/operations.md](docs/wiki/operations.md).
@@ -425,6 +430,12 @@ are using; local Git and SQLite defaults need nothing.
 | `SAAA_MODEL_BASE_URL` | OpenAI-compatible chat endpoint for `--profile openai-compatible` |
 | `SAAA_MODEL_API_KEY` | model credential |
 | `SAAA_MODEL_NAME` | model id |
+| `SAAA_ACP_COMMAND` | executable for the opt-in `--profile acp` local agent |
+| `SAAA_ACP_ARGS` | whitespace-separated arguments for that ACP executable |
+| `SAAA_ACP_INPUT_TOKENS` / `SAAA_ACP_OUTPUT_TOKENS` | remaining token budget supplied to the ACP request; ACP currently reports zero token usage |
+| `SAAA_ACP_CREDITS` | remaining credit budget supplied to the ACP request; ACP does not report billing yet |
+| `SAAA_ACP_WALL_CLOCK_MILLIS` | wall-clock deadline for one ACP invocation (default `120000`) |
+| `SAAA_ACP_RETRIES` | retry allowance recorded in the request; automatic retry is not yet performed |
 | `SAAA_NEO4J_PASSWORD` | credential shared by Compose and the graph adapter |
 | `SAAA_EMBEDDING_*` | `BASE_URL`, `API_KEY`, `MODEL_ID` and `DIMENSIONS` for `VECTOR` and `HYBRID` indexing |
 | `SAAA_PROCESS_REPOSITORY` | SAAA process checkout when evolving a different subject repository; defaults to the subject |

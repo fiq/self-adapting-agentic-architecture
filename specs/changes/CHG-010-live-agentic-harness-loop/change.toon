@@ -1,0 +1,66 @@
+change:
+  id: CHG-010
+  title: Route the evolution loop through an interchangeable agent harness
+  status: proposed
+  intent: Connect the provider-neutral AgentHarness boundary to the live evolution loop while retaining retrieval context and deterministic candidate authority.
+  relates_to:
+    - ARCH-001
+    - Q-010
+    - Q-011
+
+deltas:
+  - op: ADDED
+    capability: harness-driven-evolution
+    requirement: The evolution loop can use an ACP-backed AgentHarness as its proposer and still perform validation, candidate realization, checks, scoring and promotion recording through the existing deterministic path.
+    scenarios:
+      - id: S1
+        when: the acp profile is configured and the harness completes with a mutation
+        then: the mutation is evaluated by the normal candidate/check/fitness path
+        and:
+          - the prepared retrieval bundle is available to the harness request
+          - the harness result is treated as a proposal, never as approval
+          - the route and resource budget are supplied at the adapter boundary
+      - id: S2
+        when: the harness fails, times out, rejects or returns no mutation
+        then: no candidate is created and the run fails with bounded evidence
+      - id: S3
+        when: the ACP profile is configured with explicit command and resource properties
+        then: command arguments and bounded request budget are resolved at the adapter edge
+acceptance:
+  - scenario: S1
+    test_id: adapters/evolve/EvolveRunnerTest.routesPreparedRetrievalThroughAnAgentHarnessBeforeDeterministicEvaluation
+    layer: component
+  - scenario: S2
+    test_id: adapters/evolve/AgentHarnessMutationProposerTest.rejectsNonCompletedRunsBeforeCandidateCreation
+    layer: unit
+  - scenario: S1
+    test_id: adapters/evolve/AgentHarnessMutationProposerTest.returnsCompletedMutationAndExposesRouteEvidence
+    layer: unit
+  - scenario: S3
+    test_id: adapters/acp/AcpAgentConfigTest.readsCommandArgumentsAndResourceBudgetFromExplicitProperties
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: adapt prepared proposal requests to AgentRequest without leaking provider types
+    status: completed
+  - id: T2
+    slice: compose ACP into the proposer profile registry and live EvolveRunner path
+    status: completed
+  - id: T3
+    slice: prove successful harness routing, route evidence and non-completed failure semantics
+    status: completed
+  - id: T4
+    slice: exercise installed OpenCode, Goose, Codex or Claude ACP commands in an opt-in environment
+    status: pending
+
+non_goals:
+  - automatic provider selection based on complexity or remaining credits
+  - automatic merge or production deployment
+  - provider-specific types in domain or deterministic
+  - trusting an agent result as a fitness or promotion decision
+
+risks:
+  - ACP agent implementations differ in tool permissions and output discipline; the disposable proposal workspace limits accidental target mutation, and real-engine coverage is opt-in
+  - ACP reports wall-clock usage only; token and credit values can be configured and preflight-checked but remain policy inputs until provider usage is exposed
+  - ACP argument configuration is intentionally whitespace-separated and does not implement shell quoting
