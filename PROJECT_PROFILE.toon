@@ -261,6 +261,19 @@ decisions:
       - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/acp/AcpAgentHarness.java
       - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/acp/AcpAgentHarnessTest.java
     consequence_if_changed: a different transport or SDK must preserve the AgentHarness contract and re-establish subprocess, timeout and malformed-output evidence
+  - id: harness_drives_live_evolution_loop
+    decision: compose AgentHarness into the existing MutationProposer seam so ACP proposals use the live retrieval, candidate, check, scoring and decision path without moving approval authority outward
+    reason:
+      - proves the harness boundary through a real vertical slice
+      - keeps the deterministic loop independent of ACP and vendor SDKs
+      - makes prepared retrieval context visible to interchangeable agents
+    confidence: high
+    status: experimental
+    validation:
+      - specs/changes/CHG-010-live-agentic-harness-loop/change.toon
+      - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/evolve/EvolveRunnerTest.java
+      - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/evolve/AgentHarnessMutationProposerTest.java
+    consequence_if_changed: a different composition seam must preserve proposal-only semantics and deterministic candidate authority
 
 unknowns:
   - id: Q-001

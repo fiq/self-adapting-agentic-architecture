@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 import com.dreamthought.saaa.adapters.evolve.ProposerProfileRegistry;
+import com.dreamthought.saaa.deterministic.AgentHarness;
 import com.dreamthought.saaa.adapters.langchain4j.ModelEndpointConfig;
 import com.dreamthought.saaa.adapters.langchain4j.OpenAiCompatibleMutationProposerFactory;
 import com.dreamthought.saaa.domain.MutationScope;
@@ -29,13 +30,13 @@ final class ProposerProfileRegistryTest {
 
     @Test
     void resolvesKnownProfileAndListsKnownNamesOnFailure() {
-        assertThat(registry.knownNames()).containsExactly("fixture", "openai-compatible");
+        assertThat(registry.knownNames()).containsExactly("fixture", "openai-compatible", "acp");
         assertThat(registry.resolve("fixture", Path.of("some/folder"))).isNotNull();
         assertThat(registry.resolve("openai-compatible", Path.of("some/folder"))).isNotNull();
 
         assertThatThrownBy(() -> registry.resolve("gpt-cloud", Path.of("some/folder")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("unknown proposer profile: gpt-cloud; known profiles: fixture, openai-compatible");
+                .hasMessage("unknown proposer profile: gpt-cloud; known profiles: fixture, openai-compatible, acp");
     }
 
     @Test
@@ -44,10 +45,27 @@ final class ProposerProfileRegistryTest {
             throw new IllegalStateException("profile factory invoked");
         });
 
-        assertThat(registry.knownNames()).containsExactly("fixture", "openai-compatible");
+        assertThat(registry.knownNames()).containsExactly("fixture", "openai-compatible", "acp");
         assertThatThrownBy(() -> registry.resolve("openai-compatible", Path.of("some/folder")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("profile factory invoked");
+    }
+
+    @Test
+    void resolvesAcpProfileWithoutRequiringProcessConfigurationWhenFactoryIsInjected() {
+        AgentHarness harness = request -> {
+            throw new AssertionError("the injected harness must be lazy");
+        };
+        var injected = new ProposerProfileRegistry(
+                ignored -> ignoredBaselineProposer(),
+                ignored -> harness);
+
+        assertThat(injected.resolve("acp", Path.of("some/folder"))).isNotNull();
+    }
+
+    private static com.dreamthought.saaa.deterministic.MutationProposer ignoredBaselineProposer() {
+        return baseline -> new com.dreamthought.saaa.domain.Mutation(
+                "unused", "unused", MutationScope.WORKFLOW_DEFINITION, baseline.definition());
     }
 
     @Test
