@@ -1,19 +1,25 @@
 session:
-  updated: 2026-08-11
-  status: agent_harness_boundary
-  branch: feat/agent-harness-boundary
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-agent-harness-boundary
-  head: origin/main at 79e99b7
-  head_note: CHG-006 adds the first harness-agnostic invocation contract; no provider-specific transport or promotion behavior was added.
+  updated: 2026-08-14
+  status: acp_external_harness
+  branch: feat/acp-agent-harness
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-acp-agent-harness
+  head: origin/main at 25d0081
+  head_note: CHG-009 adds the first real ACP-over-stdio adapter behind AgentHarness; no provider selection or deterministic authority changed.
   dirty: true
   pushed: false
 
 goal:
-  current: establish a harness-agnostic southbound execution boundary for interchangeable agent engines
-  phase: chg_006_agent_harness_boundary
-  interlude: Goose/OpenCode/Codex/Claude are swappable adapters; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
+  current: invoke interchangeable ACP-compatible agent engines through the harness boundary
+  phase: chg_009_acp_external_harness
+  interlude: ACP is transport interoperability only; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
 
 completed:
+  - added CHG-009 with ACP-over-stdio scenarios, acceptance mappings and opt-in real-agent follow-up
+  - pinned the official ACP Java SDK 0.14.0 in the adapters module
+  - implemented AcpAgentHarness and AcpAgentConfig with initialize/session/prompt lifecycle, streamed text digest, bounded mutation parsing, timeout/failure mapping and exhausted-budget rejection
+  - added ACP adapter tests for mutation parsing, malformed output, failed subprocess evidence and budget rejection
+  - updated README, architecture wiki and PROJECT_PROFILE to record ACP as the first real external adapter
+  - lead review bounded ACP streamed output to 65536 characters and redacted common bearer/API-key patterns in failure evidence
   - added CHG-006 with scenarios, acceptance mappings, completed tasks and explicit follow-up for ACP and concrete external harness adapters
   - added provider-neutral AgentRequest, AgentRoute, ResourceBudget, AgentUsage, AgentRunResult and AgentRunStatus domain records
   - added deterministic AgentHarness port and a legacy MutationProposer compatibility adapter that captures failures without approving them
@@ -348,6 +354,12 @@ files_changed:
   - PROJECT_PROFILE.toon
 
 tests_run:
+  - 2026-08-14 `nix develop --command .agentic-template/bin/project test`: pass; all unit suites green including ACP adapter tests
+  - 2026-08-14 `nix develop --command .agentic-template/bin/project component-test`: pass; deterministic and CLI acceptance suites green
+  - 2026-08-14 `nix develop --command .agentic-template/bin/project check`: pass; repository, profile, handoff, knowledge, changes, tooling, MCP, architecture and glossary checks green
+  - 2026-08-14 `nix develop --command .agentic-template/bin/project check-changes`: pass
+  - 2026-08-14 `nix develop --command .agentic-template/bin/project lint`: pass; architecture boundaries green
+  - 2026-08-14 GLM 5.2 review attempt timed out while inspecting ACP SDK bytecode; no independent verdict obtained. A narrower retry was unavailable because the configured opencode log path could not be opened. Lead review applied output bounds, failure redaction and lifecycle checks; human PR review remains the merge gate.
   - 2026-08-11 `nix develop --command gradle :domain:test :adapters:test :deterministic:test --rerun-tasks`: pass; full domain, adapters and deterministic unit suites executed after GLM review fixes
   - 2026-08-11 `nix develop --command .agentic-template/bin/project component-test`: pass; deterministic and CLI acceptance suites green
   - 2026-08-11 `nix develop --command .agentic-template/bin/project check`: pass after review fixes; repository, profile, handoff, knowledge, changes, tooling, MCP, architecture and glossary checks green
