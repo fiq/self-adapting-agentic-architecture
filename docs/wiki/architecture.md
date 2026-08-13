@@ -36,7 +36,7 @@ MutationEvaluationLoop  (deterministic)
   |
   +--> ports
         |-- MutationProposer          -> adapters/fixture, adapters/langchain4j
-        |-- AgentHarness             -> adapters/CLI, adapters/ACP, adapters/providers (planned)
+        |-- AgentHarness             -> adapters/acp, adapters/CLI, adapters/providers
         |-- EvidenceRetriever         -> adapters/retrieval, adapters/neo4j
         |-- CandidateWorkspace        -> adapters/git
         |-- CheckRunner               -> adapters/checks
@@ -88,8 +88,9 @@ SAAA route + budget + worktree
 Goose, OpenCode, Codex, Claude and direct model APIs are intentionally adapters,
 not architectural authorities. This keeps the harness swappable and lets
 experiments compare agent engines under the same candidate, resource and
-fitness policy. `CHG-006` defines the first boundary; ACP and concrete external
-harness adapters remain follow-up work.
+fitness policy. `CHG-006` defines the boundary and `CHG-009` provides the first
+ACP-over-stdio adapter. Real OpenCode, Goose, Codex or Claude command coverage
+remains opt-in because it requires locally installed agents and credentials.
 
 Evolutionary operator policy is captured in
 [`docs/architecture/evolutionary-operators.md`](../architecture/evolutionary-operators.md):

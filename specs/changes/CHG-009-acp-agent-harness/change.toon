@@ -1,0 +1,70 @@
+change:
+  id: CHG-009
+  title: Invoke ACP agents through the harness boundary
+  status: proposed
+  intent: Add the first real external-agent adapter by invoking an ACP-compatible local subprocess over stdio while keeping routing, budgets, evidence and deterministic approval in SAAA.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - ARCH-001
+    - ADR-0003
+    - Q-010
+    - Q-011
+
+deltas:
+  - op: ADDED
+    capability: agent-harness-boundary
+    requirement: SAAA can invoke a configured ACP agent subprocess over stdio, provide a bounded mutation request, capture streamed agent text and map a valid mutation envelope into AgentRunResult.
+    scenarios:
+      - id: S1
+        when: an ACP agent subprocess is configured and the invocation budget is available
+        then: SAAA initializes ACP, creates a session in the requested workspace, prompts the agent and parses one bounded mutation envelope
+        and:
+          - the ACP command and arguments are adapter configuration
+          - the route remains caller-selected intent and the resulting mutation remains only a proposal
+          - streamed output is retained as a digest, not as an unbounded result field
+          - streamed output is bounded to 65536 characters before parsing or digesting
+      - id: S2
+        when: the ACP process fails, times out or returns malformed mutation text
+        then: the harness returns FAILED or TIMED_OUT with no mutation and a bounded failure reason
+      - id: S3
+        when: the request has exhausted input, output or wall-clock allowance
+        then: the harness returns REJECTED without starting the subprocess
+
+acceptance:
+  - scenario: S1
+    test_id: adapters/acp/AcpAgentHarnessTest.parsesTheBoundedMutationEnvelopeFromAgentText
+    layer: unit
+  - scenario: S2
+    test_id: adapters/acp/AcpAgentHarnessTest.rejectsMalformedMutationEnvelope
+    layer: unit
+  - scenario: S2
+    test_id: adapters/acp/AcpAgentHarnessTest.recordsAFailedAcpSubprocessWithoutCreatingAMutation
+    layer: unit
+  - scenario: S3
+    test_id: adapters/acp/AcpAgentHarnessTest.refusesAnInvocationWhenTheBudgetIsExhausted
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: add the official ACP Java SDK dependency and stdio adapter configuration
+    status: completed
+  - id: T2
+    slice: implement ACP initialize, session, prompt, streamed text capture and mutation mapping
+    status: completed
+  - id: T3
+    slice: add bounded failure, timeout and budget tests and document the adapter
+    status: completed
+  - id: T4
+    slice: exercise a real configured OpenCode, Goose, Codex or Claude ACP command in an opt-in environment
+    status: pending
+
+non_goals:
+  - adding ACP, MCP or vendor types to domain or deterministic
+  - selecting a provider or harness automatically
+  - exposing raw agent output through AgentRunResult
+  - changing deterministic validation, scoring or promotion
+
+risks:
+  - ACP protocol support and agent output semantics vary by implementation; opt-in real-agent coverage remains follow-up T4
+  - ACP does not report provider billing usage in this adapter, so usage is currently measured only as wall-clock evidence
