@@ -33,6 +33,7 @@ output.
 |---|---|---|
 | Operating contract | `AGENTS.md` | Canonical rules for agents and humans |
 | Project profile | `PROJECT_PROFILE.toon` | Facts, decisions, unknowns and policy |
+| ACP interoperability walkthrough | `docs/acp-interoperability-walkthrough.md` | Observed OpenCode ACP attempt, controls and next engine steps |
 | Handoff | `HANDOFF.toon` | Current work state and knowledge upkeep |
 | Customisation input | `CUSTOMIZE_THIS_PROJECT.toon` | Bootstrap intent and constraints |
 
