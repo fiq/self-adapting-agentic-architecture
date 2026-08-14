@@ -1,22 +1,23 @@
 session:
   updated: 2026-08-14
-  status: acp_interoperability_documented
-  branch: feat-document-acp-interoperability
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-document-acp-interoperability
-  head: origin/main at 68c798f
-  head_note: Documented the first real OpenCode ACP attempt; transport selection reached the ACP path but the bounded mutation invocation timed out without candidate creation.
-  dirty: true
-  pushed: false
+  status: ready_for_chg_011
+  branch: main
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture
+  head: origin/main at c5f9ab6
+  head_note: CHG-010 and the ACP interoperability walkthrough are merged. The next product slice is the SAAA-owned interactive harness runtime (`sa`).
+  dirty: false
+  pushed: true
 
 goal:
-  current: document and characterize real ACP engine interoperability
-  phase: chg_009_t4_engine_smoke_documentation
+  current: build the SAAA-owned interactive harness runtime and `sa` session client
+  phase: chg_011_harness_runtime
   interlude: ACP is transport interoperability only; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
 
 next_actions:
-  - validate documentation and repository checks
-  - push and open the documentation PR
-  - merge after CI under existing user authorization
+  - define the first session protocol and state machine for interactive `sa`
+  - expose capabilities, skills and backend routing through the harness-owned loop
+  - support code evolution and harness-workflow evolution as explicit targets
+  - retain MCP as an agent-host integration surface, with `sa` as the primary user experience
 
 active_assumptions:
   - ACP command configuration is local process selection, not automatic complexity or ethics routing
