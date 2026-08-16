@@ -128,6 +128,24 @@ session exposes route choices but does not implement automatic resource or
 ethical routing; Q-010 and Q-011 remain open. MCP remains the agent-host
 integration surface rather than a competing session transport.
 
+## Agent-session and multi-model efficiency
+
+The agent loop treats provider sessions as disposable execution state, not
+repository memory. One bounded objective with the same role and permission
+scope may retain a session so stable context can be cached; an objective or
+privacy change, transport failure, response-reserve exhaustion or independent
+review starts a new session. Durable context is a source-referenced packet plus
+the handoff, never an opaque transcript.
+
+Roles are explicit: a strong lead resolves ambiguity and synthesises, a
+midrange model handles bounded implementation or documentation, a lesser/local
+model handles mechanical work, and an independent reviewer gets a clean
+session and focused diff. Route/model identity, budget and observed usage are
+audit evidence when exposed, not fitness or promotion inputs. The operational
+rules live in the [model-routing and session-efficiency
+policy](../../.agents/coordination/MODEL_ROUTING_POLICY.md); automatic routing
+remains deferred by `Q-010` and preference constraints by `Q-011`.
+
 Evolutionary operator policy is captured in
 [`docs/architecture/evolutionary-operators.md`](../architecture/evolutionary-operators.md):
 mutation is a targeted behavioral variation, not a patch; the realization is

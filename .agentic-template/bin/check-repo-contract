@@ -194,6 +194,28 @@ def check_context_store(errors):
             "layers and default external-store posture"
         )
 
+def check_model_routing_policy(errors):
+    path = ROOT / ".agents/coordination/MODEL_ROUTING_POLICY.md"
+    if not path.exists():
+        return
+    text = path.read_text()
+    required = [
+        "## Session reuse and reset",
+        "## Context and budget discipline",
+        "## Multi-model protocol",
+        "## Audit and safety invariants",
+        "Q-010",
+        "Q-011",
+        "ARCH-001",
+        "RISK-001",
+    ]
+    missing = [item for item in required if item not in text]
+    if missing:
+        errors.append(
+            ".agents/coordination/MODEL_ROUTING_POLICY.md missing required "
+            "session-efficiency controls: " + ", ".join(missing)
+        )
+
 def main():
     errors = []
     for rel in REQUIRED_FILES:
@@ -295,6 +317,7 @@ def main():
         errors,
     )
     check_context_store(errors)
+    check_model_routing_policy(errors)
     for skill in REQUIRED_SKILLS:
         skill_path = ROOT / ".agents/skills" / skill / "SKILL.md"
         if not skill_path.exists():

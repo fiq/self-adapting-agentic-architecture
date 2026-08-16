@@ -13,6 +13,7 @@ first and link to deeper detail.
 | Runtime and boundaries | [Architecture](architecture.md) |
 | Validation strategy | [Testing](testing.md) |
 | Operational repeatability | [Operations](operations.md) |
+| Agent session and model efficiency | [Development](development.md#resource-aware-model-routing) |
 | Experiment strategies and outcomes | [Experiment memory](experiments.md) |
 
 ## Pages
