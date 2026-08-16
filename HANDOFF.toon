@@ -1,23 +1,21 @@
 session:
-  updated: 2026-08-14
-  status: ready_for_chg_011
-  branch: main
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture
-  head: origin/main at c5f9ab6
-  head_note: CHG-010 and the ACP interoperability walkthrough are merged. The next product slice is the SAAA-owned interactive harness runtime (`sa`).
-  dirty: false
-  pushed: true
+  updated: 2026-08-16
+  status: chg_011_ready_for_review
+  branch: feat/chg-011-harness-runtime
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-011-harness-runtime
+  head: origin/main at 62bd112
+  head_note: CHG-011 adds the first `saaa sa` session state machine and line-oriented client; conformance, freshly executed unit suites, component, integration and readiness gates pass.
+  dirty: true
+  pushed: false
 
 goal:
-  current: build the SAAA-owned interactive harness runtime and `sa` session client
-  phase: chg_011_harness_runtime
+  current: deliver the first SAAA-owned interactive harness runtime and `sa` session client
+  phase: chg_011_session_slice
   interlude: ACP is transport interoperability only; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
 
 next_actions:
-  - define the first session protocol and state machine for interactive `sa`
-  - expose capabilities, skills and backend routing through the harness-owned loop
-  - support code evolution and harness-workflow evolution as explicit targets
-  - retain MCP as an agent-host integration surface, with `sa` as the primary user experience
+  - obtain independent review, then open a PR for the bounded CHG-011 interactive-session slice
+  - keep MCP as the agent-host integration surface while `saaa sa` is the primary interactive user experience
 
 active_assumptions:
   - ACP command configuration is local process selection, not automatic complexity or ethics routing
@@ -40,6 +38,14 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-16 nix develop --command gradle :domain:test :deterministic:test :adapters:test :cli:test --rerun-tasks --no-daemon: pass; 15 tasks executed, no cached unit-suite claim
+  - 2026-08-16 nix develop --command .agentic-template/bin/project component-test: pass
+  - 2026-08-16 nix develop --command .agentic-template/bin/project integration-test: pass
+  - 2026-08-16 nix develop --command .agentic-template/bin/project check: pass; contract, profile, handoff, knowledge, change, architecture and glossary checks green
+  - 2026-08-16 nix develop --command .agentic-template/bin/project ready: pass; 16 passed, 1 not applicable, 0 failed
+  - 2026-08-16 git diff --check: pass; no output
+  - 2026-08-16 nix develop --command gradle :deterministic:test :cli:acceptanceTest --tests com.dreamthought.saaa.deterministic.HarnessSessionStateMachineTest --tests com.dreamthought.saaa.cli.SaCommandAcceptanceTest --no-daemon: pass; focused state-machine and both workflow/code session paths
+  - 2026-08-16 .agentic-template/bin/project check-changes: pass; CHG-011 structure and acceptance mappings valid
   - nix develop --command gradle :cli:installDist --no-daemon: pass
   - SAAA_ACP_COMMAND=opencode SAAA_ACP_ARGS=acp SAAA_ACP_WALL_CLOCK_MILLIS=180000 saaa-evolve fixtures/toy-workflow --profile acp ...: bounded TIMED_OUT before candidate creation; expected real-engine smoke result
   - nix develop --command gradle :adapters:test --tests com.dreamthought.saaa.adapters.evolve.EvolveRunnerTest --no-daemon: pass
@@ -49,6 +55,11 @@ tests_run:
   - nix develop --command .agentic-template/bin/project ready: pass, 16 pass and 1 not applicable
 
 review:
+  - lead: two-pass bounded CHG-011 review
+    result: no remaining findings
+    addressed:
+      - strengthened the invalid-route acceptance assertion so it proves the later session status retained the selected route
+      - kept the interactive `sa` command as a documented exception while automation commands retain the `saaa-` namespace
   - actor: neuralwatt/glm-5.2
     result: six should-fixes identified; all addressed before commit
     addressed:
@@ -60,6 +71,12 @@ review:
       - whitespace-only ACP argument parsing and system-property configuration are documented by behavior
 
 knowledge_consulted:
+  - SYS-001: local sequential mutation-evaluation system shape
+  - ARCH-001: deterministic model boundary
+  - ADR-0003: MCP stays an agent-host surface while northbound interfaces evolve
+  - Q-010 and Q-011: explicit profile selection is not automatic resource or ethics routing
+  - RISK-001: the interactive client does not grant an agent decision authority
+  - specs/changes/CHG-011-interactive-harness-runtime/: new proposed and implemented bounded slice
   - docs/context-store.md
   - .agents/knowledge/index.md
   - specs/changes/CHG-006-agent-harness-boundary/change.toon
@@ -68,6 +85,13 @@ knowledge_consulted:
   - docs/acp-interoperability-walkthrough.md: durable observed-engine walkthrough
 
 completed:
+  - completed CHG-011 tasks T1-T5; full validation and two-pass lead review are ready for independent review
+  - created CHG-011 with scenario-to-test mappings for a deterministic session lifecycle, catalog/route/target inspection, and governed workflow/code evolution
+  - added provider-free `HarnessSessionStateMachine` plus session state/target domain vocabulary; closed sessions reject later mutations
+  - added `saaa sa`, a line-oriented interactive control-plane client with capability/skill/profile inspection, explicit `HARNESS_WORKFLOW` or `CODE` target selection, explicit route selection, and `evolve` dispatch through the existing EvolveRunner
+  - proved fixture-backed workflow and Java code targets both use the existing isolated candidate/check/fitness/decision path; code realization remains whole-file and not AST-aware
+  - updated README, architecture/operations wiki and PROJECT_PROFILE to record `saaa sa`, its MCP boundary, and the deliberate interactive-command namespace exception
+  - reconciled stale follow-ups: removed the already-merged CHG-008 PR/validation action, removed the absent `feat/first-vertical-slice` cleanup, and collapsed duplicate CHG-002 T4b entries
   - added CHG-009 with ACP-over-stdio scenarios, acceptance mappings and opt-in real-agent follow-up
   - pinned the official ACP Java SDK 0.14.0 in the adapters module
   - implemented AcpAgentHarness and AcpAgentConfig with initialize/session/prompt lifecycle, streamed text digest, bounded mutation parsing, timeout/failure mapping and exhausted-budget rejection
@@ -214,8 +238,7 @@ in_progress: []
 
 next:
   - design a measured `model-routing-change` slice only after proposer usage and provider budget evidence are available
-  - run full unit/component/integration/readiness validation, then open a PR for the structured reliability fix
-  - decide how to transport `MutationContract` through the live loop before implementing contract-aware scoring (RISK-002/T4b)
+  - decide how to transport `MutationContract` and typed required-evidence through the live loop before implementing contract-aware scoring (CHG-002 T4b, RISK-002)
   - decide what to do about `task_success`, `reliability`, `cost_latency_budget` and `behavioral_safety` all being constant for eligible candidates, which leaves `parsimony` as the only discriminating objective and makes the 0.80 threshold unreachable from below
   - make a repeat fixture run fail before the decision rather than after: the ledger rejects a second differing outcome for the same candidate id, so the run journals its verdict and then exits non-zero with a stack trace
   - run a fixed, reviewed mutation corpus with a real proposer/embedding provider across NONE, VECTOR, GRAPH and HYBRID; no GraphRAG benefit has been measured yet
@@ -223,12 +246,10 @@ next:
   - close CHG-004 with `T11/T12`: README/wiki/profile/handoff updates for the openai-compatible profile, MCP surface, classical guards, Layer-3 constraints and Q-001 answer
   - CHG-003 follow-ups remain: `T9` (reporters surface why a check failed) and `T12` (pre-flight validates `HEAD` rather than the working tree); note the CHG-004 `T9` is a separate concern (compiler failure as failed check) sharing only the id
   - fold RISK-003 into the population slice rather than fixing it separately, because that slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
-  - implement `T4b` so declared contract hard gates are enforced by the scorer, not only declared
   - implement `T3d` TOON mutation contract envelope parser feeding the canonicalizer
   - migrate `MutationEvaluationLoop` from the transitional `Mutation`/`MutationValidator`/`FitnessScorer` stack onto `MutationContract` and `PhenotypeFitnessScorer`; both stacks exist today, only the old one is wired
-  - implement `CHG-002` `T2`, `T5`, `T6` before any live provider run
+  - implement remaining CHG-002 policy tasks T2, T5 and T6 before any live provider run that relies on those guarantees
   - the population slice: evaluate several candidates per generation and rank them, calling `MutationEvaluationLoop.evaluate` N times
-  - housekeeping: `feat/first-vertical-slice` still exists locally and on the remote although PR #1 merged 2026-07-30; delete when convenient
 
 decisions:
   - id: bounded_evolutionary_memory_archive
@@ -238,7 +259,9 @@ decisions:
   - id: jgit_first_native_fallback
     summary: comparable read-only Git operations use pinned JGit with no manual setup; native Git fallback is visible and remains for established linked candidate-worktree semantics
   - id: saaa_command_namespace
-    summary: installed binary is saaa and public CLI/MCP command tokens carry a saaa prefix to avoid generic aliases
+    summary: installed binary is saaa and automation CLI/MCP command tokens carry a saaa prefix; `saaa sa` is the deliberate interactive-session exception
+  - id: interactive_harness_session_control_plane
+    summary: `saaa sa` records explicit target and registered profile choices, dispatches through the existing governed loop, and leaves automatic routing and agent approval authority out of the session
   - id: local_hybrid_graphrag_experiment
     summary: ADR-0004 intentionally revisits the earlier deferral with optional local Neo4j and a separate derived retrieval SQLite lifecycle; repository artifacts remain canonical
   - id: retrieval_evidence_not_authority
@@ -300,6 +323,20 @@ risks:
   - the CLI pre-flight inspects the working tree while checks run against `HEAD`, so an uncommitted or mode-mismatched script passes pre-flight and then fails to start inside the candidate; tracked as `CHG-003` task `T12`
   - check scripts run in a worktree created from `HEAD`, so a new check script must be committed before it can gate a run
   - the behaviour case convention is POSIX-shaped, so `evolve` is effectively Linux and macOS only; on a case-insensitive filesystem a single case named `Foo` is satisfied by `foo.sh`
+
+chg_011_files_changed:
+  paths:
+    - HANDOFF.toon
+    - PROJECT_PROFILE.toon
+    - README.md
+    - docs/wiki/{architecture.md,operations.md}
+    - specs/changes/CHG-011-interactive-harness-runtime/{proposal.md,design.md,change.toon}
+    - modules/domain/src/main/java/com/dreamthought/saaa/domain/{EvolutionTargetKind,HarnessSessionSnapshot,HarnessSessionStatus,HarnessSessionTarget}.java
+    - modules/deterministic/src/{main,test}/java/com/dreamthought/saaa/deterministic/HarnessSessionStateMachine*.java
+    - modules/cli/src/main/java/com/dreamthought/saaa/cli/{MutationLoopCli,SaCommand}.java
+    - modules/cli/src/acceptanceTest/java/com/dreamthought/saaa/cli/SaCommandAcceptanceTest.java
+  fitness_function_delta: none; the existing architecture boundary and evaluation fitness checks remain unchanged
+  knowledge_no_record: existing SYS-001, ARCH-001, ADR-0003, Q-010, Q-011 and RISK-001 cover the durable decision; PROJECT_PROFILE records the implementation decision
 
 chg_005_files_changed:
   tracked_modified: 36

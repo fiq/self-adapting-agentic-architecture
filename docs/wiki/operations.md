@@ -94,6 +94,24 @@ record a second, different outcome for the same candidate id. That second
 failure lands after the decision is journalled, so the run prints its verdict
 and then exits non-zero.
 
+## Interactive harness session
+
+Run `saaa sa` to start the line-oriented interactive client. `status`,
+`capabilities`, and `skills` inspect the active session without calling a
+proposer. Select an explicit target and profile before `evolve`:
+
+```text
+target CODE /path/to/repository
+route fixture
+evolve Example.java code-check
+quit
+```
+
+`HARNESS_WORKFLOW` and `CODE` both use the existing whole-file realization
+path, isolated worktree, behaviour checks, and deterministic decision. Route
+selection is explicit operator configuration, not automatic model routing;
+MCP remains the machine-facing integration surface.
+
 ## Retrieval ablation
 
 ```sh

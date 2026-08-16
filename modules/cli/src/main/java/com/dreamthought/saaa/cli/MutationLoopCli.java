@@ -10,7 +10,7 @@ import picocli.CommandLine.Command;
         version = "self-adapting-agentic-architecture 0.1.0-SNAPSHOT",
         description = "Experimental workflow mutation and fitness evaluation CLI.",
         subcommands = {EvolveCommand.class, IndexCommand.class, RetrieveCommand.class,
-                BenchmarkCommand.class, ReinflateCommand.class, McpCommand.class}
+                BenchmarkCommand.class, ReinflateCommand.class, McpCommand.class, SaCommand.class}
 )
 public final class MutationLoopCli implements Callable<Integer> {
     public static void main(String[] args) {

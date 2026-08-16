@@ -78,6 +78,7 @@ implemented** means no code.
 | Canned proposer | Working | `--profile fixture` reads `<target>/.saaa/fixture-mutation.txt` |
 | Live model proposer | Partial | `--profile openai-compatible` via LangChain4j, covered by a WireMock-backed acceptance test, not exercised by the shipped fixture |
 | ACP agent proposer | Partial | `--profile acp` invokes a configured local ACP-over-stdio agent; wiring and fake-harness coverage are complete, while installed-agent interoperability remains opt-in |
+| Interactive harness session | Partial | `saaa sa` exposes explicit target and proposer-route selection, then runs either bounded whole-file workflow or code evolution through the existing deterministic loop |
 | MCP exposure | Partial | `saaa-mcp` serves the `saaa_evolve` tool over stdio; startup and tool contract are tested, client-disconnect lifecycle is not |
 | Benchmark-backed objectives | Not implemented | `EvolveRunner` wires the benchmark runner to a constant empty list, and `:cli` has no dependency on `:benchmarks` |
 | Behavioural-safety evidence | Not implemented | the objective is the literal `1.0` |
@@ -89,8 +90,10 @@ implemented** means no code.
 ## Run locally
 
 `nix develop` supplies Java, Gradle, Git and the Docker client. The installed
-executable is always `saaa`; every public command token carries the `saaa-`
-prefix so `index` and `retrieve` never appear as bare names in a tool registry.
+executable is always `saaa`; automation commands carry the `saaa-` prefix so
+`index` and `retrieve` never appear as bare names in a tool registry. `sa` is
+the deliberate exception: it is the interactive session client invoked as
+`saaa sa`.
 
 | Option | Default | Purpose |
 |---|---|---|
@@ -119,6 +122,32 @@ OpenCode, Goose, Codex or Claude, set `SAAA_ACP_COMMAND` and optionally
 `SAAA_ACP_ARGS`, then pass `--profile acp`. The agent proposes a mutation; it
 does not decide promotion, and the result still passes deterministic
 validation, candidate isolation, checks and scoring.
+
+### Interactive `sa` session
+
+Start the SAAA-owned control-plane session with:
+
+```sh
+./modules/cli/build/install/saaa/bin/saaa sa
+```
+
+It accepts line-oriented commands, so it also works in a pipe or scripted
+terminal transcript:
+
+```text
+capabilities
+target HARNESS_WORKFLOW /path/to/workflow-repository
+route fixture
+evolve workflow.txt workflow-check
+quit
+```
+
+`target CODE /path/to/repository` uses the same current whole-file realization
+and declared behaviour checks. It is useful for bounded experiments, but does
+not claim AST-aware or language-specific code mutation. `route` exposes the
+already configured `fixture`, `openai-compatible`, and `acp` profiles; it does
+not select a model automatically. MCP remains the agent-host surface, while
+`saaa sa` is the primary interactive user experience.
 
 Naming rules, the symlink restriction and the two ways a repeat run collides are
 in [docs/wiki/operations.md](docs/wiki/operations.md).
