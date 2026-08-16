@@ -44,6 +44,7 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-17 GitHub Actions PR #30 fast: pass in 1m4s; full-readiness skipped as expected for pull_request under staged_ci_validation_profiles
   - 2026-08-22 nix develop --command gradle :cli:acceptanceTest --tests com.dreamthought.saaa.cli.SaCommandAcceptanceTest --rerun-tasks --no-daemon: pass, 7 tests
   - 2026-08-22 the CODE realization assertion was first written against the operator's checkout and failed, which is how the promotion boundary was confirmed rather than assumed
   - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass; the knowledge check caught a missing reviewed_at date and a PAT-002 reference that does not exist on main
@@ -333,7 +334,7 @@ completed:
 in_progress: []
 
 next:
-  - review, commit and publish CHG-012; its policy check proves discoverability, while Q-010 retains the empirical routing-economics gate
+  - obtain independent PR review for CHG-012; its policy check proves discoverability, while Q-010 retains the empirical routing-economics gate
   - obtain a completed independent reviewer verdict for CHG-011 PR #29 before merge; the OpenCode CLI event stream did not expose the completed Flex sessions' final text
   - design a measured `model-routing-change` slice only after proposer usage and provider budget evidence are available
   - decide how to transport `MutationContract` and typed required-evidence through the live loop before implementing contract-aware scoring (CHG-002 T4b, RISK-002)
