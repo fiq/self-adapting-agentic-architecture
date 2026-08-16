@@ -59,6 +59,14 @@ audited before proposal, while deterministic validation, fitness and promotion
 remain unchanged. Do not add opaque model-name heuristics until usage evidence
 and an ablation show that routing improves experiment throughput or quality.
 
+Agent operation follows the [model-routing and session-efficiency
+policy](../../.agents/coordination/MODEL_ROUTING_POLICY.md): keep one session
+for one stable objective and role, use source-referenced context packets,
+record observed budget/cache/latency evidence when available, and reset before
+an independent review or a material scope/privacy change. The policy is not
+automatic SAAA provider routing; its safety and economic prerequisites remain
+open in `Q-010` and `Q-011`.
+
 ## Documentation Graph
 
 New Markdown should fit the existing graph instead of creating a parallel
