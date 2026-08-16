@@ -106,6 +106,28 @@ fitness policy. `CHG-006` defines the boundary and `CHG-009` provides the first
 ACP-over-stdio adapter. Real OpenCode, Goose, Codex or Claude command coverage
 remains opt-in because it requires locally installed agents and credentials.
 
+## Interactive harness control plane
+
+`saaa sa` is the SAAA-owned interactive client. Its deterministic session state
+records an explicit target kind (`HARNESS_WORKFLOW` or `CODE`) and an explicit
+registered proposer route. The client can inspect capabilities and skills
+without invoking an agent; only `evolve` dispatches through the existing
+`EvolveRunner` path.
+
+```text
+operator -> sa session state -> target + route -> EvolveRunner
+                                                   |
+                                             AgentHarness / proposer
+                                                   |
+                         deterministic validation -> fitness -> promote/discard
+```
+
+Both target kinds currently use bounded whole-file realization plus declared
+behaviour checks. This is intentionally not AST-aware code evolution. The
+session exposes route choices but does not implement automatic resource or
+ethical routing; Q-010 and Q-011 remain open. MCP remains the agent-host
+integration surface rather than a competing session transport.
+
 Evolutionary operator policy is captured in
 [`docs/architecture/evolutionary-operators.md`](../architecture/evolutionary-operators.md):
 mutation is a targeted behavioral variation, not a patch; the realization is
