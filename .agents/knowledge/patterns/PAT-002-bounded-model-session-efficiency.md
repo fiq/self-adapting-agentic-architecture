@@ -11,6 +11,7 @@ relates_to:
   - ARCH-001
   - Q-010
   - Q-011
+  - PAT-003
 risks:
   - RISK-001
 evidence:

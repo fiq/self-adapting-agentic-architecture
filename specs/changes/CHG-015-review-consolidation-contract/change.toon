@@ -1,0 +1,93 @@
+change:
+  id: CHG-015
+  title: Make independent review and consolidation part of the operating contract
+  status: proposed
+  intent: Record how independent review fans out and how findings are consolidated, in the framework template so generated projects inherit it and in this project's AGENTS.md with a guard so it cannot silently drift.
+  audience_level: developer
+  relates_to:
+    - PAT-003
+    - PAT-002
+    - LRN-001
+    - ARCH-001
+
+deltas:
+  - op: ADDED
+    capability: review-and-consolidation-contract
+    requirement: The operating contract states that reviews may fan out because they share no mutable state while their conclusions may still contradict, that implementation agents may not share a file, and that consolidation is deduplicate, adjudicate, verify then apply serially.
+    scenarios:
+      - id: S1
+        when: the repository contract is checked
+        then: AGENTS.md carries an independent review and consolidation section naming every load-bearing control
+        and:
+          - deleting any one control fails the check and names it
+      - id: S2
+        when: the framework template is checked
+        then: its required-section list includes independent review and consolidation with the same load-bearing controls, stated generally rather than with this project's examples
+        and:
+          - deleting a control from the template fails the check and names it, so a generated project cannot silently inherit a weakened rule
+      - id: S5
+        when: a commit on the current branch carries a session URL, session identifier, token or other credential-shaped string in its message
+        then: the repository contract check fails and names the commit
+        and:
+          - the check is scoped to commits not yet on the integration branch, so it governs new work rather than failing on history that predates it
+      - id: S4
+        when: the repository contract is checked
+        then: AGENTS.md carries a rebase timing section requiring a rebase as soon as anything else merges, naming HANDOFF.toon as the guaranteed conflict surface and requiring a rebase before recording anything that references the integration branch
+        and:
+          - deleting a control fails the check and names it
+      - id: S3
+        when: an agent consults the knowledge graph about review practice
+        then: PAT-003 records the pattern with the concrete incidents that produced it, and links to PAT-002 for reviewer session hygiene and LRN-001 for recovering a review believed lost
+
+acceptance:
+  - scenario: S1
+    test_id: repo-contract/agents-review-consolidation-controls
+    layer: contract
+  - scenario: S2
+    test_id: repo-contract/agents-template-required-sections
+    layer: contract
+  - scenario: S5
+    test_id: repo-contract/commit-message-hygiene
+    layer: contract
+  - scenario: S4
+    test_id: repo-contract/agents-rebase-timing-controls
+    layer: contract
+  - scenario: S3
+    test_id: repo-contract/knowledge-pat-003-resolves
+    layer: contract
+
+tasks:
+  - id: T1
+    slice: add the required section to the framework AGENTS template, stated generally
+    status: completed
+  - id: T2
+    slice: add the section to this project's AGENTS.md, which CLAUDE.md symlinks
+    status: completed
+  - id: T3
+    slice: guard the section's controls in check-repo-contract so deleting one fails and names it
+    status: completed
+  - id: T4
+    slice: record PAT-003 with the incidents that produced it
+    status: completed
+  - id: T5
+    slice: correct the premise after independent review; reviews share no mutable state so findings combine additively, but conclusions contradict routinely and that is what consolidation adjudicates
+    status: completed
+  - id: T8
+    slice: forbid credential-shaped strings in commit messages and guard it, after 79 commits on public main were found carrying session URLs
+    status: completed
+  - id: T7
+    slice: record rebase timing in the contract and the framework template, after three stale-branch incidents in one session
+    status: completed
+  - id: T6
+    slice: guard every load-bearing control in both the project section and the framework template, naming the scenario test_id on failure
+    status: completed
+
+non_goals:
+  - automating reviewer dispatch or consolidation
+  - changing how any specific reviewer is invoked
+  - anything touching the deterministic decision boundary
+
+risks:
+  - read-only is asserted rather than enforced. Nothing mechanically stops a reviewer being handed write tools, and if that happens it mutates the diff the other reviewers are reading and additivity stops holding silently. The contract states it as an invariant to enforce; making it checkable is not in this change
+  - a contract that says reviews may fan out could be read as licence to spawn reviewers freely; the cost is consolidation, which is serial and falls on the lead, so the section says consolidation is the work rather than the reviewing
+  - PAT-003 is proposed rather than canonical because it generalises from one day's incidents and was written by the actor involved in them

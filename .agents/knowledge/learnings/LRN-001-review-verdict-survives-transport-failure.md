@@ -8,6 +8,7 @@ owners:
   - lead
 relates_to:
   - PAT-001
+  - PAT-003
 evidence:
   - https://github.com/fiq/self-adapting-agentic-architecture/pull/29
   - specs/changes/CHG-011-interactive-harness-runtime/change.toon
