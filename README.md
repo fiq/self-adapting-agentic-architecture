@@ -20,9 +20,10 @@ that weighted sum are explained under
 
 This is an experiment, and an early one. The loop runs end to end for one
 candidate per run. The default proposer is a canned file, so a stock run proves
-the pipe rather than that a model has good ideas, and no benchmark evidence
-reaches the score. [Why this shape](#why-this-shape) covers the
-genetic-programming lineage it is borrowing from and what the borrowing is for.
+the pipe rather than that a model has good ideas, and no run measures a
+benchmark unless `--benchmark` says which one to run. [Why this
+shape](#why-this-shape) covers the genetic-programming lineage it is borrowing
+from and what the borrowing is for.
 
 ```sh
 git clone https://github.com/fiq/self-adapting-agentic-architecture
@@ -84,7 +85,7 @@ implemented** means no code.
 | ACP agent proposer | Partial | `--profile acp` invokes a configured local ACP-over-stdio agent; wiring and fake-harness coverage are complete, while installed-agent interoperability remains opt-in |
 | Interactive harness session | Partial | `saaa sa` exposes explicit target and proposer-route selection, then runs either bounded whole-file workflow or code evolution through the existing deterministic loop |
 | MCP exposure | Partial | `saaa-mcp` offers the `saaa_evolve` tool to other agents over the Model Context Protocol on standard input and output; startup and the tool's input contract are tested, client-disconnect handling is not |
-| Benchmark-backed objectives | Not implemented | `EvolveRunner` wires the benchmark runner to a constant empty list, and `:cli` has no dependency on `:benchmarks` |
+| Benchmark-backed objectives | Partial | `--benchmark`/`--benchmark-budget` wire a real `JmhBenchmarkRunner` from `:cli` into `EvolveRunner`; with neither flag given the run still measures nothing, and only one static JMH benchmark class ships |
 | Behavioural-safety evidence | Not implemented | the objective is the literal `1.0` |
 | Retrieval treatments | Partial | `NONE` needs nothing; `VECTOR`, `GRAPH` and `HYBRID` need Neo4j and an embedding endpoint |
 | Population, ranking, selection | Not implemented | |
@@ -268,7 +269,7 @@ mutation operator so candidates stay comparable. Values are derived in
 |---|---:|---|---|
 | `subject.objective.task_success` | 0.40 | fraction of declared behaviour cases that passed | No |
 | `subject.objective.reliability` | 0.20 | `1.0` unless structured check evidence has status `TIMED_OUT` | No, in practice |
-| `subject.objective.cost_latency_budget` | 0.20 | worst `budget / measured` over benchmarks, clamped to `[0, 1]`, starting at `1.0` | No |
+| `subject.objective.cost_latency_budget` | 0.20 | worst `budget / measured` over benchmarks, clamped to `[0, 1]`, starting at `1.0` | Only when `--benchmark`/`--benchmark-budget` are given |
 | `subject.objective.behavioral_safety` | 0.10 | the literal `1.0` | No |
 | `subject.objective.parsimony` | 0.10 | `1 - (linesChanged / --max-lines)`, clamped | Yes |
 
@@ -279,7 +280,7 @@ From the run above: the fixture replaces one line of `workflow.txt`, counted as
 one removed plus one added, so parsimony is `1 - 2/80 = 0.975` and the raw sum
 is `0.40 + 0.20 + 0.20 + 0.10 + 0.0975 = 0.9975`, reported as `1.00`.
 
-### Why four of those five decide nothing
+### Why three of those five decide nothing, and a fourth only when asked
 
 `subject.objective.task_success` duplicates its own gate: every declared case must pass to clear
 `subject.invariant.required_behavior_cases`, so the passed fraction is 1.0 by
@@ -290,30 +291,38 @@ construction. Partial credit would need the gate relaxed first.
 fails the deterministic checks gate. The diagnostic summary still contains timeout text, but
 candidate-controlled stdout cannot spoof reliability.
 
-`subject.objective.cost_latency_budget` cannot be measured. `EvolveRunner` wires the benchmark
-runner to `candidate -> List.of()`, `ScoringConfig` gets an empty budget map,
-and `:cli` has no Gradle dependency on `:benchmarks`, so the loop never executes
-and the value stays at its `1.0` starting point. `JmhBenchmarkRunner` is real
-and integration-tested; nothing in the loop calls it. A benchmark with a zero
-value or no budget is skipped rather than failed, so absent benchmark evidence
-is invisible rather than a gate failure.
+`subject.objective.cost_latency_budget` varies only if the run asks it to. `EvolveRunner` now takes
+an injected `BenchmarkRunner`, and `saaa-evolve` accepts repeatable `--benchmark
+name=jmh-include-regex` and `--benchmark-budget name=value` options; `:cli` has a Gradle dependency
+on `:benchmarks` for exactly this wiring. With neither flag given, `EvolveCommand` still passes the
+constant empty benchmark runner and an empty budget map, so an ordinary run measures nothing and the
+value stays at its `1.0` starting point — this is the stock behaviour and every example above this
+section uses it. `JmhBenchmarkRunner` is real, integration-tested, and now reachable from the CLI;
+`modules/benchmarks` ships exactly one JMH benchmark class, `WorkflowGraphBenchmark`, so what can be
+measured today is a fixed microbenchmark of SAAA's own domain code, not a benchmark of whatever the
+candidate's mutated file contains — `:benchmarks` compiles once, ahead of any candidate, and
+`JmhBenchmarkRunner.runBenchmarks` does not read the candidate at all. A benchmark with a zero value
+or no configured budget is skipped rather than failed, so partial or absent benchmark evidence is
+invisible rather than a gate failure.
 
 `subject.objective.behavioral_safety` is the literal constant `1.0`. SAAA evaluates no behavioural
 safety property. It contributes 0.10 of unearned weight.
 
-`subject.objective.parsimony` is the one that varies. `linesChanged` comes from the candidate
-commit against its first parent through JGit, summing `lengthA + lengthB` per
-edit, so a one-line replacement counts as 2. Paths under `.saaa/` are excluded
-so bookkeeping does not inflate the diff; everything else counts, including
-generated files and reformatting. At or above `--max-lines` it clamps to 0.0,
-and `--max-lines` is also a pre-realisation validator, so a patch exceeding the
-budget is rejected before a candidate exists and the run exits non-zero.
+`subject.objective.parsimony` is the one that always varies, with no flag needed. `linesChanged`
+comes from the candidate commit against its first parent through JGit, summing `lengthA + lengthB`
+per edit, so a one-line replacement counts as 2. Paths under `.saaa/` are excluded so bookkeeping
+does not inflate the diff; everything else counts, including generated files and reformatting. At
+or above `--max-lines` it clamps to 0.0, and `--max-lines` is also a pre-realisation validator, so a
+patch exceeding the budget is rejected before a candidate exists and the run exits non-zero.
 
-So through `PhenotypeBridgeScorer`, the only scorer the CLI wires, the weighted
-sum cannot fall below 0.90 and the 0.80 threshold cannot reject an eligible
-candidate. The gates are the decision; the score is a record of it. `PhenotypeFitnessScorer` underneath
-compares properly and the golden corpus exercises both sides of the threshold,
-but nothing on the CLI path produces those inputs.
+So through `PhenotypeBridgeScorer`, the only scorer the CLI wires, an ordinary run with no
+`--benchmark` flags cannot fall below a weighted sum of `0.90`, and the `0.80` threshold cannot
+reject an eligible candidate on evidence alone. Configuring `--benchmark` and `--benchmark-budget`
+is the one way to make `cost_latency_budget` pull that floor down; the CLI acceptance test
+`EvolveCommandAcceptanceTest.wiresARealBenchmarkRunnerSoAnOverBudgetMeasurementDiscardsAnOtherwisePromotingCandidate`
+demonstrates an otherwise-promoting candidate discarded this way. The gates are still the decision
+for every other objective; the score is a record of it. `PhenotypeFitnessScorer` underneath compares
+properly and the golden corpus exercises both sides of the threshold, and now one CLI path can too.
 
 ### The limitation of deterministic fitness
 
@@ -394,14 +403,18 @@ property.
 
 All Java lives under `modules/`, in layers named for what they may know.
 Dependencies point inward: `cli` and `adapters` may reach `deterministic`,
-`deterministic` may reach `domain`, and `domain` may reach nothing. Gradle
-enforces it, so a violation is a compile error rather than a review comment.
+`deterministic` may reach `domain`, and `domain` may reach nothing. `cli` is
+also the composition root, so it is the only layer allowed to depend on both
+port-implementing layers, `adapters` and `benchmarks`, in order to wire a
+chosen `BenchmarkRunner` implementation into `EvolveRunner`; `adapters` and
+`benchmarks` do not depend on each other. Gradle enforces all of it, so a
+violation is a compile error rather than a review comment.
 
 ```text
 cli -> deterministic -> domain
-             ^
-             |
-  adapters and benchmarks implement ports
+ |           ^
+ |           |
+ +--> adapters and benchmarks implement ports
 ```
 
 `MutationEvaluationLoop` sits in `deterministic` and talks only to ports:

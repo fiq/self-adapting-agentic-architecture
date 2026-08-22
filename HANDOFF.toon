@@ -52,7 +52,8 @@ task_path:
       depends_on: none
       parallel_with: C1, C2, C4
       files: modules/cli/build.gradle.kts, EvolveRunner
-      note: disjoint from the scorer, so it can run beside C2. budgetScore already varies and is only starved of input, so this is the cheapest route to an objective that discriminates
+      state: done on branch worktree-agent-a85bff0949bcded3c, worktree .claude/worktrees/agent-a85bff0949bcded3c, all checks green, not yet merged
+      note: disjoint from the scorer, so it can run beside C2. budgetScore already varies and is only starved of input, so this is the cheapest route to an objective that discriminates. See CHG-016 and c3_delivery below for what was actually done, since EvolveRunner (the constant-empty wiring) lives in modules/adapters, not modules/cli, so the fix threads an injected BenchmarkRunner through EvolveRunner and composes the concrete JmhBenchmarkRunner only in :cli, which is the layer that gained the :benchmarks Gradle dependency
     - id: C4
       work: record engine-routing defaults in MODEL_ROUTING_POLICY.md as proposed, with revisit triggers, worded so it cannot be read as the automatic routing Q-010 and Q-011 defer
       depends_on: none
@@ -103,6 +104,27 @@ task_path:
         - apply the fixes serially in one place. That step must not be parallel
     routing: reviews and read-heavy audits go to an external engine on a separate budget; spec authorship, merge decisions and anything touching the deterministic boundary stay with the lead
   review_evidence: every independent pass today found something the previous reviewer and the lead both missed, twice in the lead's own work. Do not treat one clean review on a branch as strong evidence
+
+c3_delivery:
+  what: gave subject.objective.cost_latency_budget a real evidence source. budgetScore was already correct and untouched; the gap was upstream. EvolveRunner (modules/adapters, not modules/cli as C3's original framing assumed) gains an injectable BenchmarkRunner constructor parameter, defaulting every existing constructor to the prior constant candidate -> List.of(); EvolveRunRequest gains a benchmarkBudgets map component, defaulting every existing shorter constructor to Map.of(). modules/cli/build.gradle.kts gains a dependency on :benchmarks; EvolveCommand gains repeatable --benchmark name=jmh-include-regex and --benchmark-budget name=value options that compose a real JmhBenchmarkRunner only when given, otherwise the run is byte-for-byte the same as before
+  architecture_boundary_check: adapters (where EvolveRunner lives) was deliberately NOT given a dependency on :benchmarks; only :cli, the composition root, was. EvolveRunner only ever sees the BenchmarkRunner port it already had visibility to through :deterministic. project lint reports ARCHITECTURE BOUNDARIES OK after the change
+  test_first: adapters/evolve/EvolveRunnerTest.discriminatesCandidatesByAConfiguredBenchmarkBudget was written against the intended new API before it existed and failed to compile (no suitable constructor found) for the right reason; cli/EvolveCommandAcceptanceTest.wiresARealBenchmarkRunnerSoAnOverBudgetMeasurementDiscardsAnOtherwisePromotingCandidate exercises the real JmhBenchmarkRunner path end to end
+  mutation_check: both EvolveRunner.run's constant wiring and EvolveCommand.call's constant BenchmarkRunner were separately reverted to their prior inert form; both new tests failed each time; both files were restored and diffed byte-identical against a saved copy before continuing
+  spec: specs/changes/CHG-016-benchmark-evidence/ (proposal.md, change.toon, design.md); check-changes passes
+  docs: README.md, docs/wiki/architecture.md and docs/architecture/module-boundaries.md updated; all three previously asserted no CLI run could produce benchmark evidence and that :cli had no dependency on :benchmarks, which is no longer true by default-off construction (an ordinary run still measures nothing unless --benchmark is given)
+  validation:
+    - nix develop --command .agentic-template/bin/project check: pass, all seven gates
+    - nix develop --command .agentic-template/bin/project lint: ARCHITECTURE BOUNDARIES OK
+    - nix develop --command .agentic-template/bin/project check-changes: CHANGES OK
+    - nix develop --command gradle test --rerun-tasks --no-daemon: pass, all five modules
+    - nix develop --command gradle :cli:acceptanceTest --rerun-tasks --no-daemon: pass, 16 tests including the new one
+    - nix develop --command gradle :deterministic:acceptanceTest :cli:acceptanceTest --rerun-tasks --no-daemon (component-test): pass
+    - nix develop --command gradle :adapters:integrationTest :benchmarks:integrationTest --rerun-tasks --no-daemon (integration-test): pass, including the pre-existing JmhBenchmarkRunnerIntegrationTest
+    - nix develop --command .agentic-template/bin/project ready: READY PASS, 16 pass / 1 not applicable / 0 fail
+  not_done: modules/benchmarks still ships exactly one JMH benchmark class, WorkflowGraphBenchmark, benchmarking SAAA's own domain code rather than the candidate; JmhBenchmarkRunner.runBenchmarks still does not read the candidate at all. Making the benchmark runner candidate-aware and adding further benchmark classes are both recorded non-goals in CHG-016, not silent gaps
+  branch: worktree-agent-a85bff0949bcded3c
+  worktree: .claude/worktrees/agent-a85bff0949bcded3c
+  merge_state: not merged; not pushed; lead reintegrates per this task's constraints
 
 active_assumptions:
   - ACP command configuration is local process selection, not automatic complexity or ethics routing

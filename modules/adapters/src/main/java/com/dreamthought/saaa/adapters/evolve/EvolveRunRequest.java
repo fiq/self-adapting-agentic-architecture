@@ -2,6 +2,7 @@ package com.dreamthought.saaa.adapters.evolve;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import com.dreamthought.saaa.domain.RetrievalMode;
 import java.util.Optional;
@@ -14,7 +15,8 @@ public record EvolveRunRequest(
         int maxLines,
         RetrievalMode retrievalMode,
         String task,
-        Optional<String> runId
+        Optional<String> runId,
+        Map<String, Double> benchmarkBudgets
 ) {
     public EvolveRunRequest(
             Path targetFolder,
@@ -31,15 +33,29 @@ public record EvolveRunRequest(
                 maxLines,
                 RetrievalMode.NONE,
                 "Improve the target while preserving all declared behaviour cases",
-                Optional.empty());
+                Optional.empty(),
+                Map.of());
     }
 
     public EvolveRunRequest(
             Path targetFolder, String profile, String workflowFile, List<String> behaviourCases,
             int maxLines, RetrievalMode retrievalMode, String task) {
-        this(targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task, Optional.empty());
+        this(targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task, Optional.empty(),
+                Map.of());
     }
 
+    public EvolveRunRequest(
+            Path targetFolder, String profile, String workflowFile, List<String> behaviourCases,
+            int maxLines, RetrievalMode retrievalMode, String task, Optional<String> runId) {
+        this(targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task, runId, Map.of());
+    }
+
+    /**
+     * @param benchmarkBudgets benchmark name to its budget in the benchmark's own unit, threaded
+     *                         into {@code ScoringConfig} so {@code cost_latency_budget} has an
+     *                         evidence source to compare against; empty means no budget is
+     *                         configured and the objective stays at its {@code 1.0} starting point
+     */
     public EvolveRunRequest {
         targetFolder = Objects.requireNonNull(targetFolder, "targetFolder");
         profile = requireNonBlank(profile, "profile");
@@ -54,6 +70,7 @@ public record EvolveRunRequest(
         retrievalMode = Objects.requireNonNull(retrievalMode, "retrievalMode");
         task = requireNonBlank(task, "task");
         runId = Objects.requireNonNull(runId, "runId").map(value -> requireSafeId(value, "runId"));
+        benchmarkBudgets = Map.copyOf(Objects.requireNonNull(benchmarkBudgets, "benchmarkBudgets"));
     }
 
     private static String requireSafeId(String value, String name) {

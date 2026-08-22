@@ -49,6 +49,45 @@ final class EvolveCommandAcceptanceTest {
                 .contains("PROMOTE");
     }
 
+    /**
+     * C3: {@code cost_latency_budget} was always {@code 1.0} because {@code :cli} had no dependency
+     * on {@code :benchmarks} and {@code EvolveRunner} wired a constant empty benchmark list. With a
+     * real {@code JmhBenchmarkRunner} wired through {@code --benchmark} and an unreachable
+     * {@code --benchmark-budget}, the measured benchmark exceeds its budget by many orders of
+     * magnitude, so the weighted score drops from a comfortable PROMOTE to a DISCARD below the 0.80
+     * threshold even though every declared behaviour case still passes. The budget is set
+     * astronomically small rather than pinned to an exact JMH timing so the assertion does not
+     * depend on host-specific throughput.
+     */
+    @Test
+    void wiresARealBenchmarkRunnerSoAnOverBudgetMeasurementDiscardsAnOtherwisePromotingCandidate(
+            @TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(),
+                "--profile", "fixture",
+                "--behaviour-case", "workflow-check",
+                "--max-lines", "80",
+                "--benchmark", "workflow-graph-create="
+                        + "com.dreamthought.saaa.benchmarks.WorkflowGraphBenchmark.createWorkflowGraph",
+                "--benchmark-budget", "workflow-graph-create=0.0000001");
+
+        assertThat(exitCode).isZero();
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .contains("enforce the draft check")
+                .contains("DISCARD")
+                .doesNotContain("PROMOTE");
+    }
+
     @Test
     void runsEveryDeclaredBehaviourCaseNotOnlyTheFirst(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");

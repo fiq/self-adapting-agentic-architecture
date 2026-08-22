@@ -8,6 +8,8 @@ know rather than for its position in a stack.
 modules/cli
   -> modules/deterministic
         -> modules/domain
+  -> modules/adapters      (implements ports: proposer, Git, SQLite, MCP, journal)
+  -> modules/benchmarks    (implements the BenchmarkRunner port with real JMH evidence)
 
 modules/adapters    -> modules/deterministic
 modules/benchmarks  -> modules/deterministic, modules/domain
@@ -16,6 +18,15 @@ modules/benchmarks  -> modules/deterministic, modules/domain
 Dependencies point inward. `domain` is the innermost layer and depends on
 nothing at all — its Gradle build file declares no dependencies, so the rule is
 a compile error rather than a convention.
+
+`cli` is the only layer permitted to depend on more than one port-implementing
+layer. It is the composition root and entry point: it is the one place that may
+know about both `adapters` and `benchmarks` concrete classes at once, in order
+to wire a chosen `BenchmarkRunner` implementation — the constant empty one, or
+`JmhBenchmarkRunner` from `:benchmarks` — into `EvolveRunner`, which only ever
+sees the `BenchmarkRunner` port. Neither `adapters` nor `benchmarks` may depend
+on the other, so `EvolveRunner` (in `adapters`) takes its `BenchmarkRunner` as a
+constructor parameter rather than constructing a JMH-backed one itself.
 
 ## Domain
 

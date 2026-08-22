@@ -7,10 +7,16 @@ All Java lives under `modules/`, and layers are named for what they may know.
 
 ```text
 cli -> deterministic -> domain
-             ^
-             |
-  adapters and benchmarks implement ports
+ |           ^
+ |           |
+ +--> adapters and benchmarks implement ports
 ```
+
+`cli` is the composition root: it is the only layer that depends on both
+`adapters` and `benchmarks` at once, so it is the one place that can wire a
+chosen `BenchmarkRunner` implementation — the constant empty one, or
+`JmhBenchmarkRunner` from `:benchmarks` when `--benchmark` is given — into
+`EvolveRunner`. `adapters` and `benchmarks` never depend on each other.
 
 `domain` declares no dependencies at all, so the inward rule is a compile error.
 `deterministic` holds validation, scoring, promotion and ports; nothing
@@ -40,7 +46,7 @@ MutationEvaluationLoop  (deterministic)
         |-- EvidenceRetriever         -> adapters/retrieval, adapters/neo4j
         |-- CandidateWorkspace        -> adapters/git
         |-- CheckRunner               -> adapters/checks
-        |-- BenchmarkRunner           -> benchmarks/JMH (not wired into the CLI)
+        |-- BenchmarkRunner           -> benchmarks/JMH, wired by EvolveCommand when --benchmark is given
         |-- FitnessScorer             -> deterministic/PhenotypeBridgeScorer
         |-- ExperimentMetadataStore   -> adapters/sqlite
         |-- CandidateDecisionSink     -> adapters/journal
@@ -52,10 +58,16 @@ not call it: the `FitnessScorer` port has no parameter for a contract, so the
 wired path reaches only the contractless entry point. See `RISK-002` and
 `CHG-014`.
 
-`:cli` has no Gradle dependency on `:benchmarks`, and `EvolveRunner` supplies a
-constant empty benchmark list, so no CLI run produces benchmark evidence.
-`JmhBenchmarkRunner` exists and is integration-tested but nothing in the loop
-calls it.
+`:cli` has a Gradle dependency on `:benchmarks`. `EvolveRunner` takes an
+injected `BenchmarkRunner` rather than constructing one, so `EvolveCommand`
+composes the concrete choice: the constant empty list by default, or a real
+`JmhBenchmarkRunner` when `--benchmark name=jmh-include-regex` is given, with
+budgets threaded through `--benchmark-budget name=value` into `ScoringConfig`.
+`JmhBenchmarkRunner` is integration-tested and now reachable from a CLI run.
+It still does not inspect the candidate: `modules/benchmarks` compiles one
+fixed JMH benchmark class, `WorkflowGraphBenchmark`, ahead of any candidate, so
+what gets measured is a fixed microbenchmark of SAAA's own domain code, not
+whatever the candidate's mutated file contains. See CHG-016.
 
 Check execution records timeouts as the structured `CheckStatus.TIMED_OUT`
 value. Reliability therefore ignores candidate-controlled check summaries and
@@ -63,10 +75,10 @@ cannot be spoofed by a passing script that prints the words "timed out".
 
 Extension points that do not touch the loop: register a proposer in
 `ProposerProfileRegistry` for a new `--profile`; write a `<name>.sh` for a new
-behaviour case; supply benchmark budgets through `ScoringConfig` once something
-produces benchmark evidence. `CandidateDecisionSink` exposes no merge
-operation, so promotion cannot become an automatic merge through adapter
-configuration.
+behaviour case; add a JMH benchmark class to `modules/benchmarks` and name it
+with `--benchmark`/`--benchmark-budget` for `cost_latency_budget` to compare
+against. `CandidateDecisionSink` exposes no merge operation, so promotion
+cannot become an automatic merge through adapter configuration.
 
 The key architecture rule is `ARCH-001`: LangChain4j is an adapter detail, and
 validation, fitness scoring, promotion and rollback remain deterministic Java
