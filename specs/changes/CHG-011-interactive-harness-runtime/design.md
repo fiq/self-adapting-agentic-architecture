@@ -3,13 +3,18 @@
 ## State machine
 
 ```text
-NEW --open--> ACTIVE --close/quit--> CLOSED
-                 |  ^
-                 |  |
-                 +-- inspect catalog / select target / select route
-                 |
-                 +-- evolve(HARNESS_WORKFLOW) --> EVALUATING --> ACTIVE
+(start) --> ACTIVE --close/quit or EOF--> CLOSED
+              |  ^
+              |  |
+              +-- inspect catalog / select target / select route
+              |
+              +-- evolve(HARNESS_WORKFLOW | CODE)  [synchronous; stays ACTIVE]
 ```
+
+`HarnessSessionStatus` has exactly two values, `ACTIVE` and `CLOSED`. There is
+no separate evaluating state: `evolve` runs the deterministic loop synchronously
+and the session remains `ACTIVE` throughout, so a failed run reports an error and
+returns to the prompt rather than changing state.
 
 The state machine is deterministic and has no dependency on a provider,
 terminal, MCP, or file system. The CLI owns line parsing and rendering. Adapter
