@@ -1,6 +1,6 @@
 session:
   updated: 2026-08-22
-  status: chg_011_review_findings_addressed
+  status: chg_011_review_findings_addressed_and_robustness_fixed
   branch: feat/chg-011-harness-runtime
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-chg-011-acceptance
   head: origin/main at 62bd112
@@ -14,8 +14,8 @@ goal:
   interlude: ACP is transport interoperability only; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
 
 next_actions:
-  - decide whether the two remaining SaCommand robustness findings are fixed here or deferred: the three-limit whitespace split swallows surplus behaviour-case tokens into one case name, and `handle` catches only IllegalArgumentException and IllegalStateException so any other exception from EvolveRunner terminates the session
-  - open a separate change plus a RISK- entry for unscrubbed mutation summary and patch content, which affects `saaa-evolve`, `saaa-mcp` and `saaa sa` equally and predates this branch
+  - implement CHG-013 so mutation summary and patch text are scrubbed at the durable and reporter boundaries; RISK-006 stays open until both are covered
+  - address the independent review of PR #30: its repository-contract guard checks only headings and identifiers, so every substantive model-routing control could be deleted while the check still passes
   - keep MCP as the agent-host integration surface while `saaa sa` is the primary interactive user experience
 
 active_assumptions:
@@ -39,6 +39,8 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-22 nix develop --command gradle :domain:test :deterministic:test :adapters:test :cli:test :cli:acceptanceTest --rerun-tasks --no-daemon: pass
+  - 2026-08-22 both robustness regressions were confirmed red before the fix and green after
   - 2026-08-22 nix develop --command gradle :cli:acceptanceTest --tests com.dreamthought.saaa.cli.SaCommandAcceptanceTest --rerun-tasks --no-daemon: pass, 5 tests
   - 2026-08-22 mutation check: hardcoding the session default route in SaCommand.evolve failed only passesTheExplicitlySelectedRouteRatherThanTheSessionDefaultToTheLoop, after which SaCommand was restored byte-identical to HEAD
   - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass; repo contract, profile, handoff, knowledge, changes, architecture boundaries and glossary all OK
@@ -69,8 +71,13 @@ review:
       - S1's mapped test asserted transcript text only; it now also asserts that inspecting status, capabilities and skills resolves no agent-backed proposer
       - the new route test was mutation-checked: hardcoding the session default in SaCommand made it, and only it, fail
     triaged_not_addressed:
-      - unscrubbed mutation summary and patch content in candidate TOON and ConsoleReporter output is real but predates this branch; EvolveCommand already pairs the same EvolveRunner and ConsoleReporter, so `sa` adds a caller rather than a regression
+      - unscrubbed mutation summary and patch content in candidate TOON and ConsoleReporter output is real but predates this branch; EvolveCommand already pairs the same EvolveRunner and ConsoleReporter, so `sa` adds a caller rather than a regression. Now recorded as RISK-006 and specified as CHG-013
       - unbounded input size ahead of the quadratic LCS in DiffLineBudgetMutationValidator is inherited from the evolve path
+  - lead: SaCommand robustness pass following the independent review
+    result: both remaining lead findings fixed test-first
+    addressed:
+      - every whitespace-separated behaviour case after the workflow file is now dispatched as its own declared check; previously `evolve wf.txt a b` produced a single case literally named "a b"
+      - `handle` now catches RuntimeException so a failed run reports and returns to the prompt; UncheckedIOException from EvolveRunner.readString previously unwound the session. Invalid UTF-8 in the workflow file is the deterministic trigger used by the regression
   - lead: two-pass bounded CHG-011 review
     result: no remaining findings
     addressed:

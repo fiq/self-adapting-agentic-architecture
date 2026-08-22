@@ -108,6 +108,67 @@ final class SaCommandAcceptanceTest {
     }
 
     @Test
+    void acceptsEveryDeclaredBehaviourCaseRatherThanFoldingThemIntoOneName(@TempDir Path tempDir)
+            throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("workflow");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        writeCheck(target, "second-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                test -f "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        var transcript = run("target HARNESS_WORKFLOW " + target + "\n"
+                + "evolve workflow.txt workflow-check second-check\n"
+                + "quit\n");
+
+        assertThat(transcript)
+                .as("both declared behaviour cases must run as separate checks")
+                .contains("workflow-check")
+                .contains("second-check");
+        assertThat(transcript).doesNotContain("workflow-check second-check");
+        assertThat(transcript).contains("session decision PROMOTE");
+    }
+
+    @Test
+    void keepsTheSessionAliveWhenTheLoopFailsWithAnUncheckedException(@TempDir Path tempDir)
+            throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("workflow");
+        Files.createDirectories(target.resolve(".saaa"));
+        // Invalid UTF-8 makes EvolveRunner's readString raise UncheckedIOException, which is neither
+        // IllegalArgumentException nor IllegalStateException.
+        Files.write(target.resolve("workflow.txt"), new byte[] {(byte) 0xFF, (byte) 0xFE, (byte) 0xFF});
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"), "summary\nreplacement\n");
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                exit 0
+                """);
+        initRepo(repo);
+
+        var transcript = run("target HARNESS_WORKFLOW " + target + "\n"
+                + "evolve workflow.txt workflow-check\n"
+                + "status\n"
+                + "quit\n");
+
+        assertThat(transcript)
+                .as("an unchecked failure must be reported rather than terminating the session")
+                .contains("error ");
+        assertThat(transcript)
+                .as("the session must still answer commands after a failed evolve")
+                .contains("state ACTIVE")
+                .contains("state CLOSED");
+    }
+
+    @Test
     void evolvesTheSelectedCodeTargetThroughTheExistingLoop(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
         Path target = repo.resolve("code");
