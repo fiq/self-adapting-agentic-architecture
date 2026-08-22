@@ -77,7 +77,16 @@ task_path:
         - land C1 through C6 and remove every worktree except the coordination checkout, because every surviving branch would need rebasing onto rewritten history
         - AGENTS.md forbids force-pushing main without explicit authorisation; cite the authorisation recorded here
         - expect every SHA on main to change. HANDOFF.toon, the specs, PAT and LRN entries and merged PR bodies all cite SHAs that will stop resolving; decide whether to rewrite those references or accept them as historical
-      honest_limit: rewriting does not remove the data. The original commits stay fetchable by SHA on the host, remain visible in pull request views, and exist in every clone and fork already taken. The rewrite cleans the tip, not the record
+      status: committed. The owner reaffirmed on 2026-08-22 that the historic commit messages are to be fixed once every worktree is merged. This is not optional tidying and must not be dropped from a later handoff
+      method:
+        - confirm no branch or worktree other than the coordination checkout survives, and that origin has no open PR
+        - FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --msg-filter "sed '/^Claude-Session:/d'" -- --all
+        - verify with: git log --all --format=%B | grep -c Claude-Session, which must print 0
+        - verify the tree is unchanged: the rewrite touches messages only, so every resulting tree hash must match its original
+        - push with --force-with-lease, which needs the owner authorisation recorded above because AGENTS.md otherwise forbids force-pushing main
+        - re-clone or reset any other checkout afterwards; existing clones keep the old history
+      sha_references: HANDOFF.toon, the specs, PAT and LRN entries and merged PR bodies cite SHAs that stop resolving after the rewrite. Fix the in-repo references in the same change; merged PR bodies on the host cannot be fixed and stay as historical record
+      honest_limit: rewriting does not remove the data already published. The original commits stay fetchable by SHA on the host, remain visible in pull request views, and exist in every clone and fork already taken. The rewrite cleans the tip, not the record. It is still worth doing so the canonical history is clean, and the owner has accepted that limit
       prevention_already_landed: CHG-015 forbids credential-shaped strings in commit messages and guards it, so the count cannot grow while C7 waits
 
   parallelisation:
