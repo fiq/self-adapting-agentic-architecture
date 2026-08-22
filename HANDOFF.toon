@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-22
-  status: chg_020_mutation_evidence
-  branch: feat/chg-020-prove-assertions-can-fail
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-020-mutation
-  head: origin/main at 18a75e0
-  head_note: CHG-019 merged, so a declared required_evidence id now gates a live promotion and RISK-002 narrows to the contractless path. CHG-020 records that a passing test is not evidence until it has been seen to fail, from five assertions that could not fail on 2026-08-22.
+  status: chg_021_discriminating_fitness
+  branch: feat/chg-021-behavioural-safety-signal
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-021-safety
+  head: origin/main at 45043b4
+  head_note: CHG-021 makes the fitness function discriminate: behavioral_safety scores declared probes, and a failed candidate keeps its magnitude instead of being zeroed, which is what a population needs to choose between failures. The promote decision is unchanged and still gated.
   dirty: false
   pushed: true
 
@@ -42,6 +42,12 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-23 all six source sets pass with --rerun-tasks; project check 7/7
+  - 2026-08-23 mutation, absent probe counts as passed: 3 failures, restored
+  - 2026-08-23 mutation, probes left in the deterministic-checks gate: 3 failures, restored
+  - 2026-08-23 mutation, last-wins on a repeated probe name: initially 0 failures, which exposed a fail-wins rule with no assertion behind it; a test was added with the failing entry first and the mutation then failed 3
+  - 2026-08-23 mutation, withholding logic disabled with probes declared: initially 0 failures, which exposed that probe scripts were never executed at all, so the objective read 0.0 from absence. After executing probes alongside behaviour cases the same mutation failed 3
+  - 2026-08-23 mutation, zeroing restored on gate failure: the magnitude tests fail, and the golden corpus records the retained magnitudes 0.59 and 1.00 rather than 0.0
   - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass after the spec revision
   - 2026-08-22 nix develop --command .agentic-template/bin/project check-changes: pass; the first draft was rejected for relates_to CAP-001, since capability specs are not knowledge ids
   - 2026-08-22 verified each GLM blocker directly against the code rather than accepting the review: MutationEvaluationLoop:160 and :206, MutationContractValidator.requireDeterministicObjectives, and PhenotypeFitnessScorer:73 and :84

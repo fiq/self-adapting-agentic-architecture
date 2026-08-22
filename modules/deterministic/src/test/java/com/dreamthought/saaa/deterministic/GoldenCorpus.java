@@ -78,7 +78,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                0.0);
+                0.59);
     }
 
     /**
@@ -98,7 +98,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                0.0);
+                0.59);
     }
 
     /**
@@ -119,7 +119,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                0.0);
+                1.00);
     }
 
     /**
@@ -235,7 +235,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                0.0);
+                1.00);
     }
 
     /**

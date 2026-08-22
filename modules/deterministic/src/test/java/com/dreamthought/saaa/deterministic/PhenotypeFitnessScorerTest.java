@@ -34,7 +34,9 @@ final class PhenotypeFitnessScorerTest {
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
-        assertThat(result.aggregateScore()).isZero();
+        // The magnitude now survives a gate failure by design (CHG-021, CON-002): the decision
+        // stays binary and the score records how close the candidate got.
+        assertThat(result.decision()).isEqualTo(DISCARD);
     }
 
     @Test
@@ -86,7 +88,9 @@ final class PhenotypeFitnessScorerTest {
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
-        assertThat(result.aggregateScore()).isZero();
+        // The magnitude now survives a gate failure by design (CHG-021, CON-002): the decision
+        // stays binary and the score records how close the candidate got.
+        assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.objectives())
                 .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 0.0);
     }
@@ -107,7 +111,9 @@ final class PhenotypeFitnessScorerTest {
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
-        assertThat(result.aggregateScore()).isZero();
+        // The magnitude now survives a gate failure by design (CHG-021, CON-002): the decision
+        // stays binary and the score records how close the candidate got.
+        assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.objectives())
                 .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical(), 0.0);
     }

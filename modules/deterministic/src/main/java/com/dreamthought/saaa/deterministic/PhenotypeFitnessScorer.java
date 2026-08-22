@@ -122,7 +122,12 @@ public final class PhenotypeFitnessScorer {
         boolean gatesPassed = checksPassed && behaviorCasesPassed && objectiveScoresPresent
                 && realizationNonEmpty && declaredEvidencePassed;
 
-        double rawScore = gatesPassed ? weightedScore(phenotype, objectiveSet) : 0.0;
+        // The magnitude survives a gate failure. CON-002 makes an invariant binary for the
+        // promote-or-discard decision while still carrying a magnitude, so that among candidates
+        // which already failed a near miss stays distinguishable from a total miss. Zeroing here
+        // destroyed exactly that, which is the information a population needs to choose which
+        // failure to mutate from next. The decision below is unchanged and still gated.
+        double rawScore = weightedScore(phenotype, objectiveSet);
         FitnessDecision decision = gatesPassed && rawScore >= PROMOTION_THRESHOLD
                 ? FitnessDecision.PROMOTE
                 : FitnessDecision.DISCARD;
@@ -175,7 +180,11 @@ public final class PhenotypeFitnessScorer {
     /** Weights come from the same objective set the presence gate used, for the reason given there. */
     private static double weightedScore(PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
         return objectiveSet.stream()
-                .mapToDouble(objective -> objective.weight() * phenotype.objectiveScores().get(objective.id()))
+                // A missing measurement contributes nothing rather than throwing. Before the
+                // magnitude was retained, the missing-objective gate short-circuited to 0.0 and
+                // this was never reached with an absent key; now it is.
+                .mapToDouble(objective -> objective.weight()
+                        * phenotype.objectiveScores().getOrDefault(objective.id(), 0.0))
                 .sum();
     }
 

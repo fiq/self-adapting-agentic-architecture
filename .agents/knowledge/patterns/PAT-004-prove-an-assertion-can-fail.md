@@ -22,8 +22,9 @@ assertion that cannot fail.
 
 ## Why this is not a matter of care
 
-On 2026-08-22 four assertions in this repository could not fail, and a fifth
-could fail but proved something other than what it claimed. Three of the four
+On 2026-08-22 and 23, six assertions in this repository could not fail, one could fail but
+proved something other than what it claimed, and one passed because its subject
+was never executed. Three of the four
 were written by the lead, and one of those was written the same day, after
 several hours spent finding exactly that defect in other people's work. Every one
 was caught by mutation. None was caught by reading, including by reviewers
@@ -46,13 +47,28 @@ Two more were found the same way in a subagent's work and in a reviewer's
 suggestion, and one reviewer suggestion would have codified the opposite of the
 promotion boundary had it been applied without running it.
 
+## A test can be disconnected rather than weak
+
+CHG-021 added a seventh case, and it is a different kind. An acceptance test drove
+the CLI with a failing safety probe and asserted the candidate still promoted. It
+passed. Mutating the code that withholds probes from the gate changed nothing,
+which is what exposed it: the probe's script was never executed at all, so the
+objective read zero from absence rather than from measurement, and the assertion
+was satisfied for a reason unrelated to what it claimed.
+
+The assertion was fine. The mechanism was missing. That is why the rule mutates
+the mechanism and not only the assertion: if breaking the code under test changes
+nothing, the test is not weak, it is disconnected, and the two need different
+fixes.
+
 ## The shapes that recur
 
 - checking a key is present when the key is written regardless of outcome;
 - pinning a decision without pinning the reason for it;
 - a fixture that already satisfies the assertion before the code runs;
 - ordering that lets a last-write-wins bug produce the expected answer;
-- a magnitude so extreme it passes for a direction-agnostic reason.
+- a magnitude so extreme it passes for a direction-agnostic reason;
+- a test whose subject never runs, so the assertion is satisfied by absence.
 
 ## What this does not mean
 

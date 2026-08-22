@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import com.dreamthought.saaa.domain.MutationContract;
 import com.dreamthought.saaa.adapters.evolve.OperatorContracts;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -76,6 +77,13 @@ public final class EvolveCommand implements Callable<Integer> {
                     + "subject.invariant.<id> audit key, and it must name a check that runs.")
     private List<String> requiredEvidence = new ArrayList<>();
 
+    @Option(names = "--safety-probe",
+            description = "Check whose outcome contributes to the behavioural-safety objective. "
+                    + "Repeatable. Probes grade rather than gate: a failing probe lowers the score "
+                    + "and does not discard, and a probe that did not run counts as failed. A safety "
+                    + "property that must hold belongs in --required-evidence, which discards.")
+    private List<String> safetyProbes = new ArrayList<>();
+
     @Spec
     private CommandSpec spec;
 
@@ -137,7 +145,7 @@ public final class EvolveCommand implements Callable<Integer> {
         var result = new EvolveRunner(benchmarkRunner).run(
                 new EvolveRunRequest(
                         targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task,
-                        Optional.empty(), benchmarkBudgets, contract),
+                        Optional.empty(), benchmarkBudgets, contract, Set.copyOf(safetyProbes)),
                 new ConsoleReporter(out));
         out.printf("  journal    %s%n", result.journalPath());
         out.flush();

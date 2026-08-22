@@ -1,0 +1,88 @@
+change:
+  id: CHG-021
+  title: Make the fitness function discriminate
+  status: proposed
+  intent: Give behavioral_safety a real evidence source and stop erasing a failed candidate's magnitude, so two candidates can be told apart and a population can choose which failure to mutate from.
+  audience_level: developer
+  relates_to:
+    - CON-002
+    - PAT-004
+    - ARCH-001
+    - SYS-001
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: The weighted sum distinguishes candidates, and a failed candidate retains a comparable magnitude while the promote decision stays binary.
+    scenarios:
+      - id: S1
+        when: an operator declares safety probes and some pass
+        then: behavioral_safety is the pass fraction of the declared probes
+        and:
+          - a probe that produced no evidence counts as failed, the rule the gates already apply
+          - a check the operator did not declare a probe does not count towards the fraction
+      - id: S2
+        when: a declared probe fails
+        then: the objective falls and the candidate is not discarded for it
+        and:
+          - probes are withheld from the deterministic-checks gate, or a probe would gate rather than grade
+      - id: S3
+        when: no probes are declared
+        then: the objective stays at 1.0 and the run is unchanged
+      - id: S4
+        when: two candidates fail a gate having passed different numbers of behaviour cases
+        then: the one that passed more records the higher score, though both are discarded
+      - id: S5
+        when: a candidate fails a gate and its objectives would otherwise sum above the promotion threshold
+        then: it is still discarded, because the decision is gated and a magnitude never buys a promotion
+      - id: S6
+        when: a declared probe's script exists in the target
+        then: it is executed alongside the behaviour cases, so the objective measures a result rather than an absence
+
+acceptance:
+  - scenario: S1
+    test_id: deterministic/BehaviouralSafetyScoreTest.isThePassFractionOfTheDeclaredProbes
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/BehaviouralSafetyScoreTest.aFailingProbeLowersTheScoreWithoutDiscarding
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/BehaviouralSafetyScoreTest.staysAtOneWhenNoProbesAreDeclared
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/FailedCandidateMagnitudeTest.aNearMissOutscoresATotalMissAlthoughBothDiscard
+    layer: unit
+  - scenario: S5
+    test_id: deterministic/FailedCandidateMagnitudeTest.theDecisionIsStillBinaryAndUntradeable
+    layer: unit
+  - scenario: S6
+    test_id: cli/EvolveContractAcceptanceTest.aFailingSafetyProbeLowersTheScoreWithoutDiscarding
+    layer: acceptance
+
+tasks:
+  - id: T1
+    slice: score behavioral_safety as the declared probes' pass fraction, withheld from the checks gate
+    status: completed
+  - id: T2
+    slice: stop zeroing a failed candidate's score so the magnitude survives, leaving the decision gated
+    status: completed
+  - id: T3
+    slice: expose --safety-probe and execute probe scripts alongside behaviour cases
+    status: completed
+  - id: T4
+    slice: update the golden corpus, the property test and the assertions that pinned the zeroing rather than the invariant
+    status: completed
+  - id: T5
+    slice: correct the README, which described the objective as the literal 1.0 and did not mention that a failed candidate keeps its score
+    status: completed
+
+non_goals:
+  - ranking or population, which this unblocks but does not implement
+  - reclaiming reliability, which needs repeated execution to mean anything
+  - the richer score type CON-002 implies for ordering across severity classes
+
+risks:
+  - a discarded candidate can now record a score above the promotion threshold, which reads oddly in a journal or ledger until you know the decision is what promotes. The README says so explicitly
+  - scores are stored rounded to two decimals, so two near misses differing by less than 0.005 record identically. Tolerable when comparing a handful of candidates, and it needs revisiting before a population large enough for that to collide
+  - reliability remains pinned at 1.0 for any eligible candidate, so task_success and parsimony carry the discrimination among promotable candidates. The floor problem is narrowed, not solved
+  - probes are executed as ordinary checks in the candidate worktree, so a probe script can do anything a behaviour case can. They are graded rather than gated, which means a compromised probe lowers a score rather than forcing a promotion
