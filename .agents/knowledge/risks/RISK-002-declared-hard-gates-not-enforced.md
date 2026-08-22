@@ -68,7 +68,9 @@ the contract implies, and promoted candidates still need human inspection of the
 evidence record.
 
 `PhenotypeBridgeScorerTest.theWiredBridgeStillUsesTheContractlessEntryPoint`
-asserts that gap, so it fails a test rather than being assumed.
+asserts that gap, so it fails a test rather than being assumed. It checks the
+port's signature and drives the bridge to confirm no declared-evidence gate
+reaches its audit map; it does not observe the delegate call directly.
 
 Closing requires the remaining work: migrating `MutationEvaluationLoop` from
 `Mutation` onto `MutationContract` and threading the accepted contract through

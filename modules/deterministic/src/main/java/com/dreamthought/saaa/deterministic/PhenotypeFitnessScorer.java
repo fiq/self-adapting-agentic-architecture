@@ -11,6 +11,8 @@ import java.util.List;
 import com.dreamthought.saaa.domain.RequiredEvidenceResult;
 import com.dreamthought.saaa.domain.MutationContract;
 import java.util.Map;
+import java.util.stream.Stream;
+import java.util.Set;
 import java.util.Objects;
 
 /**
@@ -34,6 +36,19 @@ public final class PhenotypeFitnessScorer {
 
     private static final double GATE_PASSED = 1.0;
     private static final double GATE_FAILED = 0.0;
+
+    /**
+     * The audit keys the structural gates own. An evidence id canonicalises through the same
+     * {@link FitnessSignalId#invariant} scheme, so an id such as {@code deterministic_checks} would
+     * land on exactly the key a structural gate already wrote. Silently merging would let evidence
+     * report a passing structural gate for a candidate whose checks failed, which is the audit
+     * corruption CON-002 exists to prevent, so a collision is rejected instead.
+     */
+    private static final Set<String> STRUCTURAL_GATE_KEYS = Set.of(
+            DETERMINISTIC_CHECKS_GATE.canonical(),
+            REQUIRED_BEHAVIOR_CASES_GATE.canonical(),
+            REQUIRED_OBJECTIVE_SCORES_GATE.canonical(),
+            NON_EMPTY_REALIZATION_GATE.canonical());
 
     /**
      * Scores without a contract. This is the entry point the wired path reaches through
@@ -78,13 +93,23 @@ public final class PhenotypeFitnessScorer {
         // checks are evidence about the baseline, and parsimony rewards the empty diff with 1.0.
         // Measured in files rather than lines, so a mode-only change still counts as a realization.
         boolean realizationNonEmpty = phenotype.realization().filesChanged() > 0;
+        List<String> declaredIds = contract == null ? List.of() : contract.requiredEvidence();
+        Stream.concat(declaredIds.stream(), requiredEvidence.stream().map(RequiredEvidenceResult::evidenceId))
+                .map(id -> FitnessSignalId.invariant(id).canonical())
+                .filter(STRUCTURAL_GATE_KEYS::contains)
+                .findFirst()
+                .ifPresent(key -> {
+                    throw new IllegalArgumentException(
+                            "required evidence id collides with a structural gate: " + key);
+                });
+
         // Fail wins for a declared id, mirroring how behaviour-case checks are merged: keeping the
         // last result seen would let a passing entry hide a failing one for the same declared id.
         Map<String, Boolean> observed = new LinkedHashMap<>();
         for (RequiredEvidenceResult result : requiredEvidence) {
             observed.merge(result.evidenceId(), result.passed(), (first, second) -> first && second);
         }
-        List<String> declared = contract == null ? List.of() : contract.requiredEvidence();
+        List<String> declared = declaredIds;
         // Absent is not passing: a declared id with no observed result fails its gate.
         boolean declaredEvidencePassed = declared.stream()
                 .allMatch(id -> Boolean.TRUE.equals(observed.get(id)));

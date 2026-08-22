@@ -24,7 +24,7 @@ deltas:
         when: a contract declares a required_evidence id and an observed result for it reports failure
         then: the candidate is discarded on a hard gate naming that id
         and:
-          - the recorded outcome carries the observed diagnostic, so a discard always states what was seen
+          - the outcome is recorded against that id in the audit map
       - id: S3
         when: two observed results are supplied for the same declared id and either reports failure
         then: the candidate is discarded on a hard gate naming that id
@@ -37,7 +37,7 @@ deltas:
         when: an observed result is supplied for an id the contract did not declare
         then: it is recorded as an inert non-gate entry in the existing FitnessResult objectives map and cannot satisfy or weaken any declared gate
         and:
-          - it is written before gate outcomes, so a declared gate result can never be overwritten by undeclared evidence
+          - no audit key is ever written twice: declared and undeclared ids are disjoint by construction, and an id colliding with a structural gate key is rejected outright rather than merged
       - id: S6
         when: a candidate passes every declared required_evidence id but fails a structural fixed gate such as non-empty realization
         then: the candidate is still discarded on that structural gate
@@ -51,6 +51,9 @@ deltas:
       - id: S8
         when: a caller scores without supplying a contract
         then: the existing fixed-gate behaviour and DEFAULT_OBJECTIVES weighting are preserved unchanged for that call
+      - id: S10
+        when: a declared or observed evidence id canonicalises to a key a structural gate already owns, such as deterministic_checks
+        then: scoring rejects the input rather than merging, because a merge could report a passing structural gate for a candidate whose checks failed
       - id: S9
         when: the wired promotion path evaluates a candidate after this change
         then: it still uses the contractless entry point, so a declared required_evidence id is still not enforced end to end
@@ -83,6 +86,9 @@ acceptance:
   - scenario: S8
     test_id: deterministic/PhenotypeFitnessScorerTest.contractlessScoringPreservesTheExistingGates
     layer: unit
+  - scenario: S10
+    test_id: deterministic/ContractAwareFitnessTest.evidenceCannotOverwriteAStructuralGateOutcome
+    layer: unit
   - scenario: S9
     test_id: deterministic/PhenotypeBridgeScorerTest.theWiredBridgeStillUsesTheContractlessEntryPoint
     layer: unit
@@ -109,6 +115,9 @@ tasks:
   - id: T6
     slice: record undeclared results as inert non-gate entries written before gate outcomes, per S5
     status: completed
+  - id: T8
+    slice: surface a failed declared-evidence gate's diagnostic in the decision record. FitnessResult carries only Map<String, Double>, so the reason a candidate was discarded cannot reach a reporter today; the diagnostic is required at the input boundary but has no output carrier
+    status: pending
   - id: T7
     slice: record what remains in RISK-002, CHG-002 T4b, README and wiki, and open the missing loop-side task: producing and accepting a MutationContract inside MutationEvaluationLoop is currently only a HANDOFF backlog line and a CHG-005 risk note, not a tracked task in any change. RISK-002 stays open
     status: completed
@@ -126,3 +135,5 @@ risks:
   - the contractless entry point is the wired one, so the weaker path is the default rather than a fallback. A new caller could adopt it; a follow-up should add an architecture guard once the migration target exists
   - the contract-aware path can only weight against a declared objective set that MutationContractValidator currently rejects, because requireDeterministicObjectives forces every accepted contract onto the operator defaults and every operator shares DEFAULT_OBJECTIVES. Until that validator rule is revisited, T5's behaviour is reachable only in scorer-level tests
   - enforcing declared evidence will discard candidates that previously promoted once the wired path migrates, which is the intended correction but changes recorded outcomes for any repeat of an earlier experiment
+  - a failed declared-evidence gate records only 0.0. Its diagnostic is required from the caller but has no carrier in FitnessResult, so the reason for a discard is not yet surfaced anywhere. Tracked as T8
+  - FitnessResult copies its objectives with Map.copyOf, which does not preserve insertion order, so no caller can rely on audit iteration order. Correctness therefore does not depend on write order: keys are disjoint by construction and colliding ids are rejected

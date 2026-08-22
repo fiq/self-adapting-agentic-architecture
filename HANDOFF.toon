@@ -1,6 +1,6 @@
 session:
   updated: 2026-08-22
-  status: chg_014_delivered
+  status: chg_014_review_findings_addressed
   branch: feat/chg-014-contract-aware-scoring
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-014-contract-aware-scoring
   head: origin/main at 0bc88ee
@@ -115,6 +115,20 @@ recovered_review:
     rejected_with_evidence:
       - the fifth finding asked the CODE acceptance test to assert that Example.java in the operator's checkout contains the realized change. Running that assertion proved the file still reads `return "old"`, which is the promotion boundary working as designed: realization happens in the isolated candidate worktree and promotion records refs/heads/candidate/* without merging. The test now asserts positively that the working tree is unmodified, and separately that the candidate ref contains the realization
     knowledge: LRN-001 records that a missing verdict is a transport hypothesis rather than a completed or failed review
+chg_014_implementation_review:
+  - actor: codex-cli 0.146.0, independent read-only pass, chosen over GLM because GLM had co-authored the spec through two rounds of findings
+    result: REQUEST CHANGES; two blockers, both verified and both real
+    addressed:
+      - evidence ids could overwrite structural gate outcomes. DETERMINISTIC_CHECKS_GATE is FitnessSignalId.invariant("deterministic_checks"), so an evidence id of that name canonicalises to the identical audit key. A passing result for it would have reported a passing structural gate for a candidate whose checks failed, which is exactly the audit corruption CON-002 exists to prevent and which this change claimed to preserve. Colliding ids are now rejected outright rather than merged, pinned by S10
+      - the S3 fail-wins test only covered pass-then-fail, so a last-result-wins merge would have passed it. Added fail-then-pass; the implementation was already order-independent
+      - the S5 test asserted only a key, not the recorded value
+      - S8 asserted only decisions, so a change to the contractless weighted sum, objective set or audit contents would not have failed it. It now pins the score and the exact nine audit keys
+      - S9 reflected on the port without invoking the bridge, so it would have passed if the bridge built a contract internally and called the four-argument overload. It now drives the bridge, and the two documents that described it as pinning delegation are corrected to say what it actually checks
+    accepted_as_spec_defect:
+      - S2 required a failed outcome to carry its diagnostic. FitnessResult carries only Map<String, Double> and has no carrier for it, so the clause specified something the code cannot do. The clause is removed and T8 tracks surfacing discard reasons; the diagnostic stays required at the input boundary because a caller supplying evidence must state what it observed
+      - the spec described undeclared results as written before gate outcomes. Map.copyOf does not preserve insertion order, so no caller can observe that. Correctness no longer rests on write order: declared and undeclared ids are disjoint by construction and structural collisions are rejected
+    note: the two blockers are the same class of defect this session found in others all day, an assertion that cannot fail and an audit write that can lie. Reviewing my own work with an actor that had not seen the spec is what surfaced them
+
 chg_014_delivery:
   validation:
     - domain, deterministic, adapters, cli and cli acceptance suites pass

@@ -203,6 +203,20 @@ final class PhenotypeBridgeScorerTest {
         assertThat(PhenotypeBridgeScorer.class)
                 .as("the bridge EvolveRunner wires in is the implementation of that port")
                 .matches(FitnessScorer.class::isAssignableFrom);
+
+        // Reflection alone would still pass if the bridge built a contract internally and called the
+        // four-argument overload, so drive it and assert the audit map has no declared-evidence key.
+        var scored = scorer(new RealizationSummary(1, 8), 80).score(CANDIDATE, new EvaluationEvidence(
+                List.of(passed("build", "ok"), passed("publish-guard", "ok")),
+                List.of(),
+                Instant.parse("2026-07-28T00:00:00Z")));
+        assertThat(scored.objectives().keySet())
+                .as("no declared-evidence gate can appear, because no contract reaches the scorer")
+                .allMatch(key -> key.startsWith("subject.objective.")
+                        || key.equals(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical())
+                        || key.equals(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical())
+                        || key.equals(PhenotypeFitnessScorer.REQUIRED_OBJECTIVE_SCORES_GATE.canonical())
+                        || key.equals(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical()));
     }
 
 }
