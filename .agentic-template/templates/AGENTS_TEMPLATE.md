@@ -44,7 +44,9 @@ A generated project AGENTS.md must include:
    risk (acceptance / component-integration / subcutaneous); real dependency
    semantics where cheap and material; prove a new assertion can fail by
    breaking the behaviour it guards, observing the failure, and restoring, since
-   a passing test is not evidence until it has been seen to fail.
+   a passing test is not evidence until it has been seen to fail; mutate the
+   mechanism as well as the assertion, since a test can pass because the thing it
+   describes never ran; record the mutation alongside the test run.
 8. **Structured data formats** — configured TOON/S-expression policy; TOON
    benefits state/contracts, S-expressions benefit rules/compute.
 9. **Spec system** — OpenSpec-shaped structured specs under

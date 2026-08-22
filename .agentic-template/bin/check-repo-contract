@@ -316,6 +316,9 @@ REVIEW_CONSOLIDATION_CONTROLS = [
             "may be replaced by an alternative",
             "does not show the oracle is right",
             "Reading does not catch these",
+            "Mutate the mechanism, not only the assertion",
+            "it is disconnected",
+            "Record the mutation alongside the test run",
         ],
     ),
     (

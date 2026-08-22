@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import com.dreamthought.saaa.domain.RetrievalMode;
 import java.util.Optional;
+import java.util.Set;
 
 public record EvolveRunRequest(
         Path targetFolder,
@@ -18,7 +19,8 @@ public record EvolveRunRequest(
         String task,
         Optional<String> runId,
         Map<String, Double> benchmarkBudgets,
-        Optional<MutationContract> contract
+        Optional<MutationContract> contract,
+        Set<String> safetyProbes
 ) {
     public EvolveRunRequest(
             Path targetFolder,
@@ -36,21 +38,21 @@ public record EvolveRunRequest(
                 RetrievalMode.NONE,
                 "Improve the target while preserving all declared behaviour cases",
                 Optional.empty(),
-                Map.of(), Optional.empty());
+                Map.of(), Optional.empty(), Set.of());
     }
 
     public EvolveRunRequest(
             Path targetFolder, String profile, String workflowFile, List<String> behaviourCases,
             int maxLines, RetrievalMode retrievalMode, String task) {
         this(targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task, Optional.empty(),
-                Map.of(), Optional.empty());
+                Map.of(), Optional.empty(), Set.of());
     }
 
     public EvolveRunRequest(
             Path targetFolder, String profile, String workflowFile, List<String> behaviourCases,
             int maxLines, RetrievalMode retrievalMode, String task, Optional<String> runId) {
         this(targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task, runId,
-                Map.of(), Optional.empty());
+                Map.of(), Optional.empty(), Set.of());
     }
 
     /** Every prior caller keeps its behaviour: no contract declared means no declared gate. */
@@ -59,7 +61,7 @@ public record EvolveRunRequest(
             int maxLines, RetrievalMode retrievalMode, String task, Optional<String> runId,
             Map<String, Double> benchmarkBudgets) {
         this(targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task, runId,
-                benchmarkBudgets, Optional.empty());
+                benchmarkBudgets, Optional.empty(), Set.of());
     }
 
     /**
