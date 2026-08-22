@@ -64,20 +64,22 @@ A generated project AGENTS.md must include:
 16. **Agent roles and ownership** — persistent roles, subagents, delegation,
     and context-window-aware `context-packet` handoffs.
 17. **Team and model fallback** — degradation order and handoff protocol.
-17b. **Independent review and consolidation** — reviews are read-only and may
-    fan out across several actors on one change, because findings are additive
-    and cannot conflict; implementation agents must not share a file. Prefer
-    different briefs over more reviewers. Consolidation is the work:
-    deduplicate, adjudicate contradictions rather than averaging them, verify
-    every finding against the code before acting on it, and apply fixes
+18. **Independent review and consolidation** — reviews are read-only and may fan
+    out across several actors on one change, because they share no mutable state
+    and their findings combine additively; their conclusions may still
+    contradict, which is what consolidation adjudicates. Read-only is an
+    invariant to enforce, not a fact to assume. Implementation agents must not
+    share a file. Prefer different briefs over more reviewers. Consolidation is
+    the work: deduplicate, adjudicate contradictions rather than averaging them,
+    verify every finding against the code before acting on it, and apply fixes
     serially. A single clean review is not strong evidence, and passing checks
     are not a review.
-18. **Communication rules** — conclusion first; alternatives and per-persona
+19. **Communication rules** — conclusion first; alternatives and per-persona
     stance (discourages / accepts / encourages) at hard choices; ASCII and
     bullets as complexity rises.
-19. **Handoff requirements** — what HANDOFF.toon must contain, including
+20. **Handoff requirements** — what HANDOFF.toon must contain, including
     knowledge consulted, proposals created and no-record rationale.
-20. **Git provenance** — real commit dates, no history rewriting.
+21. **Git provenance** — real commit dates, no history rewriting.
 
 ## CLAUDE.md
 

@@ -270,10 +270,18 @@ constraints.
 
 ## Independent review and consolidation
 
-Reviews are read-only, so several reviewers may run on one change at once;
-findings are additive and cannot conflict. Implementation agents must not share
-a file. Prefer giving reviewers the same change with different briefs over
-giving more reviewers the same brief.
+Reviews are read-only, so several reviewers may run on one change at once. They
+share no mutable state, so their findings combine additively. Their conclusions
+may still contradict each other, and frequently do; that is what consolidation
+adjudicates, and it is a reason to run more than one reviewer rather than an
+argument against it.
+
+Read-only is an invariant to enforce, not a fact to assume. A reviewer given
+write tools mutates the change the others are reading, and additivity silently
+stops holding.
+
+Implementation agents must not share a file. Prefer giving reviewers the same
+change with different briefs over giving more reviewers the same brief.
 
 Consolidating the findings is the work, not the reviewing:
 

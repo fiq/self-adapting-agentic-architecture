@@ -3,7 +3,7 @@ id: PAT-003
 type: pattern
 title: Independent review fans out, consolidation does not
 status: proposed
-summary: Reviews are read-only and can run in parallel on one diff; implementation agents cannot share a file. The work is consolidating findings — deduplicate, adjudicate contradictions, verify every finding against the code, then apply fixes serially.
+summary: Reviews are read-only and can run in parallel on one diff because they share no mutable state, though their conclusions may contradict; implementation agents cannot share a file. The work is consolidating findings — deduplicate, adjudicate contradictions, verify every finding against the code, then apply fixes serially.
 owners:
   - lead
 relates_to:
@@ -11,7 +11,6 @@ relates_to:
   - PAT-002
   - ARCH-001
   - LRN-001
-reviewed_at: 2026-08-22
 review_after: 2026-11-30
 ---
 
@@ -20,8 +19,18 @@ review_after: 2026-11-30
 Two different things get called "running an agent", and they have opposite
 safety properties.
 
-**Reviews are read-only.** Several reviewers on one diff cannot conflict, and
-findings are additive. This is the one place fan-out reliably pays.
+**Reviews are read-only.** Several reviewers on one diff share no mutable state,
+so their findings combine additively. This is the one place fan-out reliably
+pays.
+
+Their *conclusions* can still contradict each other, and often do — incident 2
+below is exactly that. Contradiction is a reason to run more than one reviewer,
+not an argument against it, and resolving it is step 2 of consolidation. Do not
+read "cannot conflict" into this: only the writes cannot conflict.
+
+Read-only is an invariant to enforce, not a fact to assume. Nothing here
+mechanically prevents a reviewer being handed write tools; if that happens it
+mutates the diff the others are reading and additivity quietly stops holding.
 
 **Implementation agents write.** Two of them on one file buys merge conflicts,
 not speed. In this repository `HANDOFF.toon` and `PhenotypeFitnessScorer` are the
@@ -55,7 +64,8 @@ could not fail, and an audit write that could report a passing gate for a
 candidate whose checks failed. Both are defects the lead had spent the same
 session finding in other people's work.
 
-Green CI is not review. CI proved the collision bug passed every suite.
+Green CI is not review. The audit-key overwrite described above passed every
+suite before an independent pass found it.
 
 ## Related
 
