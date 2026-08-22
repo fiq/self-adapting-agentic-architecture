@@ -177,4 +177,32 @@ final class PhenotypeBridgeScorerTest {
                 candidate -> summary,
                 new ScoringConfig(Set.of("publish-guard"), maxLinesChanged, Map.of()));
     }
+    /**
+     * S9 characterisation. The wired promotion path cannot carry a MutationContract: the
+     * {@link FitnessScorer} port it goes through has no parameter for one, and this bridge is the
+     * implementation {@code EvolveRunner} wires in. CHG-014 adds a contract-aware entry point to
+     * {@link PhenotypeFitnessScorer} but deliberately does not migrate this path, so RISK-002 stays
+     * open. This test asserts that gap rather than leaving it assumed.
+     *
+     * <p>It pins the port and this bridge's delegation. It would not catch a rewire that swapped a
+     * different FitnessScorer in at EvolveRunner; that belongs to the migration's own component
+     * coverage.
+     */
+    @Test
+    void theWiredBridgeStillUsesTheContractlessEntryPoint() {
+        var abstractMethods = java.util.Arrays.stream(FitnessScorer.class.getMethods())
+                .filter(method -> java.lang.reflect.Modifier.isAbstract(method.getModifiers()))
+                .toList();
+
+        assertThat(abstractMethods)
+                .as("the wired scoring port has exactly one entry point")
+                .hasSize(1);
+        assertThat(abstractMethods.get(0).getParameterTypes())
+                .as("no MutationContract can reach the scorer through the wired port")
+                .containsExactly(Candidate.class, EvaluationEvidence.class);
+        assertThat(PhenotypeBridgeScorer.class)
+                .as("the bridge EvolveRunner wires in is the implementation of that port")
+                .matches(FitnessScorer.class::isAssignableFrom);
+    }
+
 }
