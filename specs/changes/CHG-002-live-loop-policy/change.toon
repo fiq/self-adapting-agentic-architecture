@@ -139,7 +139,8 @@ tasks:
     note: delivered by CHG-014. The scorer now has a four-argument entry point taking the contract and a typed RequiredEvidenceResult channel, enforcing declared ids as canonical subject-invariant integrity gates in addition to the structural gates. The wired path does not use it, so RISK-002 stays open; that remainder is T4c
   - id: T4c
     slice: migrate MutationEvaluationLoop from Mutation onto MutationContract and thread the accepted contract through FitnessScorer and PhenotypeBridgeScorer, so the contract-aware scorer entry point is the one the wired promotion path reaches
-    status: pending
+    status: completed
+    note: delivered by CHG-019, in a different shape than written. The loop still proposes a Mutation; what it now carries is an operator-declared MutationContract alongside it, because nothing produces a contract from a proposer and T3d's envelope parser needs a TOON reader that does not exist. The FitnessScorer port takes the contract, so a declared required_evidence id gates a live promotion and RISK-002 narrows to the contractless path, which declares nothing
     note: this is the loop-side half of RISK-002 and the only remaining work before that risk can close. Until CHG-014 it existed only as a HANDOFF backlog line and a CHG-005 risk note, not as a tracked task. The FitnessScorer port takes (Candidate, EvaluationEvidence) and cannot carry a contract, so the port changes with it
   - id: T5
     slice: implement local promoted Git ref plus SQLite promotion metadata

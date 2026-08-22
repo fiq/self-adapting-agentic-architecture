@@ -6,6 +6,8 @@ import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.CheckStatus;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
+import java.util.Optional;
+import com.dreamthought.saaa.domain.MutationContract;
 import com.dreamthought.saaa.domain.FitnessSignalId;
 import com.dreamthought.saaa.domain.RealizationSummary;
 import java.util.LinkedHashMap;
@@ -24,14 +26,26 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
     private final RealizationInspector inspector;
     private final ScoringConfig config;
     private final PhenotypeFitnessScorer delegate = new PhenotypeFitnessScorer();
+    private final DeclaredEvidenceResolver declaredEvidenceResolver = new DeclaredEvidenceResolver();
 
     public PhenotypeBridgeScorer(RealizationInspector inspector, ScoringConfig config) {
         this.inspector = Objects.requireNonNull(inspector, "inspector");
         this.config = Objects.requireNonNull(config, "config");
     }
 
-    @Override
+    /**
+     * Scores with no contract. This exists for callers that genuinely have none, and for tests that
+     * mean to exercise the contractless path. It is deliberately not on {@link FitnessScorer}: the
+     * port forces every implementor to take the contract, so production cannot reach this by
+     * forgetting to pass one.
+     */
     public FitnessResult score(Candidate candidate, EvaluationEvidence evidence) {
+        return score(candidate, evidence, Optional.empty());
+    }
+
+    @Override
+    public FitnessResult score(
+            Candidate candidate, EvaluationEvidence evidence, Optional<MutationContract> contract) {
         Objects.requireNonNull(candidate, "candidate");
         Objects.requireNonNull(evidence, "evidence");
 
@@ -64,8 +78,13 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         objectives.put(FitnessSignalId.objective("behavioral_safety").canonical(), 1.0);
         objectives.put(FitnessSignalId.objective("parsimony").canonical(), parsimony(realization));
 
-        return delegate.score(
-                candidate, new PhenotypeEvidence(evidence, behaviorCases, objectives, realization));
+        var phenotype = new PhenotypeEvidence(evidence, behaviorCases, objectives, realization);
+        // A declared required_evidence id names a check that must exist and pass, so the declaration
+        // is enforced against evidence this run already collected rather than a separate pipeline.
+        return contract
+                .map(declared -> delegate.score(candidate, phenotype, declared,
+                        declaredEvidenceResolver.resolve(declared.requiredEvidence(), evidence)))
+                .orElseGet(() -> delegate.score(candidate, phenotype));
     }
 
     private static BehaviorCaseEvidence toBehaviorCase(CheckEvidence check) {

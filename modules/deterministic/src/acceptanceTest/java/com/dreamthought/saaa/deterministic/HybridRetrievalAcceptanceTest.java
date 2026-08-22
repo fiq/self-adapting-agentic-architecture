@@ -208,7 +208,10 @@ final class HybridRetrievalAcceptanceTest {
         private Candidate seenCandidate;
 
         @Override
-        public FitnessResult score(Candidate candidate, com.dreamthought.saaa.domain.EvaluationEvidence evidence) {
+        public FitnessResult score(
+                Candidate candidate,
+                com.dreamthought.saaa.domain.EvaluationEvidence evidence,
+                java.util.Optional<com.dreamthought.saaa.domain.MutationContract> contract) {
             seenCandidate = candidate;
             return new FitnessResult(candidate, evidence, Map.of("score", 0.1), 0.1, FitnessDecision.DISCARD);
         }

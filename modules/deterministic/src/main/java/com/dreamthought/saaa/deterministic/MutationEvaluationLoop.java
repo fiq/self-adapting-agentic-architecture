@@ -12,6 +12,8 @@ import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
+import com.dreamthought.saaa.domain.MutationContract;
 
 public final class MutationEvaluationLoop {
     private final MutationProposer mutationProposer;
@@ -22,6 +24,8 @@ public final class MutationEvaluationLoop {
     private final FitnessScorer fitnessScorer;
     private final ExperimentMetadataStore metadataStore;
     private final CandidateDecisionSink decisionSink;
+    /** Empty unless an operator declared one; see CHG-019. Never synthesised to satisfy the port. */
+    private final Optional<MutationContract> contract;
     private final EvolutionReporter reporter;
     private final Clock clock;
     private final EvidenceRetriever evidenceRetriever;
@@ -49,8 +53,25 @@ public final class MutationEvaluationLoop {
                 EvolutionReporter.NO_OP,
                 Clock.systemUTC(),
                 EvidenceRetriever.none("retrieval-config-v1"),
-                EvolutionaryMemoryProjector.disabled()
+                EvolutionaryMemoryProjector.disabled(),
+                Optional.empty()
         );
+    }
+
+    /** Restored unchanged: a caller that declared no contract keeps exactly its previous behaviour. */
+    public MutationEvaluationLoop(
+            MutationProposer mutationProposer,
+            MutationValidator mutationValidator,
+            CandidateWorkspace candidateWorkspace,
+            CheckRunner checkRunner,
+            BenchmarkRunner benchmarkRunner,
+            FitnessScorer fitnessScorer,
+            ExperimentMetadataStore metadataStore,
+            CandidateDecisionSink decisionSink,
+            Clock clock
+    ) {
+        this(mutationProposer, mutationValidator, candidateWorkspace, checkRunner, benchmarkRunner,
+                fitnessScorer, metadataStore, decisionSink, Optional.empty(), clock);
     }
 
     public MutationEvaluationLoop(
@@ -62,6 +83,7 @@ public final class MutationEvaluationLoop {
             FitnessScorer fitnessScorer,
             ExperimentMetadataStore metadataStore,
             CandidateDecisionSink decisionSink,
+            Optional<MutationContract> contract,
             Clock clock
     ) {
         this(
@@ -76,7 +98,8 @@ public final class MutationEvaluationLoop {
                 EvolutionReporter.NO_OP,
                 clock,
                 EvidenceRetriever.none("retrieval-config-v1"),
-                EvolutionaryMemoryProjector.disabled()
+                EvolutionaryMemoryProjector.disabled(),
+                contract
         );
     }
 
@@ -104,7 +127,8 @@ public final class MutationEvaluationLoop {
                 reporter,
                 clock,
                 EvidenceRetriever.none("retrieval-config-v1"),
-                EvolutionaryMemoryProjector.disabled()
+                EvolutionaryMemoryProjector.disabled(),
+                Optional.empty()
         );
     }
 
@@ -123,7 +147,7 @@ public final class MutationEvaluationLoop {
     ) {
         this(mutationProposer, mutationValidator, candidateWorkspace, checkRunner, benchmarkRunner,
                 fitnessScorer, metadataStore, decisionSink, reporter, clock, evidenceRetriever,
-                EvolutionaryMemoryProjector.disabled());
+                EvolutionaryMemoryProjector.disabled(), Optional.empty());
     }
 
     public MutationEvaluationLoop(
@@ -138,7 +162,8 @@ public final class MutationEvaluationLoop {
             EvolutionReporter reporter,
             Clock clock,
             EvidenceRetriever evidenceRetriever,
-            EvolutionaryMemoryProjector memoryProjector
+            EvolutionaryMemoryProjector memoryProjector,
+            Optional<MutationContract> contract
     ) {
         this.mutationProposer = Objects.requireNonNull(mutationProposer, "mutationProposer");
         this.mutationValidator = Objects.requireNonNull(mutationValidator, "mutationValidator");
@@ -152,6 +177,7 @@ public final class MutationEvaluationLoop {
         this.clock = Objects.requireNonNull(clock, "clock");
         this.evidenceRetriever = Objects.requireNonNull(evidenceRetriever, "evidenceRetriever");
         this.memoryProjector = Objects.requireNonNull(memoryProjector, "memoryProjector");
+        this.contract = Objects.requireNonNull(contract, "contract");
     }
 
     public FitnessResult evaluate(WorkflowGraph baseline) {
@@ -203,7 +229,8 @@ public final class MutationEvaluationLoop {
                 Instant.now(clock)
         );
         reporter.evidenceCollected(evidence);
-        FitnessResult result = Objects.requireNonNull(fitnessScorer.score(candidate, evidence), "result");
+        FitnessResult result = Objects.requireNonNull(
+                fitnessScorer.score(candidate, evidence, contract), "result");
         if (!result.candidate().equals(candidate)) {
             throw new IllegalStateException("fitness result candidate does not match evaluated candidate");
         }

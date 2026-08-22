@@ -44,6 +44,11 @@ public final class PhenotypeFitnessScorer {
      * report a passing structural gate for a candidate whose checks failed, which is the audit
      * corruption CON-002 exists to prevent, so a collision is rejected instead.
      */
+    /** The bare names the structural gates own, so a caller can reject a colliding declared id. */
+    public static final Set<String> STRUCTURAL_GATE_NAMES = Set.of(
+            "deterministic_checks", "required_behavior_cases", "required_objective_scores",
+            "non_empty_realization");
+
     private static final Set<String> STRUCTURAL_GATE_KEYS = Set.of(
             DETERMINISTIC_CHECKS_GATE.canonical(),
             REQUIRED_BEHAVIOR_CASES_GATE.canonical(),
