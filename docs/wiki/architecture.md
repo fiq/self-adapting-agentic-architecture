@@ -130,7 +130,14 @@ integration surface rather than a competing session transport.
 
 ## Agent-session and multi-model efficiency
 
-The agent loop treats provider sessions as disposable execution state, not
+This section describes how the **agentic team operating on this repository**
+works. It is not implemented SAAA runtime behaviour: `AcpAgentHarness.run`
+constructs a new transport, client and session for every invocation and closes
+the client before returning, so nothing in the harness retains a provider
+session across runs. Runtime session retention is unimplemented and is not
+required by any current change.
+
+As an operating practice, a provider session is disposable execution state, not
 repository memory. One bounded objective with the same role and permission
 scope may retain a session so stable context can be cached; an objective or
 privacy change, transport failure, response-reserve exhaustion or independent
