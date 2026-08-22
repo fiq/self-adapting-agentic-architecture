@@ -50,4 +50,13 @@ final class OperatorContractsTest {
                 .as("declare only returns a contract the validator accepted")
                 .isEqualTo("simplify");
     }
+    @Test
+    void aNonCanonicalEvidenceIdIsRejectedAtDeclarationNotAtScoring() {
+        assertThatThrownBy(() ->
+                OperatorContracts.declare("repair", List.of("extra-probe-passed"), "workflow.txt"))
+                .as("a hyphenated id would otherwise create a candidate and then throw mid-run")
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("lower snake_case");
+    }
+
 }
