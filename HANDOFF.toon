@@ -20,6 +20,18 @@ next_actions:
   - then the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation
   - consider recording engine-routing defaults alongside the session policy in MODEL_ROUTING_POLICY.md, as proposed rather than canonical, with revisit triggers, and worded so it cannot be read as the automatic routing Q-010 and Q-011 defer
 
+chg_015_review:
+  - actor: neuralwatt/glm-5.2-flex, fresh session, briefed to argue against the rule rather than only proofread it
+    result: REQUEST CHANGES; one blocker and five should-fixes, all accepted
+    addressed:
+      - the rule contradicted itself. It said reviews cannot conflict, then step two of its own procedure was adjudicating contradictions, and PAT-003's own second incident is one reviewer calling a guard a blocker while another correctly downgraded it. Corrected in AGENTS.md, the framework template and PAT-003: reviews share no mutable state so findings combine additively, while conclusions contradict routinely and that is what consolidation adjudicates
+      - the guard asserted eight phrases while four load-bearing controls were unguarded, including the premise justifying the whole rule, so the claim that deleting any control fails the check was false. Both halves are now covered and each failure names its scenario test_id, matching the CHG-012 shape. Verified by two mutations
+      - read-only was stated as a fact when nothing enforces it; it is now an invariant to enforce, with the silent-failure consequence recorded
+      - the framework half was unguarded and its scenario pointed at the only manual test id in the specs tree, so a generated project could have inherited a weakened rule silently
+      - PAT-003 carried reviewed_at on a self-authored proposed entry, implying an independent review that had not happened
+      - the template numbered the new bullet 17b among plain integers; PAT-002 and LRN-001 now link back to PAT-003
+    note: the blocker is the same shape as every other defect found today, a claim broader than the check behind it. Briefing the reviewer to argue against the rule rather than proofread it is what surfaced the self-contradiction
+
 task_path:
   rule: one merged PR per chunk. Merge before starting the next chunk that touches the same files, because HANDOFF.toon and the scorer are the recurring conflict surfaces and a branch left open across another merge needs a hand-resolved rebase
   chunks:
