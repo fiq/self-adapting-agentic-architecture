@@ -46,8 +46,13 @@ Rules, each pinned by a scenario:
 - two results for one declared id, either failing, is a discard — fail wins, so a
   passing entry can never mask a failing one (S3). This mirrors how
   `PhenotypeBridgeScorer` already merges behaviour-case checks;
-- undeclared results are recorded and cannot satisfy or weaken a declared gate
-  (S5);
+- undeclared results are recorded as inert non-gate entries in the existing
+  `FitnessResult.objectives` map and cannot satisfy or weaken a declared gate
+  (S5). `FitnessResult` has no separate audit field, and this change does not add
+  one; writing them before gate outcomes preserves CON-002's rule that a gate
+  result can never be overwritten by evidence content;
+- a failing outcome's diagnostic is carried into the recorded discard (S2), so
+  the field is load-bearing rather than decorative;
 - declared-evidence gates are **additional to** the structural gates, never a
   replacement (S6). A candidate passing every declared id but producing an empty
   realization is still discarded.
@@ -57,15 +62,33 @@ what that contract declared, never against a fixed assumption about it", which
 can be read as licence to drop the structural gates. That reading would let a
 candidate with no checks, no behaviour cases and an empty realization promote.
 
+## Characterisation tests come first
+
+S8 and S9 are written before the contract-aware path exists, and are green on
+write. S8 pins the contractless entry point's current behaviour; S9 pins that
+`PhenotypeBridgeScorer` still calls it. Writing them at the end would mean a
+regression introduced while adding the new path is caught after the fact, or
+not at all.
+
+S9's limit is worth stating: it pins the bridge's delegate call, not the wiring.
+Swapping the scorer at `EvolveRunner` would not fail it. That belongs to the
+migration's own component coverage.
+
 ## Canonical emission
 
 CON-002 requires fitness identifiers to carry the `subject.invariant.` /
 `subject.objective.` scheme, and classifies "produced no evidence" as an
 integrity violation that voids rather than ranks. Declared `required_evidence`
 ids are bare strings today (`failing_case_reproduced`, `unit_tests_pass`). S7
-pins that a declared-evidence gate is emitted as a canonical subject invariant
-and classified as an integrity outcome, so the new gate joins the existing naming
-scheme instead of introducing a second one.
+pins that a declared-evidence gate is emitted through `FitnessSignalId` as a
+canonical subject invariant, so the new gate joins the existing naming scheme
+instead of introducing a second one.
+
+Integrity is expressed as **voiding**, not as a severity field. CON-002 records
+that its severity classes are not enforced anywhere yet, and `FitnessResult` has
+no severity field, so a failing declared-evidence gate produces `DISCARD` rather
+than a reduced weighted score. Saying "classified as an integrity outcome"
+without this would imply a severity engine that does not exist.
 
 ## The objective set
 

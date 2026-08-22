@@ -29,9 +29,15 @@ only from `ConceptualCrossoverPolicy` — never from the loop. There is no accep
 `MutationContract` in the live path to pass to a contract-aware scorer.
 
 Migrating the loop from the transitional `Mutation` / `MutationValidator` /
-`FitnessScorer` stack onto `MutationContract` is a separate, already-recorded
-piece of work. Until it lands, **RISK-002 remains open** and promoted candidates
-still need human inspection of the evidence record, exactly as that risk says.
+`FitnessScorer` stack onto `MutationContract` is separate work. It is **not
+currently a tracked task**: it exists as a backlog line in `HANDOFF.toon` and a
+risk note in CHG-005, and `CHG-002` task `T4b` is scorer-side and *assumes* a
+contract already exists in the loop. Task T7 must open the loop-side task,
+because the honesty of "RISK-002 stays open" depends on the closure path being
+tracked rather than merely mentioned.
+
+Until it lands, **RISK-002 remains open** and promoted candidates still need
+human inspection of the evidence record, exactly as that risk says.
 
 Scenario S9 exists so this gap is asserted by a test rather than assumed, and
 task T7 explicitly forbids closing RISK-002 in this change.
