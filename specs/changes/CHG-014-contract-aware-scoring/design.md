@@ -1,61 +1,87 @@
 # CHG-014 design
 
-## The gap
+## What is wired today
 
 ```text
-today:   MutationContractValidator --accepts--> MutationContract
-                                                      |
-                                                      X  (never passed on)
-                                                      |
-         PhenotypeFitnessScorer.score(Candidate, PhenotypeEvidence)
-                 |
-                 +-- enforces its own fixed gates
-                 +-- weights against MutationOperatorPolicy.DEFAULT_OBJECTIVES
+MutationEvaluationLoop
+  proposes/validates  Mutation            (not MutationContract)
+  calls               fitnessScorer.score(candidate, evidence)
+                          |
+                      PhenotypeBridgeScorer  implements FitnessScorer
+                          |
+                      PhenotypeFitnessScorer.score(Candidate, PhenotypeEvidence)
+                          +-- structural fixed gates
+                          +-- weights against DEFAULT_OBJECTIVES
 
-after:   MutationContractValidator --accepts--> MutationContract ----+
-                                                                     |
-         PhenotypeFitnessScorer.score(Candidate, PhenotypeEvidence, MutationContract)
-                 |
-                 +-- enforces the contract's declared required_evidence ids
-                 +-- weights against the contract's own objective set
+MutationContractValidator.validate  <-- reached only from ConceptualCrossoverPolicy
 ```
+
+There is no accepted `MutationContract` anywhere on that path, so this change
+cannot thread one through it. That is the whole reason RISK-002 stays open.
+
+## What this change adds
+
+```text
+PhenotypeFitnessScorer.score(Candidate, PhenotypeEvidence, MutationContract,
+                             RequiredEvidenceResults)
+    +-- structural fixed gates            (unchanged, still applied)
+    +-- declared required_evidence gate   (new)
+    +-- weights against the contract's declared objectives
+```
+
+The two-argument entry point stays exactly as it is. S8 pins its behaviour so it
+cannot drift while it remains the wired path, and S9 asserts that it *is* still
+the wired path, so the remaining gap fails a test if someone believes otherwise.
 
 ## The evidence channel
 
-`PhenotypeEvidence` carries `objectiveScores` as a `Map<String, Double>`, which
-is a measurement channel, not an outcome channel. A declared evidence id needs
-an outcome and a diagnostic, not a number, so it gets its own typed channel
-rather than being encoded as a score.
+`PhenotypeEvidence.objectiveScores` is a `Map<String, Double>` — a measurement
+channel. A declared evidence id needs an outcome and a diagnostic, not a number,
+so it gets its own typed channel rather than being encoded as a score.
 
-An id declared by the contract and absent from the channel is a discard. An id
-present in the channel but not declared is recorded and ignored for gating —
-`CON-002` already establishes that gate outcomes win in the audit record, and
-the same rule applies here: observed evidence cannot invent a gate the contract
-did not declare, and cannot satisfy one it did.
+Rules, each pinned by a scenario:
 
-## Why the objective-set fix comes with it
+- declared and absent from the channel is a discard (S1);
+- declared and failing is a discard (S2);
+- two results for one declared id, either failing, is a discard — fail wins, so a
+  passing entry can never mask a failing one (S3). This mirrors how
+  `PhenotypeBridgeScorer` already merges behaviour-case checks;
+- undeclared results are recorded and cannot satisfy or weaken a declared gate
+  (S5);
+- declared-evidence gates are **additional to** the structural gates, never a
+  replacement (S6). A candidate passing every declared id but producing an empty
+  realization is still discarded.
+
+S6 exists because an earlier draft's requirement said the scorer "decides against
+what that contract declared, never against a fixed assumption about it", which
+can be read as licence to drop the structural gates. That reading would let a
+candidate with no checks, no behaviour cases and an empty realization promote.
+
+## Canonical emission
+
+CON-002 requires fitness identifiers to carry the `subject.invariant.` /
+`subject.objective.` scheme, and classifies "produced no evidence" as an
+integrity violation that voids rather than ranks. Declared `required_evidence`
+ids are bare strings today (`failing_case_reproduced`, `unit_tests_pass`). S7
+pins that a declared-evidence gate is emitted as a canonical subject invariant
+and classified as an integrity outcome, so the new gate joins the existing naming
+scheme instead of introducing a second one.
+
+## The objective set
+
+The contract-aware path weights against the contract's declared objectives. This
+is unreachable through an accepted contract, because
+`MutationContractValidator.requireDeterministicObjectives` forces every accepted
+contract onto its operator's defaults and every operator shares
+`DEFAULT_OBJECTIVES`. Relaxing that is a recorded non-goal.
 
 `PhenotypeFitnessScorerTest.everyOperatorSharesTheObjectiveSetTheScorerAssumes`
-currently asserts that every operator shares `DEFAULT_OBJECTIVES`. That test is
-a tripwire, not a requirement: it exists so that giving an operator its own
-objectives fails the build rather than silently producing a wrong weighted
-score. Once the scorer receives the contract it can weight against the
-contract's own objectives, and the tripwire stops being load-bearing.
-
-Retiring it is part of this change rather than a follow-up, because leaving it
-in place would keep asserting a constraint the change exists to remove.
-
-## Transitional entry point
-
-The existing two-argument `score` stays until every caller supplies a contract.
-That is a deliberate, recorded compromise: the parallel `Mutation` /
-`MutationValidator` / `FitnessScorer` stack is still the wired one, and this
-change does not migrate it. S6 pins the old behaviour so the transitional path
-cannot drift while it exists, and the risk list records that a caller left
-unmigrated keeps the weaker guarantee.
+is kept for the same reason: while the wired path weights against
+`DEFAULT_OBJECTIVES`, that test is the only thing standing between a per-operator
+objective set and a silently wrong weighted score.
 
 ## What this deliberately does not decide
 
-Whether `behavioral_safety` is scored by a deterministic safety suite, and how
-critical and non-critical safety probes are split, is the next change. This one
-only makes a declared evidence id capable of gating at all.
+How `behavioral_safety` becomes variable, and how critical and non-critical
+safety probes are split, is the next change. This one only makes a declared
+evidence id capable of gating at all.

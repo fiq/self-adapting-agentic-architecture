@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-22
-  status: chg_014_spec_proposed
+  status: chg_014_spec_revised_after_review
   branch: feat/chg-014-contract-aware-scoring
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-014-contract-aware-scoring
   head: origin/main at 0bc88ee
-  head_note: CHG-014 proposes giving the scorer the accepted contract and a typed required-evidence channel, closing RISK-002. Spec only; no behaviour change yet. It is the prerequisite for a real behavioral_safety signal and for ranking.
+  head_note: CHG-014 gives the scorer a contract-aware entry point and a typed required-evidence channel. Spec only. An independent GLM review established that the first draft overclaimed: the wired path holds a Mutation, not a MutationContract, so RISK-002 stays open and the spec now says so.
   dirty: false
   pushed: true
 
@@ -42,6 +42,9 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass after the spec revision
+  - 2026-08-22 nix develop --command .agentic-template/bin/project check-changes: pass; the first draft was rejected for relates_to CAP-001, since capability specs are not knowledge ids
+  - 2026-08-22 verified each GLM blocker directly against the code rather than accepting the review: MutationEvaluationLoop:160 and :206, MutationContractValidator.requireDeterministicObjectives, and PhenotypeFitnessScorer:73 and :84
   - 2026-08-22 mutation check on the rewritten policy guard: deleting a substantive control while keeping all headings and identifiers, removing the reviewer-independence rule, and moving Q-010 out of its section each failed exactly one named check; the policy file was restored byte-identical afterwards
   - 2026-08-22 mutation check on the new acceptance-layer validation: substituting `bogus-layer` failed check-changes with the allowed set named
   - 2026-08-22 python3 -m py_compile on check-repo-contract and check-changes: pass
@@ -111,6 +114,19 @@ recovered_review:
     rejected_with_evidence:
       - the fifth finding asked the CODE acceptance test to assert that Example.java in the operator's checkout contains the realized change. Running that assertion proved the file still reads `return "old"`, which is the promotion boundary working as designed: realization happens in the isolated candidate worktree and promotion records refs/heads/candidate/* without merging. The test now asserts positively that the working tree is unmodified, and separately that the candidate ref contains the realization
     knowledge: LRN-001 records that a missing verdict is a transport hypothesis rather than a completed or failed review
+chg_014_spec_review:
+  - actor: neuralwatt/glm-5.2-flex via opencode, fresh session per the reviewer-independence rule
+    result: REQUEST CHANGES on the first draft; five blockers, all verified against the code and all accepted
+    addressed:
+      - the draft claimed to close RISK-002. The wired path proposes and validates a Mutation and calls the two-argument score through PhenotypeBridgeScorer; MutationContractValidator.validate is reached only from ConceptualCrossoverPolicy. Both named mechanisms would exist at component level while neither reached the path RISK-002 describes. Title and intent are corrected rather than the scope widened, and S9 now asserts the remaining gap instead of leaving it assumed
+      - task T5 was unexecutable: it said to thread the accepted contract from MutationEvaluationLoop, which holds no MutationContract to thread. Replaced with tasks that match what the loop actually has
+      - retiring everyOperatorSharesTheObjectiveSetTheScorerAssumes would have removed real protection, because PhenotypeFitnessScorer reads DEFAULT_OBJECTIVES at :73 and :84 precisely on the wired path. The test is kept and its retirement is now a recorded non-goal
+      - scenario S5 was unreachable: requireDeterministicObjectives rejects any contract whose objectives differ from operator defaults and every operator shares DEFAULT_OBJECTIVES, so an accepted contract can never declare a different set. The spec now states this and records relaxing the validator as a separate decision
+      - the requirement said the scorer decides "never against a fixed assumption", which reads as licence to drop the structural gates. Reworded, and S6 now pins that declared-evidence gates are additional to them
+      - added S3 for duplicate results on one declared id with fail-wins, made the substitution rule explicit in S1, and added S7 so declared-evidence gates are emitted under the CON-002 canonical scheme as integrity outcomes rather than introducing a second naming scheme
+      - the delta targeted a capability that does not exist; it is now MODIFIED against mutation-fitness-loop, which is CAP-001's name and the scope RISK-002 sits inside
+    note: reviewing the spec before implementing cost one model call and prevented writing code against a specification with an unexecutable task and an unreachable scenario
+
 chg_012_review:
   - actor: codex-cli 0.146.0, independent read-only pass
     result: REQUEST CHANGES; its blocking finding was retracted after verification
