@@ -93,7 +93,7 @@ tasks:
     status: completed
   - id: T2
     slice: add the S8 and S9 characterisation tests first, green on write, so a regression to the contractless path or a change of wired delegate fails during T3 to T5 rather than after them
-    status: pending
+    status: completed
   - id: T2b
     slice: add failing unit coverage for S1 through S7 against the new contract-aware entry point
     status: pending
