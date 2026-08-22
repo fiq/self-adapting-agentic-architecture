@@ -1,7 +1,7 @@
 change:
   id: CHG-019
   title: Put the accepted contract on the wired promotion path
-  status: proposed
+  status: delivered
   intent: Let an operator declare a mutation contract for a run, validate it, and carry it through the loop to the contract-aware scorer, so declared required_evidence gates a live promotion and RISK-002 can close.
   audience_level: developer
   relates_to:
@@ -70,11 +70,12 @@ tasks:
     slice: expose operator, required evidence and bounds as saaa-evolve options, validated by MutationContractValidator before any candidate is created
     status: completed
   - id: T5
-    slice: retire the everyOperatorSharesTheObjectiveSetTheScorerAssumes tripwire once the wired path is contract-aware, since that is the condition CHG-014 recorded for retiring it
-    status: pending
+    slice: keep the everyOperatorSharesTheObjectiveSetTheScorerAssumes tripwire and correct the retirement condition CHG-014 recorded, which was too loose
+    status: completed
+    note: CHG-014 said to retire it once the wired path was contract-aware. The wired path is contract-aware only when a contract is declared; a run without --operator still reaches the contractless entry point, which still weights against DEFAULT_OBJECTIVES. Retiring the tripwire would therefore remove the only guard against a per-operator objective set silently producing a wrong weighted score on every contractless run. The correct condition is that the contractless entry point no longer exists
   - id: T6
     slice: close RISK-002, update CHG-002 T4b and T4c, README, wiki and the CHG-014 records that describe the gap as open
-    status: pending
+    status: completed
 
 non_goals:
   - the TOON envelope parser or any model-emitted contract; CHG-002 T3d is unaffected
