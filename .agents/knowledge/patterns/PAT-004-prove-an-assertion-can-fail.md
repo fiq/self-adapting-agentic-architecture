@@ -22,18 +22,24 @@ assertion that cannot fail.
 
 ## Why this is not a matter of care
 
-On 2026-08-22 five assertions in this repository could not fail. Four were
-written by the lead, and one of those was written the same day, after several
-hours spent finding exactly that defect in other people's work. Every one was
-caught by mutation. None was caught by reading, including by reviewers
+On 2026-08-22 four assertions in this repository could not fail, and a fifth
+could fail but proved something other than what it claimed. Three of the four
+were written by the lead, and one of those was written the same day, after
+several hours spent finding exactly that defect in other people's work. Every one
+was caught by mutation. None was caught by reading, including by reviewers
 specifically briefed to look for weak tests.
+
+An independent review corrected this entry's own framing: the CHG-016 row below
+was first recorded as an assertion that could not fail, which overstated it. That
+correction is itself the point — the claim survived being written, reviewed once,
+and merged before anyone checked it.
 
 | Assertion | Why it could not fail |
 |---|---|
 | CHG-011 `S4` route selection | selected `fixture`, already the session default, so an implementation ignoring route selection passed |
 | CHG-011 `S1` catalogue inspection | asserted transcript text with no proposer spy |
 | CHG-014 fail-wins on duplicate ids | listed the failing result last, so last-write-wins returned the same answer |
-| CHG-016 CLI benchmark test | budget of `1e-7` drove the ratio to zero whichever direction the quantity pointed, proving a discard happened and nothing about why |
+| CHG-016 CLI benchmark test | could fail if the wiring were absent, but its budget of `1e-7` drove the ratio to zero whichever direction the quantity pointed, so it proved a discard happened and nothing about why. Insufficient rather than incapable |
 | CHG-019 inverted `S9` | asserted `containsKey` when the scorer writes that key whatever the outcome |
 
 Two more were found the same way in a subagent's work and in a reviewer's
@@ -49,6 +55,10 @@ promotion boundary had it been applied without running it.
 - a magnitude so extreme it passes for a direction-agnostic reason.
 
 ## What this does not mean
+
+A passing mutation shows the assertion is sensitive to the change you made. It
+does not show the oracle is correct or the semantics are the intended ones, which
+is why this does not replace review.
 
 It does not mean mutating every test. It means a *new or changed* assertion that
 will be cited as evidence, especially one guarding a gate, a decision or an audit

@@ -306,12 +306,15 @@ REVIEW_CONSOLIDATION_CONTROLS = [
         "agents-mutation-evidence-controls",
         "AGENTS.md",
         "Testing expectations",
+        # Prose presence only. This checks the rule is written down; nothing here can
+        # observe that a mutation was run. See CHG-020, which records that limit.
         [
-            "Prove that a new assertion can fail",
-            "break the behaviour it guards, confirm the test fails, and restore",
+            "Prove that an assertion can fail",
+            "restore the file unchanged, and record what was broken",
             "tells you nothing until you have seen it fail",
-            "checks a key is present when the key is written whatever the outcome",
-            "pins a decision without pinning why",
+            "This is scoped, not universal",
+            "may be replaced by an alternative",
+            "does not show the oracle is right",
             "Reading does not catch these",
         ],
     ),

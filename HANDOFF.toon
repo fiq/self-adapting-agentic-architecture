@@ -16,7 +16,7 @@ goal:
 next_actions:
   - C5: make behavioral_safety a real signal. Critical forbidden-action probes as a hard gate, predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective, and reviewer models used to discover probes rather than to grade candidates. CHG-019 makes this buildable, because behavioral_safety_cases_pass is already declared by PROMPT_POLICY_CHANGE and a declared id can now gate
   - C6: the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation. It needs objectives that discriminate, which is C5
-  - C7: rewrite main's history to strip session URLs, authorised and recorded with its method. Preconditions are satisfied whenever no worktree or open PR remains
+  - C7: rewrite main's history to strip session URLs. The authorisation, method and limits are recorded in the task path below; do not summarise them away
   - consider whether contractless runs should stay the default. Declared gates now enforce, but nothing declares them unless an operator passes --operator, so the enforcement exists and is mostly unused
 
 active_assumptions:
@@ -917,3 +917,27 @@ team_fallback:
   t10_outcome: PR #2 "Hard-gate a candidate whose realization changed nothing (CHG-003 T10)" merged 2026-07-31 as `36d01f8` after human review; the code change had lead self-review only, no independent actor review, but was covered test-first and the failing acceptance test was observed reporting PROMOTE before the gate existed
   readme_rework_outcome: pushed directly to `main` as `d1b9a71` under explicit user authorization, no PR; lead self-review only, no actor or human review pass, no code changes
   lost_challenge: the T10 code change and the README rework did not receive independent actor review; the T10 change has automated acceptance and unit coverage, the README change is a docs-only edit
+
+task_path:
+  chunks:
+    - id: C7
+      work: rewrite main's history to strip Claude session URLs from commit messages
+      depends_on: every open branch and worktree landed on main first, so nothing has to be rebased across the rewrite
+      authorised_by: owner, 2026-08-22, who also assessed the exposure as low because the links are auth-gated
+      scope: 79 commits on main across six distinct sessions, 2026-07-28 to 2026-08-22
+      before_starting:
+        - land C1 through C6 and remove every worktree except the coordination checkout, because every surviving branch would need rebasing onto rewritten history
+        - AGENTS.md forbids force-pushing main without explicit authorisation; cite the authorisation recorded here
+        - expect every SHA on main to change. HANDOFF.toon, the specs, PAT and LRN entries and merged PR bodies all cite SHAs that will stop resolving; decide whether to rewrite those references or accept them as historical
+      status: committed. The owner reaffirmed on 2026-08-22 that the historic commit messages are to be fixed once every worktree is merged. This is not optional tidying and must not be dropped from a later handoff
+      method:
+        - confirm no branch or worktree other than the coordination checkout survives, and that origin has no open PR
+        - FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --msg-filter "sed '/^Claude-Session:/d'" -- --all
+        - verify with: git log --all --format=%B | grep -c Claude-Session, which must print 0
+        - verify the tree is unchanged: the rewrite touches messages only, so every resulting tree hash must match its original
+        - push with --force-with-lease, which needs the owner authorisation recorded above because AGENTS.md otherwise forbids force-pushing main
+        - re-clone or reset any other checkout afterwards; existing clones keep the old history
+      sha_references: HANDOFF.toon, the specs, PAT and LRN entries and merged PR bodies cite SHAs that stop resolving after the rewrite. Fix the in-repo references in the same change; merged PR bodies on the host cannot be fixed and stay as historical record
+      honest_limit: rewriting does not remove the data already published. The original commits stay fetchable by SHA on the host, remain visible in pull request views, and exist in every clone and fork already taken. The rewrite cleans the tip, not the record. It is still worth doing so the canonical history is clean, and the owner has accepted that limit
+      prevention_already_landed: CHG-015 forbids credential-shaped strings in commit messages and guards it, so the count cannot grow while C7 waits
+
