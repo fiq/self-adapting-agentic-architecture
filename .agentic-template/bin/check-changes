@@ -22,6 +22,18 @@ KNOWLEDGE_ID = re.compile(r"^[A-Z]+-[0-9]+$")
 
 # ---- minimal TOON (YAML subset) parser -------------------------------------
 
+# The layers an acceptance mapping may declare. Documented in
+# .agents/schemas/change.schema.md; enforced here so the two cannot drift.
+ACCEPTANCE_LAYERS = {
+    "acceptance",
+    "component",
+    "component-integration",
+    "contract",
+    "integration",
+    "subcutaneous",
+    "unit",
+}
+
 def tokenize(text):
     tokens = []
     for raw in text.splitlines():
@@ -186,6 +198,12 @@ def validate_change(data, rel, known_ids, errors):
         ref = entry.get("scenario")
         if not entry.get("test_id"):
             errors.append(f"{rel}: acceptance entry for {ref or '?'} missing test_id")
+        layer = entry.get("layer")
+        if layer is not None and layer not in ACCEPTANCE_LAYERS:
+            errors.append(
+                f"{rel}: acceptance entry for {ref or '?'} has unknown layer '{layer}'; "
+                "allowed: " + ", ".join(sorted(ACCEPTANCE_LAYERS))
+            )
         if ref not in scenario_ids:
             errors.append(f"{rel}: acceptance references unknown scenario {ref}")
         else:

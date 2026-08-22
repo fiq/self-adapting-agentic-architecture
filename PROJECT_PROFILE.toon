@@ -512,3 +512,7 @@ tooling:
     packet_style: semantic_summary_with_source_refs
     source_refs_required: true
     opaque_transport_blobs: false
+    session_policy: one_stable_objective_role_and_permission_scope_per_session
+    reset_triggers: objective_role_or_permission_change_independent_review_transport_failure_or_response_reserve
+    route_selection: explicit_user_or_role_and_budget_selection_not_automatic_provider_routing
+    observed_usage: record_tokens_cache_latency_and_cost_when_provider_exposes_them_else_unavailable

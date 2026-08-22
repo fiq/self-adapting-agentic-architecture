@@ -243,6 +243,31 @@ Use stronger models for ambiguity, architecture, risk and conflict. Use
 midrange models for bounded implementation and testing. Use smaller or local
 models for mechanical edits and metadata maintenance.
 
+## Session and resource discipline
+
+Treat a model session as bounded execution state, not as the source of truth.
+Reuse one session for one stable objective, role and data-permission scope so
+provider prompt caching can work. Start a fresh session when any of those
+change, when independent review is required, after a transport failure, or
+when the response reserve would be consumed. Record the retained session ID,
+route and reset reason in `HANDOFF.toon`; the repository, spec and handoff
+remain the durable context.
+
+Choose the cheapest model class likely to complete the bounded task reliably.
+Give delegated models a compact context packet with source references rather
+than the full repository. Before invoking a model, set and record an input,
+output, credit, wall-clock and retry budget where the provider exposes them;
+record actual tokens, cache-hit evidence, latency and cost when available, and
+say `unavailable` rather than estimating an unsupported price. Cache hits are
+an efficiency signal, never a correctness or approval signal.
+
+Multi-model work assigns explicit roles (lead, bounded implementer, independent
+reviewer or mechanical maintainer). A reviewer uses a clean session and does
+not inherit an implementer's unreviewed conclusion. Providers and models remain
+explicit adapter choices: no automatic provider selection, fallback or retry
+may weaken deterministic validation, fitness, promotion, audit or privacy
+constraints.
+
 ## Communication rules
 
 Put the most important conclusion first. Use concise sections, short
