@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
+import com.dreamthought.saaa.domain.FitnessSignalId;
 import com.dreamthought.saaa.domain.RealizationSummary;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -178,45 +179,40 @@ final class PhenotypeBridgeScorerTest {
                 new ScoringConfig(Set.of("publish-guard"), maxLinesChanged, Map.of()));
     }
     /**
-     * S9 characterisation. The wired promotion path cannot carry a MutationContract: the
-     * {@link FitnessScorer} port it goes through has no parameter for one, and this bridge is the
-     * implementation {@code EvolveRunner} wires in. CHG-014 adds a contract-aware entry point to
-     * {@link PhenotypeFitnessScorer} but deliberately does not migrate this path, so RISK-002 stays
-     * open. This test asserts that gap rather than leaving it assumed.
+     * CHG-019 replaces CHG-014's S9. That test asserted the gap RISK-002 described: the wired port
+     * could not carry a contract, so a declared gate could never be enforced on a live run. This
+     * change removes the gap, so the assertion is inverted rather than deleted — deleting it would
+     * quietly remove the only thing that made the property visible, at the moment it changed shape.
      *
-     * <p>It pins the port and this bridge's delegation. It would not catch a rewire that swapped a
-     * different FitnessScorer in at EvolveRunner; that belongs to the migration's own component
-     * coverage.
+     * <p>What is pinned now is the opposite property: the port carries the contract, and a contract
+     * supplied through it reaches scoring rather than being dropped.
      */
     @Test
-    void theWiredBridgeStillUsesTheContractlessEntryPoint() {
+    void theWiredPortCarriesTheContractToScoring() {
         var abstractMethods = java.util.Arrays.stream(FitnessScorer.class.getMethods())
                 .filter(method -> java.lang.reflect.Modifier.isAbstract(method.getModifiers()))
                 .toList();
 
-        assertThat(abstractMethods)
-                .as("the wired scoring port has exactly one entry point")
-                .hasSize(1);
+        assertThat(abstractMethods).hasSize(1);
         assertThat(abstractMethods.get(0).getParameterTypes())
-                .as("no MutationContract can reach the scorer through the wired port")
-                .containsExactly(Candidate.class, EvaluationEvidence.class);
-        assertThat(PhenotypeBridgeScorer.class)
-                .as("the bridge EvolveRunner wires in is the implementation of that port")
-                .matches(FitnessScorer.class::isAssignableFrom);
+                .as("a contract can now reach the scorer through the wired port")
+                .containsExactly(Candidate.class, EvaluationEvidence.class, java.util.Optional.class);
 
-        // Reflection alone would still pass if the bridge built a contract internally and called the
-        // four-argument overload, so drive it and assert the audit map has no declared-evidence key.
+        var contract = ContractFixture.declaring("publish_guard");
         var scored = scorer(new RealizationSummary(1, 8), 80).score(CANDIDATE, new EvaluationEvidence(
-                List.of(passed("build", "ok"), passed("publish-guard", "ok")),
+                List.of(passed("build", "ok"), passed("publish-guard", "ok"), passed("publish_guard", "ok")),
                 List.of(),
-                Instant.parse("2026-07-28T00:00:00Z")));
-        assertThat(scored.objectives().keySet())
-                .as("no declared-evidence gate can appear, because no contract reaches the scorer")
-                .allMatch(key -> key.startsWith("subject.objective.")
-                        || key.equals(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical())
-                        || key.equals(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical())
-                        || key.equals(PhenotypeFitnessScorer.REQUIRED_OBJECTIVE_SCORES_GATE.canonical())
-                        || key.equals(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical()));
+                Instant.parse("2026-07-28T00:00:00Z")), java.util.Optional.of(contract));
+
+        // containsKey is not enough: the scorer writes a key for every declared id whatever the
+        // outcome, so a bridge that dropped the resolved evidence would still produce the key, with
+        // a failing value. The value is what proves the evidence was actually resolved.
+        assertThat(scored.objectives())
+                .as("the declared evidence resolved to the passing check of that name")
+                .containsEntry(FitnessSignalId.invariant("publish_guard").canonical(), 1.0);
+        assertThat(scored.decision())
+                .as("a candidate whose declared evidence passed is not discarded by that gate")
+                .isEqualTo(com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
     }
 
     /**

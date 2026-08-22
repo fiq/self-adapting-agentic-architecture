@@ -45,7 +45,7 @@ final class MutationEvaluationLoopAcceptanceTest {
                 (workflow, proposed) -> candidate,
                 ignored -> List.of(CheckEvidence.passed("gradle-test", "all deterministic checks passed")),
                 ignored -> List.of(BenchmarkEvidence.measurement("sample-throughput", 42.0, "ops/s")),
-                (evaluatedCandidate, evidence) -> new FitnessResult(
+                (evaluatedCandidate, evidence, contract) -> new FitnessResult(
                         evaluatedCandidate,
                         evidence,
                         Map.of("correctness", 1.0, "throughput", 0.4),
@@ -95,7 +95,7 @@ final class MutationEvaluationLoopAcceptanceTest {
                 (workflow, proposed) -> candidate,
                 ignored -> List.of(CheckEvidence.passed("gradle-test", "all deterministic checks passed")),
                 ignored -> List.of(BenchmarkEvidence.measurement("sample-throughput", 42.0, "ops/s")),
-                (evaluatedCandidate, evidence) -> new FitnessResult(
+                (evaluatedCandidate, evidence, contract) -> new FitnessResult(
                         unexpectedCandidate,
                         evidence,
                         Map.of("correctness", 1.0),
@@ -134,7 +134,7 @@ final class MutationEvaluationLoopAcceptanceTest {
                 ignored -> {
                     throw new AssertionError("benchmarks must not run for invalid mutations");
                 },
-                (candidate, evidence) -> {
+                (candidate, evidence, contract) -> {
                     throw new AssertionError("fitness scoring must not run for invalid mutations");
                 },
                 metadata,
@@ -174,7 +174,7 @@ final class MutationEvaluationLoopAcceptanceTest {
                 ignored -> {
                     throw new AssertionError("benchmarks must not run for invalid mutations");
                 },
-                (candidate, evidence) -> {
+                (candidate, evidence, contract) -> {
                     throw new AssertionError("fitness scoring must not run for invalid mutations");
                 },
                 metadata,

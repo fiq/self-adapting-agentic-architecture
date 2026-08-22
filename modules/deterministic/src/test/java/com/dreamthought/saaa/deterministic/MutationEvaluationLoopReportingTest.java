@@ -58,7 +58,7 @@ final class MutationEvaluationLoopReportingTest {
                 (workflow, proposed) -> candidate,
                 ignored -> List.of(CheckEvidence.passed("workflow-check", "ok")),
                 ignored -> List.of(),
-                (evaluated, evidence) -> new FitnessResult(
+                (evaluated, evidence, contract) -> new FitnessResult(
                         evaluated, evidence, Map.of(), 0.10, FitnessDecision.DISCARD),
                 new ExperimentMetadataStore() {
                     @Override
