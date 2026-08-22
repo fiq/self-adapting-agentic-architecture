@@ -162,7 +162,8 @@ public final class EvolveRunner {
                         memoryResolver.apply(request.retrievalMode(), gitRoot),
                         LocalEvolutionaryMemoryFactory.policy().id(),
                         evolutionContext,
-                        new JGitChangedPathInspector()));
+                        new JGitChangedPathInspector()),
+                request.contract());
         var query = new RetrievalQuery(
                 request.retrievalMode(),
                 request.task(),
