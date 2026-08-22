@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
@@ -53,7 +54,13 @@ public final class JmhBenchmarkRunner implements BenchmarkRunner {
     private static Options optionsFor(BenchmarkDefinition benchmark) {
         return new OptionsBuilder()
                 .include(benchmark.includeRegex())
-                .mode(Mode.Throughput)
+                // AverageTime, not Throughput. PhenotypeBridgeScorer scores a benchmark as
+                // min(1.0, budget / measured), which penalises measured values above the budget.
+                // That is an upper bound, so the measured quantity must be one where lower is
+                // better. Throughput is higher-is-better, and feeding it to that ratio rewards a
+                // slower candidate and penalises a faster one — backwards for cost_latency_budget.
+                .mode(Mode.AverageTime)
+                .timeUnit(TimeUnit.MILLISECONDS)
                 .warmupIterations(0)
                 .measurementIterations(1)
                 .measurementTime(TimeValue.milliseconds(1))
@@ -71,7 +78,7 @@ public final class JmhBenchmarkRunner implements BenchmarkRunner {
     ) {
         String name = benchmark.name();
         if (results.size() > 1) {
-            name = name + ":" + result.getParams().getBenchmark();
+            name = name + BenchmarkRunner.DERIVED_NAME_SEPARATOR + result.getParams().getBenchmark();
         }
         return BenchmarkEvidence.measurement(
                 name,
