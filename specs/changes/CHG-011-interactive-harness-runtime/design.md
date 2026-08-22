@@ -41,6 +41,13 @@ Q-010 or Q-011.
 
 The first commands are `help`, `status`, `capabilities`, `skills`, `target`,
 `route`, `evolve`, and `quit`. Command errors leave an active session active.
+
+`evolve` in this slice fixes the retrieval treatment to `NONE`, the diff budget
+to 80 lines and the task text to a constant. `saaa-evolve` exposes `--retrieval`
+and `--task`; the session deliberately does not, so a first interactive slice
+cannot vary retrieval treatment. This is a recorded capability gap, not an
+oversight, and it must be closed before the session is used to compare retrieval
+modes.
 `evolve` reports the deterministic result from the existing loop; an agent
 proposal remains subject to the current validation, isolated candidate,
 checks, scoring, and promotion-recording path.
