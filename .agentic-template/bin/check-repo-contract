@@ -291,6 +291,7 @@ REVIEW_CONSOLIDATION_CONTROLS = [
             "Read-only is an invariant to enforce, not a fact to assume",
             "Implementation agents must not share a file",
             "different briefs",
+            "aim each brief at a region the previous passes did not examine",
             "deduplicate overlapping findings",
             "adjudicate contradictions rather than averaging them",
             "verify every finding against the code",
