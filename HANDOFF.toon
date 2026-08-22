@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-22
-  status: chg_014_review_findings_addressed
-  branch: feat/chg-014-contract-aware-scoring
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-014-contract-aware-scoring
-  head: origin/main at 0bc88ee
-  head_note: CHG-014 is delivered. The scorer has a contract-aware entry point enforcing declared required_evidence as canonical integrity gates, plus the typed RequiredEvidenceResult channel. The wired path is unchanged and RISK-002 stays open by design; CHG-002 T4c now tracks the remaining loop migration, which was previously untracked.
+  status: chg_015_review_contract
+  branch: feat/chg-015-review-consolidation
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-015-review-consolidation
+  head: origin/main at 2af3bfe
+  head_note: CHG-015 lifts the review and consolidation practice out of session state into the operating contract, and abstracts the general form back into the framework template so generated projects inherit it. An independent review found the rule contradicted itself and that four load-bearing controls were unguarded; both are corrected.
   dirty: false
   pushed: true
 
