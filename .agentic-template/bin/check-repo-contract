@@ -303,6 +303,19 @@ REVIEW_CONSOLIDATION_CONTROLS = [
         ],
     ),
     (
+        "agents-mutation-evidence-controls",
+        "AGENTS.md",
+        "Testing expectations",
+        [
+            "Prove that a new assertion can fail",
+            "break the behaviour it guards, confirm the test fails, and restore",
+            "tells you nothing until you have seen it fail",
+            "checks a key is present when the key is written whatever the outcome",
+            "pins a decision without pinning why",
+            "Reading does not catch these",
+        ],
+    ),
+    (
         "agents-rebase-timing-controls",
         "AGENTS.md",
         "Rebase timing",

@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-22
-  status: chg_019_contract_in_the_loop
-  branch: feat/chg-019-contract-in-the-loop
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-019-loop-contract
-  head: origin/main at ed3731e
-  head_note: CHG-019 puts an operator-declared contract on the wired promotion path so declared required_evidence gates a live run, which is what closes RISK-002. Spec first; the loop migration recorded as C2 was not executable as written.
+  status: chg_020_mutation_evidence
+  branch: feat/chg-020-prove-assertions-can-fail
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-020-mutation
+  head: origin/main at cf06f45
+  head_note: CHG-019 merged, so a declared required_evidence id now gates a live promotion and RISK-002 narrows to the contractless path. CHG-020 records that a passing test is not evidence until it has been seen to fail, from five assertions that could not fail on 2026-08-22.
   dirty: false
   pushed: true
 
@@ -14,126 +14,10 @@ goal:
   interlude: automatic runtime routing remains deferred until Q-010's measured usage, price identity and ablation evidence exist
 
 next_actions:
-  - CHG-002 T4c: migrate MutationEvaluationLoop from Mutation onto MutationContract and thread the contract through FitnessScorer and PhenotypeBridgeScorer. This is the only remaining work before RISK-002 can close, and the port signature changes with it
-  - then make behavioral_safety a real signal: critical forbidden-action probes as a hard gate, predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective, and reviewer models used to discover probes rather than to grade candidates
-  - wire the benchmarks module so cost_latency_budget has an evidence source; budgetScore already varies and is only starved of input
-  - then the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation
-  - consider recording engine-routing defaults alongside the session policy in MODEL_ROUTING_POLICY.md, as proposed rather than canonical, with revisit triggers, and worded so it cannot be read as the automatic routing Q-010 and Q-011 defer
-
-chg_015_review:
-  - actor: neuralwatt/glm-5.2-flex, fresh session, briefed to argue against the rule rather than only proofread it
-    result: REQUEST CHANGES; one blocker and five should-fixes, all accepted
-    addressed:
-      - the rule contradicted itself. It said reviews cannot conflict, then step two of its own procedure was adjudicating contradictions, and PAT-003's own second incident is one reviewer calling a guard a blocker while another correctly downgraded it. Corrected in AGENTS.md, the framework template and PAT-003: reviews share no mutable state so findings combine additively, while conclusions contradict routinely and that is what consolidation adjudicates
-      - the guard asserted eight phrases while four load-bearing controls were unguarded, including the premise justifying the whole rule, so the claim that deleting any control fails the check was false. Both halves are now covered and each failure names its scenario test_id, matching the CHG-012 shape. Verified by two mutations
-      - read-only was stated as a fact when nothing enforces it; it is now an invariant to enforce, with the silent-failure consequence recorded
-      - the framework half was unguarded and its scenario pointed at the only manual test id in the specs tree, so a generated project could have inherited a weakened rule silently
-      - PAT-003 carried reviewed_at on a self-authored proposed entry, implying an independent review that had not happened
-      - the template numbered the new bullet 17b among plain integers; PAT-002 and LRN-001 now link back to PAT-003
-    note: the blocker is the same shape as every other defect found today, a claim broader than the check behind it. Briefing the reviewer to argue against the rule rather than proofread it is what surfaced the self-contradiction
-
-task_path:
-  rule: one merged PR per chunk. Merge before starting the next chunk that touches the same files, because HANDOFF.toon and the scorer are the recurring conflict surfaces and a branch left open across another merge needs a hand-resolved rebase
-  chunks:
-    - id: C1
-      work: merge PR #32, CHG-014
-      state: open, all checks green at 3acdf5f, two codex rounds addressed
-      blocks: C2
-      parallel_with: C3, C4
-      note: a third read-only pass on this head is cheap insurance; the previous two each found something real
-    - id: C2
-      work: CHG-002 T4c, put the accepted contract on the wired promotion path
-      state: RESHAPED 2026-08-22 and proceeding as CHG-019
-      not_executable_as_written: T4c said to thread the accepted MutationContract from MutationEvaluationLoop, but nothing in the live path produces one. Only ConceptualCrossoverPolicy constructs a contract outside tests, T3d's TOON envelope parser is pending, and no Java TOON reader exists at all — CHG-004 T8 shipped GoldenCorpus as Java constants for that reason, with the deviation recorded as retiring when T3d lands. The recorded chain was therefore three chunks deep before one declared gate could be enforced
-      reshaped_to: the operator declares the contract and the model produces a realization within it. A declared required_evidence id names a check that must exist and pass, so the gate is enforced against evidence the run already produces. No TOON reader is needed and T3d is unaffected
-      why_this_shape: a model that declares the evidence it will be judged against is choosing its own grading criteria, which is the concern ARCH-001 exists to prevent. The same argument an independent review made about reviewer verdicts reaching fitness, applied one level up
-    - id: C3
-      work: wire the benchmarks module so cost_latency_budget has an evidence source
-      depends_on: none
-      parallel_with: C1, C2, C4
-      files: modules/cli/build.gradle.kts, EvolveRunner
-      state: done on branch worktree-agent-a85bff0949bcded3c, worktree .claude/worktrees/agent-a85bff0949bcded3c, all checks green, not yet merged
-      note: disjoint from the scorer, so it can run beside C2. budgetScore already varies and is only starved of input, so this is the cheapest route to an objective that discriminates. See CHG-016 and c3_delivery below for what was actually done, since EvolveRunner (the constant-empty wiring) lives in modules/adapters, not modules/cli, so the fix threads an injected BenchmarkRunner through EvolveRunner and composes the concrete JmhBenchmarkRunner only in :cli, which is the layer that gained the :benchmarks Gradle dependency
-    - id: C4
-      work: record engine-routing defaults in MODEL_ROUTING_POLICY.md as proposed, with revisit triggers, worded so it cannot be read as the automatic routing Q-010 and Q-011 defer
-      depends_on: none
-      parallel_with: C1, C2, C3
-      files: .agents/coordination/MODEL_ROUTING_POLICY.md, check-repo-contract
-      note: adding a fifth policy section means extending the guard, which is what makes the defaults load-bearing rather than prose
-    - id: C5
-      work: behavioral_safety as a real signal, critical forbidden-action probes as a hard gate and predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective
-      depends_on: C2
-      conflicts_with: C2
-      note: keys off the already-declared behavioral_safety_cases_pass evidence id, which only becomes reachable once the wired path carries a contract
-    - id: C6
-      work: the population slice with ranking
-      depends_on: C3, C5
-      note: ADR-0002 names it as the missing Layer-1 foundation. Ranking needs at least one objective that discriminates between eligible candidates, which is what C3 and C5 deliver
-    - id: C4
-      work: record engine routing defaults
-      state: WITHDRAWN 2026-08-22, PR #35 closed unmerged
-      reason: MODEL_ROUTING_POLICY.md already carries a `## Defaults` table routing by engine name, and the proposed section contradicted it — that table gives Codex independent code review and bounded implementation, while the new one sent reviews to an external engine and implementation to a subagent. `## Model Classes` in the same file and .agents/skills/tooling/model-routing/SKILL.md state it a third and fourth time
-      also: defaulting source-touching work to an external engine is a provider, jurisdiction and data-retention stance, which is Q-011's domain, recorded before Q-011's constraint machinery exists. The first-line disclaimer covered the mechanism, that nothing selects an engine at runtime, but not the decision
-      also: the guard pinned six framing phrases while the routing rows stayed freely mutable, so S2's claim to distinguish five categories and reserve the deterministic boundary to the lead had no enforcement, and three scenarios mapped to one test id against the convention CHG-012 and CHG-015 both follow
-      residue: nothing was lost. The review fan-out rule is in AGENTS.md and PAT-003 via CHG-015, session retention economics are in PAT-002, and the deterministic boundary belongs to ARCH-001
-      if_revisited: amend the existing `## Defaults` table rather than adding one beside it, and resolve Q-011 first if the change would state a provider stance for source-touching work
-
-    - id: C7
-      work: rewrite main's history to strip Claude session URLs from commit messages
-      depends_on: every open branch and worktree landed on main first, so nothing has to be rebased across the rewrite
-      authorised_by: owner, 2026-08-22, who also assessed the exposure as low because the links are auth-gated
-      scope: 79 commits on main across six distinct sessions, 2026-07-28 to 2026-08-22
-      before_starting:
-        - land C1 through C6 and remove every worktree except the coordination checkout, because every surviving branch would need rebasing onto rewritten history
-        - AGENTS.md forbids force-pushing main without explicit authorisation; cite the authorisation recorded here
-        - expect every SHA on main to change. HANDOFF.toon, the specs, PAT and LRN entries and merged PR bodies all cite SHAs that will stop resolving; decide whether to rewrite those references or accept them as historical
-      status: committed. The owner reaffirmed on 2026-08-22 that the historic commit messages are to be fixed once every worktree is merged. This is not optional tidying and must not be dropped from a later handoff
-      method:
-        - confirm no branch or worktree other than the coordination checkout survives, and that origin has no open PR
-        - FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --msg-filter "sed '/^Claude-Session:/d'" -- --all
-        - verify with: git log --all --format=%B | grep -c Claude-Session, which must print 0
-        - verify the tree is unchanged: the rewrite touches messages only, so every resulting tree hash must match its original
-        - push with --force-with-lease, which needs the owner authorisation recorded above because AGENTS.md otherwise forbids force-pushing main
-        - re-clone or reset any other checkout afterwards; existing clones keep the old history
-      sha_references: HANDOFF.toon, the specs, PAT and LRN entries and merged PR bodies cite SHAs that stop resolving after the rewrite. Fix the in-repo references in the same change; merged PR bodies on the host cannot be fixed and stay as historical record
-      honest_limit: rewriting does not remove the data already published. The original commits stay fetchable by SHA on the host, remain visible in pull request views, and exist in every clone and fork already taken. The rewrite cleans the tip, not the record. It is still worth doing so the canonical history is clean, and the owner has accepted that limit
-      prevention_already_landed: CHG-015 forbids credential-shaped strings in commit messages and guards it, so the count cannot grow while C7 waits
-
-  parallelisation:
-    implementation:
-      safe_now: C3 and C4 can be worked beside C1 because they touch disjoint files
-      never: two implementation agents on PhenotypeFitnessScorer or on HANDOFF.toon at once; the merge cost exceeds the parallelism
-    review:
-      rule: reviews are read-only and never conflict, so several reviewers on one diff is safe and is the one place fan-out reliably pays. The file-collision rule above applies to implementation agents only
-      prefer_different_briefs: give reviewers the same diff and different briefs, for example architecture and security, spec fidelity, test strength, documentation accuracy. Identical briefs mostly return the same findings twice and add deduplication cost. PR #15 used two differing briefs and they found disjoint problems
-      consolidation_is_the_work:
-        - deduplicate overlapping findings; the two Flex sessions on CHG-011 both raised the state diagram
-        - adjudicate contradictions rather than averaging them. Codex called the CHG-012 guard a blocker and GLM correctly downgraded it to a nit because design.md already disclosed the guard as presence-only. Getting that wrong put a wrong blocker on a PR that then had to be retracted
-        - verify every finding against the code before acting. Codex was right about the audit-key collision and wrong about the CHG-012 guard; only checking distinguished them
-        - apply the fixes serially in one place. That step must not be parallel
-    routing: reviews and read-heavy audits go to an external engine on a separate budget; spec authorship, merge decisions and anything touching the deterministic boundary stay with the lead
-  review_evidence: every independent pass today found something the previous reviewer and the lead both missed, twice in the lead's own work. Do not treat one clean review on a branch as strong evidence
-
-c3_delivery:
-  what: gave subject.objective.cost_latency_budget a real evidence source. budgetScore was already correct and untouched; the gap was upstream. EvolveRunner (modules/adapters, not modules/cli as C3's original framing assumed) gains an injectable BenchmarkRunner constructor parameter, defaulting every existing constructor to the prior constant candidate -> List.of(); EvolveRunRequest gains a benchmarkBudgets map component, defaulting every existing shorter constructor to Map.of(). modules/cli/build.gradle.kts gains a dependency on :benchmarks; EvolveCommand gains repeatable --benchmark name=jmh-include-regex and --benchmark-budget name=value options that compose a real JmhBenchmarkRunner only when given, otherwise the run is byte-for-byte the same as before
-  architecture_boundary_check: adapters (where EvolveRunner lives) was deliberately NOT given a dependency on :benchmarks; only :cli, the composition root, was. EvolveRunner only ever sees the BenchmarkRunner port it already had visibility to through :deterministic. project lint reports ARCHITECTURE BOUNDARIES OK after the change
-  test_first: adapters/evolve/EvolveRunnerTest.discriminatesCandidatesByAConfiguredBenchmarkBudget was written against the intended new API before it existed and failed to compile (no suitable constructor found) for the right reason; cli/EvolveCommandAcceptanceTest.wiresARealBenchmarkRunnerSoAnOverBudgetMeasurementDiscardsAnOtherwisePromotingCandidate exercises the real JmhBenchmarkRunner path end to end
-  mutation_check: both EvolveRunner.run's constant wiring and EvolveCommand.call's constant BenchmarkRunner were separately reverted to their prior inert form; both new tests failed each time; both files were restored and diffed byte-identical against a saved copy before continuing
-  spec: specs/changes/CHG-016-benchmark-evidence/ (proposal.md, change.toon, design.md); check-changes passes
-  docs: README.md, docs/wiki/architecture.md and docs/architecture/module-boundaries.md updated; all three previously asserted no CLI run could produce benchmark evidence and that :cli had no dependency on :benchmarks, which is no longer true by default-off construction (an ordinary run still measures nothing unless --benchmark is given)
-  validation:
-    - nix develop --command .agentic-template/bin/project check: pass, all seven gates
-    - nix develop --command .agentic-template/bin/project lint: ARCHITECTURE BOUNDARIES OK
-    - nix develop --command .agentic-template/bin/project check-changes: CHANGES OK
-    - nix develop --command gradle test --rerun-tasks --no-daemon: pass, all five modules
-    - nix develop --command gradle :cli:acceptanceTest --rerun-tasks --no-daemon: pass, 16 tests including the new one
-    - nix develop --command gradle :deterministic:acceptanceTest :cli:acceptanceTest --rerun-tasks --no-daemon (component-test): pass
-    - nix develop --command gradle :adapters:integrationTest :benchmarks:integrationTest --rerun-tasks --no-daemon (integration-test): pass, including the pre-existing JmhBenchmarkRunnerIntegrationTest
-    - nix develop --command .agentic-template/bin/project ready: READY PASS, 16 pass / 1 not applicable / 0 fail
-  not_done: modules/benchmarks still ships exactly one JMH benchmark class, WorkflowGraphBenchmark, benchmarking SAAA's own domain code rather than the candidate; JmhBenchmarkRunner.runBenchmarks still does not read the candidate at all. Making the benchmark runner candidate-aware and adding further benchmark classes are both recorded non-goals in CHG-016, not silent gaps
-  branch: worktree-agent-a85bff0949bcded3c
-  worktree: .claude/worktrees/agent-a85bff0949bcded3c
-  merge_state: not merged; not pushed; lead reintegrates per this task's constraints
+  - C5: make behavioral_safety a real signal. Critical forbidden-action probes as a hard gate, predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective, and reviewer models used to discover probes rather than to grade candidates. CHG-019 makes this buildable, because behavioral_safety_cases_pass is already declared by PROMPT_POLICY_CHANGE and a declared id can now gate
+  - C6: the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation. It needs objectives that discriminate, which is C5
+  - C7: rewrite main's history to strip session URLs, authorised and recorded with its method. Preconditions are satisfied whenever no worktree or open PR remains
+  - consider whether contractless runs should stay the default. Declared gates now enforce, but nothing declares them unless an operator passes --operator, so the enforcement exists and is mostly unused
 
 active_assumptions:
   - ACP command configuration is local process selection, not automatic complexity or ethics routing

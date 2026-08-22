@@ -135,6 +135,17 @@ Use real dependency semantics when cheap and material. Do not mock Git or
 SQLite behavior once adapter implementation begins unless a higher-fidelity
 confirmation test also exists.
 
+Prove that a new assertion can fail. Before relying on a test as evidence, break
+the behaviour it guards, confirm the test fails, and restore the file unchanged.
+A test that passes tells you nothing until you have seen it fail for the reason
+you intend. Record what was broken and that it was restored.
+
+Watch for the assertions that most often cannot fail: one that checks a key is
+present when the key is written whatever the outcome, one that pins a decision
+without pinning why, one whose fixture already satisfies it, and one whose
+ordering hides a last-write-wins bug. Reading does not catch these. See
+`PAT-004`.
+
 ## Structured data formats
 
 Use TOON for state and reviewable contracts: `PROJECT_PROFILE.toon`,

@@ -42,7 +42,9 @@ A generated project AGENTS.md must include:
    smaller design is a conscious, recorded, bought-into choice.
 7. **Testing expectations** — boundary-in, ATDD-aligned design; fidelity by
    risk (acceptance / component-integration / subcutaneous); real dependency
-   semantics where cheap and material.
+   semantics where cheap and material; prove a new assertion can fail by
+   breaking the behaviour it guards, observing the failure, and restoring, since
+   a passing test is not evidence until it has been seen to fail.
 8. **Structured data formats** — configured TOON/S-expression policy; TOON
    benefits state/contracts, S-expressions benefit rules/compute.
 9. **Spec system** — OpenSpec-shaped structured specs under
