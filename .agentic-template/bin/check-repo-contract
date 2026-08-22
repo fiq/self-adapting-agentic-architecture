@@ -245,6 +245,18 @@ MODEL_ROUTING_POLICY_CONTROLS = [
         ],
     ),
     (
+        "model-routing-policy-engine-routing-defaults",
+        "Engine routing defaults",
+        [
+            "Defaults, not automatic routing",
+            "nothing in SAAA selects an engine at runtime",
+            "Automatic provider routing stays deferred",
+            "Cost shapes the default but does not decide it",
+            "never a reason to keep an independent reviewer's session",
+            "Revisit when",
+        ],
+    ),
+    (
         "model-routing-policy-safety-links",
         "Audit and safety invariants",
         [

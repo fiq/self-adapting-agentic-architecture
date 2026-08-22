@@ -112,6 +112,39 @@ owns synthesis and records why a model class was selected.
 4. A direct user model/provider choice wins. Otherwise the role and explicit
    budget—not a model-name heuristic—select the route.
 
+## Engine routing defaults
+
+Defaults, not automatic routing. A human or lead agent chooses; nothing in SAAA
+selects an engine at runtime. Automatic provider routing stays deferred behind
+`Q-010`'s measured usage and price-identity evidence and `Q-011`'s preference
+constraints, and nothing here changes that.
+
+These are `proposed`. They come from one day's observed use on 2026-08-22, not
+from measurement.
+
+| Work | Default | Why |
+|---|---|---|
+| Review, audit, read-heavy investigation | external engine on a separate budget | reviews are read-only and fan out safely; keeping them off the lead's budget is what makes running several affordable |
+| Generating candidates a deterministic check then verifies | external engine | cheap to generate, deterministic to check. The asymmetry is the point |
+| Bounded implementation with clear acceptance criteria | subagent in its own worktree | needs judgement but not the whole conversation; isolation prevents file collisions |
+| Work needing the current conversation's context | fork of the lead | inheriting context avoids re-deriving it, which is the expensive failure mode |
+| Spec authorship, merge decisions, anything touching the deterministic boundary | the lead | these must be defensible, and the lead is accountable for them |
+
+Cost shapes the default but does not decide it. Cached prefix tokens are roughly
+an order of magnitude cheaper than fresh input on the providers observed, so
+reusing a retained session for follow-up work in the same scope is materially
+cheaper than starting one. That is a reason to keep a session, never a reason to
+keep an independent reviewer's session — see `PAT-002`.
+
+Prefer the cheapest model class that will reliably complete the bounded task, and
+prefer a reasoning-capable variant when it costs the same. Reviews and design
+critique are the tasks most sensitive to model strength.
+
+Revisit when: observed cost or capability makes a default wrong; a provider
+changes tiers or prices; a measured comparison contradicts one of these rows; or
+`Q-010` and `Q-011` are answered and automatic routing becomes possible, at which
+point this table becomes input to that decision rather than the decision itself.
+
 ## Audit and safety invariants
 
 For material work, record the route/model identity, session ID or reset reason,

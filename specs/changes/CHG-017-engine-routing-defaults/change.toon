@@ -1,0 +1,61 @@
+change:
+  id: CHG-017
+  title: Record engine routing defaults alongside the session policy
+  status: proposed
+  intent: Record which kind of work goes to which engine as explicit defaults a person applies, distinct from the automatic routing Q-010 and Q-011 defer, and guard the controls so they cannot silently drift.
+  audience_level: developer
+  relates_to:
+    - PAT-002
+    - PAT-003
+    - ARCH-001
+
+deltas:
+  - op: MODIFIED
+    capability: bounded-model-session-efficiency
+    requirement: The routing policy records defaults for which engine receives which kind of work, states that nothing selects an engine at runtime, and carries revisit triggers.
+    scenarios:
+      - id: S1
+        when: the repository contract is checked
+        then: the policy carries an engine routing defaults section stating that these are defaults rather than automatic routing and that nothing in SAAA selects an engine at runtime
+        and:
+          - deleting a control fails the check and names it
+      - id: S2
+        when: a reader consults the section to decide where to send work
+        then: it distinguishes review and read-heavy work, generation a deterministic check verifies, bounded implementation, work needing conversation context, and work reserved to the lead
+        and:
+          - anything touching the deterministic boundary is reserved to the lead
+      - id: S3
+        when: cost is considered
+        then: the section states that cost shapes the default but does not decide it, and that cache economics are never a reason to retain an independent reviewer's session
+        and:
+          - no price figures are recorded, because they move and would date the document
+
+acceptance:
+  - scenario: S1
+    test_id: repo-contract/model-routing-policy-engine-routing-defaults
+    layer: contract
+  - scenario: S2
+    test_id: repo-contract/model-routing-policy-engine-routing-defaults
+    layer: contract
+  - scenario: S3
+    test_id: repo-contract/model-routing-policy-engine-routing-defaults
+    layer: contract
+
+tasks:
+  - id: T1
+    slice: add the engine routing defaults section to the policy, worded so it cannot be read as automatic routing
+    status: completed
+  - id: T2
+    slice: guard its load-bearing controls in check-repo-contract, naming the scenario test id on failure
+    status: completed
+
+non_goals:
+  - implementing automatic routing or any runtime engine selection
+  - changing how any engine is invoked
+  - recording prices, which move and would date the document
+  - promoting these defaults to canonical before any measured comparison exists
+
+risks:
+  - the defaults come from one day's observed use rather than measurement, so a row may simply be wrong. The section is proposed and carries revisit triggers, one of which is a measured comparison contradicting a row
+  - a written default can be followed past the point where it fits. The section states that cost shapes the default but does not decide it, so a cheaper engine is never automatically the right one
+  - recording routing next to the session policy could be read as prejudging Q-010 and Q-011; the first line states the opposite, and the guard requires that line to remain
