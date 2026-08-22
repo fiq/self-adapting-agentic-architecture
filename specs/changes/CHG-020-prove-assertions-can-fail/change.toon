@@ -1,0 +1,64 @@
+change:
+  id: CHG-020
+  title: Require a new assertion to be proven capable of failing
+  status: proposed
+  intent: Record that a passing test is not evidence until it has been seen to fail for the intended reason, name the assertion shapes that recur, and guard the rule so it cannot drift.
+  audience_level: developer
+  relates_to:
+    - PAT-004
+    - PAT-003
+    - LRN-001
+
+deltas:
+  - op: MODIFIED
+    capability: review-and-consolidation-contract
+    requirement: The testing rule requires breaking the guarded behaviour, observing the failure and restoring, before a new assertion is relied on as evidence.
+    scenarios:
+      - id: S1
+        when: the repository contract is checked
+        then: the testing section requires proving a new assertion can fail, and names the shapes that recur
+        and:
+          - deleting a control fails the check and names it
+      - id: S2
+        when: an agent decides whether a passing test is evidence
+        then: PAT-004 gives the five incidents and the recurring shapes, including that four were the lead's own and one was written the same day as fixing that defect elsewhere
+        and:
+          - it records that mutation and review fail differently, so neither replaces the other
+      - id: S3
+        when: a project is generated from the framework template
+        then: its required testing section carries the rule in general form
+
+acceptance:
+  - scenario: S1
+    test_id: repo-contract/agents-mutation-evidence-controls
+    layer: contract
+  - scenario: S2
+    test_id: repo-contract/knowledge-check-resolves-pat-004
+    layer: contract
+    note: covered by check-knowledge, which fails when a relates_to reference does not resolve; it does not check the entry's content
+  - scenario: S3
+    test_id: repo-contract/agents-template-testing-section
+    layer: contract
+
+tasks:
+  - id: T1
+    slice: add the clause to the testing rule and guard its controls
+    status: completed
+  - id: T2
+    slice: record PAT-004 with the five incidents and the recurring shapes
+    status: completed
+  - id: T3
+    slice: carry the general form into the framework template
+    status: completed
+    note: guarded by its own control, so deleting the sentence from the template fails the check and names it
+
+non_goals:
+  - mutating every test, or tooling to automate mutation
+  - a coverage threshold, which measures something else
+  - replacing review, since reviewers and mutation catch different defects
+
+risks:
+  - the guard checks prose presence only. Nothing in it can observe that a mutation was run, so the rule relies on the same honesty as the rest of the contract, and the guard must not be described as enforcing the practice
+  - a rule requiring proof can be satisfied by claiming the proof. Nothing checks that a mutation was actually run, and the guard only checks the rule is written down. It relies on the same honesty the rest of the contract does
+  - mutating an assertion is cheap for a unit test and expensive for a slow acceptance test, so the rule could push work toward tests that are easy to mutate rather than tests that matter. It is scoped to new or changed assertions that will be cited as evidence
+  - PAT-004 is proposed rather than canonical: one day's incidents, recorded by the actor who wrote four of them
