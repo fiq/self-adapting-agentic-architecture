@@ -1,0 +1,98 @@
+change:
+  id: CHG-014
+  title: Enforce the declared mutation contract in the scorer
+  status: proposed
+  intent: Give the deterministic scorer the accepted MutationContract and a typed evidence channel keyed by its declared required_evidence ids, so declared hard gates are enforced rather than described.
+  audience_level: developer
+  relates_to:
+    - RISK-002
+    - ARCH-001
+    - CON-002
+    - SYS-001
+
+deltas:
+  - op: ADDED
+    capability: contract-aware-fitness
+    requirement: The scorer receives the accepted contract and decides against what that contract declared, never against a fixed assumption about it.
+    scenarios:
+      - id: S1
+        when: a contract declares a required_evidence id and the candidate produces no observed result for it
+        then: the candidate is discarded on a hard gate naming the missing evidence id
+        and:
+          - the discard reason identifies the declared id rather than a generic failure
+      - id: S2
+        when: a contract declares a required_evidence id and an observed result for it reports failure
+        then: the candidate is discarded on a hard gate naming that id
+      - id: S3
+        when: every declared required_evidence id has a passing observed result
+        then: the declared gate contributes no discard and scoring proceeds to the weighted objectives
+      - id: S4
+        when: an observed evidence result is supplied for an id the contract did not declare
+        then: it is recorded in the audit record and cannot satisfy or weaken any declared gate
+        and:
+          - undeclared evidence never substitutes for a declared id
+      - id: S5
+        when: the contract's operator declares an objective set different from the shared defaults
+        then: the scorer gates and weights against the contract's own objectives
+        and:
+          - a weighted score is never computed against an objective set the contract did not declare
+      - id: S6
+        when: a caller scores without supplying a contract
+        then: the existing fixed-gate behaviour is preserved for that call
+        and:
+          - the transitional entry point remains available until every caller supplies a contract
+
+acceptance:
+  - scenario: S1
+    test_id: deterministic/ContractAwareFitnessTest.discardsWhenADeclaredEvidenceIdHasNoObservedResult
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/ContractAwareFitnessTest.discardsWhenADeclaredEvidenceIdReportsFailure
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/ContractAwareFitnessTest.proceedsToObjectivesWhenEveryDeclaredEvidenceIdPasses
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/ContractAwareFitnessTest.undeclaredEvidenceCannotSatisfyADeclaredGate
+    layer: unit
+  - scenario: S5
+    test_id: deterministic/ContractAwareFitnessTest.weightsAgainstTheContractsOwnObjectiveSet
+    layer: unit
+  - scenario: S6
+    test_id: deterministic/PhenotypeFitnessScorerTest.contractlessScoringPreservesTheExistingGates
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: add a typed RequiredEvidenceResult keyed by declared evidence id, with a pass/fail outcome and a diagnostic
+    status: pending
+  - id: T2
+    slice: add failing unit coverage for S1 through S5 against the new contract-aware entry point
+    status: pending
+  - id: T3
+    slice: add the contract-aware scorer entry point and enforce declared required_evidence as a hard gate
+    status: pending
+  - id: T4
+    slice: gate and weight against the contract's own objective set, and retire the everyOperatorSharesTheObjectiveSetTheScorerAssumes guard once it is no longer load-bearing
+    status: pending
+  - id: T5
+    slice: thread the accepted contract from MutationEvaluationLoop through to the scorer
+    status: pending
+  - id: T6
+    slice: record observed required-evidence results in the candidate audit record
+    status: pending
+  - id: T7
+    slice: update RISK-002, CHG-002 T4b, README and wiki; close RISK-002 or record what remains
+    status: pending
+
+non_goals:
+  - making behavioral_safety variable, which depends on this change and follows it
+  - wiring the benchmarks module so cost_latency_budget has an evidence source
+  - evaluating or ranking several candidates per generation
+  - letting any model-produced judgement reach a score, a gate or a promotion decision
+  - changing the promotion threshold or the default objective weights
+
+risks:
+  - the transitional contractless entry point keeps the old fixed-gate behaviour reachable, so a caller that is never migrated silently retains the weaker guarantee; T5 must migrate the live loop and T7 must record any caller left behind
+  - enforcing declared evidence makes previously promotable candidates discard, which is the intended correction but will change recorded outcomes for any repeat of an earlier experiment
+  - RISK-002 says promoted candidates still need human inspection until this lands; do not close that risk until the live loop actually supplies a contract
