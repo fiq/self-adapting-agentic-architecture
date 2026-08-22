@@ -10,10 +10,17 @@ The first living capability is
 ## Known gaps
 
 `RISK-002` records that a mutation contract declares hard gates the scorer does
-not enforce, because `PhenotypeFitnessScorer` never receives the contract. The
-same missing input means scoring reads the shared objective set rather than the
-operator's. Both close together under task `T4b`; until then a promoted
-candidate's evidence is weaker than its contract implies.
+not enforce. `PhenotypeFitnessScorer` now has a contract-aware entry point that
+does enforce them: declared `required_evidence` ids gate as canonical
+`subject.invariant.<id>` integrity outcomes, in addition to the structural gates,
+and weighting reads the contract's own objective set. That is `CHG-014`, and it
+closes task `T4b`.
+
+The wired path does not use it. `MutationEvaluationLoop` still proposes and
+validates a `Mutation`, and the `FitnessScorer` port takes
+`(Candidate, EvaluationEvidence)` and cannot carry a contract at all. So a
+promoted candidate's evidence is still weaker than its contract implies, and
+`RISK-002` stays open. The remaining migration is task `T4c`.
 
 `Q-007` records that canonical mutation IR preserves declared order for
 set-like fields, so two contracts differing only in evidence order canonicalize

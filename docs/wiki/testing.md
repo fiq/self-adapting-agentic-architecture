@@ -14,7 +14,15 @@ The testing approach is boundary-in and ATDD-aligned.
   validation, mutation contract canonicalization and hard-gated phenotype
   fitness scoring. Scorer coverage includes a jqwik property suite with fixed
   numeric seeds and a nine-entry golden verdict corpus in `GoldenCorpus.java`
-  holding entries either side of `PROMOTION_THRESHOLD`.
+  holding entries either side of `PROMOTION_THRESHOLD`. `ContractAwareFitnessTest`
+  covers the contract-aware entry point, and two characterisation tests pin what
+  must not move while it exists:
+  `PhenotypeFitnessScorerTest.contractlessScoringPreservesTheExistingGates` holds
+  the wired two-argument path, and
+  `PhenotypeBridgeScorerTest.theWiredBridgeStillUsesTheContractlessEntryPoint`
+  drives the bridge and asserts that the wired port carries no contract parameter
+  and that no declared-evidence gate can appear in its audit map, so `RISK-002`'s
+  remaining gap fails a test rather than being assumed.
 - Component tests drive the mutation loop with fake model, Git, check and
   benchmark ports, and drive the CLI outside-in, including a WireMock-backed
   live-proposer run that needs no real credentials.

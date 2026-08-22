@@ -1,5 +1,5 @@
 project:
-  state: live_loop_policy_proposed
+  state: live_loop_policy_accepted
   name: self-adapting-agentic-architecture
   confidence: medium
   concept_date: 2026-07-25
@@ -186,9 +186,9 @@ decisions:
       - keeps provider-specific code, review tooling and promotion side effects outside deterministic core decisions
       - uses repo-native contracts and Git evidence instead of adding new infrastructure
     confidence: medium
-    status: proposed
+    status: accepted
     validation:
-      - specs/changes/CHG-002-live-loop-policy/
+      - specs/changes/CHG-002-live-loop-policy/ is accepted, with the operator set, contract envelope, canonical IR and hard-gated scorer delivered
       - .agentic-template/bin/project check-changes
     consequence_if_changed: the next live loop slice should revise CHG-002 before implementation rather than embedding policy assumptions in code
   - id: invariant_named_module_layout
@@ -296,7 +296,7 @@ unknowns:
       - affects retrieval and tool-calling support
     evidence:
       - user specified LangChain4j but not a provider
-    working_assumption: CHG-002 proposes OpenAI through LangChain4j's official OpenAI adapter, with provider and model selected by explicit CLI configuration
+    working_assumption: delivered. The openai-compatible profile selects provider and model by explicit configuration through the LangChain4j adapter; the remaining open residue is which provider to default to, not whether the seam works
     consequence_if_wrong: the provider factory can be replaced inside the adapters/langchain4j package without changing domain or deterministic ports
     blocking: false
     validation:
@@ -310,7 +310,7 @@ unknowns:
       - determines how targeted behavioral intent, loci, bounds and evidence are validated before implementation
     evidence:
       - user requested plain Java records for WorkflowGraph and Mutation
-    working_assumption: CHG-002 proposes TOON mutation-contract envelopes with canonical S-expression internal mutation IR; the realized candidate is recorded as a Git diff and commit
+    working_assumption: delivered. TOON mutation-contract envelopes and canonical S-expression IR exist and are tested; the realized candidate is recorded as a Git diff and commit. The open residue is that the wired loop still uses the transitional Mutation type, tracked as CHG-002 T4c
     consequence_if_wrong: the envelope or IR format can be tightened without redefining mutation as edit mechanics
     blocking: false
     validation:
@@ -336,12 +336,14 @@ unknowns:
       - benchmark evidence can dominate correctness if weights are wrong
     evidence:
       - user requested deterministic checks, benchmarks and multi-objective scoring
-    working_assumption: CHG-002 proposes validation, checks and required phenotype evaluation evidence as hard gates, with task success, reliability, cost and latency budgets, behavioral safety and parsimony as weighted objectives
+    working_assumption: delivered as MutationOperatorPolicy.DEFAULT_OBJECTIVES with the four structural gates. The open residue is narrower than the original question: four of the five objectives are constant for any eligible candidate, so ranking is not yet possible, and per-operator objective sets remain forbidden by MutationContractValidator
     consequence_if_wrong: objective weights can change without permitting model-authored approval, weakening deterministic gates or optimizing for edit mechanics instead of behavior
     blocking: false
     validation:
       - specs/changes/CHG-002-live-loop-policy/
-    status: open
+      - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationOperatorPolicy.java
+    status: answered_with_open_residue
+    residue: the objective set and weights are decided and in code; what remains is that only parsimony discriminates between eligible candidates, which blocks ranking
   - id: Q-005
     question: What first crossover policy captures diversity of thought without unauditable diff recombination?
     why_it_matters:
