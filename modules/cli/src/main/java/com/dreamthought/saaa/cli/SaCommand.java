@@ -163,7 +163,7 @@ public final class SaCommand implements Callable<Integer> {
     }
 
     private void renderHelp() {
-        output.println("commands: status, capabilities, skills, target, route, evolve, quit");
+        output.println("commands: status, capabilities, skills, target, route, evolve, quit (alias close)");
         output.println("target <HARNESS_WORKFLOW|CODE> <folder>");
         output.println("route <profile>");
         output.println("evolve <workflow-file> <behaviour-case>...");
