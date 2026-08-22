@@ -84,6 +84,11 @@ A generated project AGENTS.md must include:
     bullets as complexity rises.
 20. **Handoff requirements** — what HANDOFF.toon must contain, including
     knowledge consulted, proposals created and no-record rationale.
+20b. **Commit message hygiene** — no session URLs, session identifiers, tokens or
+    other credential-shaped strings in commit messages; a public commit message
+    cannot be redacted after the fact, because rewriting leaves the originals
+    fetchable by SHA, visible in pull request views, and present in every clone
+    and fork. Tool and co-author attribution is fine.
 21. **Git provenance** — real commit dates, no history rewriting.
 
 ## CLAUDE.md
