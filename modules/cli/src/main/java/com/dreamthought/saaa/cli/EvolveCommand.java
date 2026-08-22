@@ -63,9 +63,45 @@ public final class EvolveCommand implements Callable<Integer> {
     @Spec
     private CommandSpec spec;
 
+    /**
+     * A misconfigured budget does not fail loudly on its own: {@code budgetScore} skips any benchmark
+     * without a matching budget, so a misspelled or unpaired name leaves {@code cost_latency_budget}
+     * at 1.0 and the run promotes as though it had been measured. Because that silently changes a
+     * recorded promotion decision, the configuration is rejected before the loop starts rather than
+     * absorbed.
+     */
+    private void requireCoherentBenchmarkConfiguration() {
+        if (benchmarks.isEmpty() && !benchmarkBudgets.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "--benchmark-budget given without --benchmark, so nothing would be measured: "
+                            + String.join(", ", benchmarkBudgets.keySet()));
+        }
+        var unmatched = new java.util.LinkedHashSet<>(benchmarkBudgets.keySet());
+        unmatched.removeAll(benchmarks.keySet());
+        if (!unmatched.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "--benchmark-budget names benchmarks that were not requested with --benchmark: "
+                            + String.join(", ", unmatched));
+        }
+        var unbudgeted = new java.util.LinkedHashSet<>(benchmarks.keySet());
+        unbudgeted.removeAll(benchmarkBudgets.keySet());
+        if (!unbudgeted.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "--benchmark given without a matching --benchmark-budget, so it would be measured "
+                            + "and then ignored by scoring: " + String.join(", ", unbudgeted));
+        }
+        benchmarkBudgets.forEach((name, budget) -> {
+            if (budget == null || budget.isNaN() || budget.isInfinite() || budget <= 0.0) {
+                throw new IllegalArgumentException(
+                        "--benchmark-budget for " + name + " must be a positive finite number, got " + budget);
+            }
+        });
+    }
+
     @Override
     public Integer call() {
         PrintWriter out = spec.commandLine().getOut();
+        requireCoherentBenchmarkConfiguration();
         BenchmarkRunner benchmarkRunner = benchmarks.isEmpty()
                 ? candidate -> List.of()
                 : new JmhBenchmarkRunner(benchmarks.entrySet().stream()

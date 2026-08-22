@@ -568,4 +568,42 @@ final class EvolveCommandAcceptanceTest {
         }
         throw new IllegalStateException("could not locate repository root from " + Path.of("").toAbsolutePath());
     }
+    /**
+     * CHG-016 S5. A misconfigured budget is silently absorbed by scoring: budgetScore skips any
+     * benchmark without a matching budget, so an unpaired or misspelled name leaves
+     * cost_latency_budget at 1.0 and the candidate promotes as though it had been measured. Each
+     * case is rejected before the loop starts, because it would otherwise change a recorded
+     * promotion decision without saying so.
+     */
+    @Test
+    void rejectsBenchmarkConfigurationThatWouldBeSilentlyIgnored(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        initRepo(repo);
+
+        for (String[] flagsAndExpectation : new String[][] {
+                {"without --benchmark", "--benchmark-budget", "publish=1.0"},
+                {"without a matching --benchmark-budget", "--benchmark", "publish=.*Workflow.*"},
+                {"not requested with --benchmark",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "typo=1.0"},
+                {"must be a positive finite number",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=0"}}) {
+            var err = new java.io.StringWriter();
+            var command = new CommandLine(new MutationLoopCli());
+            command.setErr(new java.io.PrintWriter(err, true));
+            var arguments = new java.util.ArrayList<String>(java.util.List.of(
+                    "saaa-evolve", target.toString(), "--behaviour-case", "workflow-check"));
+            arguments.addAll(java.util.List.of(flagsAndExpectation).subList(1, flagsAndExpectation.length));
+
+            int exitCode = command.execute(arguments.toArray(String[]::new));
+
+            assertThat(exitCode).as("%s", (Object) arguments).isNotZero();
+            assertThat(err.toString()).contains(flagsAndExpectation[0]);
+            assertThat(Files.exists(target.resolve("journal.md")))
+                    .as("a rejected configuration must not have started a run")
+                    .isFalse();
+        }
+    }
+
 }
