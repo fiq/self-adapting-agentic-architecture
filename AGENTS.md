@@ -135,10 +135,22 @@ Use real dependency semantics when cheap and material. Do not mock Git or
 SQLite behavior once adapter implementation begins unless a higher-fidelity
 confirmation test also exists.
 
-Prove that a new assertion can fail. Before relying on a test as evidence, break
-the behaviour it guards, confirm the test fails, and restore the file unchanged.
-A test that passes tells you nothing until you have seen it fail for the reason
-you intend. Record what was broken and that it was restored.
+Prove that an assertion can fail before citing it as evidence that a gate, a
+decision, an audit record or a promotion behaves correctly. Break the behaviour it
+guards, confirm the test fails, restore the file unchanged, and record what was
+broken. A test that passes tells you nothing until you have seen it fail for the
+reason you intend.
+
+This is scoped, not universal. It applies to a new or changed assertion about one
+of those four things. It does not apply to the rest of a suite, and a mutation
+that is disproportionate — a slow acceptance test, or behaviour that cannot be
+broken without inventing a seam for the purpose — may be replaced by an
+alternative that shows the same thing: a deliberately wrong implementation the
+test rejects, or a recorded red-then-green history. Say which route was taken.
+
+A passing mutation shows the assertion is sensitive to that one change. It does
+not show the oracle is right or the semantics are the intended ones, so it does
+not replace review.
 
 Watch for the assertions that most often cannot fail: one that checks a key is
 present when the key is written whatever the outcome, one that pins a decision
