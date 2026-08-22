@@ -100,8 +100,11 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         if (exact != null) {
             return exact;
         }
-        int separator = evidenceName.indexOf(':');
-        return separator < 0 ? null : config.benchmarkBudgets().get(evidenceName.substring(0, separator));
+        // The appended suffix is a Java fully-qualified name and therefore contains no colon, so
+        // the last colon is always the separator. Splitting on the first would mangle a definition
+        // name that itself contains one, and silently miss its budget — the bug this exists to fix.
+        int separator = evidenceName.lastIndexOf(BenchmarkRunner.DERIVED_NAME_SEPARATOR);
+        return separator <= 0 ? null : config.benchmarkBudgets().get(evidenceName.substring(0, separator));
     }
 
     private double budgetScore(List<BenchmarkEvidence> benchmarks) {
