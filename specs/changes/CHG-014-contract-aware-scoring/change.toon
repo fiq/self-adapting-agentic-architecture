@@ -96,19 +96,19 @@ tasks:
     status: completed
   - id: T2b
     slice: add failing unit coverage for S1 through S7 against the new contract-aware entry point
-    status: pending
+    status: completed
   - id: T3
     slice: add the contract-aware scorer entry point, enforcing declared required_evidence in addition to the structural gates
-    status: pending
+    status: completed
   - id: T4
     slice: emit declared-evidence gate outcomes under the CON-002 canonical subject-invariant scheme and classify them as integrity outcomes
-    status: pending
+    status: completed
   - id: T5
     slice: read the contract's declared objective set for both the objective-presence gate and the weighting on the contract-aware path only, leaving the contractless path on DEFAULT_OBJECTIVES; reading one from the contract and the other from the global would become incoherent the moment the validator is relaxed
     status: pending
   - id: T6
     slice: record undeclared results as inert non-gate entries written before gate outcomes, per S5
-    status: pending
+    status: completed
   - id: T7
     slice: record what remains in RISK-002, CHG-002 T4b, README and wiki, and open the missing loop-side task: producing and accepting a MutationContract inside MutationEvaluationLoop is currently only a HANDOFF backlog line and a CHG-005 risk note, not a tracked task in any change. RISK-002 stays open
     status: pending
