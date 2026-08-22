@@ -215,7 +215,6 @@ final class PhenotypeBridgeScorerTest {
                 .isEqualTo(com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
     }
 
-
     /**
      * CHG-016. A multi-result benchmark definition renames its evidence, so an exact-name budget
      * lookup would skip every result and leave cost_latency_budget at 1.0 for a run the caller

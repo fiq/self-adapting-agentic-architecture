@@ -74,7 +74,7 @@ tasks:
     status: completed
     note: CHG-014 said to retire it once the wired path was contract-aware. The wired path is contract-aware only when a contract is declared; a run without --operator still reaches the contractless entry point, which still weights against DEFAULT_OBJECTIVES. Retiring the tripwire would therefore remove the only guard against a per-operator objective set silently producing a wrong weighted score on every contractless run. The correct condition is that the contractless entry point no longer exists
   - id: T6
-    slice: close RISK-002, update CHG-002 T4b and T4c, README, wiki and the CHG-014 records that describe the gap as open
+    slice: narrow RISK-002 to the contractless path, update CHG-002 T4b and T4c, README, wiki and the CHG-014 records that describe the gap as open
     status: completed
 
 non_goals:

@@ -8,7 +8,8 @@ gave the scorer an entry point that enforces declared evidence, then left the
 risk open on purpose, because the wired path cannot reach it: `FitnessScorer`
 takes `(Candidate, EvaluationEvidence)` and has no parameter for a contract.
 
-This closes it.
+This closes it for any run that declares a contract. A run that declares none is
+unchanged, so RISK-002 narrows rather than closing.
 
 ## Where the contract comes from
 

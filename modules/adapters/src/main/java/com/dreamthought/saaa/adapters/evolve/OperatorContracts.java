@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.adapters.evolve;
 
 import com.dreamthought.saaa.deterministic.MutationContractValidator;
+import com.dreamthought.saaa.deterministic.PhenotypeFitnessScorer;
 import com.dreamthought.saaa.deterministic.MutationOperatorPolicy;
 import com.dreamthought.saaa.domain.FitnessSignalId;
 import com.dreamthought.saaa.domain.MutationContract;
@@ -55,6 +56,16 @@ public final class OperatorContracts {
                         "required evidence id " + id + " must be lower snake_case, because it is "
                                 + "recorded as a subject.invariant audit key and must name a check "
                                 + "of exactly that name", rejected);
+            }
+        }
+
+        // A declared id that canonicalises onto a structural gate's audit key would be rejected by
+        // the scorer mid-run. Reject it here, where the message can say which id and why.
+        for (String id : extraRequiredEvidence) {
+            if (PhenotypeFitnessScorer.STRUCTURAL_GATE_NAMES.contains(id)) {
+                throw new IllegalArgumentException(
+                        "required evidence id " + id + " is the name of a structural gate, which the "
+                                + "scorer already decides; choose a different id");
             }
         }
 

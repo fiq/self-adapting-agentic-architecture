@@ -22,6 +22,9 @@ review_after: 2026-10-26
 
 # Declared Hard Gates Are Not Enforced by the Scorer
 
+Historical statement of the problem, kept for context. It described the state
+before CHG-019; see the current position below.
+
 `MutationContractValidator` requires every contract to declare the operator's
 hard gates (`deterministic_checks_pass`, `required_evidence_present`) and the
 operator's `required_evidence` items. `PhenotypeFitnessScorer` takes only a
@@ -32,8 +35,8 @@ result.
 
 Consequence: a `repair` contract declaring `failing_case_reproduced` and
 `regression_case_added` can be realized with neither, and still promote on one
-passing behavior case plus good objective scores. The declared gate is
-currently descriptive, not enforced.
+passing behavior case plus good objective scores. The declared gate was descriptive, not
+enforced.
 
 The same missing contract input causes a second, narrower gap. `MutationContractValidator`
 checks a contract's fitness objectives against its operator's defaults, but the
@@ -78,8 +81,6 @@ Contracts are operator-declared. Model-emitted TOON envelopes remain future work
 under `CHG-002` `T3d`, which is unaffected.
 
 
-Closing requires the remaining work: migrating `MutationEvaluationLoop` from
-`Mutation` onto `MutationContract` and threading the accepted contract through
-`FitnessScorer` and `PhenotypeBridgeScorer`. That is task `T4c` in
-`specs/changes/CHG-002-live-loop-policy/change.toon`; `T4b` is the scorer side
-and is delivered by CHG-014.
+`T4b` and `T4c` in `specs/changes/CHG-002-live-loop-policy/change.toon` are both
+delivered. What remains is not a migration but a scope question: contractless runs
+are the default, and nothing declares evidence for them.
