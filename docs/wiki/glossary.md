@@ -74,14 +74,16 @@ Benchmark for why SAAA does not.
 ## Invariant
 
 A property a candidate must satisfy. Binary for the promote-or-discard decision
-and not tradeable against any objective, but carrying a magnitude used to rank
-candidates that have already failed, so a near miss stays distinguishable from a
-total miss.
+and not tradeable against any objective.
+
+The target model in `CON-002` also gives an invariant a magnitude, so that among
+candidates which have already failed, a near miss stays distinguishable from a
+total miss. That ranking is not implemented: any failed gate scores 0.0 and the
+candidate discards, so no magnitude survives.
 
 Named `subject.invariant.*` or `process.invariant.*`; see `CON-002`.
 
-The naming scheme is in force; see `CON-002`. Today any failed gate scores
-0.0 and discards, so no magnitude survives.
+The naming scheme is in force; see `CON-002`.
 
 ## Knowledge Node
 
@@ -122,8 +124,11 @@ fitness.
 Defined in `CON-002`, which also gives the comparison order and the threshold
 authority for each class.
 
-This is the target model recorded in `CON-002`. No severity partition exists
-in the code yet.
+This is the target model recorded in `CON-002`. `CHG-014` treats a failed
+declared-evidence gate as an integrity outcome by voiding the candidate to
+`DISCARD`, which is what integrity means here. The partition itself is still not
+represented in code: `FitnessResult` has no severity field, and the comparison
+order and threshold authority per class are not enforced anywhere.
 
 ## Smart Bridge
 

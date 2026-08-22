@@ -43,12 +43,37 @@ asserts exactly that, so giving any operator its own objectives fails the build
 rather than silently producing a wrong weighted score and a wrong promotion
 decision.
 
-Closing this needs two things that are outside the first policy slice:
+Closing this needed two things that were outside the first policy slice:
 
 - a typed evidence channel keyed by the contract's `required_evidence` ids;
 - a scorer entry point that receives the accepted `MutationContract` alongside
   the phenotype evidence, which also closes the objective-set gap above.
 
-Tracked as task `T4b` in `specs/changes/CHG-002-live-loop-policy/change.toon`.
-Until it lands, promotion evidence is weaker than the contract implies, so
-promoted candidates still need human inspection of the evidence record.
+**Both now exist.** CHG-014 added `RequiredEvidenceResult` and a four-argument
+`PhenotypeFitnessScorer.score` that enforces declared `required_evidence` ids as
+canonical `subject.invariant.<id>` integrity gates, in addition to the structural
+gates, and weights against the contract's own objective set.
+
+**This risk stays open regardless**, because the wired promotion path does not
+use that entry point. `MutationEvaluationLoop` proposes and validates a
+`Mutation`, not a `MutationContract`, and scores through the `FitnessScorer`
+port, whose single method takes `(Candidate, EvaluationEvidence)` and therefore
+cannot carry a contract at all. `MutationContractValidator` is reached only from
+`ConceptualCrossoverPolicy`.
+
+So the consequence this entry describes is unchanged: a `repair` contract
+declaring `failing_case_reproduced` and `regression_case_added` can still be
+realized with neither and still promote. Promotion evidence remains weaker than
+the contract implies, and promoted candidates still need human inspection of the
+evidence record.
+
+`PhenotypeBridgeScorerTest.theWiredBridgeStillUsesTheContractlessEntryPoint`
+asserts that gap, so it fails a test rather than being assumed. It checks the
+port's signature and drives the bridge to confirm no declared-evidence gate
+reaches its audit map; it does not observe the delegate call directly.
+
+Closing requires the remaining work: migrating `MutationEvaluationLoop` from
+`Mutation` onto `MutationContract` and threading the accepted contract through
+`FitnessScorer` and `PhenotypeBridgeScorer`. That is task `T4c` in
+`specs/changes/CHG-002-live-loop-policy/change.toon`; `T4b` is the scorer side
+and is delivered by CHG-014.

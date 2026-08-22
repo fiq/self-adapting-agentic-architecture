@@ -165,6 +165,83 @@ final class PhenotypeFitnessScorerTest {
                         .isEqualTo(MutationOperatorPolicy.DEFAULT_OBJECTIVES));
     }
 
+    /**
+     * S8 characterisation. Written before the contract-aware entry point exists and green on write,
+     * so a regression to the two-argument path during CHG-014 fails here rather than going unnoticed.
+     * This path is the wired one, so its behaviour must not drift while the new path is added.
+     */
+    @Test
+    void contractlessScoringPreservesTheExistingGates() {
+        var promoted = scorer.score(candidate(), new PhenotypeEvidence(
+                evidence(),
+                List.of(BehaviorCaseEvidence.passed("renders-draft", "draft pages render")),
+                perfectObjectiveScores(),
+                realized()));
+
+        assertThat(promoted.decision())
+                .as("a candidate clearing every structural gate still promotes without any contract")
+                .isEqualTo(PROMOTE);
+        assertThat(promoted.aggregateScore())
+                .as("the contractless weighted sum is unchanged")
+                .isEqualTo(1.00);
+        assertThat(promoted.objectives())
+                .as("the contractless audit map still carries exactly the five objectives and four gates")
+                .hasSize(9)
+                .containsKeys(
+                        "subject.objective.task_success",
+                        "subject.objective.reliability",
+                        "subject.objective.cost_latency_budget",
+                        "subject.objective.behavioral_safety",
+                        "subject.objective.parsimony",
+                        PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(),
+                        PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(),
+                        PhenotypeFitnessScorer.REQUIRED_OBJECTIVE_SCORES_GATE.canonical(),
+                        PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical());
+        assertThat(promoted.objectives())
+                .as("every gate on a promoting candidate records a pass, not merely a key")
+                .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 1.0)
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(), 1.0)
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_OBJECTIVE_SCORES_GATE.canonical(), 1.0)
+                .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical(), 1.0);
+
+        assertThat(scorer.score(candidate(), new PhenotypeEvidence(
+                new EvaluationEvidence(
+                        List.of(failed("gradle-test", "a deterministic check failed")),
+                        List.of(),
+                        Instant.parse("2026-07-27T00:00:00Z")),
+                List.of(BehaviorCaseEvidence.passed("renders-draft", "draft pages render")),
+                perfectObjectiveScores(),
+                realized())).decision())
+                .as("a failed deterministic check still discards")
+                .isEqualTo(DISCARD);
+
+        assertThat(scorer.score(candidate(), new PhenotypeEvidence(
+                evidence(),
+                List.of(BehaviorCaseEvidence.failed("publishes-review", "regressed")),
+                perfectObjectiveScores(),
+                realized())).decision())
+                .as("a failed behaviour case still discards")
+                .isEqualTo(DISCARD);
+
+        assertThat(scorer.score(candidate(), new PhenotypeEvidence(
+                evidence(),
+                List.of(BehaviorCaseEvidence.passed("renders-draft", "draft pages render")),
+                perfectObjectiveScores(),
+                new RealizationSummary(0, 0))).decision())
+                .as("an empty realization still discards")
+                .isEqualTo(DISCARD);
+
+        var missingObjective = new HashMap<>(perfectObjectiveScores());
+        missingObjective.remove("subject.objective.parsimony");
+        assertThat(scorer.score(candidate(), new PhenotypeEvidence(
+                evidence(),
+                List.of(BehaviorCaseEvidence.passed("renders-draft", "draft pages render")),
+                missingObjective,
+                realized())).decision())
+                .as("a missing declared objective score still discards")
+                .isEqualTo(DISCARD);
+    }
+
     /** Any non-empty realization; these tests are about the other gates and the weighting. */
     private static RealizationSummary realized() {
         return new RealizationSummary(1, 8);
