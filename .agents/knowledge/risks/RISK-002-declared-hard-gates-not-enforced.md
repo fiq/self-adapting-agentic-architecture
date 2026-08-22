@@ -2,8 +2,8 @@
 id: RISK-002
 type: risk
 title: Declared contract hard gates are not enforced by the scorer
-status: proposed
-summary: A mutation contract declares hard gates such as required_evidence_present, but PhenotypeFitnessScorer enforces its own fixed gates and never sees the contract, so a declared gate can pass without the evidence it names.
+status: canonical
+summary: A declared required_evidence id now gates a live promotion when an operator declares a contract. A run that declares none still reaches the contractless entry point, which enforces only the structural gates and weights against the shared objective set.
 owners:
   - architect
 relates_to:
@@ -16,6 +16,7 @@ evidence:
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationContractValidator.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorer.java
   - specs/changes/CHG-002-live-loop-policy/change.toon
+reviewed_at: 2026-08-23
 review_after: 2026-10-26
 ---
 
@@ -54,23 +55,28 @@ Closing this needed two things that were outside the first policy slice:
 canonical `subject.invariant.<id>` integrity gates, in addition to the structural
 gates, and weights against the contract's own objective set.
 
-**This risk stays open regardless**, because the wired promotion path does not
-use that entry point. `MutationEvaluationLoop` proposes and validates a
-`Mutation`, not a `MutationContract`, and scores through the `FitnessScorer`
-port, whose single method takes `(Candidate, EvaluationEvidence)` and therefore
-cannot carry a contract at all. `MutationContractValidator` is reached only from
-`ConceptualCrossoverPolicy`.
+**The consequence this entry described is closed as of 2026-08-23, by CHG-019.**
+The entry stays canonical because a narrower residue remains, described below. An operator declares the contract for a run with
+`--operator`, the loop carries it, and the `FitnessScorer` port takes it, so a
+declared `required_evidence` id gates a live promotion. Each id names a check that
+must exist and pass; absent evidence is not passing evidence.
 
-So the consequence this entry describes is unchanged: a `repair` contract
-declaring `failing_case_reproduced` and `regression_case_added` can still be
-realized with neither and still promote. Promotion evidence remains weaker than
-the contract implies, and promoted candidates still need human inspection of the
-evidence record.
+The consequence this entry described no longer holds. A `repair` contract
+declaring `failing_case_reproduced` and `regression_case_added` cannot now be
+realized with neither and still promote — `EvolveContractAcceptanceTest` drives
+the real CLI to show it, and mutating the resolver so absent evidence passes makes
+that test fail end to end.
 
-`PhenotypeBridgeScorerTest.theWiredBridgeStillUsesTheContractlessEntryPoint`
-asserts that gap, so it fails a test rather than being assumed. It checks the
-port's signature and drives the bridge to confirm no declared-evidence gate
-reaches its audit map; it does not observe the delegate call directly.
+What remains, recorded rather than closed with it: a run that declares no contract
+still reaches the contractless entry point with the existing structural gates, and
+that path still weights against the shared `DEFAULT_OBJECTIVES`. The
+`everyOperatorSharesTheObjectiveSetTheScorerAssumes` tripwire therefore stays. Its
+retirement condition is that the contractless entry point no longer exists, not
+that the wired path became contract-aware, which is how CHG-014 first recorded it.
+
+Contracts are operator-declared. Model-emitted TOON envelopes remain future work
+under `CHG-002` `T3d`, which is unaffected.
+
 
 Closing requires the remaining work: migrating `MutationEvaluationLoop` from
 `Mutation` onto `MutationContract` and threading the accepted contract through

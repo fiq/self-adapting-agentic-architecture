@@ -119,9 +119,15 @@ contract onto its operator's defaults and every operator shares
 `DEFAULT_OBJECTIVES`. Relaxing that is a recorded non-goal.
 
 `PhenotypeFitnessScorerTest.everyOperatorSharesTheObjectiveSetTheScorerAssumes`
-is kept for the same reason: while the wired path weights against
+is kept for the same reason: while the contractless entry point weights against
 `DEFAULT_OBJECTIVES`, that test is the only thing standing between a per-operator
 objective set and a silently wrong weighted score.
+
+CHG-019 corrected the retirement condition recorded here. It said to retire the
+test once the wired path became contract-aware. That is too loose: the wired path
+carries a contract only when an operator declares one, and a run that declares
+none still reaches the contractless entry point. The condition is that the
+contractless entry point no longer exists.
 
 ## What this deliberately does not decide
 
