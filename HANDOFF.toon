@@ -1,12 +1,12 @@
 session:
   updated: 2026-08-22
-  status: chg_011_review_findings_addressed_and_robustness_fixed
-  branch: feat/chg-011-harness-runtime
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-chg-011-acceptance
-  head: origin/main at 62bd112
-  head_note: CHG-011 adds the first `saaa sa` session state machine and line-oriented client. An independent codex review found the S1 and S4 acceptance mappings could not fail; both are now backed by a recorded proposer-resolution spy.
-  dirty: true
-  pushed: false
+  status: chg_011_recovered_review_findings
+  branch: fix/chg-011-recovered-review-findings
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-chg-011-recovered
+  head: origin/main at bee472b
+  head_note: CHG-011 merged as PR #29. A NeuralWatt Flex review from 2026-08-17 was recorded as incomplete because its verdict never reached the CLI event stream; the verdict was retained in the session and recovered with `opencode export`. Four of its five findings were still true on main and are fixed here.
+  dirty: false
+  pushed: true
 
 goal:
   current: deliver the first SAAA-owned interactive harness runtime and `sa` session client
@@ -14,6 +14,7 @@ goal:
   interlude: ACP is transport interoperability only; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
 
 next_actions:
+  - close the second recovered Flex finding set: the evolve retrieval/task capability gap is now documented in design.md, but the session still cannot vary retrieval treatment
   - implement CHG-013 so mutation summary and patch text are scrubbed at the durable and reporter boundaries; RISK-006 stays open until both are covered
   - address the independent review of PR #30: its repository-contract guard checks only headings and identifiers, so every substantive model-routing control could be deleted while the check still passes
   - keep MCP as the agent-host integration surface while `saaa sa` is the primary interactive user experience
@@ -39,6 +40,9 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-22 nix develop --command gradle :cli:acceptanceTest --tests com.dreamthought.saaa.cli.SaCommandAcceptanceTest --rerun-tasks --no-daemon: pass, 7 tests
+  - 2026-08-22 the CODE realization assertion was first written against the operator's checkout and failed, which is how the promotion boundary was confirmed rather than assumed
+  - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass; the knowledge check caught a missing reviewed_at date and a PAT-002 reference that does not exist on main
   - 2026-08-22 nix develop --command gradle :domain:test :deterministic:test :adapters:test :cli:test :cli:acceptanceTest --rerun-tasks --no-daemon: pass
   - 2026-08-22 both robustness regressions were confirmed red before the fix and green after
   - 2026-08-22 nix develop --command gradle :cli:acceptanceTest --tests com.dreamthought.saaa.cli.SaCommandAcceptanceTest --rerun-tasks --no-daemon: pass, 5 tests
@@ -61,6 +65,41 @@ tests_run:
   - nix develop --command gradle :adapters:test :cli:test --no-daemon: pass after disposable workspace and configurable ACP budget changes
   - nix develop --command .agentic-template/bin/project check: pass
   - nix develop --command .agentic-template/bin/project ready: pass, 16 pass and 1 not applicable
+
+recovered_findings_files_changed:
+  - .agents/knowledge/learnings/LRN-001-review-verdict-survives-transport-failure.md
+  - HANDOFF.toon
+  - modules/cli/src/acceptanceTest/java/com/dreamthought/saaa/cli/SaCommandAcceptanceTest.java
+  - modules/cli/src/main/java/com/dreamthought/saaa/cli/SaCommand.java
+  - specs/changes/CHG-011-interactive-harness-runtime/change.toon
+  - specs/changes/CHG-011-interactive-harness-runtime/design.md
+  note: LRN-001 is the only new knowledge node; it is proposed rather than canonical because it generalises from one incident and was written by the actor involved in it
+
+recovered_review:
+  - actor: neuralwatt flex via opencode, session ses_ff321d3c8ffercIVJQf6NoJJT6
+    recovered_on: 2026-08-22
+    original_status: recorded as incomplete in PR #29 alongside the other Flex session
+    actual_result: VERDICT REQUEST_CHANGES with a different set of five findings, also retained in the session
+    already_fixed_before_recovery:
+      - handle catching only IllegalArgumentException and IllegalStateException while EvolveRunner.readString raises UncheckedIOException; fixed on 2026-08-22 in f56e9b8 without knowing this review had already named it, and this review additionally tied it to design.md's statement that command errors leave an active session active
+      - evolve folding `case1 case2` into a single behaviour-case name; fixed in the same commit
+    addressed_here:
+      - the evolve retrieval and task capability gap relative to saaa-evolve's --retrieval and --task is now recorded in design.md as a deliberate first-slice limitation
+    already_addressed:
+      - the design.md NEW/EVALUATING state diagram, which the other session also raised
+      - HANDOFF dirty: true staleness
+  - actor: neuralwatt flex via opencode, session ses_ff314401bffefF9KLShxX0gBDw
+    recovered_on: 2026-08-22
+    original_status: recorded as incomplete in PR #29 because the CLI event stream did not surface a terminal verdict
+    actual_result: VERDICT REQUEST_CHANGES with five findings, retained in the session the whole time
+    addressed:
+      - design.md state diagram cited NEW and EVALUATING states that HarnessSessionStatus never had; the diagram now matches the two-state ACTIVE/CLOSED lifecycle and records that evolve is synchronous
+      - CHG-011 status was `proposed` with every task completed and the change merged; it is now `delivered`
+      - the governed-session-evolution requirement said the session dispatches only an approved harness-workflow target while scenario S5 in the same file dispatches CODE; the requirement now covers both target kinds
+      - renderHelp omitted the `close` alias that the parser accepts; help now lists it
+    rejected_with_evidence:
+      - the fifth finding asked the CODE acceptance test to assert that Example.java in the operator's checkout contains the realized change. Running that assertion proved the file still reads `return "old"`, which is the promotion boundary working as designed: realization happens in the isolated candidate worktree and promotion records refs/heads/candidate/* without merging. The test now asserts positively that the working tree is unmodified, and separately that the candidate ref contains the realization
+    knowledge: LRN-001 records that a missing verdict is a transport hypothesis rather than a completed or failed review
 
 review:
   - actor: codex-cli 0.146.0, independent read-only `codex exec` over main...befea79

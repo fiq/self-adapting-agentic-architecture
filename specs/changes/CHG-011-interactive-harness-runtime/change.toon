@@ -1,7 +1,7 @@
 change:
   id: CHG-011
   title: Add the SAAA-owned interactive harness runtime
-  status: proposed
+  status: delivered
   intent: Provide a bounded `saaa sa` session client that exposes SAAA-owned capabilities, target selection and explicit proposer routing before dispatching governed evolution work.
   audience_level: developer
   relates_to:
@@ -28,7 +28,7 @@ deltas:
         then: the runtime enters CLOSED and later mutating commands are rejected
   - op: ADDED
     capability: governed-session-evolution
-    requirement: The interactive session dispatches only an approved harness-workflow target through the existing deterministic evolution loop.
+    requirement: The interactive session dispatches only an explicitly selected HARNESS_WORKFLOW or CODE target through the existing deterministic evolution loop, and never grants the agent approval authority.
     scenarios:
       - id: S4
         when: an operator selects a HARNESS_WORKFLOW target and invokes evolve with a declared behaviour case

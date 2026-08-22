@@ -188,6 +188,14 @@ final class SaCommandAcceptanceTest {
         assertThat(transcript).contains("target CODE " + target.toAbsolutePath())
                 .contains("PROMOTE").contains("session decision PROMOTE");
         assertThat(Files.readString(target.resolve("journal.md"))).contains("PROMOTE");
+        // The realization lives in the candidate ref, never in the operator's checkout: promotion
+        // records refs/heads/candidate/* and performs no merge, so Example.java here stays "old".
+        assertThat(Files.readString(target.resolve("Example.java")))
+                .as("promotion must not realize the mutation into the operator's copy of the target file")
+                .contains("return \"old\"");
+        assertThat(candidateRefContent(repo, "code/Example.java"))
+                .as("the promoted candidate must contain the realized whole-file replacement")
+                .contains("return \"new\"");
     }
 
     private static String run(String input) {
@@ -233,12 +241,33 @@ final class SaCommandAcceptanceTest {
         check.toFile().setExecutable(true);
     }
 
+    /** Reads a path out of the single candidate ref a promoted run creates. */
+    private static String candidateRefContent(Path repo, String pathInRepo) throws Exception {
+        String refs = gitOutput(repo, "for-each-ref", "--format=%(refname)", "refs/heads/candidate/");
+        var names = refs.lines().filter(line -> !line.isBlank()).toList();
+        assertThat(names).as("a promoted run must create exactly one candidate ref").hasSize(1);
+        return gitOutput(repo, "show", names.get(0) + ":" + pathInRepo);
+    }
+
     private static void initRepo(Path repo) throws Exception {
         git(repo, "init", "--initial-branch=main");
         git(repo, "config", "user.name", "Test");
         git(repo, "config", "user.email", "test@example.invalid");
         git(repo, "add", "-A");
         git(repo, "commit", "-m", "baseline");
+    }
+
+    private static String gitOutput(Path directory, String... arguments) throws Exception {
+        var command = new java.util.ArrayList<String>();
+        command.add("git");
+        command.addAll(java.util.List.of(arguments));
+        var process = new ProcessBuilder(command).directory(directory.toFile())
+                .redirectErrorStream(true).start();
+        String output = new String(process.getInputStream().readAllBytes());
+        if (process.waitFor() != 0) {
+            throw new IllegalStateException("git failed: " + String.join(" ", arguments) + "\n" + output);
+        }
+        return output;
     }
 
     private static void git(Path directory, String... arguments) throws Exception {
