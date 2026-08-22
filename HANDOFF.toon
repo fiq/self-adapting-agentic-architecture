@@ -15,9 +15,7 @@ goal:
 
 next_actions:
   - close the second recovered Flex finding set: the evolve retrieval/task capability gap is now documented in design.md, but the session still cannot vary retrieval treatment
-  - tighten the CHG-012 acceptance mappings: four scenarios currently resolve to one check_model_routing_policy call that emits a single combined error
-  - reword the agent-session section of docs/wiki/architecture.md so retained provider sessions read as operating practice rather than implemented runtime behaviour; AcpAgentHarness.run creates and closes a session per invocation
-  - decide whether `layer: contract` joins the documented acceptance layers in .agents/schemas/change.schema.md, which already omits the in-use `integration` and `component` values
+  - the population slice, delivered together with a fitness function that discriminates; ADR-0002 names several candidates per generation with ranking as the missing Layer-1 foundation, and ranking is impossible while four of five objectives are constant and the weighted sum floors at 0.90 against a 0.80 threshold
   - implement CHG-013 so mutation summary and patch text are scrubbed at the durable and reporter boundaries; RISK-006 stays open until both are covered
   - retain MCP as the agent-host integration surface while session efficiency remains an operating policy, not automatic SAAA routing
 
@@ -44,6 +42,10 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-22 mutation check on the rewritten policy guard: deleting a substantive control while keeping all headings and identifiers, removing the reviewer-independence rule, and moving Q-010 out of its section each failed exactly one named check; the policy file was restored byte-identical afterwards
+  - 2026-08-22 mutation check on the new acceptance-layer validation: substituting `bogus-layer` failed check-changes with the allowed set named
+  - 2026-08-22 python3 -m py_compile on check-repo-contract and check-changes: pass
+  - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass
   - 2026-08-17 GitHub Actions PR #30 fast: pass in 1m4s; full-readiness skipped as expected for pull_request under staged_ci_validation_profiles
   - 2026-08-22 nix develop --command gradle :cli:acceptanceTest --tests com.dreamthought.saaa.cli.SaCommandAcceptanceTest --rerun-tasks --no-daemon: pass, 7 tests
   - 2026-08-22 the CODE realization assertion was first written against the operator's checkout and failed, which is how the promotion boundary was confirmed rather than assumed
@@ -109,6 +111,20 @@ recovered_review:
     rejected_with_evidence:
       - the fifth finding asked the CODE acceptance test to assert that Example.java in the operator's checkout contains the realized change. Running that assertion proved the file still reads `return "old"`, which is the promotion boundary working as designed: realization happens in the isolated candidate worktree and promotion records refs/heads/candidate/* without merging. The test now asserts positively that the working tree is unmodified, and separately that the candidate ref contains the realization
     knowledge: LRN-001 records that a missing verdict is a transport hypothesis rather than a completed or failed review
+chg_012_review:
+  - actor: codex-cli 0.146.0, independent read-only pass
+    result: REQUEST CHANGES; its blocking finding was retracted after verification
+    retracted:
+      - it held that the repository-contract guard did not enforce the policy it claimed to guard. design.md already describes the guard as lightweight and presence-only, verifying that controls remain discoverable while human review judges sufficiency, so the guard did what it said. The correction is posted on PR #30
+  - actor: neuralwatt/kimi-k3 via opencode, session ses_fd7d60d1bffeliUItc3o9GR5Em
+    result: APPROVE WITH FIXES; all findings addressed
+    addressed:
+      - the four acceptance scenarios resolved to one check_model_routing_policy call emitting a single combined error, so no scenario had a check that could fail on its own. Each scenario now has section-scoped phrase assertions, verified by three mutations: deleting a substantive control while keeping every heading and identifier, removing the reviewer-independence rule, and moving Q-010 out of its owning section. Each mutation failed exactly one named check
+      - `layer: contract` was undocumented and unvalidated. The documented set in .agents/schemas/change.schema.md now lists every in-use value, and check-changes enforces it so the schema and the specs cannot drift apart again
+      - docs/wiki/architecture.md described retained provider sessions in the present tense as runtime behaviour. It now states plainly that AcpAgentHarness.run creates and closes a session per invocation and that runtime session retention is unimplemented
+      - the branch was stale against origin/main and conflicted in HANDOFF.toon and docs/wiki/architecture.md; it is rebased onto bee472b
+    not_addressed:
+      - the gitOutput test helper duplicates one in EvolveCommandAcceptanceTest. Reuse would need a shared test fixture; recorded per the second-occurrence policy rather than done
 model_sessions:
   - purpose: independent read-only review of CHG-012 (PR #30)
     engine: opencode 1.18.13

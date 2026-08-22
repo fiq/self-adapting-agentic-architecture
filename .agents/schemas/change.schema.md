@@ -30,7 +30,8 @@ deltas:                       # required, at least one
 acceptance:                   # required, at least one
   - scenario: S1              # must reference a scenario id in deltas
     test_id: theming/dark-mode-toggle             # required
-    layer: acceptance         # acceptance | component-integration | subcutaneous | unit
+    layer: acceptance         # acceptance | component | component-integration | contract
+                              # | integration | subcutaneous | unit
 
 tasks:                        # optional
   - id: T1
