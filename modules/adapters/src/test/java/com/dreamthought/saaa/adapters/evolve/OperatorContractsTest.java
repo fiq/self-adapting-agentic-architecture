@@ -59,4 +59,13 @@ final class OperatorContractsTest {
                 .hasMessageContaining("lower snake_case");
     }
 
+    @Test
+    void anIdCollidingWithAStructuralGateIsRejected() {
+        assertThatThrownBy(() ->
+                OperatorContracts.declare("repair", List.of("deterministic_checks"), "workflow.txt"))
+                .as("the scorer already decides that gate; declaring it would throw mid-run")
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("structural gate");
+    }
+
 }

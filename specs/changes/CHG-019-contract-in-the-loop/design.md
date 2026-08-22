@@ -1,6 +1,6 @@
 # CHG-019 design
 
-## The gap this closes
+## The gap this closes for a declaring run
 
 ```text
 before:  loop --> FitnessScorer.score(Candidate, EvaluationEvidence)

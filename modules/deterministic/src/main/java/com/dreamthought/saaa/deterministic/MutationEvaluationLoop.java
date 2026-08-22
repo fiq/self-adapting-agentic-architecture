@@ -58,6 +58,22 @@ public final class MutationEvaluationLoop {
         );
     }
 
+    /** Restored unchanged: a caller that declared no contract keeps exactly its previous behaviour. */
+    public MutationEvaluationLoop(
+            MutationProposer mutationProposer,
+            MutationValidator mutationValidator,
+            CandidateWorkspace candidateWorkspace,
+            CheckRunner checkRunner,
+            BenchmarkRunner benchmarkRunner,
+            FitnessScorer fitnessScorer,
+            ExperimentMetadataStore metadataStore,
+            CandidateDecisionSink decisionSink,
+            Clock clock
+    ) {
+        this(mutationProposer, mutationValidator, candidateWorkspace, checkRunner, benchmarkRunner,
+                fitnessScorer, metadataStore, decisionSink, Optional.empty(), clock);
+    }
+
     public MutationEvaluationLoop(
             MutationProposer mutationProposer,
             MutationValidator mutationValidator,

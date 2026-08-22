@@ -123,6 +123,11 @@ public final class EvolveCommand implements Callable<Integer> {
                 : new JmhBenchmarkRunner(benchmarks.entrySet().stream()
                         .map(entry -> new JmhBenchmarkRunner.BenchmarkDefinition(entry.getKey(), entry.getValue()))
                         .toList());
+        if (operator == null && !requiredEvidence.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "--required-evidence given without --operator, so nothing would declare it and "
+                            + "nothing would gate on it: " + String.join(", ", requiredEvidence));
+        }
         var contract = operator == null
                 ? Optional.<MutationContract>empty()
                 : Optional.of(OperatorContracts.declare(operator, requiredEvidence, workflowFile));
