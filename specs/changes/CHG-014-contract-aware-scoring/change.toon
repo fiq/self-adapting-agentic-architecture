@@ -13,7 +13,7 @@ change:
 deltas:
   - op: MODIFIED
     capability: mutation-fitness-loop
-    requirement: The scorer can decide against a contract's declared required-evidence ids in addition to its structural fixed gates, and weights against the objective set the contract declares.
+    requirement: On its contract-aware entry point only, the scorer decides against a contract's declared required-evidence ids in addition to its structural fixed gates, and weights against the objective set that contract declares. The contractless entry point is unchanged.
     scenarios:
       - id: S1
         when: a contract declares a required_evidence id and no observed result is supplied for it
@@ -23,6 +23,8 @@ deltas:
       - id: S2
         when: a contract declares a required_evidence id and an observed result for it reports failure
         then: the candidate is discarded on a hard gate naming that id
+        and:
+          - the recorded outcome carries the observed diagnostic, so a discard always states what was seen
       - id: S3
         when: two observed results are supplied for the same declared id and either reports failure
         then: the candidate is discarded on a hard gate naming that id
@@ -33,7 +35,9 @@ deltas:
         then: the declared-evidence gate contributes no discard and scoring proceeds to the weighted objectives
       - id: S5
         when: an observed result is supplied for an id the contract did not declare
-        then: it is recorded in the audit record and cannot satisfy or weaken any declared gate
+        then: it is recorded as an inert non-gate entry in the existing FitnessResult objectives map and cannot satisfy or weaken any declared gate
+        and:
+          - it is written before gate outcomes, so a declared gate result can never be overwritten by undeclared evidence
       - id: S6
         when: a candidate passes every declared required_evidence id but fails a structural fixed gate such as non-empty realization
         then: the candidate is still discarded on that structural gate
@@ -41,7 +45,9 @@ deltas:
           - declared-evidence gates are additional to the structural gates, never a replacement for them
       - id: S7
         when: a declared-evidence gate decides an outcome
-        then: it is emitted under the CON-002 canonical scheme as a subject invariant signal and classified as an integrity outcome
+        then: it is emitted through FitnessSignalId as a canonical subject invariant, and a failure voids the candidate as DISCARD rather than reducing a weighted score
+        and:
+          - CON-002 severity classes are not enforced anywhere yet, so integrity is expressed as voiding, not as a severity field
       - id: S8
         when: a caller scores without supplying a contract
         then: the existing fixed-gate behaviour and DEFAULT_OBJECTIVES weighting are preserved unchanged for that call
@@ -50,6 +56,7 @@ deltas:
         then: it still uses the contractless entry point, so a declared required_evidence id is still not enforced end to end
         and:
           - RISK-002 remains open until a later change migrates the wired path
+          - this pins the bridge's delegate call; it does not catch a rewire that swaps the scorer at EvolveRunner, which needs the migration's own component coverage
 
 acceptance:
   - scenario: S1
@@ -77,14 +84,17 @@ acceptance:
     test_id: deterministic/PhenotypeFitnessScorerTest.contractlessScoringPreservesTheExistingGates
     layer: unit
   - scenario: S9
-    test_id: deterministic/ContractAwareFitnessTest.theWiredBridgeStillUsesTheContractlessEntryPoint
+    test_id: deterministic/PhenotypeBridgeScorerTest.theWiredBridgeStillUsesTheContractlessEntryPoint
     layer: unit
 
 tasks:
   - id: T1
-    slice: add a typed RequiredEvidenceResult keyed by declared evidence id, carrying a pass/fail outcome and a diagnostic
-    status: pending
+    slice: add a typed RequiredEvidenceResult carrying its own evidence id, a pass/fail outcome and a diagnostic, supplied to the scorer as a collection rather than a map so two results for one id remain distinguishable
+    status: completed
   - id: T2
+    slice: add the S8 and S9 characterisation tests first, green on write, so a regression to the contractless path or a change of wired delegate fails during T3 to T5 rather than after them
+    status: pending
+  - id: T2b
     slice: add failing unit coverage for S1 through S7 against the new contract-aware entry point
     status: pending
   - id: T3
@@ -94,17 +104,17 @@ tasks:
     slice: emit declared-evidence gate outcomes under the CON-002 canonical subject-invariant scheme and classify them as integrity outcomes
     status: pending
   - id: T5
-    slice: weight against the contract's declared objective set on the contract-aware path only, leaving the contractless path on DEFAULT_OBJECTIVES
+    slice: read the contract's declared objective set for both the objective-presence gate and the weighting on the contract-aware path only, leaving the contractless path on DEFAULT_OBJECTIVES; reading one from the contract and the other from the global would become incoherent the moment the validator is relaxed
     status: pending
   - id: T6
-    slice: pin the unmigrated wired path with S9 so the remaining gap is asserted rather than assumed
+    slice: record undeclared results as inert non-gate entries written before gate outcomes, per S5
     status: pending
   - id: T7
-    slice: record what remains in RISK-002, CHG-002 T4b, README and wiki; RISK-002 stays open because the wired path is unmigrated
+    slice: record what remains in RISK-002, CHG-002 T4b, README and wiki, and open the missing loop-side task: producing and accepting a MutationContract inside MutationEvaluationLoop is currently only a HANDOFF backlog line and a CHG-005 risk note, not a tracked task in any change. RISK-002 stays open
     status: pending
 
 non_goals:
-  - migrating MutationEvaluationLoop from Mutation onto MutationContract, which is a separate recorded change and the reason RISK-002 stays open
+  - migrating MutationEvaluationLoop from Mutation onto MutationContract, which is the reason RISK-002 stays open. T7 must open a task for it, because today it exists only as a HANDOFF backlog line and a CHG-005 risk note
   - changing FitnessScorer or PhenotypeBridgeScorer, whose two-argument call is the wired path
   - retiring PhenotypeFitnessScorerTest.everyOperatorSharesTheObjectiveSetTheScorerAssumes, which stays load-bearing while the wired path weights against DEFAULT_OBJECTIVES
   - relaxing MutationContractValidator.requireDeterministicObjectives so an accepted contract may declare a non-default objective set
