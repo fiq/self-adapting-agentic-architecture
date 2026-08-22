@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-22
-  status: chg_014_spec_revised_after_review
+  status: chg_014_delivered
   branch: feat/chg-014-contract-aware-scoring
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-014-contract-aware-scoring
   head: origin/main at 0bc88ee
-  head_note: CHG-014 gives the scorer a contract-aware entry point and a typed required-evidence channel. Spec only. An independent GLM review established that the first draft overclaimed: the wired path holds a Mutation, not a MutationContract, so RISK-002 stays open and the spec now says so.
+  head_note: CHG-014 is delivered. The scorer has a contract-aware entry point enforcing declared required_evidence as canonical integrity gates, plus the typed RequiredEvidenceResult channel. The wired path is unchanged and RISK-002 stays open by design; CHG-002 T4c now tracks the remaining loop migration, which was previously untracked.
   dirty: false
   pushed: true
 
@@ -14,10 +14,11 @@ goal:
   interlude: automatic runtime routing remains deferred until Q-010's measured usage, price identity and ablation evidence exist
 
 next_actions:
-  - land CHG-014 in small merged increments rather than one long-lived branch: spec, then the typed evidence channel plus failing coverage, then the contract-aware entry point, then the live-loop threading
-  - after CHG-014, make behavioral_safety a real signal by splitting deterministic safety probes into critical forbidden-action gates and predeclared non-critical robustness probes whose pass fraction becomes the 0.10 objective
+  - CHG-002 T4c: migrate MutationEvaluationLoop from Mutation onto MutationContract and thread the contract through FitnessScorer and PhenotypeBridgeScorer. This is the only remaining work before RISK-002 can close, and the port signature changes with it
+  - then make behavioral_safety a real signal: critical forbidden-action probes as a hard gate, predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective, and reviewer models used to discover probes rather than to grade candidates
   - wire the benchmarks module so cost_latency_budget has an evidence source; budgetScore already varies and is only starved of input
   - then the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation
+  - consider recording engine-routing defaults alongside the session policy in MODEL_ROUTING_POLICY.md, as proposed rather than canonical, with revisit triggers, and worded so it cannot be read as the automatic routing Q-010 and Q-011 defer
 
 active_assumptions:
   - ACP command configuration is local process selection, not automatic complexity or ethics routing
@@ -114,6 +115,29 @@ recovered_review:
     rejected_with_evidence:
       - the fifth finding asked the CODE acceptance test to assert that Example.java in the operator's checkout contains the realized change. Running that assertion proved the file still reads `return "old"`, which is the promotion boundary working as designed: realization happens in the isolated candidate worktree and promotion records refs/heads/candidate/* without merging. The test now asserts positively that the working tree is unmodified, and separately that the candidate ref contains the realization
     knowledge: LRN-001 records that a missing verdict is a transport hypothesis rather than a completed or failed review
+chg_014_delivery:
+  validation:
+    - domain, deterministic, adapters, cli and cli acceptance suites pass
+    - the declared-evidence gate was mutation-checked: removing it from the gate conjunction failed the suite, then the file was restored byte-identical
+    - project check passes all seven gates; check-wiki reports WIKI OK with an advisory that specs carry a newer timestamp than the wiki
+  wiki_timestamp_advisory: the wiki was reconciled with the specs first and the spec task statuses were edited afterwards, so the warning reflects edit ordering rather than content drift. It was assessed rather than silenced; touching wiki files to reorder timestamps would defeat the check
+  docs_audit:
+    actor: neuralwatt/glm-5.2-flex, same session, forked as a bounded read-heavy task
+    verified_and_correct:
+      - the 0.80 threshold, the four hard gates, the parsimony algorithm, the compose digest pin, the environment scrub allow-list and the three no-merge tests all held against the code
+      - the 0.90 floor holds for eligible candidates because EvaluationEvidence.checksPassed returns false on TIMED_OUT, so reliability is always 1.0 by the time weighting runs
+    corrected:
+      - PROJECT_PROFILE recorded the live-loop policy as proposed while CHG-002 is accepted with its tasks delivered
+      - three working assumptions still said CHG-002 proposes capabilities that are implemented
+      - Q-004 was open although its question is answered in code; it is now answered with the narrower residue recorded
+      - the README decision index stopped at CHG-001 and called it proposed
+      - the glossary defined an invariant by leading with a ranking magnitude that is not implemented
+    readability:
+      - the harness section named AgentHarness, ACP and two spec ids before any of them were introduced. It now states the governing role first and names the mechanism second
+      - hard gates and weighted objectives appeared six lines in, defined two hundred lines later; the opening now forward-links instead
+      - MCP was never expanded anywhere in the README or glossary
+      - no cuts were made: the earlier over-cut is recorded, and the audit found the density problem is undefined jargon rather than length
+
 chg_014_spec_review:
   - actor: neuralwatt/glm-5.2-flex via opencode, fresh session per the reviewer-independence rule
     result: REQUEST CHANGES on the first draft; five blockers, all verified against the code and all accepted
