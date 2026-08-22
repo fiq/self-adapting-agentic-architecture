@@ -1,0 +1,88 @@
+change:
+  id: CHG-019
+  title: Put the accepted contract on the wired promotion path
+  status: proposed
+  intent: Let an operator declare a mutation contract for a run, validate it, and carry it through the loop to the contract-aware scorer, so declared required_evidence gates a live promotion and RISK-002 can close.
+  audience_level: developer
+  relates_to:
+    - RISK-002
+    - ARCH-001
+    - CON-002
+    - SYS-001
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: A run may carry an operator-declared contract, and when it does the declared required_evidence ids gate promotion on the wired path.
+    scenarios:
+      - id: S1
+        when: an operator declares a required_evidence id and the run produces a passing check of that name
+        then: the declared gate contributes no discard and scoring proceeds
+      - id: S2
+        when: an operator declares a required_evidence id and no check of that name is produced
+        then: the candidate is discarded on a gate naming that id, because absent evidence is not passing evidence
+      - id: S3
+        when: an operator declares a required_evidence id and a check of that name fails
+        then: the candidate is discarded on a gate naming that id
+      - id: S4
+        when: a run declares no contract
+        then: it behaves exactly as before, reaching the contractless scorer entry point with the existing structural gates
+      - id: S5
+        when: an operator declares a contract the validator rejects, such as an unsupported operator or an unsafe locus
+        then: the run stops before any candidate is created and reports why
+      - id: S6
+        when: a declared contract is carried through the loop
+        then: the same contract instance reaches the scorer, so what gated the candidate is what the operator declared
+        and:
+          - a check the contract did not declare cannot satisfy a declared id
+
+acceptance:
+  - scenario: S1
+    test_id: cli/EvolveContractAcceptanceTest.promotesWhenEveryDeclaredEvidenceCheckPasses
+    layer: acceptance
+  - scenario: S2
+    test_id: cli/EvolveContractAcceptanceTest.discardsWhenADeclaredEvidenceCheckIsAbsent
+    layer: acceptance
+  - scenario: S3
+    test_id: cli/EvolveContractAcceptanceTest.discardsWhenADeclaredEvidenceCheckFails
+    layer: acceptance
+  - scenario: S4
+    test_id: cli/EvolveContractAcceptanceTest.aRunWithoutAContractIsUnchanged
+    layer: acceptance
+  - scenario: S5
+    test_id: cli/EvolveContractAcceptanceTest.refusesAContractTheValidatorRejects
+    layer: acceptance
+  - scenario: S6
+    test_id: deterministic/MutationEvaluationLoopContractTest.carriesTheDeclaredContractToTheScorer
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: map declared required_evidence ids onto named check outcomes, producing RequiredEvidenceResult values from EvaluationEvidence
+    status: pending
+  - id: T2
+    slice: add the failing acceptance and unit coverage for S1 through S6
+    status: pending
+  - id: T3
+    slice: carry an optional contract through MutationEvaluationLoop and widen the FitnessScorer port to accept it
+    status: pending
+  - id: T4
+    slice: expose operator, required evidence and bounds as saaa-evolve options, validated by MutationContractValidator before any candidate is created
+    status: pending
+  - id: T5
+    slice: retire the everyOperatorSharesTheObjectiveSetTheScorerAssumes tripwire once the wired path is contract-aware, since that is the condition CHG-014 recorded for retiring it
+    status: pending
+  - id: T6
+    slice: close RISK-002, update CHG-002 T4b and T4c, README, wiki and the CHG-014 records that describe the gap as open
+    status: pending
+
+non_goals:
+  - the TOON envelope parser or any model-emitted contract; CHG-002 T3d is unaffected
+  - making behavioral_safety vary or adding further evidence sources
+  - ranking, population, or any change to objective weights or the promotion threshold
+  - removing the contractless entry point, which stays for callers that supply no contract
+
+risks:
+  - widening the FitnessScorer port touches every implementor, and the port is the seam CHG-014's S9 asserts cannot carry a contract. That test must be replaced rather than deleted, or the gap it guards stops being visible while it is still partly open
+  - mapping declared evidence onto check names couples a contract's vocabulary to whatever the operator named their scripts. A typo in either place produces a discard rather than a silent pass, which is the safe direction, but the diagnostic must name the id so the cause is obvious
+  - an operator can declare a contract that is trivially satisfiable, for example requiring only a check that always passes. The contract bounds the model, not the operator, and nothing here changes that

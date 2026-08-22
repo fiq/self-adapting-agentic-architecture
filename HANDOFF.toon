@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-22
-  status: chg_015_review_contract
-  branch: feat/chg-015-review-consolidation
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-015-review-consolidation
-  head: origin/main at 2af3bfe
-  head_note: CHG-015 lifts the review and consolidation practice out of session state into the operating contract, and abstracts the general form back into the framework template so generated projects inherit it. An independent review found the rule contradicted itself and that four load-bearing controls were unguarded; both are corrected.
+  status: chg_019_contract_in_the_loop
+  branch: feat/chg-019-contract-in-the-loop
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-019-loop-contract
+  head: origin/main at ed3731e
+  head_note: CHG-019 puts an operator-declared contract on the wired promotion path so declared required_evidence gates a live run, which is what closes RISK-002. Spec first; the loop migration recorded as C2 was not executable as written.
   dirty: false
   pushed: true
 
@@ -42,11 +42,11 @@ task_path:
       parallel_with: C3, C4
       note: a third read-only pass on this head is cheap insurance; the previous two each found something real
     - id: C2
-      work: CHG-002 T4c, migrate MutationEvaluationLoop from Mutation onto MutationContract and thread it through FitnessScorer and PhenotypeBridgeScorer
-      depends_on: C1
-      blocks: C5
-      conflicts_with: C5
-      note: changes the FitnessScorer port signature, so it touches every implementor. This is the only work left before RISK-002 can close. Not parallelisable with anything else touching the scorer
+      work: CHG-002 T4c, put the accepted contract on the wired promotion path
+      state: RESHAPED 2026-08-22 and proceeding as CHG-019
+      not_executable_as_written: T4c said to thread the accepted MutationContract from MutationEvaluationLoop, but nothing in the live path produces one. Only ConceptualCrossoverPolicy constructs a contract outside tests, T3d's TOON envelope parser is pending, and no Java TOON reader exists at all — CHG-004 T8 shipped GoldenCorpus as Java constants for that reason, with the deviation recorded as retiring when T3d lands. The recorded chain was therefore three chunks deep before one declared gate could be enforced
+      reshaped_to: the operator declares the contract and the model produces a realization within it. A declared required_evidence id names a check that must exist and pass, so the gate is enforced against evidence the run already produces. No TOON reader is needed and T3d is unaffected
+      why_this_shape: a model that declares the evidence it will be judged against is choosing its own grading criteria, which is the concern ARCH-001 exists to prevent. The same argument an independent review made about reviewer verdicts reaching fitness, applied one level up
     - id: C3
       work: wire the benchmarks module so cost_latency_budget has an evidence source
       depends_on: none
