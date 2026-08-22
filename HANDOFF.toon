@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-22
-  status: chg_012_review_findings_addressed
-  branch: feat/chg-012-model-efficiency
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-011-harness-runtime
-  head: origin/main at a3e75c1
-  head_note: CHG-012 codifies bounded provider-session reuse and explicit multi-model operation without implementing automatic provider routing. Rebased onto a3e75c1 after CHG-011 and its recovered review findings merged.
+  status: chg_014_spec_proposed
+  branch: feat/chg-014-contract-aware-scoring
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-014-contract-aware-scoring
+  head: origin/main at 0bc88ee
+  head_note: CHG-014 proposes giving the scorer the accepted contract and a typed required-evidence channel, closing RISK-002. Spec only; no behaviour change yet. It is the prerequisite for a real behavioral_safety signal and for ranking.
   dirty: false
   pushed: true
 
@@ -14,10 +14,10 @@ goal:
   interlude: automatic runtime routing remains deferred until Q-010's measured usage, price identity and ablation evidence exist
 
 next_actions:
-  - close the second recovered Flex finding set: the evolve retrieval/task capability gap is now documented in design.md, but the session still cannot vary retrieval treatment
-  - the population slice, delivered together with a fitness function that discriminates; ADR-0002 names several candidates per generation with ranking as the missing Layer-1 foundation, and ranking is impossible while four of five objectives are constant and the weighted sum floors at 0.90 against a 0.80 threshold
-  - implement CHG-013 so mutation summary and patch text are scrubbed at the durable and reporter boundaries; RISK-006 stays open until both are covered
-  - retain MCP as the agent-host integration surface while session efficiency remains an operating policy, not automatic SAAA routing
+  - land CHG-014 in small merged increments rather than one long-lived branch: spec, then the typed evidence channel plus failing coverage, then the contract-aware entry point, then the live-loop threading
+  - after CHG-014, make behavioral_safety a real signal by splitting deterministic safety probes into critical forbidden-action gates and predeclared non-critical robustness probes whose pass fraction becomes the 0.10 objective
+  - wire the benchmarks module so cost_latency_budget has an evidence source; budgetScore already varies and is only starved of input
+  - then the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation
 
 active_assumptions:
   - ACP command configuration is local process selection, not automatic complexity or ethics routing
@@ -407,6 +407,18 @@ decisions:
     summary: the non-empty realization gate tests `filesChanged > 0` rather than `linesChanged`, so a mode-only change counts as a realization
 
 blocking_questions: []
+
+design_input:
+  - question: what should behavioral_safety semantically measure, and from what evidence
+    owner_position: deterministic scripts are absolute and belong at a very high binary threshold; LLM reasoning is valuable but non-absolute, taken above a confidence threshold from a quorum of cheap runs; possibly reward an upward trend; possibly be more permissive early when bootstrapping
+    codex_position: a separate reviewer fixes the conflict of interest in RISK-001 but not the authority question in ARCH-001. If the deterministic reducer promotes partly because a reviewer says the candidate is safe, the reviewer has scored it in substance; deterministic arithmetic around a model verdict hides the judgement rather than removing it
+    synthesis:
+      - critical forbidden-action probes are a hard gate, all pass or discard
+      - predeclared non-critical robustness probes contribute a deterministic pass fraction as the 0.10 behavioral_safety objective
+      - reviewer models discover missing probes and escalate ambiguity to a human; probes enter the suite through the normal reviewed change process, so LLM reasoning generates deterministic tests rather than grading candidates
+      - trend is a selection rule applied after absolute eligibility, not a weighted objective; SearchPosture's own contract says the posture never decides fitness, and adding trend to the sum would double-count objectives and make candidates from different parents incomparable
+      - early permissiveness may apply to experiment budgets, non-safety objectives and promotion destination such as a quarantined ref, never to safety or authority gates, and any maturity policy must be fixed before candidate generation, versioned and non-retroactive
+    correction: the claim that the weighted sum floors at 0.90 is true only of the currently wired path. budgetScore returns min(1.0, budget/value) and does vary; it reads 1.0 because the benchmark list is empty, so cost_latency_budget is starved rather than inert by design
 
 risks:
   - CHG-012's textual contract check ensures the operating controls remain discoverable but cannot establish provider economics or quality; automatic routing remains blocked on Q-010's measured-usage, price-identity and ablation evidence
