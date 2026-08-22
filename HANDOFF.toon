@@ -69,6 +69,15 @@ task_path:
       work: the population slice with ranking
       depends_on: C3, C5
       note: ADR-0002 names it as the missing Layer-1 foundation. Ranking needs at least one objective that discriminates between eligible candidates, which is what C3 and C5 deliver
+    - id: C4
+      work: record engine routing defaults
+      state: WITHDRAWN 2026-08-22, PR #35 closed unmerged
+      reason: MODEL_ROUTING_POLICY.md already carries a `## Defaults` table routing by engine name, and the proposed section contradicted it — that table gives Codex independent code review and bounded implementation, while the new one sent reviews to an external engine and implementation to a subagent. `## Model Classes` in the same file and .agents/skills/tooling/model-routing/SKILL.md state it a third and fourth time
+      also: defaulting source-touching work to an external engine is a provider, jurisdiction and data-retention stance, which is Q-011's domain, recorded before Q-011's constraint machinery exists. The first-line disclaimer covered the mechanism, that nothing selects an engine at runtime, but not the decision
+      also: the guard pinned six framing phrases while the routing rows stayed freely mutable, so S2's claim to distinguish five categories and reserve the deterministic boundary to the lead had no enforcement, and three scenarios mapped to one test id against the convention CHG-012 and CHG-015 both follow
+      residue: nothing was lost. The review fan-out rule is in AGENTS.md and PAT-003 via CHG-015, session retention economics are in PAT-002, and the deterministic boundary belongs to ARCH-001
+      if_revisited: amend the existing `## Defaults` table rather than adding one beside it, and resolve Q-011 first if the change would state a provider stance for source-touching work
+
     - id: C7
       work: rewrite main's history to strip Claude session URLs from commit messages
       depends_on: every open branch and worktree landed on main first, so nothing has to be rebased across the rewrite
