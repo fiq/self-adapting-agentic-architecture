@@ -55,8 +55,10 @@ final class PhenotypeFitnessScorerPropertyTest {
 
         var result = scorer.score(CANDIDATE, mutated);
 
+        // The invariant is the decision, not the number. Since CHG-021 the magnitude survives a
+        // gate failure so failures can be ranked against each other, but no objective combination
+        // can turn that magnitude into a promotion.
         assertThat(result.decision()).isEqualTo(FitnessDecision.DISCARD);
-        assertThat(result.aggregateScore()).isZero();
     }
 
     /**
@@ -101,7 +103,7 @@ final class PhenotypeFitnessScorerPropertyTest {
         var result = scorer.score(CANDIDATE, gateFailingEvidence);
 
         assertThat(result.decision()).isEqualTo(FitnessDecision.DISCARD);
-        assertThat(result.aggregateScore()).isZero();
+        // The magnitude is retained by design; only the decision is invariant. See CHG-021.
     }
 
     /**

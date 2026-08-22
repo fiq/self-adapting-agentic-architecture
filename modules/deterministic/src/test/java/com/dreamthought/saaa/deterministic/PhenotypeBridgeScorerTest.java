@@ -33,7 +33,9 @@ final class PhenotypeBridgeScorerTest {
                 Instant.parse("2026-07-28T00:00:00Z")));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
-        assertThat(result.aggregateScore()).isZero();
+        // The magnitude now survives a gate failure by design (CHG-021, CON-002): the decision
+        // stays binary and the score records how close the candidate got.
+        assertThat(result.decision()).isEqualTo(DISCARD);
         assertThat(result.objectives())
                 .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(), 0.0);
     }
