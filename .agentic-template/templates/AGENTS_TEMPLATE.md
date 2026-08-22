@@ -74,7 +74,9 @@ A generated project AGENTS.md must include:
     and their findings combine additively; their conclusions may still
     contradict, which is what consolidation adjudicates. Read-only is an
     invariant to enforce, not a fact to assume. Implementation agents must not
-    share a file. Prefer different briefs over more reviewers. Consolidation is
+    share a file. Prefer different briefs over more reviewers, and aim each brief
+    at a region the previous passes did not examine, since repeated passes over
+    one surface converge while a pass aimed somewhere new does not. Consolidation is
     the work: deduplicate, adjudicate contradictions rather than averaging them,
     verify every finding against the code before acting on it, and apply fixes
     serially. A single clean review is not strong evidence, and passing checks
