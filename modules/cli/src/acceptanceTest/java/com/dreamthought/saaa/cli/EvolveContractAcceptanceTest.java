@@ -98,9 +98,13 @@ final class EvolveContractAcceptanceTest {
         // Asserting PROMOTE alone would stay green if the probe never ran at all: an absent probe
         // scores safety 0.0 exactly as a failing one does, and still clears the threshold. Only the
         // evidence line separates the two, so that is what this asserts.
-        assertThat(transcript)
+        // Matched as a line rather than by fixed padding: the console pads check names to a column
+        // width, and asserting that spacing would make a harmless formatting change fail here.
+        assertThat(transcript.lines())
                 .as("the probe ran, failed, and is visible in the evidence rather than filtered out")
-                .contains("check      no_network_call          FAILED");
+                .anySatisfy(line -> assertThat(line)
+                        .contains("no_network_call")
+                        .contains("FAILED"));
         assertThat(transcript)
                 .as("a failing probe grades; only declared required evidence gates")
                 .contains("PROMOTE");

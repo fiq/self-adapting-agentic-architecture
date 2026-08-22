@@ -42,22 +42,40 @@ public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolic
         var ordered = archive.stream().sorted(BEST).toList();
         var selected = new LinkedHashMap<String, EvolutionaryMemoryRecord>();
 
-        distinct(ordered, record -> record.mutationScope() + "|" + record.retrievalConfigurationId())
-                .stream().limit(config.championSlots()).forEach(record -> put(selected, record));
+        fill(selected, distinct(ordered,
+                record -> record.mutationScope() + "|" + record.retrievalConfigurationId()),
+                config.championSlots());
         addAncestors(selected, archive, config.lineageSlots());
 
-        distinct(ordered.stream().filter(record -> record.checks().stream()
+        fill(selected, distinct(ordered.stream().filter(record -> record.checks().stream()
                         .anyMatch(check -> check.status() != CheckStatus.PASSED)).toList(),
-                LineageNoveltyMemoryPolicy::failureFingerprint)
-                .stream().limit(config.failureFingerprintSlots()).forEach(record -> put(selected, record));
+                LineageNoveltyMemoryPolicy::failureFingerprint),
+                config.failureFingerprintSlots());
 
-        distinct(ordered, LineageNoveltyMemoryPolicy::noveltySignature)
-                .stream().limit(config.noveltySlots()).forEach(record -> put(selected, record));
+        fill(selected, distinct(ordered, LineageNoveltyMemoryPolicy::noveltySignature),
+                config.noveltySlots());
 
-        ordered.stream().sorted(Comparator.comparing(record -> digest(record.candidateId())))
-                .limit(config.explorationSlots()).forEach(record -> put(selected, record));
+        fill(selected, ordered.stream()
+                .sorted(Comparator.comparing(record -> digest(record.candidateId()))).toList(),
+                config.explorationSlots());
 
         return selected.values().stream().limit(config.maxActiveEvaluations()).toList();
+    }
+
+    /**
+     * A category slot buys a record the selection does not already hold. Counting a slot against a
+     * record an earlier pass took would leave the category unrepresented while reporting it filled,
+     * and decision-first ordering makes that collision systematic rather than occasional: a promoted
+     * record now sorts ahead of every failure in every pass, so the same one is offered repeatedly.
+     */
+    private static void fill(
+            Map<String, EvolutionaryMemoryRecord> selected,
+            List<EvolutionaryMemoryRecord> candidates,
+            int slots) {
+        candidates.stream()
+                .filter(record -> !selected.containsKey(record.candidateId()))
+                .limit(slots)
+                .forEach(record -> put(selected, record));
     }
 
     private static List<EvolutionaryMemoryRecord> distinct(

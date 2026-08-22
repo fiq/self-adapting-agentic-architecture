@@ -86,6 +86,27 @@ final class LineageNoveltyMemoryPolicyTest {
                 .containsExactly("promoted");
     }
 
+    /**
+     * A category slot exists to bring something new into the selection. If its representative was
+     * already taken as a champion, spending the slot on that same record adds nothing and the
+     * category goes unrepresented. Decision-first ordering turned this from an occasional collision
+     * into a certainty, because a promoted record now always sorts ahead of every failure.
+     */
+    @Test
+    void aNoveltySlotIsNotSpentOnARecordAlreadySelected() {
+        var policy = new LineageNoveltyMemoryPolicy(
+                new EvolutionaryMemoryPolicyConfig("fixture-policy-v1", 1, 0, 0, 1, 0, 2));
+        var promoted = record("promoted", "base-0", "commit-promoted", 0.85, "tests",
+                CheckStatus.PASSED, Instant.parse("2026-01-01T00:00:00Z"), List.of("ARCH-001"));
+        var novelFailure = record("novel-failure", "base-0", "commit-novel", 0.40, "hard-gate",
+                CheckStatus.FAILED, Instant.parse("2026-01-02T00:00:00Z"), List.of("RISK-004"));
+
+        assertThat(policy.select(List.of(promoted, novelFailure)))
+                .extracting(EvolutionaryMemoryRecord::candidateId)
+                .as("the novelty slot must reach a record the champion pass did not already take")
+                .containsExactlyInAnyOrder("promoted", "novel-failure");
+    }
+
     private static EvolutionaryMemoryRecord record(
             String id, String baseline, String commit, double fitness, String checkName, CheckStatus checkStatus,
             Instant evaluatedAt, List<String> evidence) {

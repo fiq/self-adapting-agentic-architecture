@@ -49,6 +49,11 @@ deltas:
         then: evolutionary memory still ranks the promoted candidate above it
         and:
           - decision partitions the ordering and magnitude only breaks ties inside a partition, per CON-002
+      - id: S9
+        when: a category's best representative was already taken by an earlier selection pass
+        then: the category slot reaches a record the selection does not already hold
+        and:
+          - decision-first ordering offers the same promoted record to every pass, so a slot spent on a duplicate would leave the category unrepresented while reporting it filled
 
 acceptance:
   - scenario: S1
@@ -75,6 +80,9 @@ acceptance:
   - scenario: S8
     test_id: deterministic/LineageNoveltyMemoryPolicyTest.aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion
     layer: unit
+  - scenario: S9
+    test_id: deterministic/LineageNoveltyMemoryPolicyTest.aNoveltySlotIsNotSpentOnARecordAlreadySelected
+    layer: unit
 
 tasks:
   - id: T1
@@ -100,6 +108,9 @@ tasks:
     status: completed
   - id: T8
     slice: record the old/new discard-score semantics boundary as RISK-007 and the score-is-not-a-verdict rule in CON-002
+    status: completed
+  - id: T9
+    slice: stop a category slot being spent on an already-selected record, which decision-first ordering turned from an occasional collision into a certainty
     status: completed
 
 non_goals:

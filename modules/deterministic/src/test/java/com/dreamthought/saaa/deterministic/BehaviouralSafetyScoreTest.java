@@ -107,6 +107,9 @@ final class BehaviouralSafetyScoreTest {
                 .as("the audit trail must be able to name the probe that lowered the score")
                 .anySatisfy(check -> {
                     assertThat(check.name()).isEqualTo("no_network_call");
+                    // The outcome, not only the name: a record naming the probe but reporting it
+                    // passed would satisfy an audit reader while hiding what actually happened.
+                    assertThat(check.status()).isEqualTo(com.dreamthought.saaa.domain.CheckStatus.FAILED);
                     assertThat(check.summary()).isEqualTo("opened a socket");
                 });
         assertThat(result.decision())
