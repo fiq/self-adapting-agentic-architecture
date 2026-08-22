@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(project(":deterministic"))
     implementation(project(":adapters"))
+    implementation(project(":benchmarks"))
     implementation(libs.picocli)
     runtimeOnly(libs.slf4j.nop)
     testImplementation(libs.wiremock)

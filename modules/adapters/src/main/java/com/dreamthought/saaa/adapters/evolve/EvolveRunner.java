@@ -12,6 +12,7 @@ import com.dreamthought.saaa.adapters.journal.JournalReporter;
 import com.dreamthought.saaa.adapters.retrieval.LocalRetrievalFactory;
 import com.dreamthought.saaa.adapters.retrieval.LocalEvolutionaryMemoryFactory;
 import com.dreamthought.saaa.adapters.sqlite.SqliteExperimentMetadataStore;
+import com.dreamthought.saaa.deterministic.BenchmarkRunner;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryProjector;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore;
 import com.dreamthought.saaa.deterministic.BoundedMutationValidator;
@@ -51,14 +52,27 @@ public final class EvolveRunner {
     private final Clock clock;
     private final BiFunction<RetrievalMode, Path, EvidenceRetriever> retrievalResolver;
     private final BiFunction<RetrievalMode, Path, EvolutionaryMemoryStore> memoryResolver;
+    private final BenchmarkRunner benchmarkRunner;
 
     public EvolveRunner() {
         this(new ProposerProfileRegistry(), Clock.systemUTC(), LocalRetrievalFactory::forMode,
-                LocalEvolutionaryMemoryFactory::forMode);
+                LocalEvolutionaryMemoryFactory::forMode, candidate -> List.of());
+    }
+
+    /**
+     * Composes the default proposer, clock and retrieval wiring with an injected
+     * {@link BenchmarkRunner}, so a caller can supply a real evidence source, such as
+     * {@code JmhBenchmarkRunner} from {@code :benchmarks}, without also having to know or
+     * reconstruct the other defaults. See C3 / README "cost_latency_budget cannot be measured".
+     */
+    public EvolveRunner(BenchmarkRunner benchmarkRunner) {
+        this(new ProposerProfileRegistry(), Clock.systemUTC(), LocalRetrievalFactory::forMode,
+                LocalEvolutionaryMemoryFactory::forMode, benchmarkRunner);
     }
 
     public EvolveRunner(ProposerProfileRegistry profileRegistry, Clock clock) {
-        this(profileRegistry, clock, LocalRetrievalFactory::forMode, LocalEvolutionaryMemoryFactory::forMode);
+        this(profileRegistry, clock, LocalRetrievalFactory::forMode, LocalEvolutionaryMemoryFactory::forMode,
+                candidate -> List.of());
     }
 
     public EvolveRunner(
@@ -66,7 +80,8 @@ public final class EvolveRunner {
             Clock clock,
             BiFunction<RetrievalMode, Path, EvidenceRetriever> retrievalResolver
     ) {
-        this(profileRegistry, clock, retrievalResolver, LocalEvolutionaryMemoryFactory::forMode);
+        this(profileRegistry, clock, retrievalResolver, LocalEvolutionaryMemoryFactory::forMode,
+                candidate -> List.of());
     }
 
     public EvolveRunner(
@@ -75,10 +90,21 @@ public final class EvolveRunner {
             BiFunction<RetrievalMode, Path, EvidenceRetriever> retrievalResolver,
             BiFunction<RetrievalMode, Path, EvolutionaryMemoryStore> memoryResolver
     ) {
+        this(profileRegistry, clock, retrievalResolver, memoryResolver, candidate -> List.of());
+    }
+
+    public EvolveRunner(
+            ProposerProfileRegistry profileRegistry,
+            Clock clock,
+            BiFunction<RetrievalMode, Path, EvidenceRetriever> retrievalResolver,
+            BiFunction<RetrievalMode, Path, EvolutionaryMemoryStore> memoryResolver,
+            BenchmarkRunner benchmarkRunner
+    ) {
         this.profileRegistry = Objects.requireNonNull(profileRegistry, "profileRegistry");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.retrievalResolver = Objects.requireNonNull(retrievalResolver, "retrievalResolver");
         this.memoryResolver = Objects.requireNonNull(memoryResolver, "memoryResolver");
+        this.benchmarkRunner = Objects.requireNonNull(benchmarkRunner, "benchmarkRunner");
     }
 
     public EvolveRunResult run(EvolveRunRequest request, EvolutionReporter reporter) {
@@ -121,10 +147,12 @@ public final class EvolveRunner {
                         proposer::proposerEvidence,
                         request.runId()),
                 new CommandCheckRunner(checks),
-                candidate -> List.of(),
+                benchmarkRunner,
                 new PhenotypeBridgeScorer(
                         new GitRealizationInspector(),
-                        new ScoringConfig(Set.copyOf(request.behaviourCases()), request.maxLines(), Map.of())),
+                        new ScoringConfig(
+                                Set.copyOf(request.behaviourCases()), request.maxLines(),
+                                request.benchmarkBudgets())),
                 new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite")),
                 new JournalDecisionSink(),
                 new CompositeReporter(List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture)),

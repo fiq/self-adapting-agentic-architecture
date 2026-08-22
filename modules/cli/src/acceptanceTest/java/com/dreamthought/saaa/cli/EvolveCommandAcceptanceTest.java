@@ -49,6 +49,45 @@ final class EvolveCommandAcceptanceTest {
                 .contains("PROMOTE");
     }
 
+    /**
+     * C3: {@code cost_latency_budget} was always {@code 1.0} because {@code :cli} had no dependency
+     * on {@code :benchmarks} and {@code EvolveRunner} wired a constant empty benchmark list. With a
+     * real {@code JmhBenchmarkRunner} wired through {@code --benchmark} and an unreachable
+     * {@code --benchmark-budget}, the measured benchmark exceeds its budget by many orders of
+     * magnitude, so the weighted score drops from a comfortable PROMOTE to a DISCARD below the 0.80
+     * threshold even though every declared behaviour case still passes. The budget is set
+     * astronomically small rather than pinned to an exact JMH timing so the assertion does not
+     * depend on host-specific throughput.
+     */
+    @Test
+    void wiresARealBenchmarkRunnerSoAnOverBudgetMeasurementDiscardsAnOtherwisePromotingCandidate(
+            @TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(),
+                "--profile", "fixture",
+                "--behaviour-case", "workflow-check",
+                "--max-lines", "80",
+                "--benchmark", "workflow-graph-create="
+                        + "com.dreamthought.saaa.benchmarks.WorkflowGraphBenchmark.createWorkflowGraph",
+                "--benchmark-budget", "workflow-graph-create=0.0000001");
+
+        assertThat(exitCode).isZero();
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .contains("enforce the draft check")
+                .contains("DISCARD")
+                .doesNotContain("PROMOTE");
+    }
+
     @Test
     void runsEveryDeclaredBehaviourCaseNotOnlyTheFirst(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
@@ -529,4 +568,51 @@ final class EvolveCommandAcceptanceTest {
         }
         throw new IllegalStateException("could not locate repository root from " + Path.of("").toAbsolutePath());
     }
+    /**
+     * CHG-016 S5. A misconfigured budget is silently absorbed by scoring: budgetScore skips any
+     * benchmark without a matching budget, so an unpaired or misspelled name leaves
+     * cost_latency_budget at 1.0 and the candidate promotes as though it had been measured. Each
+     * case is rejected before the loop starts, because it would otherwise change a recorded
+     * promotion decision without saying so.
+     */
+    @Test
+    void rejectsBenchmarkConfigurationThatWouldBeSilentlyIgnored(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        initRepo(repo);
+
+        for (String[] flagsAndExpectation : new String[][] {
+                {"without --benchmark", "--benchmark-budget", "publish=1.0"},
+                {"without a matching --benchmark-budget", "--benchmark", "publish=.*Workflow.*"},
+                {"not requested with --benchmark",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "typo=1.0"},
+                {"must be a positive finite number",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=0"},
+                {"must be a positive finite number",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=-1"},
+                {"must be a positive finite number",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=NaN"},
+                {"must be a positive finite number",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=Infinity"}}) {
+            var err = new java.io.StringWriter();
+            var command = new CommandLine(new MutationLoopCli());
+            command.setErr(new java.io.PrintWriter(err, true));
+            var arguments = new java.util.ArrayList<String>(java.util.List.of(
+                    "saaa-evolve", target.toString(), "--behaviour-case", "workflow-check"));
+            arguments.addAll(java.util.List.of(flagsAndExpectation).subList(1, flagsAndExpectation.length));
+
+            int exitCode = command.execute(arguments.toArray(String[]::new));
+
+            assertThat(exitCode).as("%s", (Object) arguments).isNotZero();
+            assertThat(err.toString()).contains(flagsAndExpectation[0]);
+            assertThat(Files.exists(target.resolve("journal.md")))
+                    .as("no verdict was journalled")
+                    .isFalse();
+            assertThat(Files.exists(target.resolve(".saaa/candidates")))
+                    .as("rejection happens before any candidate is created, so no run began")
+                    .isFalse();
+        }
+    }
+
 }
