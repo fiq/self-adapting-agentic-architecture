@@ -59,17 +59,37 @@ A generated project AGENTS.md must include:
     wiki, ADRs and specs must be updated.
 14. **Branch and PR workflow** — one issue per branch, PR requirements, merge
     ownership.
+14b. **Rebase timing** — rebase onto the integration branch as soon as anything
+    else merges, not at merge time; deferring only moves the conflict to the
+    moment you are trying to land, and a branch that is behind records state
+    that no longer exists. Rebase before recording anything that references the
+    integration branch. Force-push only with lease, only on a feature branch.
 15. **Worktree rules** — one mutable worktree per agent, no dirty removal,
     cleanup verification.
 16. **Agent roles and ownership** — persistent roles, subagents, delegation,
     and context-window-aware `context-packet` handoffs.
 17. **Team and model fallback** — degradation order and handoff protocol.
-18. **Communication rules** — conclusion first; alternatives and per-persona
+18. **Independent review and consolidation** — reviews are read-only and may fan
+    out across several actors on one change, because they share no mutable state
+    and their findings combine additively; their conclusions may still
+    contradict, which is what consolidation adjudicates. Read-only is an
+    invariant to enforce, not a fact to assume. Implementation agents must not
+    share a file. Prefer different briefs over more reviewers. Consolidation is
+    the work: deduplicate, adjudicate contradictions rather than averaging them,
+    verify every finding against the code before acting on it, and apply fixes
+    serially. A single clean review is not strong evidence, and passing checks
+    are not a review.
+19. **Communication rules** — conclusion first; alternatives and per-persona
     stance (discourages / accepts / encourages) at hard choices; ASCII and
     bullets as complexity rises.
-19. **Handoff requirements** — what HANDOFF.toon must contain, including
+20. **Handoff requirements** — what HANDOFF.toon must contain, including
     knowledge consulted, proposals created and no-record rationale.
-20. **Git provenance** — real commit dates, no history rewriting.
+20b. **Commit message hygiene** — no session URLs, session identifiers, tokens or
+    other credential-shaped strings in commit messages; a public commit message
+    cannot be redacted after the fact, because rewriting leaves the originals
+    fetchable by SHA, visible in pull request views, and present in every clone
+    and fork. Tool and co-author attribution is fine.
+21. **Git provenance** — real commit dates, no history rewriting.
 
 ## CLAUDE.md
 

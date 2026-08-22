@@ -219,6 +219,29 @@ fallback only when the user explicitly authorises skipping the PR:
 - merge to `main` only after explicit user authorisation;
 - push `main` without force-pushing.
 
+## Rebase timing
+
+Rebase a branch onto `main` as soon as anything else merges, not when you come to
+merge it. Waiting does not avoid the conflict, it defers it to the moment you are
+trying to land and makes the branch's recorded state false in the meantime.
+
+`HANDOFF.toon` is the guaranteed conflict surface, because every branch rewrites
+the same session header. Two consequences follow:
+
+- Keep branch-local handoff edits to what the change actually needs until shortly
+  before merge. A handoff rewritten early will be rewritten again after the next
+  rebase.
+- Rebase before recording anything that references state from `main`, such as a
+  head sha, a task path, or another change's identifier. A record written against
+  a stale base has nowhere correct to attach.
+
+A branch that is behind is not merely inconvenient: its `head`, `next_actions`
+and status lines describe a `main` that no longer exists, and an agent resuming
+from it will act on that. Rebase, revalidate, then continue.
+
+Force-push only with `--force-with-lease`, only on a feature branch, never on
+`main`.
+
 ## Worktree rules
 
 Use one mutable worktree per agent under `.worktrees/`. Never remove a dirty
@@ -268,6 +291,33 @@ explicit adapter choices: no automatic provider selection, fallback or retry
 may weaken deterministic validation, fitness, promotion, audit or privacy
 constraints.
 
+## Independent review and consolidation
+
+Reviews are read-only, so several reviewers may run on one change at once. They
+share no mutable state, so their findings combine additively. Their conclusions
+may still contradict each other, and frequently do; that is what consolidation
+adjudicates, and it is a reason to run more than one reviewer rather than an
+argument against it.
+
+Read-only is an invariant to enforce, not a fact to assume. A reviewer given
+write tools mutates the change the others are reading, and additivity silently
+stops holding.
+
+Implementation agents must not share a file. Prefer giving reviewers the same
+change with different briefs over giving more reviewers the same brief.
+
+Consolidating the findings is the work, not the reviewing:
+
+- deduplicate overlapping findings;
+- adjudicate contradictions rather than averaging them;
+- verify every finding against the code before acting on it, including findings
+  you expect to be right;
+- apply the resulting fixes serially, in one place.
+
+A single clean review is not strong evidence. Passing checks are not a review.
+Do not merge on green CI alone, and do not treat a reviewer's confidence as
+evidence. See `PAT-003`.
+
 ## Communication rules
 
 Put the most important conclusion first. Use concise sections, short
@@ -281,6 +331,19 @@ choices, attribute relevant persona stances as `discourages`, `accepts` or
 actions, active assumptions and decisions, blocking questions, known risks,
 files changed, tests run, branch/worktree/commit state, team or model fallback
 state where relevant, and knowledge consulted/proposals/no-record rationale.
+
+## Commit message hygiene
+
+Never put a session URL, session identifier, API key, token or any other
+credential-shaped string in a commit message. This repository is public, and a
+commit message cannot be redacted after the fact: rewriting history leaves the
+original commits fetchable by SHA on the host, visible in pull request views, and
+present in every existing clone and fork.
+
+Attribution trailers naming a tool or a co-author are fine. Anything that
+identifies a specific session or grants access to one is not.
+
+`check-repo-contract` fails when a commit on the current branch carries one.
 
 ## Git provenance
 
