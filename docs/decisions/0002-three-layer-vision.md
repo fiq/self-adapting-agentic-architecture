@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (merged 2026-07-31 as `4a9ea7f` via PR #3)
+Accepted (merged 2026-07-31 as `8456a19` via PR #3)
 
 ## Context
 

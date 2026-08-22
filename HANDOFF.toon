@@ -3,7 +3,7 @@ session:
   status: chg_020_mutation_evidence
   branch: feat/chg-020-prove-assertions-can-fail
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-020-mutation
-  head: origin/main at cf06f45
+  head: origin/main at 18a75e0
   head_note: CHG-019 merged, so a declared required_evidence id now gates a live promotion and RISK-002 narrows to the contractless path. CHG-020 records that a passing test is not evidence until it has been seen to fail, from five assertions that could not fail on 2026-08-22.
   dirty: false
   pushed: true
@@ -95,7 +95,7 @@ recovered_review:
     original_status: recorded as incomplete in PR #29 alongside the other Flex session
     actual_result: VERDICT REQUEST_CHANGES with a different set of five findings, also retained in the session
     already_fixed_before_recovery:
-      - handle catching only IllegalArgumentException and IllegalStateException while EvolveRunner.readString raises UncheckedIOException; fixed on 2026-08-22 in f56e9b8 without knowing this review had already named it, and this review additionally tied it to design.md's statement that command errors leave an active session active
+      - handle catching only IllegalArgumentException and IllegalStateException while EvolveRunner.readString raises UncheckedIOException; fixed on 2026-08-22 in ef3a451 without knowing this review had already named it, and this review additionally tied it to design.md's statement that command errors leave an active session active
       - evolve folding `case1 case2` into a single behaviour-case name; fixed in the same commit
     addressed_here:
       - the evolve retrieval and task capability gap relative to saaa-evolve's --retrieval and --task is now recorded in design.md as a deliberate first-slice limitation
@@ -175,7 +175,7 @@ chg_012_review:
       - the four acceptance scenarios resolved to one check_model_routing_policy call emitting a single combined error, so no scenario had a check that could fail on its own. Each scenario now has section-scoped phrase assertions, verified by three mutations: deleting a substantive control while keeping every heading and identifier, removing the reviewer-independence rule, and moving Q-010 out of its owning section. Each mutation failed exactly one named check
       - `layer: contract` was undocumented and unvalidated. The documented set in .agents/schemas/change.schema.md now lists every in-use value, and check-changes enforces it so the schema and the specs cannot drift apart again
       - docs/wiki/architecture.md described retained provider sessions in the present tense as runtime behaviour. It now states plainly that AcpAgentHarness.run creates and closes a session per invocation and that runtime session retention is unimplemented
-      - the branch was stale against origin/main and conflicted in HANDOFF.toon and docs/wiki/architecture.md; it is rebased onto bee472b
+      - the branch was stale against origin/main and conflicted in HANDOFF.toon and docs/wiki/architecture.md; it is rebased onto c4231b0
     not_addressed:
       - the gitOutput test helper duplicates one in EvolveCommandAcceptanceTest. Reuse would need a shared test fixture; recorded per the second-occurrence policy rather than done
 model_sessions:
@@ -203,7 +203,7 @@ model_sessions:
     note: the CLI event stream did not surface this session's terminal verdict, so the review was recorded as incomplete. The verdict was in fact retained in the session and was recovered later with `opencode export`. Session persistence is what made the recovery possible
 
 review:
-  - actor: codex-cli 0.146.0, independent read-only `codex exec` over main...befea79
+  - actor: codex-cli 0.146.0, independent read-only `codex exec` over main...d9629ed
     result: REQUEST CHANGES; the blocking finding is addressed on this branch and the rest are triaged
     posted: https://github.com/fiq/self-adapting-agentic-architecture/pull/29#issuecomment-5378168554
     addressed:
@@ -273,15 +273,15 @@ completed:
   - GLM 5.2 read-only review found no blockers; addressed all six should-fix findings before publication
   - captured Q-010: remaining tokens, credits, wall-clock budget, rate limits and retries may inform model-tier/context routing, subject to deterministic audit and safety constraints
   - documented the current absence of complexity-based routing and the evidence required before implementing it
-  - PR #22 merged as `d15cc22`; the reward-hacking pre-flight guard now rejects a workflow target equal to a declared grading script
+  - PR #22 merged as `ea5a0ff`; the reward-hacking pre-flight guard now rejects a workflow target equal to a declared grading script
   - added `CheckStatus.TIMED_OUT`, emitted it from `CommandCheckRunner`, and made reliability derive from structured status rather than summary text
   - added CHG-008, README/wiki documentation and unit/integration regression coverage for timeout evidence and candidate output containing `timed out`
-  - merged PR #21 `Complete typed fitness signal identifier migration` as `9456744`; remote SSH push succeeded after the authorized key was loaded
+  - merged PR #21 `Complete typed fitness signal identifier migration` as `07f469e`; remote SSH push succeeded after the authorized key was loaded
   - added the first outside-in regression for a workflow target equal to its declared behaviour-case script; the pre-flight guard passes the focused acceptance test
   - applied the CON-002 naming scheme through typed `FitnessSignalId` values; signal role now comes from scope/force and IR position rather than a name prefix, with legacy result keys accepted on read and emitted canonically
   - ran repository startup, read the canonical context in prescribed order, searched relevant knowledge, inspected CHG-001 through CHG-004 and the live mutation/proposer/worktree/SQLite/scoring/reporting path
   - confirmed the original semantic retrieval and container deferrals were conditional and that their recorded revisit trigger has now been explicitly reached
-  - created isolated worktree `.worktrees/feat-chg-005-hybrid-graphrag` from clean `origin/main` at `c40cb88`; the coordination checkout was not modified
+  - created isolated worktree `.worktrees/feat-chg-005-hybrid-graphrag` from clean `origin/main` at `1029e09`; the coordination checkout was not modified
   - recorded ADR-0004, ARCH-002, RISK-004 and CHG-005 while preserving the rationale for the earlier deferral
   - completed CHG-005 slice 1 outside-in: retrieval modes/config/query/bundle/capsule/provenance records, deterministic exact/vector/graph fusion seam, NONE mode, explicit `MutationProposalRequest`, retrieval-aware loop/proposer seam, CLI/MCP treatment inputs and candidate provenance rendering
   - extended the LangChain4j prompt with bounded capsule context and advisory/authority instructions; LangChain4j still does not select retrieval treatment
@@ -308,37 +308,37 @@ completed:
   - fixed a test-isolation defect that clean-checkout CI caught and the local run did not: `RepositoryEvidenceIndexerTest` and `RepositoryEmbeddingIndexerTest` called the two-argument `build`, which resolves identity through `GitRepositoryRevision` by walking up for a `.git`; locally Gradle puts the test temp directory under `build/tmp/test` inside the checkout so identity resolved and the tests passed, while a clean runner found nothing and threw
   - made repository identity an arranged test input rather than ambient state, adding the explicit-identity `build` overload to `RepositoryEmbeddingIndexer` that `RepositoryEvidenceIndexer` already had; verified by absence, since the `JGit could not read repository identity` fallback warning no longer appears anywhere in unit-test output
   - replaced the `git@github.com:...` string in the Git identity fixture with an RFC 2606 `.invalid` host; nothing ever contacted it because `repositoryId` only parses configured text, but a real-looking host made the fixture read as though it depended on an upstream repository
-  - PR #18 merged 2026-08-04 as `ace9950` after human review; post-merge `main` CI ran both `fast` and `full-readiness` green, which is the first time `full-readiness` executed against this code
+  - PR #18 merged 2026-08-04 as `4cac837` after human review; post-merge `main` CI ran both `fast` and `full-readiness` green, which is the first time `full-readiness` executed against this code
   - removed the merged CHG-005 worktree and deleted its local and remote branch after confirming a clean tree and a fully merged, pushed state
   - ran `.agentic-template/bin/project startup` and confirmed `AGENTS.md` from disk
   - read `HANDOFF.toon`, `PROJECT_PROFILE.toon`, `docs/context-store.md`, `.agents/knowledge/index.md` and the `CHG-003` change and design
-  - confirmed PR #1 merged on 2026-07-30, so `CHG-003` was already on `main` at 10ce37f when this session started
+  - confirmed PR #1 merged on 2026-07-30, so `CHG-003` was already on `main` at d826815 when this session started
   - implemented `CHG-003` task `T10` test-first: an acceptance test showed a candidate whose realization wrote the workflow file back unchanged reported PROMOTE
   - added `hard_gate_non_empty_realization` to `PhenotypeFitnessScorer` and threaded `RealizationSummary` through `PhenotypeEvidence` so the gate holds for any caller rather than only the current bridge
   - added scenario `S9` with three acceptance mappings and recorded the gate in the `CHG-003` design and `docs/wiki/domain.md`
-  - PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2) merged 2026-07-31 as `36d01f8` after human review; CI was 4/4 green; the branch was deleted on remote and locally
-  - reworked the README opening in plain English: renamed the title to SAAA, added a problem/because/usage triptych, added a Contents TOC and surfaced the InfoQ context-store citation; merged directly to `main` as `d1b9a71` under explicit user authorization
+  - PR #2 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/2) merged 2026-07-31 as `3f64b8a` after human review; CI was 4/4 green; the branch was deleted on remote and locally
+  - reworked the README opening in plain English: renamed the title to SAAA, added a problem/because/usage triptych, added a Contents TOC and surfaced the InfoQ context-store citation; merged directly to `main` as `afcf76a` under explicit user authorization
   - noticed and recorded that the SSH remote fails auth in this environment (`Permission denied (publickey)`), so both PR #2's post-merge cleanup and the README push used the HTTPS remote URL
   - drafted `ADR-0002: Three-layer vision for SAAA` (`docs/decisions/0002-three-layer-vision.md` and `.agents/knowledge/decisions/ADR-0002-three-layer-vision.md`) after a design conversation: three concentric layers (workflow, tool surface for outer agent, product code), delivery pattern is vertical slices across all three with population and crossover as foundation slices
   - added a "Where this is going" summary to the README linking to the ADR, and recorded the decision in `PROJECT_PROFILE.toon` as `three_layer_vision_with_vertical_slices`
-  - opened PR #3 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/3), merged 2026-07-31 as `4a9ea7f` after human review
-  - repointed `origin` from SSH to HTTPS after `git reset --hard origin/main` reset to a stale `10ce37f` because push-via-HTTPS-URL had left `origin/main` un-fetched; state recovered by resetting to the known merge sha and the remote URL change stops this bug class recurring
+  - opened PR #3 (https://github.com/fiq/self-adapting-agentic-architecutre/pull/3), merged 2026-07-31 as `8456a19` after human review
+  - repointed `origin` from SSH to HTTPS after `git reset --hard origin/main` reset to a stale `d826815` because push-via-HTTPS-URL had left `origin/main` un-fetched; state recovered by resetting to the known merge sha and the remote URL change stops this bug class recurring
   - drafted the bookkeeping PR #4 (`chore/promote-adr-0002`) promoting ADR-0002 to `Accepted` / `canonical` / `active` after the PR #3 merge; open for review
   - had a design conversation on staged-hybrid scorer targeting: A (small utility) first, guardrails in-slice, B (scorer itself) only after the guardrails have real evidence of holding
   - drafted `CHG-004: First vertical slice across L1/L2/L3 with classical scorer guards` on branch `spec/chg-004-first-vertical-live-mcp`: LangChain4j `OpenAiChatModel` with configurable `baseUrl` at L1, `evolve` as MCP tool at L2, `AuthorityLanguage.java` as the L3 target, plus jqwik property tests over `PhenotypeFitnessScorer` and a golden-verdict corpus as in-slice guards; PR #5 opened
-  - PR #4 (`chore/promote-adr-0002`) merged 2026-07-31 as `32cb223` after human review; the promotion is on `main`, and the spec branch was merged with `main` to pick it up (merge commit `9b7913f`)
+  - PR #4 (`chore/promote-adr-0002`) merged 2026-07-31 as `045d28f` after human review; the promotion is on `main`, and the spec branch was merged with `main` to pick it up (merge commit `3f5d893`)
   - lead-review pass over PR #5 (two passes) surfaced four blockers, six should-fixes and a handful of nits; rolled the findings into a spec-tightening commit on the same branch rather than a separate PR
   - CHG-004 spec tightening (first pass): MCP module moved from `modules/mcp` to a package inside `modules/adapters` restoring the `invariant_named_module_layout` boundary; `S2` split into `S2` (network unreachable) and `S2b` (auth failure, no-key-echo assertion); `S9` added for the auto-merge prohibition; `S10` added for `journal.md` pollution risk; MCP response gained `aggregateScoreDisplay` and `journalPath` pinned as absolute; golden corpus format pinned to TOON per the structured-data rule; MCP invocation pinned to in-process; provider scope narrowed to Bearer + OpenAI Chat Completions; `AuthorityLanguage`-too-easy risk mitigation replaced with a concrete L3 test constraint; the false claim about ADR-0002's revisit triggers removed; `T9` reworded, `T10b` added, `T12` extended to flip `Q-001`; three additional non-goals
   - CHG-004 spec tightening (second pass, two personas): a security-reviewer pass added scenarios for `S11` (candidate cannot read `SAAA_MODEL_API_KEY` because behaviour cases run in a scrubbed env allow-list, `T9b`), `S12` (MCP response scrubs any occurrence of the current API key value before it reaches stdio, `T6b`), `S13` (picocli `System.exit` cannot terminate the MCP server, `T4` note), `S14` (promotion sink port is branch-pointer-only at the type level, `T9c`), plus per-field and total response-size caps in `T5` and a named non-goal for full JVM sandboxing; an evolutionary-computing-researcher pass added four new properties to `PhenotypeFitnessScorer` (parsimony monotonicity, task_success monotonicity, threshold-boundary behaviour, decision-from-raw-sum-not-rounded), extended the golden-corpus coverage floor with near-threshold and observed-evidence entries, clarified `T2`'s "bounded" as diff-lines not emitted-content, added `T2b` to log the exact prompt and raw response into candidate bookkeeping so a later scorer-as-target audit can distinguish "scorer changed its mind" from "model proposed differently", and named proposer diversity knobs as a non-goal deferred to the population slice
-  - PR #5 merged 2026-08-01 as `b995c41` after human review; the CHG-004 spec is on `main` and the branch was deleted locally
-  - opened PR #6, merged 2026-08-01 as `4e82955` after human review; branch deleted
+  - PR #5 merged 2026-08-01 as `44ee75b` after human review; the CHG-004 spec is on `main` and the branch was deleted locally
+  - opened PR #6, merged 2026-08-01 as `2633863` after human review; branch deleted
   - implemented CHG-004 T9 on `feat/chg-004-t9-compiler-failure-as-failed-check`: `CommandCheckRunnerIntegrationTest.recordsCompilerFailureAsAFailedCheckRatherThanCrashing` — invokes real `javac` inside a candidate worktree and asserts the runner records FAILED with the compiler diagnostic; the existing non-zero-exit-plus-captured-output path already covers the behaviour, so no code change to `CommandCheckRunner`; open as PR #7
   - implemented CHG-004 T7 on `feat/chg-004-t7-scorer-property-tests`: `PhenotypeFitnessScorerPropertyTest` with all eight properties from S6 (any failed check → DISCARD, any missing declared behaviour case → DISCARD, no objective combination promotes while a gate fails, evidence keys cannot overwrite recorded gate outcomes, aggregate monotonic in parsimony objective, aggregate monotonic in task_success objective, decision matches raw sum at PROMOTION_THRESHOLD, decision derives from raw sum not rounded aggregate); each property has a fixed numeric jqwik seed for reproducibility; acceptance mapping updated to reflect scorer-level test names since the scorer never sees realization size or behaviour-case count directly (a bridge-level version may follow); open as PR #8
-  - implemented CHG-004 T8 on `feat/chg-004-t8-golden-corpus`: `GoldenCorpus.java` (nine immutable entries) plus `PhenotypeGoldenVerdictCorpusTest` iterating them via `@ParameterizedTest`; shipped as a Java constant list rather than TOON fixture files because there is no Java TOON reader yet — deviation documented in `docs/structured-data.md` and retires when `CHG-002 T3d` lands the envelope reader; covers three of four hard gates (`required_objective_scores` cannot fire through the bridge because the bridge always produces all objective values, so it is covered instead by scorer-level tests and property P3), two PROMOTE entries with different profiles, one PROMOTE at exactly PROMOTION_THRESHOLD, one DISCARD just below (which also covers property P8 at the corpus level because its aggregate rounds to 0.80), one T10 rescue entry, and one entry captured from the CHG-003 fixture `toy-workflow` acceptance run; PR #9 merged 2026-08-01 as `2d99eaa` after human review
+  - implemented CHG-004 T8 on `feat/chg-004-t8-golden-corpus`: `GoldenCorpus.java` (nine immutable entries) plus `PhenotypeGoldenVerdictCorpusTest` iterating them via `@ParameterizedTest`; shipped as a Java constant list rather than TOON fixture files because there is no Java TOON reader yet — deviation documented in `docs/structured-data.md` and retires when `CHG-002 T3d` lands the envelope reader; covers three of four hard gates (`required_objective_scores` cannot fire through the bridge because the bridge always produces all objective values, so it is covered instead by scorer-level tests and property P3), two PROMOTE entries with different profiles, one PROMOTE at exactly PROMOTION_THRESHOLD, one DISCARD just below (which also covers property P8 at the corpus level because its aggregate rounds to 0.80), one T10 rescue entry, and one entry captured from the CHG-003 fixture `toy-workflow` acceptance run; PR #9 merged 2026-08-01 as `26e5016` after human review
   - rebased T9 (`feat/chg-004-t9-compiler-failure-as-failed-check`) onto `origin/main` after PR #9 merged, resolving `HANDOFF.toon` conflicts with the union of both sides (T9, T7, T8 status all reflected; T8 marked merged)
   - rebased T7 (`feat/chg-004-t7-scorer-property-tests`) onto `origin/main` after PR #9 merged, resolving `HANDOFF.toon` and `specs/changes/CHG-004-live-mcp-and-l3-utility/change.toon` conflicts with the union of both sides (both status flips kept, both note sets kept, both sets of acceptance-mapping entries kept)
-  - PR #8 merged 2026-08-01 as `8e35756` after human review; this PR #7 branch is merging that result to resolve the remaining GitHub conflict
-  - PR #7 merged 2026-08-01 as `559744f`; `main` was fast-forwarded to that merge locally
+  - PR #8 merged 2026-08-01 as `8c623b8` after human review; this PR #7 branch is merging that result to resolve the remaining GitHub conflict
+  - PR #7 merged 2026-08-01 as `6f81c03`; `main` was fast-forwarded to that merge locally
   - audited worktrees after PR #7 merge: only the main checkout and `.worktrees/feat-chg-004-t1-openai-compatible-wiring` exist; no abandoned worktree directories remain; all old local branches are merged into `main`
   - started CHG-004 T1 on `feat/chg-004-t1-openai-compatible-wiring`: added `OpenAiCompatibleChatModelFactory` in `modules/adapters/langchain4j`, added the `langchain4j-open-ai` dependency, and covered the SAAA environment contract with local construction/configuration tests that do not call a live endpoint
   - ran two independent review passes on PR #10: architecture/security reviewer found no implementation boundary or credential leak issues and one low stale-handoff finding; knowledge/documentation reviewer found one medium taxonomy-key finding (`related_to` should be `relates_to`) and otherwise accepted the ontology/wiki prose
@@ -349,7 +349,7 @@ completed:
   - added `OpenAiCompatibleMutationProposerIntegrationTest.proposesABoundedMutationAgainstALocalOpenAiCompatibleEndpoint`, using a JDK local HTTP stub for `/v1/chat/completions` instead of a live provider or secret; the test proves bearer auth, model name, prompt content and one mutation response mapping
   - registered `openai-compatible` in `ProposerProfileRegistry`, with injectable environment for fast tests and adapter-side composition so CLI does not need LangChain4j classes on its classpath
   - addressed Claude's PR #11 feedback: renamed the intended PR scope to T3 plus partial T2, reconciled the T2 task text with the reused `LangChain4jMutationProposalAdapter` implementation, added a registry-to-proposer local-stub test, made the integration assertion whitespace-tolerant, and shut down the local-stub executor
-  - merged PR #10 branch head `43b547f` into the stacked PR #11 branch so PR #11 inherits the scope cleanup
+  - merged PR #10 branch head `a7330ed` into the stacked PR #11 branch so PR #11 inherits the scope cleanup
   - independent architecture/security review found no blocking findings; independent spec/test/product-scope review found no local content blockers and requested PR hygiene before handoff
   - performed Java maintainability review after user concern about static wrapper design; split proposer construction out of `OpenAiCompatibleChatModelFactory` into `OpenAiCompatibleMutationProposerFactory` so each factory has one responsibility and CLI still avoids direct LangChain4j types
   - checked static analysis tooling expectations: no Checkstyle, SpotBugs/FindBugs, PMD, Error Prone, NullAway or ArchUnit plugin/config is currently wired; current static gate is custom architecture-boundary lint through `project lint/check/ready`
@@ -363,7 +363,7 @@ completed:
   - narrowed `.github/workflows/repo-contract.yml` to `main` pushes and manual dispatch so it no longer duplicates every PR's fast checks
   - addressed Claude PR #16 review feedback locally: `push` to `main`, `v*` tags and manual `profile=full` now run both fast checks and full readiness; PRs still run fast feedback only; `check-readme` is restored to fast CI; workflow concurrency includes event name and dispatch profile so a `main` push cannot cancel a manual full run; the redundant repo-contract workflow is deleted
   - addressed lead self-review finding: manual `workflow_dispatch` with `profile=fast` no longer runs `full-readiness` just because the dispatch ref is `refs/heads/main`; full readiness now runs on `push` to `main`, `v*` tag pushes, or manual `profile=full`
-  - PR #13 merged to `main` as 09c22be; local `main` was fast-forwarded and the corrective PR worktree plus local branch were removed
+  - PR #13 merged to `main` as 67b51dc; local `main` was fast-forwarded and the corrective PR worktree plus local branch were removed
   - started CHG-004 T2/T2b on `feat/chg-004-t2-audit-diff-bound` with ATDD-first CLI acceptance tests
   - added deterministic `DiffLineBudgetMutationValidator` and `CompositeMutationValidator`; `--max-lines` now rejects proposal diffs before candidate worktree creation
   - added provider-neutral `ProposerEvidence`; `GitCandidateWorkspace` writes proposer evidence into `.saaa/candidates/<id>.toon`
@@ -379,7 +379,7 @@ completed:
   - addressed blocking review findings: errors no longer publish success-shaped `structuredContent`, output schema now includes `evidence` and is closed at root/candidate/evidence item levels, and total response caps preserve valid JSON by replacing over-large evidence arrays with a truncated evidence envelope
   - addressed Claude PR #15 blocking review findings locally: `workflowFile` is now a normalized relative child path validated by `EvolveRunRequest` and rechecked by `EvolveRunner` before file reads or proposer resolution; MCP error response caps shrink only the error value so the JSON envelope remains valid; objective serialization sorts measured keys then hard gates by key, making output stable despite `FitnessResult` map-copy randomisation
   - recorded the `targetFolder` trust boundary in the CHG-004 risk list: the local stdio tool intentionally accepts any visible local Git repository and executes its declared check scripts, which is acceptable for this developer-only slice but must be revisited before remote or multi-user service exposure
-  - merged PR #16 to `main` as `58246e2`; local `main` is clean and tracks `origin/main`
+  - merged PR #16 to `main` as `6b367d3`; local `main` is clean and tracks `origin/main`
   - cleaned the merged local worktree `.worktrees/feat-chg-004-t1-openai-compatible-wiring` and deleted its local branch; no local worktrees remain besides `main`
   - started `feat/chg-004-plumb-l3-behaviour` from `main` after asking whether all code was in place; found CHG-004 `T9b`, `T9c`, `T10` and `T10b` were still pending
   - implemented `T9b`: `CommandCheckRunner` now clears child process environments, copies only the default allow-list (`PATH`, `HOME`, `LANG`, `LC_*`, `JAVA_HOME`), and always denies `SAAA_MODEL_*` plus known model-provider API-key names so candidate behaviour checks cannot read model credentials
@@ -754,7 +754,7 @@ tests_run:
   - 2026-08-02 `nix develop --command .agentic-template/bin/project check`: pass after merging `origin/main` into PR #16
   - 2026-08-02 `nix develop --command .agentic-template/bin/project test`: pass after merging `origin/main` into PR #16
   - 2026-08-02 `nix develop --command .agentic-template/bin/project ready`: READY: PASS after merging `origin/main` into PR #16; 13 passed, 2 not applicable, 0 failed
-  - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `559744f91afdd7e5e27cae92cfd12d5f6639637c`
+  - 2026-08-01 `gh pr view 7 --json number,state,mergeCommit,headRefName,url`: PR #7 merged as `6f81c031b5768b380e92d46b092896dbdab28cc5`
   - 2026-08-01 `git worktree list --porcelain`: main checkout plus `.worktrees/feat-chg-004-t1-openai-compatible-wiring`; no abandoned worktree directories
   - 2026-08-01 `git branch --merged main` / `git branch --no-merged main`: all old local branches merged into `main`; no unmerged local branches besides the active T1 worktree branch
   - 2026-08-01 `.agentic-template/bin/project test`: first run failed at compile because the nested record canonical constructor was too private; fixed by using package visibility
@@ -787,7 +787,7 @@ tests_run:
   - 2026-08-01 `.agentic-template/bin/project ready`: READY: PASS after merging PR #10 cleanup into PR #11; 13 passed, 2 not applicable, 0 failed
   - 2026-08-01 reviewer pass 1 (architecture/security): no blocking findings; boundary scan/lint/diff checks accepted; noted regex JSON field helper is acceptable only for the narrow stub assertion
   - 2026-08-01 reviewer pass 2 (spec/test/product-scope): no local content blockers; requested PR #11 hygiene because remote title/draft/dirty state lagged local fixes
-  - 2026-08-01 `git push`: pushed PR #11 branch through `f0eb642`
+  - 2026-08-01 `git push`: pushed PR #11 branch through `cf4de2f`
   - 2026-08-01 `gh pr ready 11`: PR #11 marked ready for review
   - 2026-08-01 `gh pr edit 11 --title ...`: PR #11 retitled to `CHG-004 T3 + partial T2: register profile and stub proposer path`
   - 2026-08-01 `gh pr checks 11`: GitHub checks green after push and title/ready update
@@ -912,10 +912,10 @@ team_fallback:
   fitness_signal_id_review: attempted a low-cost local opencode review worker, but the installed CLI could not start model discovery because it could not open its configured log path; no independent worker findings were obtained. Compensating evidence is focused legacy-key regression coverage, full unit/component/integration/readiness validation, lead diff review and the required human PR review gate.
   reason: the active collaboration contract prohibited spawning subagents for CHG-005, so the lead performed explicit architecture/security/efficiency self-review and preserved human review as the required PR merge gate; no merge or push was attempted
   chg_005_lost_challenge: no independent actor reviewed this large slice before handoff; compensating evidence is outside-in acceptance coverage, real Git/SQLite/Neo4j integration, Nix operator exercises, dependency/image scanning and an explicit 14-question lead challenge
-  chg_005_outcome: PR #18 merged 2026-08-04 as `ace9950` after human review; the merge gate was human review plus clean-checkout CI. Clean-checkout CI, not review, is what caught the test-isolation defect, which is evidence that the missing independent-actor challenge was a real gap rather than a formality
+  chg_005_outcome: PR #18 merged 2026-08-04 as `4cac837` after human review; the merge gate was human review plus clean-checkout CI. Clean-checkout CI, not review, is what caught the test-isolation defect, which is evidence that the missing independent-actor challenge was a real gap rather than a formality
   chg_003_outcome: PR #1 "Run one mutation evaluation end to end (CHG-003)" merged 2026-07-30; two independent actor reviews during its development, the second of which found a surviving promotion-integrity hole and returned do-not-merge before the `T11` fix
-  t10_outcome: PR #2 "Hard-gate a candidate whose realization changed nothing (CHG-003 T10)" merged 2026-07-31 as `36d01f8` after human review; the code change had lead self-review only, no independent actor review, but was covered test-first and the failing acceptance test was observed reporting PROMOTE before the gate existed
-  readme_rework_outcome: pushed directly to `main` as `d1b9a71` under explicit user authorization, no PR; lead self-review only, no actor or human review pass, no code changes
+  t10_outcome: PR #2 "Hard-gate a candidate whose realization changed nothing (CHG-003 T10)" merged 2026-07-31 as `3f64b8a` after human review; the code change had lead self-review only, no independent actor review, but was covered test-first and the failing acceptance test was observed reporting PROMOTE before the gate existed
+  readme_rework_outcome: pushed directly to `main` as `afcf76a` under explicit user authorization, no PR; lead self-review only, no actor or human review pass, no code changes
   lost_challenge: the T10 code change and the README rework did not receive independent actor review; the T10 change has automated acceptance and unit coverage, the README change is a docs-only edit
 
 task_path:

@@ -15,7 +15,7 @@
 - Knowledge entries must satisfy `.agentic-template/bin/check-knowledge`: `type: contract` requires a `CON-` id prefix, `status` must be one of `canonical, proposed, experimental, deprecated, superseded, stale, open, investigating, answered, deferred, obsolete`, and every id in a relation field must resolve to an existing entry.
 - `.agentic-template/bin/project check` and `.agentic-template/bin/project ready` must pass before the final commit.
 - Real commit author and committer dates. Do not set `GIT_AUTHOR_DATE`, `GIT_COMMITTER_DATE` or `--date`.
-- Work on a bounded branch and integrate by PR. `main` is at `34d1c5f`.
+- Work on a bounded branch and integrate by PR. `main` is at `bf223c8`.
 - Source of truth for content decisions: `docs/superpowers/specs/2026-08-04-fitness-taxonomy-and-steered-evolution-design.md`, sections 1 and 12.
 
 ---
@@ -472,7 +472,7 @@ gh pr create --base main --head docs/fitness-taxonomy-step-1 \
   --title "Define the fitness taxonomy: glossary, naming scheme and severity classes"
 ```
 
-The branch name is `docs/fitness-taxonomy-step-1`, created from `main` at `34d1c5f` before Task 1 Step 1.
+The branch name is `docs/fitness-taxonomy-step-1`, created from `main` at `bf223c8` before Task 1 Step 1.
 
 Note: `origin` is an SSH remote. If a push hangs, it is not this repository's configuration.
 

@@ -5,7 +5,7 @@ Status: **draft for review.** Nothing here is implemented. No scoring code,
 weight or threshold has been changed.
 
 Captured from a design conversation following the README evidence pass
-(`bd93d3a`), which found that four of five weighted objectives are constant for
+(`3f13e9c`), which found that four of five weighted objectives are constant for
 any candidate clearing the hard gates.
 
 **Scope warning.** This is a programme, not a single change. The nine numbered

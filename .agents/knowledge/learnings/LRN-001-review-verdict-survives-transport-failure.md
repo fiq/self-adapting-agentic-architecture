@@ -23,7 +23,7 @@ Neither terminal verdict appeared in the CLI event stream, so PR #29 was opened
 stating that the branch "still needs an independent human or tool review before
 merge". The PR was later merged with that gap standing.
 
-The claim lived in the PR #29 body. The merged `HANDOFF.toon` at `bee472b`
+The claim lived in the PR #29 body. The merged `HANDOFF.toon` at `c4231b0`
 contains no record of these reviews at all, which is its own gap: a review that
 gates a merge should be recorded in the handoff, not only in a PR description
 that no longer surfaces once the PR is closed.
