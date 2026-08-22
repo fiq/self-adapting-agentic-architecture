@@ -331,6 +331,16 @@ REVIEW_CONSOLIDATION_CONTROLS = [
         ],
     ),
     (
+        "agents-template-testing-section",
+        ".agentic-template/templates/AGENTS_TEMPLATE.md",
+        "Required sections",
+        [
+            "prove a new assertion can fail",
+            "breaking the behaviour it guards, observing the failure, and restoring",
+            "not evidence until it has been seen to fail",
+        ],
+    ),
+    (
         "agents-template-required-sections",
         ".agentic-template/templates/AGENTS_TEMPLATE.md",
         "Required sections",
