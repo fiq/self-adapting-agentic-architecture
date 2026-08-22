@@ -3,7 +3,7 @@ session:
   status: chg_021_discriminating_fitness
   branch: feat/chg-021-behavioural-safety-signal
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-021-safety
-  head: origin/main at 45043b4
+  head: feat/chg-021-behavioural-safety-signal at 0399685, based on origin/main at 45043b4
   head_note: CHG-021 makes the fitness function discriminate: behavioral_safety scores declared probes, and a failed candidate keeps its magnitude instead of being zeroed, which is what a population needs to choose between failures. The promote decision is unchanged and still gated. Independent codex review raised three blockers, all confirmed against the code and fixed on the branch before merge: memory selection ranked on score alone, withheld probes were deleted from the recorded evidence rather than only from the gate, and the acceptance test could not fail if the probe never ran.
   dirty: false
   pushed: true
@@ -14,6 +14,7 @@ goal:
   interlude: automatic runtime routing remains deferred until Q-010's measured usage, price identity and ablation evidence exist
 
 next_actions:
+  - merge PR #39 once authorised. Two independent codex passes, all findings confirmed against the code and fixed; the second pass found a blocker inside the first pass's fix, so a third pass over the starvation fix is available and has not been run
   - C5: make behavioral_safety a real signal. Critical forbidden-action probes as a hard gate, predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective, and reviewer models used to discover probes rather than to grade candidates. CHG-019 makes this buildable, because behavioral_safety_cases_pass is already declared by PROMPT_POLICY_CHANGE and a declared id can now gate
   - C6: the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation. It needs objectives that discriminate, which is C5
   - C7: rewrite main's history to strip session URLs. The authorisation, method and limits are recorded in the task path below; do not summarise them away
