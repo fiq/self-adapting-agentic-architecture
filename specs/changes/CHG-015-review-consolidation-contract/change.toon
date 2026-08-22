@@ -13,7 +13,7 @@ change:
 deltas:
   - op: ADDED
     capability: review-and-consolidation-contract
-    requirement: The operating contract states that reviews may fan out, that implementation agents may not share a file, and that consolidation is deduplicate, adjudicate, verify then apply serially.
+    requirement: The operating contract states that reviews may fan out because they share no mutable state while their conclusions may still contradict, that implementation agents may not share a file, and that consolidation is deduplicate, adjudicate, verify then apply serially.
     scenarios:
       - id: S1
         when: the repository contract is checked
@@ -21,8 +21,10 @@ deltas:
         and:
           - deleting any one control fails the check and names it
       - id: S2
-        when: a project is generated from the framework template
-        then: its required-section list includes independent review and consolidation, stated generally rather than with this project's examples
+        when: the framework template is checked
+        then: its required-section list includes independent review and consolidation with the same load-bearing controls, stated generally rather than with this project's examples
+        and:
+          - deleting a control from the template fails the check and names it, so a generated project cannot silently inherit a weakened rule
       - id: S3
         when: an agent consults the knowledge graph about review practice
         then: PAT-003 records the pattern with the concrete incidents that produced it, and links to PAT-002 for reviewer session hygiene and LRN-001 for recovering a review believed lost
@@ -32,7 +34,7 @@ acceptance:
     test_id: repo-contract/agents-review-consolidation-controls
     layer: contract
   - scenario: S2
-    test_id: manual/agents-template-required-sections
+    test_id: repo-contract/agents-template-required-sections
     layer: contract
   - scenario: S3
     test_id: repo-contract/knowledge-pat-003-resolves
@@ -51,6 +53,12 @@ tasks:
   - id: T4
     slice: record PAT-003 with the incidents that produced it
     status: completed
+  - id: T5
+    slice: correct the premise after independent review; reviews share no mutable state so findings combine additively, but conclusions contradict routinely and that is what consolidation adjudicates
+    status: completed
+  - id: T6
+    slice: guard every load-bearing control in both the project section and the framework template, naming the scenario test_id on failure
+    status: completed
 
 non_goals:
   - automating reviewer dispatch or consolidation
@@ -58,5 +66,6 @@ non_goals:
   - anything touching the deterministic decision boundary
 
 risks:
+  - read-only is asserted rather than enforced. Nothing mechanically stops a reviewer being handed write tools, and if that happens it mutates the diff the other reviewers are reading and additivity stops holding silently. The contract states it as an invariant to enforce; making it checkable is not in this change
   - a contract that says reviews may fan out could be read as licence to spawn reviewers freely; the cost is consolidation, which is serial and falls on the lead, so the section says consolidation is the work rather than the reviewing
   - PAT-003 is proposed rather than canonical because it generalises from one day's incidents and was written by the actor involved in them
