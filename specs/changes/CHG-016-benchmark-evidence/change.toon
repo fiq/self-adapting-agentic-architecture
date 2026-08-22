@@ -67,5 +67,7 @@ non_goals:
   - population, ranking or selection across several benchmarked candidates
 
 risks:
+  - the objective now varies but its decision authority is narrow. An independent review traced the arithmetic: the other four objectives total 0.7975 against a 0.80 threshold, so cost_latency_budget only flips PROMOTE to DISCARD when its score falls below 0.0125, meaning a candidate must exceed its budget roughly eightyfold. Discrimination is real but nearly vestigial until the other objectives stop being constant
+  - a misconfigured budget was silently absorbed rather than rejected: budgetScore skips a benchmark with no matching budget, so an unpaired or misspelled name left the objective at 1.0 and the candidate promoted as though measured. Now rejected before the loop starts
   - the only benchmark class that ships, WorkflowGraphBenchmark, is a fixed microbenchmark of SAAA's own domain code rather than of the candidate under evaluation, so cost_latency_budget can now vary but still measures something a caller must choose and interpret deliberately; a badly chosen --benchmark/--benchmark-budget pair is easy to configure meaninglessly
   - JMH runs in-process inside the CLI's own JVM with forks=0, so a benchmark with side effects or excessive iterations could slow or destabilize a saaa-evolve run; this is unchanged from JmhBenchmarkRunner's existing integration-tested behaviour, just newly reachable from the CLI

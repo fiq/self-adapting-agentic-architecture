@@ -407,8 +407,14 @@ Dependencies point inward: `cli` and `adapters` may reach `deterministic`,
 also the composition root, so it is the only layer allowed to depend on both
 port-implementing layers, `adapters` and `benchmarks`, in order to wire a
 chosen `BenchmarkRunner` implementation into `EvolveRunner`; `adapters` and
-`benchmarks` do not depend on each other. Gradle enforces all of it, so a
-violation is a compile error rather than a review comment.
+`benchmarks` do not depend on each other.
+
+Two different things enforce that, and neither covers the other. Gradle enforces
+the declared module edges, so importing a type your module does not depend on is
+a compile error. `check-architecture-boundaries` scans source text for provider
+and benchmark imports, so a forbidden import inside an allowed edge fails the
+check. Adding a new Gradle edge — declaring `:adapters -> :benchmarks`, say —
+would satisfy both and is caught by review, not by tooling.
 
 ```text
 cli -> deterministic -> domain
