@@ -88,10 +88,29 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         return evidence.checks().stream().noneMatch(check -> check.status() == CheckStatus.TIMED_OUT);
     }
 
+    /**
+     * A benchmark definition whose include pattern matches more than one benchmark yields evidence
+     * named {@code definition:fully.qualified.Benchmark}, so an exact lookup misses every result and
+     * the objective silently stays at 1.0 for a run the caller believed it had budgeted. The declared
+     * budget therefore applies to the definition and to every result derived from it, and because
+     * {@code budgetScore} keeps the worst ratio, the slowest matched benchmark is the one that gates.
+     */
+    private Double budgetFor(String evidenceName) {
+        Double exact = config.benchmarkBudgets().get(evidenceName);
+        if (exact != null) {
+            return exact;
+        }
+        // The appended suffix is a Java fully-qualified name and therefore contains no colon, so
+        // the last colon is always the separator. Splitting on the first would mangle a definition
+        // name that itself contains one, and silently miss its budget — the bug this exists to fix.
+        int separator = evidenceName.lastIndexOf(BenchmarkRunner.DERIVED_NAME_SEPARATOR);
+        return separator <= 0 ? null : config.benchmarkBudgets().get(evidenceName.substring(0, separator));
+    }
+
     private double budgetScore(List<BenchmarkEvidence> benchmarks) {
         double worst = 1.0;
         for (BenchmarkEvidence benchmark : benchmarks) {
-            Double budget = config.benchmarkBudgets().get(benchmark.name());
+            Double budget = budgetFor(benchmark.name());
             if (budget == null || benchmark.value() <= 0.0) {
                 continue;
             }
