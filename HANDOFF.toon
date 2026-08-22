@@ -20,6 +20,48 @@ next_actions:
   - then the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation
   - consider recording engine-routing defaults alongside the session policy in MODEL_ROUTING_POLICY.md, as proposed rather than canonical, with revisit triggers, and worded so it cannot be read as the automatic routing Q-010 and Q-011 defer
 
+task_path:
+  rule: one merged PR per chunk. Merge before starting the next chunk that touches the same files, because HANDOFF.toon and the scorer are the recurring conflict surfaces and a branch left open across another merge needs a hand-resolved rebase
+  chunks:
+    - id: C1
+      work: merge PR #32, CHG-014
+      state: open, all checks green at 3acdf5f, two codex rounds addressed
+      blocks: C2
+      parallel_with: C3, C4
+      note: a third read-only pass on this head is cheap insurance; the previous two each found something real
+    - id: C2
+      work: CHG-002 T4c, migrate MutationEvaluationLoop from Mutation onto MutationContract and thread it through FitnessScorer and PhenotypeBridgeScorer
+      depends_on: C1
+      blocks: C5
+      conflicts_with: C5
+      note: changes the FitnessScorer port signature, so it touches every implementor. This is the only work left before RISK-002 can close. Not parallelisable with anything else touching the scorer
+    - id: C3
+      work: wire the benchmarks module so cost_latency_budget has an evidence source
+      depends_on: none
+      parallel_with: C1, C2, C4
+      files: modules/cli/build.gradle.kts, EvolveRunner
+      note: disjoint from the scorer, so it can run beside C2. budgetScore already varies and is only starved of input, so this is the cheapest route to an objective that discriminates
+    - id: C4
+      work: record engine-routing defaults in MODEL_ROUTING_POLICY.md as proposed, with revisit triggers, worded so it cannot be read as the automatic routing Q-010 and Q-011 defer
+      depends_on: none
+      parallel_with: C1, C2, C3
+      files: .agents/coordination/MODEL_ROUTING_POLICY.md, check-repo-contract
+      note: adding a fifth policy section means extending the guard, which is what makes the defaults load-bearing rather than prose
+    - id: C5
+      work: behavioral_safety as a real signal, critical forbidden-action probes as a hard gate and predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective
+      depends_on: C2
+      conflicts_with: C2
+      note: keys off the already-declared behavioral_safety_cases_pass evidence id, which only becomes reachable once the wired path carries a contract
+    - id: C6
+      work: the population slice with ranking
+      depends_on: C3, C5
+      note: ADR-0002 names it as the missing Layer-1 foundation. Ranking needs at least one objective that discriminates between eligible candidates, which is what C3 and C5 deliver
+  parallelisation:
+    safe_now: C3 and C4 can be worked beside C1 because they touch disjoint files
+    never: two agents on PhenotypeFitnessScorer or on HANDOFF.toon at once; the merge cost exceeds the parallelism
+    routing: reviews and read-heavy audits go to an external engine on a separate budget; spec authorship, merge decisions and anything touching the deterministic boundary stay with the lead
+  review_evidence: every independent pass today found something the previous reviewer and the lead both missed, twice in the lead's own work. Do not treat one clean review on a branch as strong evidence
+
 active_assumptions:
   - ACP command configuration is local process selection, not automatic complexity or ethics routing
   - AgentHarnessMutationProposer receives retrieval as advisory context and deterministic policies remain the only approval authority
