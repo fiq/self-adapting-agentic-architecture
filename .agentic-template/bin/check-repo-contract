@@ -274,6 +274,33 @@ def split_markdown_sections(text):
         sections[heading] = "\n".join(body)
     return sections
 
+def check_review_consolidation_contract(errors):
+    path = ROOT / "AGENTS.md"
+    if not path.exists():
+        # REQUIRED_FILES already fails on absence.
+        return
+    sections = split_markdown_sections(path.read_text())
+    section = "Independent review and consolidation"
+    if section not in sections:
+        errors.append(f"AGENTS.md is missing section '## {section}'")
+        return
+    compact = compact_whitespace(sections[section])
+    required = [
+        "Reviews are read-only",
+        "Implementation agents must not share a file",
+        "different briefs",
+        "deduplicate overlapping findings",
+        "adjudicate contradictions rather than averaging them",
+        "verify every finding against the code",
+        "apply the resulting fixes serially",
+        "Passing checks are not a review",
+    ]
+    missing = [phrase for phrase in required if compact_whitespace(phrase) not in compact]
+    if missing:
+        errors.append(
+            f"AGENTS.md section '## {section}' is missing controls: " + "; ".join(missing)
+        )
+
 def check_model_routing_policy(errors):
     path = ROOT / ".agents/coordination/MODEL_ROUTING_POLICY.md"
     if not path.exists():
@@ -399,6 +426,7 @@ def main():
     )
     check_context_store(errors)
     check_model_routing_policy(errors)
+    check_review_consolidation_contract(errors)
     for skill in REQUIRED_SKILLS:
         skill_path = ROOT / ".agents/skills" / skill / "SKILL.md"
         if not skill_path.exists():

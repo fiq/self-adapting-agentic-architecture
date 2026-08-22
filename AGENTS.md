@@ -268,6 +268,25 @@ explicit adapter choices: no automatic provider selection, fallback or retry
 may weaken deterministic validation, fitness, promotion, audit or privacy
 constraints.
 
+## Independent review and consolidation
+
+Reviews are read-only, so several reviewers may run on one change at once;
+findings are additive and cannot conflict. Implementation agents must not share
+a file. Prefer giving reviewers the same change with different briefs over
+giving more reviewers the same brief.
+
+Consolidating the findings is the work, not the reviewing:
+
+- deduplicate overlapping findings;
+- adjudicate contradictions rather than averaging them;
+- verify every finding against the code before acting on it, including findings
+  you expect to be right;
+- apply the resulting fixes serially, in one place.
+
+A single clean review is not strong evidence. Passing checks are not a review.
+Do not merge on green CI alone, and do not treat a reviewer's confidence as
+evidence. See `PAT-003`.
+
 ## Communication rules
 
 Put the most important conclusion first. Use concise sections, short
