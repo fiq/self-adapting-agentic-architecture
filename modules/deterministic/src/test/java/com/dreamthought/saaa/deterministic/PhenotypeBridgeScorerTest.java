@@ -219,4 +219,27 @@ final class PhenotypeBridgeScorerTest {
                         || key.equals(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical()));
     }
 
+    /**
+     * CHG-016. A multi-result benchmark definition renames its evidence, so an exact-name budget
+     * lookup would skip every result and leave cost_latency_budget at 1.0 for a run the caller
+     * believed it had budgeted.
+     */
+    @Test
+    void appliesADefinitionsBudgetToEveryResultDerivedFromIt() {
+        var scorer = new PhenotypeBridgeScorer(
+                candidate -> new RealizationSummary(1, 8),
+                new ScoringConfig(Set.of("publish-guard"), 80, Map.of("publish", 10.0)));
+
+        var result = scorer.score(CANDIDATE, new EvaluationEvidence(
+                List.of(passed("build", "ok"), passed("publish-guard", "ok")),
+                List.of(
+                        BenchmarkEvidence.measurement("publish:com.example.FastBenchmark", 5.0, "ms"),
+                        BenchmarkEvidence.measurement("publish:com.example.SlowBenchmark", 40.0, "ms")),
+                Instant.parse("2026-07-28T00:00:00Z")));
+
+        assertThat(result.objectives())
+                .as("the worst matched result gates: 10/40 = 0.25, not the unbudgeted 1.0")
+                .containsEntry("subject.objective.cost_latency_budget", 0.25);
+    }
+
 }

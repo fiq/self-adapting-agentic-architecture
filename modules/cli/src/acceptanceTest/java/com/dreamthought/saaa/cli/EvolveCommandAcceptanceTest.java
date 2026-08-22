@@ -588,7 +588,13 @@ final class EvolveCommandAcceptanceTest {
                 {"not requested with --benchmark",
                         "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "typo=1.0"},
                 {"must be a positive finite number",
-                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=0"}}) {
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=0"},
+                {"must be a positive finite number",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=-1"},
+                {"must be a positive finite number",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=NaN"},
+                {"must be a positive finite number",
+                        "--benchmark", "publish=.*Workflow.*", "--benchmark-budget", "publish=Infinity"}}) {
             var err = new java.io.StringWriter();
             var command = new CommandLine(new MutationLoopCli());
             command.setErr(new java.io.PrintWriter(err, true));
@@ -601,7 +607,10 @@ final class EvolveCommandAcceptanceTest {
             assertThat(exitCode).as("%s", (Object) arguments).isNotZero();
             assertThat(err.toString()).contains(flagsAndExpectation[0]);
             assertThat(Files.exists(target.resolve("journal.md")))
-                    .as("a rejected configuration must not have started a run")
+                    .as("no verdict was journalled")
+                    .isFalse();
+            assertThat(Files.exists(target.resolve(".saaa/candidates")))
+                    .as("rejection happens before any candidate is created, so no run began")
                     .isFalse();
         }
     }
