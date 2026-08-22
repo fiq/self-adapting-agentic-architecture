@@ -1,10 +1,10 @@
 session:
-  updated: 2026-08-16
-  status: chg_011_ready_for_review
+  updated: 2026-08-22
+  status: chg_011_review_findings_addressed
   branch: feat/chg-011-harness-runtime
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-011-harness-runtime
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-chg-011-acceptance
   head: origin/main at 62bd112
-  head_note: CHG-011 adds the first `saaa sa` session state machine and line-oriented client; conformance, freshly executed unit suites, component, integration and readiness gates pass.
+  head_note: CHG-011 adds the first `saaa sa` session state machine and line-oriented client. An independent codex review found the S1 and S4 acceptance mappings could not fail; both are now backed by a recorded proposer-resolution spy.
   dirty: true
   pushed: false
 
@@ -14,7 +14,8 @@ goal:
   interlude: ACP is transport interoperability only; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
 
 next_actions:
-  - obtain independent review, then open a PR for the bounded CHG-011 interactive-session slice
+  - decide whether the two remaining SaCommand robustness findings are fixed here or deferred: the three-limit whitespace split swallows surplus behaviour-case tokens into one case name, and `handle` catches only IllegalArgumentException and IllegalStateException so any other exception from EvolveRunner terminates the session
+  - open a separate change plus a RISK- entry for unscrubbed mutation summary and patch content, which affects `saaa-evolve`, `saaa-mcp` and `saaa sa` equally and predates this branch
   - keep MCP as the agent-host integration surface while `saaa sa` is the primary interactive user experience
 
 active_assumptions:
@@ -38,6 +39,11 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-22 nix develop --command gradle :cli:acceptanceTest --tests com.dreamthought.saaa.cli.SaCommandAcceptanceTest --rerun-tasks --no-daemon: pass, 5 tests
+  - 2026-08-22 mutation check: hardcoding the session default route in SaCommand.evolve failed only passesTheExplicitlySelectedRouteRatherThanTheSessionDefaultToTheLoop, after which SaCommand was restored byte-identical to HEAD
+  - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass; repo contract, profile, handoff, knowledge, changes, architecture boundaries and glossary all OK
+  - 2026-08-22 nix develop --command .agentic-template/bin/project check-changes: pass
+  - 2026-08-22 git diff --check: clean
   - 2026-08-16 nix develop --command gradle :domain:test :deterministic:test :adapters:test :cli:test --rerun-tasks --no-daemon: pass; 15 tasks executed, no cached unit-suite claim
   - 2026-08-16 nix develop --command .agentic-template/bin/project component-test: pass
   - 2026-08-16 nix develop --command .agentic-template/bin/project integration-test: pass
@@ -55,6 +61,16 @@ tests_run:
   - nix develop --command .agentic-template/bin/project ready: pass, 16 pass and 1 not applicable
 
 review:
+  - actor: codex-cli 0.146.0, independent read-only `codex exec` over main...befea79
+    result: REQUEST CHANGES; the blocking finding is addressed on this branch and the rest are triaged
+    posted: https://github.com/fiq/self-adapting-agentic-architecture/pull/29#issuecomment-5378168554
+    addressed:
+      - S4's mapped test selected `fixture`, already the session default because ProposerProfileRegistry is a LinkedHashMap with fixture inserted first, so an implementation ignoring route selection would still have passed; a new acceptance test selects the non-default `openai-compatible` profile and asserts the recorded resolution
+      - S1's mapped test asserted transcript text only; it now also asserts that inspecting status, capabilities and skills resolves no agent-backed proposer
+      - the new route test was mutation-checked: hardcoding the session default in SaCommand made it, and only it, fail
+    triaged_not_addressed:
+      - unscrubbed mutation summary and patch content in candidate TOON and ConsoleReporter output is real but predates this branch; EvolveCommand already pairs the same EvolveRunner and ConsoleReporter, so `sa` adds a caller rather than a regression
+      - unbounded input size ahead of the quadratic LCS in DiffLineBudgetMutationValidator is inherited from the evolve path
   - lead: two-pass bounded CHG-011 review
     result: no remaining findings
     addressed:

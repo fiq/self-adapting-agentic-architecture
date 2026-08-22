@@ -50,6 +50,9 @@ acceptance:
   - scenario: S4
     test_id: cli/SaCommandAcceptanceTest.evolvesTheSelectedHarnessWorkflowThroughTheExistingLoop
     layer: acceptance
+  - scenario: S4
+    test_id: cli/SaCommandAcceptanceTest.passesTheExplicitlySelectedRouteRatherThanTheSessionDefaultToTheLoop
+    layer: acceptance
   - scenario: S5
     test_id: cli/SaCommandAcceptanceTest.evolvesTheSelectedCodeTargetThroughTheExistingLoop
     layer: acceptance
