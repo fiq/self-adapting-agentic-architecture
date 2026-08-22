@@ -2,9 +2,14 @@ package com.dreamthought.saaa.cli;
 
 import com.dreamthought.saaa.adapters.evolve.EvolveRunRequest;
 import com.dreamthought.saaa.adapters.evolve.EvolveRunner;
+import com.dreamthought.saaa.benchmarks.JmhBenchmarkRunner;
+import com.dreamthought.saaa.deterministic.BenchmarkRunner;
 import java.io.PrintWriter;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import com.dreamthought.saaa.domain.RetrievalMode;
 import picocli.CommandLine.Command;
@@ -44,15 +49,32 @@ public final class EvolveCommand implements Callable<Integer> {
             description = "Mutation goal used to retrieve evidence before proposal.")
     private String task;
 
+    @Option(names = "--benchmark",
+            description = "Benchmark to measure: name=JMH include-regex, resolved against classes in "
+                    + ":benchmarks. Repeatable. With none given, cost_latency_budget stays at its 1.0 "
+                    + "starting point.")
+    private Map<String, String> benchmarks = new LinkedHashMap<>();
+
+    @Option(names = "--benchmark-budget",
+            description = "Benchmark name to its budget in the benchmark's own unit, scored by "
+                    + "cost_latency_budget as worst budget/measured over the run's benchmarks. Repeatable.")
+    private Map<String, Double> benchmarkBudgets = new LinkedHashMap<>();
+
     @Spec
     private CommandSpec spec;
 
     @Override
     public Integer call() {
         PrintWriter out = spec.commandLine().getOut();
-        var result = new EvolveRunner().run(
+        BenchmarkRunner benchmarkRunner = benchmarks.isEmpty()
+                ? candidate -> List.of()
+                : new JmhBenchmarkRunner(benchmarks.entrySet().stream()
+                        .map(entry -> new JmhBenchmarkRunner.BenchmarkDefinition(entry.getKey(), entry.getValue()))
+                        .toList());
+        var result = new EvolveRunner(benchmarkRunner).run(
                 new EvolveRunRequest(
-                        targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task),
+                        targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task,
+                        Optional.empty(), benchmarkBudgets),
                 new ConsoleReporter(out));
         out.printf("  journal    %s%n", result.journalPath());
         out.flush();
