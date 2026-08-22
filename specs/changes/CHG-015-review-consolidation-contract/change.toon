@@ -25,6 +25,11 @@ deltas:
         then: its required-section list includes independent review and consolidation with the same load-bearing controls, stated generally rather than with this project's examples
         and:
           - deleting a control from the template fails the check and names it, so a generated project cannot silently inherit a weakened rule
+      - id: S5
+        when: a commit on the current branch carries a session URL, session identifier, token or other credential-shaped string in its message
+        then: the repository contract check fails and names the commit
+        and:
+          - the check is scoped to commits not yet on the integration branch, so it governs new work rather than failing on history that predates it
       - id: S4
         when: the repository contract is checked
         then: AGENTS.md carries a rebase timing section requiring a rebase as soon as anything else merges, naming HANDOFF.toon as the guaranteed conflict surface and requiring a rebase before recording anything that references the integration branch
@@ -40,6 +45,9 @@ acceptance:
     layer: contract
   - scenario: S2
     test_id: repo-contract/agents-template-required-sections
+    layer: contract
+  - scenario: S5
+    test_id: repo-contract/commit-message-hygiene
     layer: contract
   - scenario: S4
     test_id: repo-contract/agents-rebase-timing-controls
@@ -63,6 +71,9 @@ tasks:
     status: completed
   - id: T5
     slice: correct the premise after independent review; reviews share no mutable state so findings combine additively, but conclusions contradict routinely and that is what consolidation adjudicates
+    status: completed
+  - id: T8
+    slice: forbid credential-shaped strings in commit messages and guard it, after 79 commits on public main were found carrying session URLs
     status: completed
   - id: T7
     slice: record rebase timing in the contract and the framework template, after three stale-branch incidents in one session

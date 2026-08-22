@@ -4,6 +4,8 @@ import os
 import subprocess
 import sys
 
+import re
+
 ROOT = Path.cwd()
 
 REQUIRED_FILES = [
@@ -328,6 +330,44 @@ REVIEW_CONSOLIDATION_CONTROLS = [
     ),
 ]
 
+# Credential-shaped strings that must never enter a commit message. Scoped to
+# commits on this branch and not on the integration branch, so the check governs
+# new work rather than failing on history that predates it.
+COMMIT_MESSAGE_FORBIDDEN = [
+    (r"claude\.ai/code/session_[A-Za-z0-9]+", "a Claude session URL"),
+    (r"session_[A-Za-z0-9]{20,}", "a session identifier"),
+    (r"sk-[A-Za-z0-9_-]{20,}", "an API key"),
+    (r"gh[pousr]_[A-Za-z0-9]{20,}", "a GitHub token"),
+    (r"(?i)authorization:\s*bearer\s+\S+", "a bearer credential"),
+]
+
+def check_commit_messages(errors):
+    import subprocess
+    try:
+        base = subprocess.run(
+            ["git", "merge-base", "HEAD", "origin/main"],
+            cwd=ROOT, capture_output=True, text=True, timeout=30)
+        if base.returncode != 0:
+            return
+        log = subprocess.run(
+            ["git", "log", f"{base.stdout.strip()}..HEAD", "--format=%H%x00%B%x00"],
+            cwd=ROOT, capture_output=True, text=True, timeout=30)
+        if log.returncode != 0:
+            return
+    except Exception:
+        # Never let an unavailable git turn into a silent pass claim.
+        errors.append("check_commit_messages could not inspect git history")
+        return
+    entries = [e for e in log.stdout.split("\x00") if e.strip()]
+    for i in range(0, len(entries) - 1, 2):
+        sha, body = entries[i].strip()[:9], entries[i + 1]
+        for pattern, label in COMMIT_MESSAGE_FORBIDDEN:
+            if re.search(pattern, body):
+                errors.append(
+                    f"commit {sha} message contains {label}; a public commit message "
+                    "cannot be redacted after the fact"
+                )
+
 def check_review_consolidation_contract(errors):
     for test_id, relative, section, phrases in REVIEW_CONSOLIDATION_CONTROLS:
         path = ROOT / relative
@@ -473,6 +513,7 @@ def main():
     check_context_store(errors)
     check_model_routing_policy(errors)
     check_review_consolidation_contract(errors)
+    check_commit_messages(errors)
     for skill in REQUIRED_SKILLS:
         skill_path = ROOT / ".agents/skills" / skill / "SKILL.md"
         if not skill_path.exists():

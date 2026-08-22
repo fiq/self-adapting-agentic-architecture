@@ -332,6 +332,19 @@ actions, active assumptions and decisions, blocking questions, known risks,
 files changed, tests run, branch/worktree/commit state, team or model fallback
 state where relevant, and knowledge consulted/proposals/no-record rationale.
 
+## Commit message hygiene
+
+Never put a session URL, session identifier, API key, token or any other
+credential-shaped string in a commit message. This repository is public, and a
+commit message cannot be redacted after the fact: rewriting history leaves the
+original commits fetchable by SHA on the host, visible in pull request views, and
+present in every existing clone and fork.
+
+Attribution trailers naming a tool or a co-author are fine. Anything that
+identifies a specific session or grants access to one is not.
+
+`check-repo-contract` fails when a commit on the current branch carries one.
+
 ## Git provenance
 
 Use real commit author and committer dates. Do not set `GIT_AUTHOR_DATE`,
