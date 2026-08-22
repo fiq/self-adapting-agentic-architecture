@@ -304,7 +304,10 @@ write tools mutates the change the others are reading, and additivity silently
 stops holding.
 
 Implementation agents must not share a file. Prefer giving reviewers the same
-change with different briefs over giving more reviewers the same brief.
+change with different briefs over giving more reviewers the same brief, and aim
+each brief at a region the previous passes did not examine. Repeated passes over
+the same surface converge and stop finding things; a pass aimed somewhere new
+does not.
 
 Consolidating the findings is the work, not the reviewing:
 

@@ -43,6 +43,29 @@ spec fidelity, test strength, documentation accuracy. Identical briefs mostly
 return the same findings twice and add deduplication cost. PR #15 used two
 differing briefs and they found disjoint problems.
 
+## Aim each brief somewhere the last one did not look
+
+CHG-016 took three independent passes, and each found something the previous had
+missed. The pattern was not diminishing returns, it was coverage:
+
+| Pass | Brief | Found |
+|---|---|---|
+| 1 | CLI wiring and flags | benchmark flags silently invalidated, leaving the objective at 1.0 |
+| 2 | the fix and its tests | the fix missed the multi-result case; the test asserted only a zero budget; absent journal proved nothing |
+| 3 | the deterministic layer, untouched by 1 and 2 | the scorer-side consequence neither earlier pass had looked at |
+
+Each defect sat in a region the previous brief did not cover. Three passes over
+the same surface would likely have agreed with each other and found none of them.
+
+So the useful variable is where a brief points, not how many passes run. When
+deciding whether another review is worth it, ask what region is still unexamined;
+if the answer is none, stop.
+
+This is one change's evidence. It is consistent with PR #15, where an
+architecture and security brief and a Java maintainability brief found disjoint
+problems, but two instances is not a law. Treat it as a heuristic for choosing
+briefs, not as a rule requiring a fixed number of passes.
+
 ## Consolidation is the work
 
 1. **Deduplicate.** Two Flex sessions on CHG-011 both raised the state diagram.

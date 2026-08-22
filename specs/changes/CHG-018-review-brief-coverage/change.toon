@@ -1,0 +1,50 @@
+change:
+  id: CHG-018
+  title: Aim each review brief at ground the previous passes did not examine
+  status: proposed
+  intent: Sharpen the existing different-briefs rule with the coverage reason CHG-016 demonstrated, so a decision about another review pass is made on unexamined region rather than on count.
+  audience_level: developer
+  relates_to:
+    - PAT-003
+    - ARCH-001
+
+deltas:
+  - op: MODIFIED
+    capability: review-and-consolidation-contract
+    requirement: The contract directs each review brief at a region the previous passes did not examine, and PAT-003 records the evidence and the stopping condition.
+    scenarios:
+      - id: S1
+        when: the repository contract is checked
+        then: the independent review section requires aiming each brief at a region the previous passes did not examine
+        and:
+          - deleting that clause fails the check and names it
+      - id: S2
+        when: an agent decides whether another review pass is worth running
+        then: PAT-003 gives the stopping condition, that the question is which region is still unexamined and not how many passes have run
+        and:
+          - it records the evidence as one change plus one corroborating instance, not as a law
+
+acceptance:
+  - scenario: S1
+    test_id: repo-contract/agents-review-consolidation-controls
+    layer: contract
+  - scenario: S2
+    test_id: repo-contract/knowledge-pat-003-resolves
+    layer: contract
+
+tasks:
+  - id: T1
+    slice: sharpen the existing AGENTS.md clause rather than adding a section, and guard it
+    status: completed
+  - id: T2
+    slice: record the CHG-016 evidence table and the stopping condition in PAT-003
+    status: completed
+
+non_goals:
+  - requiring a fixed number of review passes
+  - adding a new section for a rule that already has a home
+  - promoting PAT-003 to canonical on two instances
+
+risks:
+  - two instances is not a law, and a heuristic stated in a guarded contract reads more settled than the evidence warrants. PAT-003 states the evidence base explicitly next to the claim
+  - a stopping condition phrased as "no unexamined region remains" can be satisfied by asserting none remains. It is a prompt for judgement, not a test
