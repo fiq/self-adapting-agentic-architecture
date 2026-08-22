@@ -2,6 +2,7 @@ package com.dreamthought.saaa.adapters.evolve;
 
 import com.dreamthought.saaa.deterministic.MutationContractValidator;
 import com.dreamthought.saaa.deterministic.MutationOperatorPolicy;
+import com.dreamthought.saaa.domain.FitnessSignalId;
 import com.dreamthought.saaa.domain.MutationContract;
 import com.dreamthought.saaa.domain.MutationOperatorType;
 import com.dreamthought.saaa.domain.MutationTarget;
@@ -40,6 +41,21 @@ public final class OperatorContracts {
             throw new IllegalArgumentException(
                     "operator " + operatorWireName + " requires a search posture, which has no options yet. "
                             + "Use an operator that does not, or declare the contract another way.");
+        }
+
+        // Reject a non-canonical id here rather than at scoring. FitnessSignalId requires lower
+        // snake_case because the id becomes a subject.invariant audit key, so a hyphenated id would
+        // otherwise be accepted, pass contract validation, create a candidate, and only then throw
+        // part-way through a run.
+        for (String id : extraRequiredEvidence) {
+            try {
+                FitnessSignalId.invariant(id);
+            } catch (IllegalArgumentException rejected) {
+                throw new IllegalArgumentException(
+                        "required evidence id " + id + " must be lower snake_case, because it is "
+                                + "recorded as a subject.invariant audit key and must name a check "
+                                + "of exactly that name", rejected);
+            }
         }
 
         var requiredEvidence = new LinkedHashSet<>(defaults.requiredEvidence());
