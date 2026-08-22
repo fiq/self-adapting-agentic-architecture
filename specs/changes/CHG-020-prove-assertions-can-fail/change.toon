@@ -37,9 +37,8 @@ acceptance:
     layer: contract
     note: covered by check-knowledge, which fails when a relates_to reference does not resolve; it does not check the entry's content
   - scenario: S3
-    test_id: manual/agents-template-testing-section
+    test_id: repo-contract/agents-template-testing-section
     layer: contract
-    note: not guarded. The template control checks the review-consolidation section only, so deleting this sentence from the template passes. Recorded as a gap rather than claimed as coverage
 
 tasks:
   - id: T1
@@ -51,7 +50,7 @@ tasks:
   - id: T3
     slice: carry the general form into the framework template
     status: completed
-    note: unguarded. Extending the template control to cover more than the review-consolidation section is its own change; claiming coverage here would repeat the defect this rule exists to prevent
+    note: guarded by its own control, so deleting the sentence from the template fails the check and names it
 
 non_goals:
   - mutating every test, or tooling to automate mutation
@@ -60,7 +59,6 @@ non_goals:
 
 risks:
   - the guard checks prose presence only. Nothing in it can observe that a mutation was run, so the rule relies on the same honesty as the rest of the contract, and the guard must not be described as enforcing the practice
-  - the template half is unguarded, so a generated project can silently lose the sentence. Recorded rather than hidden
   - a rule requiring proof can be satisfied by claiming the proof. Nothing checks that a mutation was actually run, and the guard only checks the rule is written down. It relies on the same honesty the rest of the contract does
   - mutating an assertion is cheap for a unit test and expensive for a slow acceptance test, so the rule could push work toward tests that are easy to mutate rather than tests that matter. It is scoped to new or changed assertions that will be cited as evidence
   - PAT-004 is proposed rather than canonical: one day's incidents, recorded by the actor who wrote four of them
