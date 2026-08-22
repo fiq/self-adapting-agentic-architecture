@@ -274,6 +274,19 @@ decisions:
       - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/evolve/EvolveRunnerTest.java
       - modules/adapters/src/test/java/com/dreamthought/saaa/adapters/evolve/AgentHarnessMutationProposerTest.java
     consequence_if_changed: a different composition seam must preserve proposal-only semantics and deterministic candidate authority
+  - id: interactive_harness_session_control_plane
+    decision: `saaa sa` is the primary interactive SAAA client; it keeps explicit target and registered proposer-route selection in a deterministic session state, while MCP remains the agent-host integration surface
+    reason:
+      - users need an SAAA-owned control-plane experience rather than a one-shot command or a provider-owned agent shell
+      - explicit target and route choices are inspectable without making an automatic routing or approval policy
+      - both workflow and code targets can reuse the existing bounded whole-file realization and deterministic evaluation path
+    confidence: medium
+    status: experimental
+    validation:
+      - specs/changes/CHG-011-interactive-harness-runtime/change.toon
+      - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/HarnessSessionStateMachine.java
+      - modules/cli/src/acceptanceTest/java/com/dreamthought/saaa/cli/SaCommandAcceptanceTest.java
+    consequence_if_changed: a networked, durable or provider-owned session implementation must preserve explicit selections and deterministic candidate authority before replacing this local client
 
 unknowns:
   - id: Q-001
