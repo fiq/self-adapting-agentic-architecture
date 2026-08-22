@@ -91,8 +91,10 @@ public final class SaCommand implements Callable<Integer> {
                 case "quit", "close" -> renderStatus(session.close());
                 default -> output.println("error unknown command: " + parts[0]);
             }
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            output.println("error " + exception.getMessage());
+        } catch (RuntimeException exception) {
+            // A failed command reports and returns to the prompt; only EOF or an explicit close
+            // ends the session.
+            output.println("error " + describe(exception));
         }
     }
 
@@ -124,14 +126,20 @@ public final class SaCommand implements Callable<Integer> {
 
     private void evolve(HarnessSessionStateMachine session, String[] parts) {
         if (parts.length != 3) {
-            throw new IllegalArgumentException("usage: evolve <workflow-file> <behaviour-case>");
+            throw new IllegalArgumentException("usage: evolve <workflow-file> <behaviour-case>...");
         }
         var target = session.snapshot().target()
                 .orElseThrow(() -> new IllegalStateException("select a target before evolve"));
+        List<String> behaviourCases = List.of(parts[2].split("\\s+"));
         var result = evolveRunner.run(new EvolveRunRequest(
-                target.folder(), session.snapshot().route(), parts[1], List.of(parts[2]),
+                target.folder(), session.snapshot().route(), parts[1], behaviourCases,
                 DEFAULT_MAX_LINES, RetrievalMode.NONE, DEFAULT_TASK), new ConsoleReporter(output));
         output.println("session decision " + result.fitnessResult().decision());
+    }
+
+    private static String describe(RuntimeException exception) {
+        String message = exception.getMessage();
+        return message == null || message.isBlank() ? exception.getClass().getSimpleName() : message;
     }
 
     private void renderStatus(HarnessSessionSnapshot snapshot) {
@@ -158,6 +166,6 @@ public final class SaCommand implements Callable<Integer> {
         output.println("commands: status, capabilities, skills, target, route, evolve, quit");
         output.println("target <HARNESS_WORKFLOW|CODE> <folder>");
         output.println("route <profile>");
-        output.println("evolve <workflow-file> <behaviour-case>");
+        output.println("evolve <workflow-file> <behaviour-case>...");
     }
 }

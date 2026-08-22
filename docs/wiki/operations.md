@@ -107,6 +107,11 @@ evolve Example.java code-check
 quit
 ```
 
+`evolve <workflow-file> <behaviour-case>...` takes one or more behaviour cases;
+each whitespace-separated name is run as its own declared check rather than
+being folded into a single case name. A failing command prints an `error` line
+and returns to the prompt, so one bad run does not end the session.
+
 `HARNESS_WORKFLOW` and `CODE` both use the existing whole-file realization
 path, isolated worktree, behaviour checks, and deterministic decision. Route
 selection is explicit operator configuration, not automatic model routing;

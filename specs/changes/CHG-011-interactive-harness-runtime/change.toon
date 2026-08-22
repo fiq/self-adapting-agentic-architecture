@@ -36,6 +36,12 @@ deltas:
       - id: S5
         when: an operator selects a CODE target and invokes evolve with a declared behaviour case
         then: the same deterministic loop evaluates the bounded whole-file change while the session reports CODE as the explicit target kind
+      - id: S6
+        when: an operator invokes evolve with more than one declared behaviour case
+        then: each whitespace-separated name is dispatched as its own declared check rather than being folded into a single case name
+      - id: S7
+        when: a dispatched evolve fails with an exception the session does not model
+        then: the failure is reported as an error and the session stays active for further commands
 
 acceptance:
   - scenario: S1
@@ -56,6 +62,12 @@ acceptance:
   - scenario: S5
     test_id: cli/SaCommandAcceptanceTest.evolvesTheSelectedCodeTargetThroughTheExistingLoop
     layer: acceptance
+  - scenario: S6
+    test_id: cli/SaCommandAcceptanceTest.acceptsEveryDeclaredBehaviourCaseRatherThanFoldingThemIntoOneName
+    layer: acceptance
+  - scenario: S7
+    test_id: cli/SaCommandAcceptanceTest.keepsTheSessionAliveWhenTheLoopFailsWithAnUncheckedException
+    layer: acceptance
 
 tasks:
   - id: T1
@@ -72,6 +84,9 @@ tasks:
     status: completed
   - id: T5
     slice: reconcile active follow-ups, documentation and handoff evidence
+    status: completed
+  - id: T6
+    slice: accept every declared behaviour case and keep the session alive across an unchecked loop failure
     status: completed
 
 non_goals:

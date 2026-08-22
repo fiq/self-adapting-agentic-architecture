@@ -142,6 +142,11 @@ evolve workflow.txt workflow-check
 quit
 ```
 
+`evolve` accepts more than one behaviour case: every whitespace-separated name
+after the workflow file becomes its own declared check. A command that fails is
+reported as an `error` line and the session stays open; only end-of-input or an
+explicit `quit` closes it.
+
 `target CODE /path/to/repository` uses the same current whole-file realization
 and declared behaviour checks. It is useful for bounded experiments, but does
 not claim AST-aware or language-specific code mutation. `route` exposes the
