@@ -57,8 +57,17 @@ task_path:
       depends_on: C3, C5
       note: ADR-0002 names it as the missing Layer-1 foundation. Ranking needs at least one objective that discriminates between eligible candidates, which is what C3 and C5 deliver
   parallelisation:
-    safe_now: C3 and C4 can be worked beside C1 because they touch disjoint files
-    never: two agents on PhenotypeFitnessScorer or on HANDOFF.toon at once; the merge cost exceeds the parallelism
+    implementation:
+      safe_now: C3 and C4 can be worked beside C1 because they touch disjoint files
+      never: two implementation agents on PhenotypeFitnessScorer or on HANDOFF.toon at once; the merge cost exceeds the parallelism
+    review:
+      rule: reviews are read-only and never conflict, so several reviewers on one diff is safe and is the one place fan-out reliably pays. The file-collision rule above applies to implementation agents only
+      prefer_different_briefs: give reviewers the same diff and different briefs, for example architecture and security, spec fidelity, test strength, documentation accuracy. Identical briefs mostly return the same findings twice and add deduplication cost. PR #15 used two differing briefs and they found disjoint problems
+      consolidation_is_the_work:
+        - deduplicate overlapping findings; the two Flex sessions on CHG-011 both raised the state diagram
+        - adjudicate contradictions rather than averaging them. Codex called the CHG-012 guard a blocker and GLM correctly downgraded it to a nit because design.md already disclosed the guard as presence-only. Getting that wrong put a wrong blocker on a PR that then had to be retracted
+        - verify every finding against the code before acting. Codex was right about the audit-key collision and wrong about the CHG-012 guard; only checking distinguished them
+        - apply the fixes serially in one place. That step must not be parallel
     routing: reviews and read-heavy audits go to an external engine on a separate budget; spec authorship, merge decisions and anything touching the deterministic boundary stay with the lead
   review_evidence: every independent pass today found something the previous reviewer and the lead both missed, twice in the lead's own work. Do not treat one clean review on a branch as strong evidence
 
