@@ -300,6 +300,18 @@ REVIEW_CONSOLIDATION_CONTROLS = [
         ],
     ),
     (
+        "agents-rebase-timing-controls",
+        "AGENTS.md",
+        "Rebase timing",
+        [
+            "as soon as anything else merges, not when you come to merge it",
+            "is the guaranteed conflict surface",
+            "Rebase before recording anything that references state from",
+            "force-with-lease",
+            "never on",
+        ],
+    ),
+    (
         "agents-template-required-sections",
         ".agentic-template/templates/AGENTS_TEMPLATE.md",
         "Required sections",

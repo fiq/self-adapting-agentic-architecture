@@ -25,6 +25,11 @@ deltas:
         then: its required-section list includes independent review and consolidation with the same load-bearing controls, stated generally rather than with this project's examples
         and:
           - deleting a control from the template fails the check and names it, so a generated project cannot silently inherit a weakened rule
+      - id: S4
+        when: the repository contract is checked
+        then: AGENTS.md carries a rebase timing section requiring a rebase as soon as anything else merges, naming HANDOFF.toon as the guaranteed conflict surface and requiring a rebase before recording anything that references the integration branch
+        and:
+          - deleting a control fails the check and names it
       - id: S3
         when: an agent consults the knowledge graph about review practice
         then: PAT-003 records the pattern with the concrete incidents that produced it, and links to PAT-002 for reviewer session hygiene and LRN-001 for recovering a review believed lost
@@ -35,6 +40,9 @@ acceptance:
     layer: contract
   - scenario: S2
     test_id: repo-contract/agents-template-required-sections
+    layer: contract
+  - scenario: S4
+    test_id: repo-contract/agents-rebase-timing-controls
     layer: contract
   - scenario: S3
     test_id: repo-contract/knowledge-pat-003-resolves
@@ -55,6 +63,9 @@ tasks:
     status: completed
   - id: T5
     slice: correct the premise after independent review; reviews share no mutable state so findings combine additively, but conclusions contradict routinely and that is what consolidation adjudicates
+    status: completed
+  - id: T7
+    slice: record rebase timing in the contract and the framework template, after three stale-branch incidents in one session
     status: completed
   - id: T6
     slice: guard every load-bearing control in both the project section and the framework template, naming the scenario test_id on failure

@@ -59,6 +59,11 @@ A generated project AGENTS.md must include:
     wiki, ADRs and specs must be updated.
 14. **Branch and PR workflow** — one issue per branch, PR requirements, merge
     ownership.
+14b. **Rebase timing** — rebase onto the integration branch as soon as anything
+    else merges, not at merge time; deferring only moves the conflict to the
+    moment you are trying to land, and a branch that is behind records state
+    that no longer exists. Rebase before recording anything that references the
+    integration branch. Force-push only with lease, only on a feature branch.
 15. **Worktree rules** — one mutable worktree per agent, no dirty removal,
     cleanup verification.
 16. **Agent roles and ownership** — persistent roles, subagents, delegation,
