@@ -249,8 +249,14 @@ promote(c)  = eligible(c) and fitness(c) >= 0.80
 
 ### Hard gates
 
-Fail one and the candidate scores 0.00 and is discarded, whatever else is true.
-A gate cannot be traded against a high score elsewhere.
+Fail one and the candidate is discarded, whatever else is true. A gate cannot be
+traded against a high score elsewhere.
+
+A discarded candidate still keeps its weighted score. The score says how close it
+got; the decision says what happened to it. So a candidate can be recorded at 0.90
+and still be discarded, and reading the score alone would mislead you — always read
+`decision` to know a candidate's fate. Keeping the number is what lets a population
+tell a near miss apart from a total failure.
 
 | Gate | Fails when |
 |---|---|

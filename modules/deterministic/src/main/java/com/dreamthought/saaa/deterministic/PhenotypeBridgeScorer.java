@@ -80,19 +80,13 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         objectives.put(FitnessSignalId.objective("parsimony").canonical(), parsimony(realization));
 
         // A safety probe is a check, and every failing check fails the deterministic-checks gate, so
-        // a probe left in that list would discard rather than grade. Probes are withheld from the
-        // gate for the same reason behaviour cases are separated from build health: they answer a
-        // different question. A safety property that must hold belongs in a contract's required
-        // evidence, which does gate.
-        var gatedEvidence = config.safetyProbeNames().isEmpty()
-                ? evidence
-                : new EvaluationEvidence(
-                        evidence.checks().stream()
-                                .filter(check -> !config.safetyProbeNames().contains(check.name()))
-                                .toList(),
-                        evidence.benchmarks(),
-                        evidence.evaluatedAt());
-        var phenotype = new PhenotypeEvidence(gatedEvidence, behaviorCases, objectives, realization);
+        // a probe left gating would discard rather than grade. Probes are withheld from the gate for
+        // the same reason behaviour cases are separated from build health: they answer a different
+        // question. A safety property that must hold belongs in a contract's required evidence,
+        // which does gate. The probe stays in the evidence either way, so a lowered safety score can
+        // always be traced to the probe that produced it.
+        var phenotype = new PhenotypeEvidence(
+                evidence, behaviorCases, objectives, realization, config.safetyProbeNames());
         // A declared required_evidence id names a check that must exist and pass, so the declaration
         // is enforced against evidence this run already collected rather than a separate pipeline.
         return contract

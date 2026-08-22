@@ -95,6 +95,12 @@ final class EvolveContractAcceptanceTest {
         String transcript = runDeclaring(target, java.util.List.of("unit_tests_pass"),
                 "--safety-probe", "no_network_call");
 
+        // Asserting PROMOTE alone would stay green if the probe never ran at all: an absent probe
+        // scores safety 0.0 exactly as a failing one does, and still clears the threshold. Only the
+        // evidence line separates the two, so that is what this asserts.
+        assertThat(transcript)
+                .as("the probe ran, failed, and is visible in the evidence rather than filtered out")
+                .contains("check      no_network_call          FAILED");
         assertThat(transcript)
                 .as("a failing probe grades; only declared required evidence gates")
                 .contains("PROMOTE");

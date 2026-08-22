@@ -11,6 +11,7 @@ relates_to:
   - CON-001
 risks:
   - RISK-002
+  - RISK-007
 evidence:
   - docs/superpowers/specs/2026-08-04-fitness-taxonomy-and-steered-evolution-design.md
   - docs/wiki/glossary.md
@@ -80,3 +81,24 @@ classpath.
 Comparison is lexicographic: worst class violated decides first, magnitude
 within the class breaks ties. Magnitudes are never summed across classes, so no
 exchange rate between incommensurable violations is ever needed.
+
+## The score is a magnitude, never a verdict
+
+A discarded candidate keeps its weighted score. The score answers "how good were
+the objectives"; `decision` answers "did it pass its gates". Collapsing a failure
+to `0.0` threw away the near-miss information this contract calls useful, and made
+one field mean two things.
+
+The consequence is a rule for every consumer: **never order, rank or select on
+score alone.** Partition by decision first and let magnitude break ties inside a
+partition, exactly as the lexicographic rule above already requires across severity
+classes. `LineageNoveltyMemoryPolicy` is the worked example — it ordered on score
+alone, which after the change would have let a high-scoring failure take a champion
+slot from a genuine promotion.
+
+Carrying score and semantics as separate fields is what makes this rule necessary
+rather than automatic. The destination is a `FitnessScore` value type holding both
+together, so an ordering that ignores semantics becomes unrepresentable instead of
+merely forbidden. That needs a persistence migration and belongs with the
+population slice. `RISK-007` tracks the interim exposure: outcomes recorded before
+this change still carry the old meaning under the same field name.

@@ -4,7 +4,7 @@ session:
   branch: feat/chg-021-behavioural-safety-signal
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-021-safety
   head: origin/main at 45043b4
-  head_note: CHG-021 makes the fitness function discriminate: behavioral_safety scores declared probes, and a failed candidate keeps its magnitude instead of being zeroed, which is what a population needs to choose between failures. The promote decision is unchanged and still gated.
+  head_note: CHG-021 makes the fitness function discriminate: behavioral_safety scores declared probes, and a failed candidate keeps its magnitude instead of being zeroed, which is what a population needs to choose between failures. The promote decision is unchanged and still gated. Independent codex review raised three blockers, all confirmed against the code and fixed on the branch before merge: memory selection ranked on score alone, withheld probes were deleted from the recorded evidence rather than only from the gate, and the acceptance test could not fail if the probe never ran.
   dirty: false
   pushed: true
 
@@ -43,6 +43,9 @@ observed_engine_matrix:
 
 tests_run:
   - 2026-08-23 all six source sets pass with --rerun-tasks; project check 7/7
+  - 2026-08-23 CHG-021 review fixes: 25 tasks executed with --rerun-tasks, project check 7/7, check-changes OK
+  - 2026-08-23 mutation-verified each new assertion by breaking the mechanism it claims to test. Removing probe scheduling from EvolveRunner fails the acceptance test; restoring the evidence deletion in PhenotypeBridgeScorer fails aWithheldProbeStaysInTheRecordedEvidence; reverting LineageNoveltyMemoryPolicy to score-only ordering fails aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion. Each was restored immediately after
+  - 2026-08-23 the CLI transcript cannot detect the evidence deletion at all, because ConsoleReporter prints checks the journal cached before scoring. That is why S7 is asserted on the scored result rather than end to end, and it is the reason the original acceptance assertion looked sufficient and was not
   - 2026-08-23 mutation, absent probe counts as passed: 3 failures, restored
   - 2026-08-23 mutation, probes left in the deterministic-checks gate: 3 failures, restored
   - 2026-08-23 mutation, last-wins on a repeated probe name: initially 0 failures, which exposed a fail-wins rule with no assertion behind it; a test was added with the failing entry first and the mutation then failed 3

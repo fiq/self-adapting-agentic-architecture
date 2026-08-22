@@ -66,6 +66,26 @@ final class LineageNoveltyMemoryPolicyTest {
                 .containsExactly("champion", "parent");
     }
 
+    /**
+     * CHG-021 let a discarded candidate keep its weighted magnitude, so score alone stopped meaning
+     * "better". A champion slot must go to a candidate that actually passed its gates: a
+     * high-scoring failure is a near miss worth remembering, never the best thing found so far.
+     */
+    @Test
+    void aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion() {
+        var policy = new LineageNoveltyMemoryPolicy(
+                new EvolutionaryMemoryPolicyConfig("fixture-policy-v1", 1, 0, 0, 0, 0, 1));
+        var nearMiss = record("near-miss", "base-0", "commit-near-miss", 0.95, "hard-gate",
+                CheckStatus.FAILED, Instant.parse("2026-01-02T00:00:00Z"), List.of());
+        var promoted = record("promoted", "base-0", "commit-promoted", 0.85, "tests",
+                CheckStatus.PASSED, Instant.parse("2026-01-01T00:00:00Z"), List.of());
+
+        assertThat(policy.select(List.of(nearMiss, promoted)))
+                .extracting(EvolutionaryMemoryRecord::candidateId)
+                .as("decision outranks score, so the promoted candidate is the champion")
+                .containsExactly("promoted");
+    }
+
     private static EvolutionaryMemoryRecord record(
             String id, String baseline, String commit, double fitness, String checkName, CheckStatus checkStatus,
             Instant evaluatedAt, List<String> evidence) {

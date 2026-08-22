@@ -43,5 +43,10 @@ Among candidates that promote, the sum still has little range: `reliability`
 remains pinned at `1.0`, and with a single run it can only observe a timeout.
 Reclaiming it needs repeated execution and is its own slice.
 
+The range among promoted candidates is not zero, though. A probe grades rather than
+gates, so two candidates that both clear every gate can promote with different
+scores when one fails a probe and the other does not. That is a narrow 0.10 band on
+one objective, not a fix for the pinned weight.
+
 The discrimination this change delivers is mostly among *failures*, which is where
 a population chooses. That is the useful half first, not the whole problem.

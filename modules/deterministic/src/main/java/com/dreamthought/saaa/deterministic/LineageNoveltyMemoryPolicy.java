@@ -3,6 +3,7 @@ package com.dreamthought.saaa.deterministic;
 import com.dreamthought.saaa.domain.CheckStatus;
 import com.dreamthought.saaa.domain.EvolutionaryMemoryPolicyConfig;
 import com.dreamthought.saaa.domain.EvolutionaryMemoryRecord;
+import com.dreamthought.saaa.domain.FitnessDecision;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -19,8 +20,13 @@ import java.util.Map;
  * deterministic exploration reservoir. Recency only breaks otherwise equal choices.
  */
 public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolicy {
+    // Decision outranks score. A discarded candidate keeps its weighted magnitude, so ordering on
+    // score alone would let a high-scoring failure take a champion slot from a lower-scoring
+    // promotion. Score only ranks within one decision, never across the two.
     private static final Comparator<EvolutionaryMemoryRecord> BEST = Comparator
-            .comparingDouble(EvolutionaryMemoryRecord::aggregateFitness).reversed()
+            .comparingInt((EvolutionaryMemoryRecord record) ->
+                    record.decision() == FitnessDecision.PROMOTE ? 0 : 1)
+            .thenComparing(Comparator.comparingDouble(EvolutionaryMemoryRecord::aggregateFitness).reversed())
             .thenComparing(EvolutionaryMemoryRecord::evaluatedAt, Comparator.reverseOrder())
             .thenComparing(EvolutionaryMemoryRecord::candidateId);
     private final EvolutionaryMemoryPolicyConfig config;

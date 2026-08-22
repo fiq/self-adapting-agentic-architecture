@@ -92,6 +92,28 @@ final class BehaviouralSafetyScoreTest {
                 .containsEntry("subject.objective.behavioral_safety", 0.0);
     }
 
+    /**
+     * The probe is withheld from the gate, never from the record. Everything durable downstream —
+     * SQLite rows, ledger envelopes, evolutionary memory, MCP responses — is written from
+     * {@code result.evidence()}, so a probe dropped there could lower a score with nothing left to
+     * explain why. The CLI transcript cannot catch this: the console prints checks the journal
+     * cached before scoring, so it shows the probe whether or not the result kept it.
+     */
+    @Test
+    void aWithheldProbeStaysInTheRecordedEvidence() {
+        var result = score(Set.of("no_network_call"), failed("no_network_call", "opened a socket"));
+
+        assertThat(result.evidence().checks())
+                .as("the audit trail must be able to name the probe that lowered the score")
+                .anySatisfy(check -> {
+                    assertThat(check.name()).isEqualTo("no_network_call");
+                    assertThat(check.summary()).isEqualTo("opened a socket");
+                });
+        assertThat(result.decision())
+                .as("keeping the probe in the evidence must not let it reach the gate")
+                .isEqualTo(com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
+    }
+
     private static com.dreamthought.saaa.domain.FitnessResult score(
             Set<String> probes, CheckEvidence... checks) {
         var all = new java.util.ArrayList<CheckEvidence>(List.of(checks));

@@ -38,6 +38,17 @@ deltas:
       - id: S6
         when: a declared probe's script exists in the target
         then: it is executed alongside the behaviour cases, so the objective measures a result rather than an absence
+      - id: S7
+        when: a probe is withheld from the gate so that it grades
+        then: it remains in the recorded evidence, so the audit trail can name the probe that lowered the score
+        and:
+          - everything durable downstream is written from the scored result, so a probe dropped there would vanish from SQLite, the ledger, evolutionary memory and MCP
+          - withholding narrows the gate only, never the record
+      - id: S8
+        when: a discarded candidate records a higher score than a promoted one
+        then: evolutionary memory still ranks the promoted candidate above it
+        and:
+          - decision partitions the ordering and magnitude only breaks ties inside a partition, per CON-002
 
 acceptance:
   - scenario: S1
@@ -58,6 +69,12 @@ acceptance:
   - scenario: S6
     test_id: cli/EvolveContractAcceptanceTest.aFailingSafetyProbeLowersTheScoreWithoutDiscarding
     layer: acceptance
+  - scenario: S7
+    test_id: deterministic/BehaviouralSafetyScoreTest.aWithheldProbeStaysInTheRecordedEvidence
+    layer: unit
+  - scenario: S8
+    test_id: deterministic/LineageNoveltyMemoryPolicyTest.aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion
+    layer: unit
 
 tasks:
   - id: T1
@@ -75,6 +92,15 @@ tasks:
   - id: T5
     slice: correct the README, which described the objective as the literal 1.0 and did not mention that a failed candidate keeps its score
     status: completed
+  - id: T6
+    slice: keep withheld probes in the recorded evidence by narrowing the gate rather than deleting the check, so the audit trail survives
+    status: completed
+  - id: T7
+    slice: order evolutionary memory by decision before score, so a high-scoring failure cannot take a champion slot from a promotion
+    status: completed
+  - id: T8
+    slice: record the old/new discard-score semantics boundary as RISK-007 and the score-is-not-a-verdict rule in CON-002
+    status: completed
 
 non_goals:
   - ranking or population, which this unblocks but does not implement
@@ -83,6 +109,8 @@ non_goals:
 
 risks:
   - a discarded candidate can now record a score above the promotion threshold, which reads oddly in a journal or ledger until you know the decision is what promotes. The README says so explicitly
+  - outcomes recorded before this change stored 0.0 for every discard, so the same field carries two meanings either side of it. Decision-first ordering keeps old and new records from competing except among failures, and RISK-007 tracks the residue
+  - any future consumer that ranks on score alone reintroduces the champion-slot defect. CON-002 now states the rule; nothing mechanically enforces it until the FitnessScore type exists
   - scores are stored rounded to two decimals, so two near misses differing by less than 0.005 record identically. Tolerable when comparing a handful of candidates, and it needs revisiting before a population large enough for that to collide
   - reliability remains pinned at 1.0 for any eligible candidate, so task_success and parsimony carry the discrimination among promotable candidates. The floor problem is narrowed, not solved
   - probes are executed as ordinary checks in the candidate worktree, so a probe script can do anything a behaviour case can. They are graded rather than gated, which means a compromised probe lowers a score rather than forcing a promotion

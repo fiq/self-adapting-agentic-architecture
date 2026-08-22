@@ -219,7 +219,7 @@ final class GoldenCorpus {
 
     /**
      * Every objective at 1.0 but the realization is empty. Weighted sum would be 1.00 but the
-     * non-empty-realization gate fires first and pins the score to 0.00. Guards the {@code
+     * non-empty-realization gate fires first and fails, so the candidate is discarded while keeping its weighted score. Guards the {@code
      * CHG-003 T10} case where parsimony 1.0 would have promoted a no-op candidate.
      */
     private static Entry overPromotionRescuedByNonEmptyRealizationGate() {

@@ -18,9 +18,10 @@ import java.util.stream.Stream;
 /**
  * Deterministic, evidence-only scoring of a candidate phenotype.
  *
- * <p>Hard gates run first and are not tradeable: a candidate that fails one scores {@code 0.0} and
- * is discarded no matter how good its weighted objectives look. Only after every gate passes do the
- * weighted objectives decide promotion.
+ * <p>Hard gates run first and are not tradeable: a candidate that fails one is discarded no matter
+ * how good its weighted objectives look. It still keeps its weighted score, so a near miss stays
+ * distinguishable from a total failure in the record; the gate decides fate, the score only ranks.
+ * Read {@code decision} to know what happened to a candidate, never the score alone.
  */
 public final class PhenotypeFitnessScorer {
     public static final double PROMOTION_THRESHOLD = 0.80;
@@ -87,7 +88,10 @@ public final class PhenotypeFitnessScorer {
         Objects.requireNonNull(requiredEvidence, "requiredEvidence");
 
         // Absent evidence is not passing evidence: an empty check or behavior-case list fails its gate.
-        boolean checksPassed = !phenotype.evidence().checks().isEmpty() && phenotype.evidence().checksPassed();
+        // Checks withheld for grading are excluded here and only here; they stay in the recorded evidence.
+        var gatingChecks = phenotype.gatingChecks();
+        boolean checksPassed = !gatingChecks.isEmpty()
+                && gatingChecks.stream().allMatch(check -> check.status() == CheckStatus.PASSED);
         boolean behaviorCasesPassed = !phenotype.behaviorCases().isEmpty()
                 && phenotype.behaviorCases().stream().allMatch(c -> c.status() == CheckStatus.PASSED);
         List<FitnessObjective> objectiveSet = contract == null
