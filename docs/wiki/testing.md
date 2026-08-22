@@ -20,7 +20,8 @@ The testing approach is boundary-in and ATDD-aligned.
   `PhenotypeFitnessScorerTest.contractlessScoringPreservesTheExistingGates` holds
   the wired two-argument path, and
   `PhenotypeBridgeScorerTest.theWiredBridgeStillUsesTheContractlessEntryPoint`
-  asserts that the wired port still cannot carry a contract, so `RISK-002`'s
+  drives the bridge and asserts that the wired port carries no contract parameter
+  and that no declared-evidence gate can appear in its audit map, so `RISK-002`'s
   remaining gap fails a test rather than being assumed.
 - Component tests drive the mutation loop with fake model, Git, check and
   benchmark ports, and drive the CLI outside-in, including a WireMock-backed

@@ -181,6 +181,22 @@ final class PhenotypeFitnessScorerTest {
         assertThat(promoted.decision())
                 .as("a candidate clearing every structural gate still promotes without any contract")
                 .isEqualTo(PROMOTE);
+        assertThat(promoted.aggregateScore())
+                .as("the contractless weighted sum is unchanged")
+                .isEqualTo(1.00);
+        assertThat(promoted.objectives())
+                .as("the contractless audit map still carries exactly the five objectives and four gates")
+                .hasSize(9)
+                .containsKeys(
+                        "subject.objective.task_success",
+                        "subject.objective.reliability",
+                        "subject.objective.cost_latency_budget",
+                        "subject.objective.behavioral_safety",
+                        "subject.objective.parsimony",
+                        PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(),
+                        PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(),
+                        PhenotypeFitnessScorer.REQUIRED_OBJECTIVE_SCORES_GATE.canonical(),
+                        PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical());
 
         assertThat(scorer.score(candidate(), new PhenotypeEvidence(
                 new EvaluationEvidence(

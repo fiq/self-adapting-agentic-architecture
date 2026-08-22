@@ -5,6 +5,7 @@ import static com.dreamthought.saaa.domain.FitnessDecision.DISCARD;
 import static com.dreamthought.saaa.domain.FitnessDecision.PROMOTE;
 import static com.dreamthought.saaa.domain.MutationOperatorType.TARGETED_BEHAVIOR_CHANGE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Candidate;
@@ -103,8 +104,8 @@ final class ContractAwareFitnessTest {
                 .as("an undeclared failure cannot weaken a declared gate that passed")
                 .isEqualTo(PROMOTE);
         assertThat(result.objectives())
-                .as("it is still recorded, so the audit record shows what was observed")
-                .containsKey(FitnessSignalId.invariant("some_undeclared_probe").canonical());
+                .as("it is still recorded with its observed value, so the audit shows what happened")
+                .containsEntry(FitnessSignalId.invariant("some_undeclared_probe").canonical(), 0.0);
     }
 
     @Test
@@ -131,6 +132,39 @@ final class ContractAwareFitnessTest {
                 .anyMatch(key -> key.equals("subject.invariant.regression_case_added"));
         assertThat(result.decision())
                 .as("integrity is expressed as voiding, because no severity field exists")
+                .isEqualTo(DISCARD);
+    }
+
+    @Test
+    void evidenceCannotOverwriteAStructuralGateOutcome() {
+        // FitnessSignalId.invariant("deterministic_checks") is exactly DETERMINISTIC_CHECKS_GATE, so
+        // an evidence id of that name would land on the same audit key and could report a passing
+        // structural gate for a candidate whose checks failed.
+        var failedChecks = new EvaluationEvidence(
+                List.of(com.dreamthought.saaa.domain.CheckEvidence.failed("gradle-test", "a check failed")),
+                List.of(),
+                Instant.parse("2026-07-27T00:00:00Z"));
+
+        assertThatThrownBy(() -> scorer.score(candidate(),
+                new PhenotypeEvidence(failedChecks, behaviourCases(), perfectObjectiveScores(),
+                        new RealizationSummary(1, 8)),
+                contractDeclaring("regression_case_added"),
+                List.of(RequiredEvidenceResult.passed("deterministic_checks", "not really"))))
+                .as("an evidence id that collides with a structural gate is rejected, not merged")
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("deterministic_checks");
+    }
+
+    @Test
+    void aFailingResultIsNotMaskedByALaterPassingResult() {
+        var result = scorer.score(candidate(), cleanPhenotype(),
+                contractDeclaring("regression_case_added"),
+                List.of(
+                        RequiredEvidenceResult.failed("regression_case_added", "another said no"),
+                        RequiredEvidenceResult.passed("regression_case_added", "one runner said yes")));
+
+        assertThat(result.decision())
+                .as("fail wins regardless of the order the results arrive in")
                 .isEqualTo(DISCARD);
     }
 
