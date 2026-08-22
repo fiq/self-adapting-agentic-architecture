@@ -191,7 +191,7 @@ final class SaCommandAcceptanceTest {
         // The realization lives in the candidate ref, never in the operator's checkout: promotion
         // records refs/heads/candidate/* and performs no merge, so Example.java here stays "old".
         assertThat(Files.readString(target.resolve("Example.java")))
-                .as("promotion must not write back into the operator's working tree")
+                .as("promotion must not realize the mutation into the operator's copy of the target file")
                 .contains("return \"old\"");
         assertThat(candidateRefContent(repo, "code/Example.java"))
                 .as("the promoted candidate must contain the realized whole-file replacement")
