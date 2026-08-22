@@ -6,14 +6,14 @@ import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessObjective;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.FitnessSignalId;
+import com.dreamthought.saaa.domain.MutationContract;
+import com.dreamthought.saaa.domain.RequiredEvidenceResult;
 import java.util.LinkedHashMap;
 import java.util.List;
-import com.dreamthought.saaa.domain.RequiredEvidenceResult;
-import com.dreamthought.saaa.domain.MutationContract;
 import java.util.Map;
-import java.util.stream.Stream;
-import java.util.Set;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Deterministic, evidence-only scoring of a candidate phenotype.

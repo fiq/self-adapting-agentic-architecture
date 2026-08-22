@@ -197,6 +197,12 @@ final class PhenotypeFitnessScorerTest {
                         PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(),
                         PhenotypeFitnessScorer.REQUIRED_OBJECTIVE_SCORES_GATE.canonical(),
                         PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical());
+        assertThat(promoted.objectives())
+                .as("every gate on a promoting candidate records a pass, not merely a key")
+                .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 1.0)
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_BEHAVIOR_CASES_GATE.canonical(), 1.0)
+                .containsEntry(PhenotypeFitnessScorer.REQUIRED_OBJECTIVE_SCORES_GATE.canonical(), 1.0)
+                .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical(), 1.0);
 
         assertThat(scorer.score(candidate(), new PhenotypeEvidence(
                 new EvaluationEvidence(
