@@ -219,6 +219,29 @@ fallback only when the user explicitly authorises skipping the PR:
 - merge to `main` only after explicit user authorisation;
 - push `main` without force-pushing.
 
+## Rebase timing
+
+Rebase a branch onto `main` as soon as anything else merges, not when you come to
+merge it. Waiting does not avoid the conflict, it defers it to the moment you are
+trying to land and makes the branch's recorded state false in the meantime.
+
+`HANDOFF.toon` is the guaranteed conflict surface, because every branch rewrites
+the same session header. Two consequences follow:
+
+- Keep branch-local handoff edits to what the change actually needs until shortly
+  before merge. A handoff rewritten early will be rewritten again after the next
+  rebase.
+- Rebase before recording anything that references state from `main`, such as a
+  head sha, a task path, or another change's identifier. A record written against
+  a stale base has nowhere correct to attach.
+
+A branch that is behind is not merely inconvenient: its `head`, `next_actions`
+and status lines describe a `main` that no longer exists, and an agent resuming
+from it will act on that. Rebase, revalidate, then continue.
+
+Force-push only with `--force-with-lease`, only on a feature branch, never on
+`main`.
+
 ## Worktree rules
 
 Use one mutable worktree per agent under `.worktrees/`. Never remove a dirty
