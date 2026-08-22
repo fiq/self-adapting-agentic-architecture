@@ -37,7 +37,7 @@ deltas:
         when: an observed result is supplied for an id the contract did not declare
         then: it is recorded as an inert non-gate entry in the existing FitnessResult objectives map and cannot satisfy or weaken any declared gate
         and:
-          - no audit key is ever written twice: declared and undeclared ids are disjoint by construction, and an id colliding with a structural gate key is rejected outright rather than merged
+          - an id colliding with a structural gate key is rejected outright rather than merged, so evidence can never reach a structural gate's audit key. Declared and undeclared ids are written from disjoint partitions. Audit iteration order is not a guarantee: FitnessResult copies with Map.copyOf, so only the final value per key is observable
       - id: S6
         when: a candidate passes every declared required_evidence id but fails a structural fixed gate such as non-empty realization
         then: the candidate is still discarded on that structural gate
@@ -59,7 +59,7 @@ deltas:
         then: it still uses the contractless entry point, so a declared required_evidence id is still not enforced end to end
         and:
           - RISK-002 remains open until a later change migrates the wired path
-          - this pins the bridge's delegate call; it does not catch a rewire that swaps the scorer at EvolveRunner, which needs the migration's own component coverage
+          - this pins that the port carries no contract parameter and that no declared-evidence key reaches the bridge's audit map. It does not prove which overload the bridge calls, and would not catch a rewire that swaps the scorer at EvolveRunner
 
 acceptance:
   - scenario: S1
@@ -89,6 +89,9 @@ acceptance:
   - scenario: S10
     test_id: deterministic/ContractAwareFitnessTest.evidenceCannotOverwriteAStructuralGateOutcome
     layer: unit
+  - scenario: S10
+    test_id: deterministic/ContractAwareFitnessTest.aDeclaredIdCollidingWithAStructuralGateIsRejected
+    layer: unit
   - scenario: S9
     test_id: deterministic/PhenotypeBridgeScorerTest.theWiredBridgeStillUsesTheContractlessEntryPoint
     layer: unit
@@ -113,7 +116,7 @@ tasks:
     slice: read the contract's declared objective set for both the objective-presence gate and the weighting on the contract-aware path only, leaving the contractless path on DEFAULT_OBJECTIVES; reading one from the contract and the other from the global would become incoherent the moment the validator is relaxed
     status: completed
   - id: T6
-    slice: record undeclared results as inert non-gate entries written before gate outcomes, per S5
+    slice: record undeclared results as inert non-gate entries in the audit map, per S5, from a partition disjoint from the declared ids
     status: completed
   - id: T8
     slice: surface a failed declared-evidence gate's diagnostic in the decision record. FitnessResult carries only Map<String, Double>, so the reason a candidate was discarded cannot reach a reporter today; the diagnostic is required at the input boundary but has no output carrier

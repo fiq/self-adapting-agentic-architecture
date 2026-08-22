@@ -156,6 +156,16 @@ final class ContractAwareFitnessTest {
     }
 
     @Test
+    void aDeclaredIdCollidingWithAStructuralGateIsRejected() {
+        assertThatThrownBy(() -> scorer.score(candidate(), cleanPhenotype(),
+                contractDeclaring("non_empty_realization"),
+                List.of(RequiredEvidenceResult.passed("non_empty_realization", "declared, not observed"))))
+                .as("a contract cannot declare an id that owns a structural gate's audit key")
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("non_empty_realization");
+    }
+
+    @Test
     void aFailingResultIsNotMaskedByALaterPassingResult() {
         var result = scorer.score(candidate(), cleanPhenotype(),
                 contractDeclaring("regression_case_added"),

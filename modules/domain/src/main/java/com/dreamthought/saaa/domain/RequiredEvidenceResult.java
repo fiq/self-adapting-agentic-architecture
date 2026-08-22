@@ -8,8 +8,10 @@ package com.dreamthought.saaa.domain;
  * carries numbers for weighting; a declared evidence id needs a verdict and a reason, so it gets its
  * own type rather than being encoded as a score.
  *
- * <p>The diagnostic is required on both outcomes, so a discard can always say why and a pass records
- * what was actually observed rather than asserting success without evidence.
+ * <p>The diagnostic is required on both outcomes so that a caller supplying evidence must state what
+ * it observed rather than asserting an outcome bare. It does not currently reach the scored result:
+ * {@code FitnessResult} carries only {@code Map<String, Double>}, so a discard records 0.0 against
+ * the id and not the reason. Giving the discard reason an output carrier is CHG-014 task T8.
  */
 public record RequiredEvidenceResult(String evidenceId, boolean passed, String diagnostic) {
     public RequiredEvidenceResult {

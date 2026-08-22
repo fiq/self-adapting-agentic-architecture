@@ -49,10 +49,20 @@ Rules, each pinned by a scenario:
 - undeclared results are recorded as inert non-gate entries in the existing
   `FitnessResult.objectives` map and cannot satisfy or weaken a declared gate
   (S5). `FitnessResult` has no separate audit field, and this change does not add
-  one; writing them before gate outcomes preserves CON-002's rule that a gate
-  result can never be overwritten by evidence content;
-- a failing outcome's diagnostic is carried into the recorded discard (S2), so
-  the field is load-bearing rather than decorative;
+  one;
+- an evidence id whose canonical key collides with a structural gate key is
+  rejected rather than merged (S10). This is what preserves CON-002's rule that a
+  gate result cannot be overwritten by evidence content. Write order does not
+  preserve it: `FitnessResult` copies its map with `Map.copyOf`, which does not
+  retain insertion order, so ordering is not something a caller can observe or a
+  test can pin. What holds is the final value — structural gates are written
+  after the caller's measured scores, so a caller-forged structural key is
+  overwritten by the real gate outcome, and evidence ids can never reach those
+  keys at all;
+- a failing outcome records `0.0` against its id. Its diagnostic does **not**
+  reach the result: `FitnessResult` carries only `Map<String, Double>`. The field
+  is required at the input boundary so a caller supplying evidence must state what
+  it observed, and task T8 tracks giving the discard reason an output carrier;
 - declared-evidence gates are **additional to** the structural gates, never a
   replacement (S6). A candidate passing every declared id but producing an empty
   realization is still discarded.
@@ -70,9 +80,19 @@ write. S8 pins the contractless entry point's current behaviour; S9 pins that
 regression introduced while adding the new path is caught after the fact, or
 not at all.
 
-S9's limit is worth stating: it pins the bridge's delegate call, not the wiring.
-Swapping the scorer at `EvolveRunner` would not fail it. That belongs to the
-migration's own component coverage.
+S9's limits are worth stating precisely, because it is easy to claim more than it
+proves. It pins that the `FitnessScorer` port carries no contract parameter, so
+nothing outside the bridge can supply one, and it drives the bridge to confirm no
+declared-evidence key reaches the audit map.
+
+It does **not** prove which overload the bridge calls. A bridge that constructed
+an empty `MutationContract` internally and called the four-argument overload
+would behave identically and pass — but an empty contract declares no required
+evidence and therefore enforces nothing, so that case is irrelevant to RISK-002.
+The guarantee that matters is the port's: the loop cannot pass a contract.
+
+It also would not catch a rewire swapping a different `FitnessScorer` in at
+`EvolveRunner`. That belongs to the migration's own component coverage.
 
 ## Canonical emission
 
