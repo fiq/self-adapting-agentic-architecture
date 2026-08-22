@@ -1,0 +1,76 @@
+change:
+  id: CHG-012
+  title: Codify bounded model-session and multi-model efficiency
+  status: proposed
+  intent: Make source-referenced session reuse, explicit multi-model roles, bounded resource use and independent-review reset rules durable and repository-checked agent operating practice.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - ARCH-001
+    - PAT-002
+    - Q-010
+    - Q-011
+    - RISK-001
+
+deltas:
+  - op: ADDED
+    capability: bounded-model-session-efficiency
+    requirement: Agent operations reuse a provider session only for one stable objective, role and permission scope, with a source-referenced durable handoff.
+    scenarios:
+      - id: S1
+        when: a bounded task continues with the same objective, role and permission scope
+        then: it may retain one session identifier and uses compact source-referenced context rather than resending the repository
+        and:
+          - the repository, specification and handoff remain authoritative
+          - cache evidence is recorded only when the provider exposes it
+      - id: S2
+        when: the objective, role or permission scope changes, an independent review starts, a transport fails, or response reserve is exhausted
+        then: a fresh session is required and the reset reason is recorded
+        and:
+          - an independent reviewer does not inherit an implementer's unreviewed verdict
+      - id: S3
+        when: work is delegated across model classes
+        then: each invocation has an explicit role, bounded context packet and resource envelope
+        and:
+          - actual token, cache, latency and cost evidence is recorded when available
+          - unavailable telemetry is not estimated or invented
+      - id: S4
+        when: a model route is selected or a retry budget is exhausted
+        then: direct user selection wins and repeated blind retries stop after the bounded allowance
+        and:
+          - automatic provider routing remains deferred pending Q-010 evidence
+          - no route changes deterministic validation, fitness, promotion, audit or privacy constraints
+
+acceptance:
+  - scenario: S1
+    test_id: repo-contract/model-routing-policy-session-reuse-controls
+    layer: contract
+  - scenario: S2
+    test_id: repo-contract/model-routing-policy-session-reset-controls
+    layer: contract
+  - scenario: S3
+    test_id: repo-contract/model-routing-policy-multi-model-budget-controls
+    layer: contract
+  - scenario: S4
+    test_id: repo-contract/model-routing-policy-safety-links
+    layer: contract
+
+tasks:
+  - id: T1
+    slice: record session lifecycle, resource telemetry and multi-model roles in the coordination policy and AGENTS contract
+    status: completed
+  - id: T2
+    slice: link the durable pattern, profile and user-facing architecture/development guidance to the policy
+    status: completed
+  - id: T3
+    slice: make policy controls repository-checked and validate the structured proposal
+    status: completed
+
+non_goals:
+  - automatic runtime model/provider routing or cost optimisation
+  - provider price assumptions or hidden retry behavior
+  - replacing deterministic candidate authority with model judgement
+
+risks:
+  - a textual contract check protects presence and links, not empirical provider economics; Q-010 retains the measured-usage and ablation gate
+  - a retained session can carry stale conclusions; reset triggers and source revalidation reduce but do not eliminate that risk

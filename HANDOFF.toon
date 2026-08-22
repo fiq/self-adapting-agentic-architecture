@@ -1,29 +1,31 @@
 session:
   updated: 2026-08-22
-  status: chg_011_recovered_review_findings
-  branch: fix/chg-011-recovered-review-findings
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/fix-chg-011-recovered
-  head: origin/main at bee472b
-  head_note: CHG-011 merged as PR #29. A NeuralWatt Flex review from 2026-08-17 was recorded as incomplete because its verdict never reached the CLI event stream; the verdict was retained in the session and recovered with `opencode export`. Four of its five findings were still true on main and are fixed here.
+  status: chg_012_review_findings_addressed
+  branch: feat/chg-012-model-efficiency
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-011-harness-runtime
+  head: origin/main at a3e75c1
+  head_note: CHG-012 codifies bounded provider-session reuse and explicit multi-model operation without implementing automatic provider routing. Rebased onto a3e75c1 after CHG-011 and its recovered review findings merged.
   dirty: false
   pushed: true
 
 goal:
-  current: deliver the first SAAA-owned interactive harness runtime and `sa` session client
-  phase: chg_011_session_slice
-  interlude: ACP is transport interoperability only; SAAA retains resource policy, isolation, deterministic evaluation and promotion authority
+  current: codify session-efficient, budget-aware multi-model operating practice for the agentic loop
+  phase: chg_012_model_session_efficiency
+  interlude: automatic runtime routing remains deferred until Q-010's measured usage, price identity and ablation evidence exist
 
 next_actions:
   - close the second recovered Flex finding set: the evolve retrieval/task capability gap is now documented in design.md, but the session still cannot vary retrieval treatment
+  - the population slice, delivered together with a fitness function that discriminates; ADR-0002 names several candidates per generation with ranking as the missing Layer-1 foundation, and ranking is impossible while four of five objectives are constant and the weighted sum floors at 0.90 against a 0.80 threshold
   - implement CHG-013 so mutation summary and patch text are scrubbed at the durable and reporter boundaries; RISK-006 stays open until both are covered
-  - address the independent review of PR #30: its repository-contract guard checks only headings and identifiers, so every substantive model-routing control could be deleted while the check still passes
-  - keep MCP as the agent-host integration surface while `saaa sa` is the primary interactive user experience
+  - retain MCP as the agent-host integration surface while session efficiency remains an operating policy, not automatic SAAA routing
 
 active_assumptions:
   - ACP command configuration is local process selection, not automatic complexity or ethics routing
   - AgentHarnessMutationProposer receives retrieval as advisory context and deterministic policies remain the only approval authority
   - real OpenCode, Goose, Codex and Claude ACP interoperability remains opt-in until an installed command is available
   - the OpenCode timeout is environment/provider/configuration evidence, not proof that the ACP adapter is semantically incompatible
+  - provider cache metrics are useful efficiency telemetry only; absent usage or pricing is recorded as unavailable rather than estimated
+  - a retained provider session is valid only for one stable objective, role and data-permission scope; durable context remains source-referenced repository state
 
 observed_engine_matrix:
   - engine: OpenCode
@@ -40,9 +42,18 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-22 mutation check on the rewritten policy guard: deleting a substantive control while keeping all headings and identifiers, removing the reviewer-independence rule, and moving Q-010 out of its section each failed exactly one named check; the policy file was restored byte-identical afterwards
+  - 2026-08-22 mutation check on the new acceptance-layer validation: substituting `bogus-layer` failed check-changes with the allowed set named
+  - 2026-08-22 python3 -m py_compile on check-repo-contract and check-changes: pass
+  - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass
+  - 2026-08-17 GitHub Actions PR #30 fast: pass in 1m4s; full-readiness skipped as expected for pull_request under staged_ci_validation_profiles
   - 2026-08-22 nix develop --command gradle :cli:acceptanceTest --tests com.dreamthought.saaa.cli.SaCommandAcceptanceTest --rerun-tasks --no-daemon: pass, 7 tests
   - 2026-08-22 the CODE realization assertion was first written against the operator's checkout and failed, which is how the promotion boundary was confirmed rather than assumed
   - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass; the knowledge check caught a missing reviewed_at date and a PAT-002 reference that does not exist on main
+  - 2026-08-17 .agentic-template/bin/project check: pass; CHG-012 policy-presence contract, profile, handoff, knowledge, specs, architecture and glossary are green
+  - 2026-08-17 git diff --check: pass; no whitespace errors
+  - 2026-08-17 .agentic-template/bin/project check-changes: pass; CHG-012 structure and acceptance mappings valid
+  - 2026-08-17 .agentic-template/bin/project ready: blocked locally by sandbox Nix-daemon and Docker-socket permissions; privileged rerun warmed a changed Nix closure but did not reach a suite result, so PR CI remains the required full readiness evidence
   - 2026-08-22 nix develop --command gradle :domain:test :deterministic:test :adapters:test :cli:test :cli:acceptanceTest --rerun-tasks --no-daemon: pass
   - 2026-08-22 both robustness regressions were confirmed red before the fix and green after
   - 2026-08-22 nix develop --command gradle :cli:acceptanceTest --tests com.dreamthought.saaa.cli.SaCommandAcceptanceTest --rerun-tasks --no-daemon: pass, 5 tests
@@ -100,6 +111,43 @@ recovered_review:
     rejected_with_evidence:
       - the fifth finding asked the CODE acceptance test to assert that Example.java in the operator's checkout contains the realized change. Running that assertion proved the file still reads `return "old"`, which is the promotion boundary working as designed: realization happens in the isolated candidate worktree and promotion records refs/heads/candidate/* without merging. The test now asserts positively that the working tree is unmodified, and separately that the candidate ref contains the realization
     knowledge: LRN-001 records that a missing verdict is a transport hypothesis rather than a completed or failed review
+chg_012_review:
+  - actor: codex-cli 0.146.0, independent read-only pass
+    result: REQUEST CHANGES; its blocking finding was retracted after verification
+    retracted:
+      - it held that the repository-contract guard did not enforce the policy it claimed to guard. design.md already describes the guard as lightweight and presence-only, verifying that controls remain discoverable while human review judges sufficiency, so the guard did what it said. The correction is posted on PR #30
+  - actor: neuralwatt/kimi-k3 via opencode, session ses_fd7d60d1bffeliUItc3o9GR5Em
+    result: APPROVE WITH FIXES; all findings addressed
+    addressed:
+      - the four acceptance scenarios resolved to one check_model_routing_policy call emitting a single combined error, so no scenario had a check that could fail on its own. Each scenario now has section-scoped phrase assertions, verified by three mutations: deleting a substantive control while keeping every heading and identifier, removing the reviewer-independence rule, and moving Q-010 out of its owning section. Each mutation failed exactly one named check
+      - `layer: contract` was undocumented and unvalidated. The documented set in .agents/schemas/change.schema.md now lists every in-use value, and check-changes enforces it so the schema and the specs cannot drift apart again
+      - docs/wiki/architecture.md described retained provider sessions in the present tense as runtime behaviour. It now states plainly that AcpAgentHarness.run creates and closes a session per invocation and that runtime session retention is unimplemented
+      - the branch was stale against origin/main and conflicted in HANDOFF.toon and docs/wiki/architecture.md; it is rebased onto bee472b
+    not_addressed:
+      - the gitOutput test helper duplicates one in EvolveCommandAcceptanceTest. Reuse would need a shared test fixture; recorded per the second-occurrence policy rather than done
+model_sessions:
+  - purpose: independent read-only review of CHG-012 (PR #30)
+    engine: opencode 1.18.13
+    route: neuralwatt/kimi-k3
+    agent: plan
+    session_id: ses_fd7d60d1bffeliUItc3o9GR5Em
+    scope: read-only review of SAAA changes; a separate session is required for implementation or a second independent opinion
+    retained: yes; resumable via `opencode run -s ses_fd7d60d1bffeliUItc3o9GR5Em`
+    reset_reason: not reset; objective, role and permission scope are unchanged
+    telemetry: neuralwatt kimi-k3 is priced at 3.00 input, 15.00 output and 0.30 cache-read per million tokens; per-run token usage was not exposed by the CLI and is therefore not estimated
+  - purpose: independent read-only review of CHG-012 (PR #30), first pass
+    engine: codex-cli 0.146.0
+    route: default configured model
+    session_id: not retained; the run used --ephemeral
+    scope: read-only review
+    reset_reason: ephemeral by construction, so no session was retained
+    telemetry: usage not exposed by the CLI and not estimated
+  - purpose: independent review of CHG-011 (PR #29) on 2026-08-17
+    engine: opencode
+    route: neuralwatt flex
+    session_id: ses_ff314401bffefF9KLShxX0gBDw
+    scope: read-only review
+    note: the CLI event stream did not surface this session's terminal verdict, so the review was recorded as incomplete. The verdict was in fact retained in the session and was recovered later with `opencode export`. Session persistence is what made the recovery possible
 
 review:
   - actor: codex-cli 0.146.0, independent read-only `codex exec` over main...befea79
@@ -147,6 +195,9 @@ knowledge_consulted:
   - docs/acp-interoperability-walkthrough.md: durable observed-engine walkthrough
 
 completed:
+  - created CHG-012 to codify bounded provider-session reuse, source-referenced context packets, explicit role-based multi-model usage, budget telemetry, reset/escalation rules and reviewer independence without automatic routing
+  - strengthened AGENTS and `.agents/coordination/MODEL_ROUTING_POLICY.md`; a repository-contract check now requires its session, context/budget, multi-model and audit/safety controls plus Q-010/Q-011/ARCH-001/RISK-001 links
+  - added PAT-002, updated the profile and architecture/development/wiki guidance, and documented that unavailable provider usage/cost telemetry must not be invented
   - completed CHG-011 tasks T1-T5; full validation and two-pass lead review are ready for independent review
   - created CHG-011 with scenario-to-test mappings for a deterministic session lifecycle, catalog/route/target inspection, and governed workflow/code evolution
   - added provider-free `HarnessSessionStateMachine` plus session state/target domain vocabulary; closed sessions reject later mutations
@@ -299,6 +350,8 @@ completed:
 in_progress: []
 
 next:
+  - obtain independent PR review for CHG-012; its policy check proves discoverability, while Q-010 retains the empirical routing-economics gate
+  - obtain a completed independent reviewer verdict for CHG-011 PR #29 before merge; the OpenCode CLI event stream did not expose the completed Flex sessions' final text
   - design a measured `model-routing-change` slice only after proposer usage and provider budget evidence are available
   - decide how to transport `MutationContract` and typed required-evidence through the live loop before implementing contract-aware scoring (CHG-002 T4b, RISK-002)
   - decide what to do about `task_success`, `reliability`, `cost_latency_budget` and `behavioral_safety` all being constant for eligible candidates, which leaves `parsimony` as the only discriminating objective and makes the 0.80 threshold unreachable from below
@@ -314,6 +367,8 @@ next:
   - the population slice: evaluate several candidates per generation and rank them, calling `MutationEvaluationLoop.evaluate` N times
 
 decisions:
+  - id: bounded_model_session_efficiency
+    summary: provider sessions are disposable execution state reused only within one objective, role and permission scope; explicit route/budget/usage evidence and fresh independent-review sessions protect auditability without adding automatic routing
   - id: bounded_evolutionary_memory_archive
     summary: Git TOON envelopes are durable rebuild input, experiment SQLite is the current efficient ledger, the wiki is a non-authoritative projection and Neo4j is a policy-bounded working graph
   - id: subject_process_evolution_context
@@ -354,6 +409,8 @@ decisions:
 blocking_questions: []
 
 risks:
+  - CHG-012's textual contract check ensures the operating controls remain discoverable but cannot establish provider economics or quality; automatic routing remains blocked on Q-010's measured-usage, price-identity and ablation evidence
+  - retaining a provider session can carry stale conclusions; the policy requires a reset for objective, role, privacy, transport or response-reserve changes and for independent review
   - a check script chosen as the mutation target grades its own rewrite: `EvolveRunner` requires only that `--workflow-file` is a regular non-symlink file inside the target folder, so `--workflow-file workflow-check.sh --behaviour-case workflow-check` realizes the proposal into the script the candidate is then measured by. Found during the README evidence pass; not fixed there
   - the weighted objectives cannot currently reject anything through the wired bridge: `task_success` restates its own hard gate, `reliability` only drops when a check already failed, `cost_latency_budget` has no evidence source because `:cli` does not depend on `:benchmarks` and `EvolveRunner` supplies a constant empty benchmark list, and `behavioral_safety` is the literal `1.0`. The sum floors at 0.90 against a 0.80 threshold, so eligibility is the whole decision and the weights are inert scaffolding
   - reliability now uses structured `TIMED_OUT` evidence; legacy envelopes with only diagnostic summaries retain their historical status values but cannot reconstruct timeout semantics unless they were recorded as `TIMED_OUT`
@@ -443,6 +500,7 @@ fitness_taxonomy_step_1_files_changed:
   note: documentation only; no Java source was touched and no `hard_gate_*` identifier was renamed. `check-glossary` is a new standalone script wired into `project check` and its own `project` subcommand; `check-glossary` and CON-002 are the only new load-bearing artifacts, and the glossary/CON-002 fixes both landed as a follow-up commit on this branch rather than a rewrite
 
 files_changed:
+  - CHG-012: AGENTS.md, PROJECT_PROFILE.toon, .agents/coordination/MODEL_ROUTING_POLICY.md, .agents/knowledge/patterns/PAT-002-bounded-model-session-efficiency.md, .agentic-template/bin/check-repo-contract, docs/wiki/{architecture,development,index}.md, specs/changes/CHG-012-model-session-efficiency/** and HANDOFF.toon
   - .github/workflows/ci.yml
   - .github/workflows/repo-contract.yml (deleted)
   - HANDOFF.toon
@@ -730,6 +788,11 @@ fitness_functions:
 
 knowledge:
   consulted:
+    - SYS-001: local sequential mutation-evaluation system shape
+    - ARCH-001: deterministic approval boundary
+    - PAT-002: bounded provider-session reuse and multi-model operating practice
+    - Q-010: measured usage, price identity and ablation preconditions for automatic routing
+    - Q-011: hard ethical/provider constraints and auditable preferences remain future routing inputs
     - .agents/knowledge/index.md
     - .agents/knowledge/contracts/CON-002-fitness-naming-and-severity.md
     - .agents/knowledge/questions/Q-004-fitness-objectives.md
@@ -746,6 +809,8 @@ knowledge:
     - specs/changes/CHG-003-first-vertical-slice/change.toon
     - specs/changes/CHG-003-first-vertical-slice/design.md
   proposals:
+    - specs/changes/CHG-012-model-session-efficiency/change.toon
+    - .agents/knowledge/patterns/PAT-002-bounded-model-session-efficiency.md
     - specs/changes/CHG-005-local-hybrid-graphrag/change.toon
     - docs/decisions/0004-local-hybrid-graphrag-experiment.md
     - .agents/knowledge/decisions/ADR-0004-local-hybrid-graphrag-experiment.md
@@ -759,6 +824,8 @@ knowledge:
     - .agents/knowledge/questions/Q-009-quarkus-runtime-shell.md
     - .agents/knowledge/contracts/CON-002-fitness-naming-and-severity.md
   no_record: |
+    CHG-012 adds PAT-002 because the session/budget/multi-model practice is durable and cross-task. It does not add a new routing decision because automatic runtime routing remains explicitly deferred by Q-010 and Q-011.
+
     `T2/T2b` implement tasks already recorded in `CHG-004`; the durable record is the task status,
     the new adapter tests and this handoff rather than a new knowledge entry.
 
