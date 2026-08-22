@@ -7,6 +7,9 @@ import com.dreamthought.saaa.deterministic.BenchmarkRunner;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import com.dreamthought.saaa.domain.MutationContract;
+import com.dreamthought.saaa.adapters.evolve.OperatorContracts;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +63,19 @@ public final class EvolveCommand implements Callable<Integer> {
                     + "cost_latency_budget as worst budget/measured over the run's benchmarks. Repeatable.")
     private Map<String, Double> benchmarkBudgets = new LinkedHashMap<>();
 
+    @Option(names = "--operator",
+            description = "Declare a mutation contract for this run, by operator wire name such as "
+                    + "repair or simplify. The operator's own required evidence is always included, "
+                    + "and each id names a check that must exist and pass. With no --operator given "
+                    + "the run behaves exactly as before and declares nothing.")
+    private String operator;
+
+    @Option(names = "--required-evidence",
+            description = "Extra required evidence id to declare beyond the operator's own. "
+                    + "Repeatable. Lower snake_case, because it is recorded as a "
+                    + "subject.invariant.<id> audit key, and it must name a check that runs.")
+    private List<String> requiredEvidence = new ArrayList<>();
+
     @Spec
     private CommandSpec spec;
 
@@ -107,10 +123,16 @@ public final class EvolveCommand implements Callable<Integer> {
                 : new JmhBenchmarkRunner(benchmarks.entrySet().stream()
                         .map(entry -> new JmhBenchmarkRunner.BenchmarkDefinition(entry.getKey(), entry.getValue()))
                         .toList());
+        var contract = operator == null
+                ? Optional.<MutationContract>empty()
+                : Optional.of(OperatorContracts.declare(operator, requiredEvidence, workflowFile));
+        contract.ifPresent(declared -> out.printf("  contract   %s requires %s%n",
+                declared.operator().wireName(), String.join(", ", declared.requiredEvidence())));
+
         var result = new EvolveRunner(benchmarkRunner).run(
                 new EvolveRunRequest(
                         targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task,
-                        Optional.empty(), benchmarkBudgets),
+                        Optional.empty(), benchmarkBudgets, contract),
                 new ConsoleReporter(out));
         out.printf("  journal    %s%n", result.journalPath());
         out.flush();

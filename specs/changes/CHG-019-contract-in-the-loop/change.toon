@@ -59,16 +59,16 @@ acceptance:
 tasks:
   - id: T1
     slice: map declared required_evidence ids onto named check outcomes, producing RequiredEvidenceResult values from EvaluationEvidence
-    status: pending
+    status: completed
   - id: T2
     slice: add the failing acceptance and unit coverage for S1 through S6
-    status: pending
+    status: completed
   - id: T3
     slice: carry an optional contract through MutationEvaluationLoop and widen the FitnessScorer port to accept it
-    status: pending
+    status: completed
   - id: T4
     slice: expose operator, required evidence and bounds as saaa-evolve options, validated by MutationContractValidator before any candidate is created
-    status: pending
+    status: completed
   - id: T5
     slice: retire the everyOperatorSharesTheObjectiveSetTheScorerAssumes tripwire once the wired path is contract-aware, since that is the condition CHG-014 recorded for retiring it
     status: pending
@@ -83,6 +83,9 @@ non_goals:
   - removing the contractless entry point, which stays for callers that supply no contract
 
 risks:
+  - a declared evidence id must be lower snake_case because it becomes a subject.invariant audit key, while check names in this repository are hyphenated by convention. An operator declaring required evidence must therefore name that check to match the id exactly. Translating hyphens to underscores silently was rejected: an unwritten naming convention between two modules already caused one silent failure in CHG-016
+  - declaring an operator commits the run to that operator's own required evidence, so `--operator repair` demands failing_case_reproduced, unit_tests_pass and regression_case_added. That is the intent rather than a side effect, but it means adopting a contract on an existing target usually means renaming or adding checks
+  - hill-climb and exploratory-leap need a search posture, which has no options yet, so declaring them is rejected with that reason rather than producing a contract the validator would refuse later with a worse message
   - widening the FitnessScorer port touches every implementor, and the port is the seam CHG-014's S9 asserts cannot carry a contract. That test must be replaced rather than deleted, or the gap it guards stops being visible while it is still partly open
   - mapping declared evidence onto check names couples a contract's vocabulary to whatever the operator named their scripts. A typo in either place produces a discard rather than a silent pass, which is the safe direction, but the diagnostic must name the id so the cause is obvious
   - an operator can declare a contract that is trivially satisfiable, for example requiring only a check that always passes. The contract bounds the model, not the operator, and nothing here changes that
