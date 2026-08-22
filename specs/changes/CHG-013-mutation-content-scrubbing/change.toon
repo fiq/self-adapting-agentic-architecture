@@ -1,0 +1,69 @@
+change:
+  id: CHG-013
+  title: Scrub mutation content at the durable and user-visible boundaries
+  status: proposed
+  intent: Apply credential scrubbing to proposer-authored mutation summary and patch text wherever it becomes durable or user-visible, rather than only to the proposer-evidence block.
+  audience_level: developer
+  relates_to:
+    - RISK-006
+    - ARCH-001
+    - CON-002
+    - SYS-001
+
+deltas:
+  - op: ADDED
+    capability: candidate-bookkeeping-scrubbing
+    requirement: Proposer-authored mutation text is redacted before it is committed or displayed.
+    scenarios:
+      - id: S1
+        when: a proposer returns a mutation whose summary contains the configured model API key
+        then: the candidate TOON written into the target repository contains a redaction marker rather than the key
+      - id: S2
+        when: a proposer returns a mutation whose patch contains an Authorization bearer header
+        then: the committed candidate bookkeeping contains a redaction marker rather than the header value
+      - id: S3
+        when: a mutation containing a credential is reported before validation runs
+        then: the reporter output contains a redaction marker rather than the credential, including for a candidate that is later discarded
+      - id: S4
+        when: the same mutation is dispatched through the CLI, the MCP tool and the interactive session
+        then: all three produce identically redacted durable bookkeeping, because scrubbing is applied at the shared boundary rather than per entrypoint
+
+acceptance:
+  - scenario: S1
+    test_id: pending
+    layer: integration
+  - scenario: S2
+    test_id: pending
+    layer: integration
+  - scenario: S3
+    test_id: pending
+    layer: unit
+  - scenario: S4
+    test_id: pending
+    layer: acceptance
+
+tasks:
+  - id: T1
+    slice: add failing coverage showing mutation summary and patch reach durable bookkeeping unredacted
+    status: pending
+  - id: T2
+    slice: apply scrubbing at the durable candidate-write boundary
+    status: pending
+  - id: T3
+    slice: apply scrubbing at the reporter boundary so pre-validation output is redacted
+    status: pending
+  - id: T4
+    slice: prove CLI, MCP and interactive session inherit the same redaction without per-entrypoint copies
+    status: pending
+  - id: T5
+    slice: update README, wiki and RISK-006 with the resulting boundary
+    status: pending
+
+non_goals:
+  - widening the sanitizer pattern set beyond the recorded API-key and bearer forms
+  - sandboxing the proposer process
+  - changing what a proposer is permitted to read
+
+risks:
+  - RISK-006 remains open until the durable and reporter boundaries are both covered
+  - over-eager redaction could corrupt a legitimate patch whose content resembles a credential, so patterns must stay narrow and tested

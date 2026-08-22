@@ -1,0 +1,102 @@
+change:
+  id: CHG-011
+  title: Add the SAAA-owned interactive harness runtime
+  status: proposed
+  intent: Provide a bounded `saaa sa` session client that exposes SAAA-owned capabilities, target selection and explicit proposer routing before dispatching governed evolution work.
+  audience_level: developer
+  relates_to:
+    - SYS-001
+    - ARCH-001
+    - ADR-0003
+    - Q-010
+    - Q-011
+    - RISK-001
+
+deltas:
+  - op: ADDED
+    capability: interactive-harness-session
+    requirement: The CLI starts an SAAA-owned session with a deterministic lifecycle and an inspectable capability, skill and route catalog.
+    scenarios:
+      - id: S1
+        when: an operator starts `saaa sa` and asks for status, capabilities or skills
+        then: the active session, supported target kinds, available skills and registered proposer profiles are reported without invoking an agent
+      - id: S2
+        when: an operator selects a known route and an explicit target kind and folder
+        then: the active session status records that selection and rejects an unknown route without changing the current route
+      - id: S3
+        when: an operator closes the session
+        then: the runtime enters CLOSED and later mutating commands are rejected
+  - op: ADDED
+    capability: governed-session-evolution
+    requirement: The interactive session dispatches only an approved harness-workflow target through the existing deterministic evolution loop.
+    scenarios:
+      - id: S4
+        when: an operator selects a HARNESS_WORKFLOW target and invokes evolve with a declared behaviour case
+        then: the selected profile is passed to the existing loop and the session reports its deterministic decision without granting the agent approval authority
+      - id: S5
+        when: an operator selects a CODE target and invokes evolve with a declared behaviour case
+        then: the same deterministic loop evaluates the bounded whole-file change while the session reports CODE as the explicit target kind
+      - id: S6
+        when: an operator invokes evolve with more than one declared behaviour case
+        then: each whitespace-separated name is dispatched as its own declared check rather than being folded into a single case name
+      - id: S7
+        when: a dispatched evolve fails with an exception the session does not model
+        then: the failure is reported as an error and the session stays active for further commands
+
+acceptance:
+  - scenario: S1
+    test_id: cli/SaCommandAcceptanceTest.startsAnInspectableSessionWithoutInvokingAnAgent
+    layer: acceptance
+  - scenario: S2
+    test_id: cli/SaCommandAcceptanceTest.recordsExplicitTargetAndRouteAndPreservesRouteAfterInvalidSelection
+    layer: acceptance
+  - scenario: S3
+    test_id: deterministic/HarnessSessionStateMachineTest.rejectsCommandsAfterClose
+    layer: unit
+  - scenario: S4
+    test_id: cli/SaCommandAcceptanceTest.evolvesTheSelectedHarnessWorkflowThroughTheExistingLoop
+    layer: acceptance
+  - scenario: S4
+    test_id: cli/SaCommandAcceptanceTest.passesTheExplicitlySelectedRouteRatherThanTheSessionDefaultToTheLoop
+    layer: acceptance
+  - scenario: S5
+    test_id: cli/SaCommandAcceptanceTest.evolvesTheSelectedCodeTargetThroughTheExistingLoop
+    layer: acceptance
+  - scenario: S6
+    test_id: cli/SaCommandAcceptanceTest.acceptsEveryDeclaredBehaviourCaseRatherThanFoldingThemIntoOneName
+    layer: acceptance
+  - scenario: S7
+    test_id: cli/SaCommandAcceptanceTest.keepsTheSessionAliveWhenTheLoopFailsWithAnUncheckedException
+    layer: acceptance
+
+tasks:
+  - id: T1
+    slice: add a provider-free session state machine and target vocabulary with unit tests
+    status: completed
+  - id: T2
+    slice: add the failing CLI acceptance coverage for catalog, route/target selection and closure
+    status: completed
+  - id: T3
+    slice: implement `saaa sa` line protocol and route harness-workflow execution through EvolveRunner
+    status: completed
+  - id: T4
+    slice: prove code and harness-workflow targets use the same bounded whole-file path, then document the code-realization boundary
+    status: completed
+  - id: T5
+    slice: reconcile active follow-ups, documentation and handoff evidence
+    status: completed
+  - id: T6
+    slice: accept every declared behaviour case and keep the session alive across an unchecked loop failure
+    status: completed
+
+non_goals:
+  - replacing MCP as the agent-host integration surface
+  - automatic model routing based on complexity, budget or ethics
+  - a standalone generic sa binary
+  - AST-aware or language-specific code mutation
+  - a networked or durable multi-process session runtime
+
+risks:
+  - RISK-001: an interactive agent experience could be mistaken for an approval authority; only the existing deterministic loop decides
+  - Q-010 and Q-011 remain open because exposing explicit route choices is not automatic routing policy
+  - whole-file code realization is intentionally partial and needs a later policy before AST or language-aware mutation is introduced
