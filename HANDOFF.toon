@@ -68,6 +68,18 @@ task_path:
       work: the population slice with ranking
       depends_on: C3, C5
       note: ADR-0002 names it as the missing Layer-1 foundation. Ranking needs at least one objective that discriminates between eligible candidates, which is what C3 and C5 deliver
+    - id: C7
+      work: rewrite main's history to strip Claude session URLs from commit messages
+      depends_on: every open branch and worktree landed on main first, so nothing has to be rebased across the rewrite
+      authorised_by: owner, 2026-08-22, who also assessed the exposure as low because the links are auth-gated
+      scope: 79 commits on main across six distinct sessions, 2026-07-28 to 2026-08-22
+      before_starting:
+        - land C1 through C6 and remove every worktree except the coordination checkout, because every surviving branch would need rebasing onto rewritten history
+        - AGENTS.md forbids force-pushing main without explicit authorisation; cite the authorisation recorded here
+        - expect every SHA on main to change. HANDOFF.toon, the specs, PAT and LRN entries and merged PR bodies all cite SHAs that will stop resolving; decide whether to rewrite those references or accept them as historical
+      honest_limit: rewriting does not remove the data. The original commits stay fetchable by SHA on the host, remain visible in pull request views, and exist in every clone and fork already taken. The rewrite cleans the tip, not the record
+      prevention_already_landed: CHG-015 forbids credential-shaped strings in commit messages and guards it, so the count cannot grow while C7 waits
+
   parallelisation:
     implementation:
       safe_now: C3 and C4 can be worked beside C1 because they touch disjoint files
