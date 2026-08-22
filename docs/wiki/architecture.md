@@ -46,6 +46,12 @@ MutationEvaluationLoop  (deterministic)
         |-- CandidateDecisionSink     -> adapters/journal
 ```
 
+`PhenotypeFitnessScorer` also exposes a contract-aware entry point that takes a
+`MutationContract` and a typed required-evidence channel. The bridge above does
+not call it: the `FitnessScorer` port has no parameter for a contract, so the
+wired path reaches only the contractless entry point. See `RISK-002` and
+`CHG-014`.
+
 `:cli` has no Gradle dependency on `:benchmarks`, and `EvolveRunner` supplies a
 constant empty benchmark list, so no CLI run produces benchmark evidence.
 `JmhBenchmarkRunner` exists and is integration-tested but nothing in the loop

@@ -135,8 +135,12 @@ tasks:
     status: completed
   - id: T4b
     slice: pass the accepted mutation contract and a required-evidence channel into the scorer so declared hard gates are enforced, not just declared
+    status: completed
+    note: delivered by CHG-014. The scorer now has a four-argument entry point taking the contract and a typed RequiredEvidenceResult channel, enforcing declared ids as canonical subject-invariant integrity gates in addition to the structural gates. The wired path does not use it, so RISK-002 stays open; that remainder is T4c
+  - id: T4c
+    slice: migrate MutationEvaluationLoop from Mutation onto MutationContract and thread the accepted contract through FitnessScorer and PhenotypeBridgeScorer, so the contract-aware scorer entry point is the one the wired promotion path reaches
     status: pending
-    note: see RISK-002; today the scorer enforces its own fixed gates and never sees the contract
+    note: this is the loop-side half of RISK-002 and the only remaining work before that risk can close. Until CHG-014 it existed only as a HANDOFF backlog line and a CHG-005 risk note, not as a tracked task. The FitnessScorer port takes (Candidate, EvaluationEvidence) and cannot carry a contract, so the port changes with it
   - id: T5
     slice: implement local promoted Git ref plus SQLite promotion metadata
     status: pending

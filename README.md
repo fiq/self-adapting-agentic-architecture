@@ -12,9 +12,11 @@ The intended target is what an agent depends on rather than the agent itself: a
 workflow definition, a prompt policy, a tool-selection strategy, a set of
 guardrails. Anything that is a file and can be graded by a script exiting 0 or 1.
 
-Fixed in code: validation, the hard gates, the weighted objectives, the 0.80
-promotion threshold and the promote-or-discard rule. A model may propose or
-repair a candidate, but it must never approve its own result.
+Fixed in code: validation, the pass-or-fail gates, the weighted objectives, the
+0.80 promotion threshold and the promote-or-discard rule. A model may propose or
+repair a candidate, but it must never approve its own result. Those gates and
+that weighted sum are explained under
+[Fitness and the decision](#fitness-and-the-decision); you do not need them yet.
 
 This is an experiment, and an early one. The loop runs end to end for one
 candidate per run. The default proposer is a canned file, so a stock run proves
@@ -50,17 +52,19 @@ proposal fixes it, so the run promotes.
 
 ### Harness-agnostic execution boundary
 
-SAAA is being shaped as an agentic harness governor, not as another
-general-purpose coding agent. `AgentHarness` is the provider-neutral boundary
-for calling an execution engine such as Goose, OpenCode, Codex, Claude, a local
-process or a direct model API. The engine is replaceable; SAAA retains the
-route, resource budget, isolated worktree, deterministic checks, fitness,
-promotion and audit evidence.
+SAAA governs an agent; it is not another general-purpose coding agent. It asks
+something else to propose a change, then runs its own checks and decides promote
+or discard. The thing it asks is replaceable: a local process, a direct model
+API, or a coding tool such as Goose, OpenCode, Codex or Claude. Whichever it is,
+SAAA keeps the route, the resource budget, the isolated worktree, the checks, the
+fitness score, the promotion decision and the audit evidence.
 
-The first compatibility adapter wraps the existing proposer path. The first
-real external adapter now invokes an ACP-compatible local agent over stdio;
-OpenCode, Goose, Codex and Claude remain selectable command configurations
-rather than hard-coded authorities. See
+`AgentHarness` is the boundary that makes the proposer replaceable without any
+provider detail reaching the code that decides. The first adapter wraps the
+existing proposer path. The first real external adapter talks to a local agent
+over ACP, the Agent Client Protocol, on standard input and output; OpenCode,
+Goose, Codex and Claude are each configured as a command rather than built in.
+See
 [`CHG-006`](specs/changes/CHG-006-agent-harness-boundary/change.toon) and the
 [ACP slice](specs/changes/CHG-009-acp-agent-harness/change.toon), plus the
 [architecture wiki](docs/wiki/architecture.md).
@@ -79,7 +83,7 @@ implemented** means no code.
 | Live model proposer | Partial | `--profile openai-compatible` via LangChain4j, covered by a WireMock-backed acceptance test, not exercised by the shipped fixture |
 | ACP agent proposer | Partial | `--profile acp` invokes a configured local ACP-over-stdio agent; wiring and fake-harness coverage are complete, while installed-agent interoperability remains opt-in |
 | Interactive harness session | Partial | `saaa sa` exposes explicit target and proposer-route selection, then runs either bounded whole-file workflow or code evolution through the existing deterministic loop |
-| MCP exposure | Partial | `saaa-mcp` serves the `saaa_evolve` tool over stdio; startup and tool contract are tested, client-disconnect lifecycle is not |
+| MCP exposure | Partial | `saaa-mcp` offers the `saaa_evolve` tool to other agents over the Model Context Protocol on standard input and output; startup and the tool's input contract are tested, client-disconnect handling is not |
 | Benchmark-backed objectives | Not implemented | `EvolveRunner` wires the benchmark runner to a constant empty list, and `:cli` has no dependency on `:benchmarks` |
 | Behavioural-safety evidence | Not implemented | the objective is the literal `1.0` |
 | Retrieval treatments | Partial | `NONE` needs nothing; `VECTOR`, `GRAPH` and `HYBRID` need Neo4j and an embedding endpoint |
@@ -212,6 +216,13 @@ string in the deterministic layer that turns a score into a merge. Three tests
 hold that line, listed in [docs/wiki/testing.md](docs/wiki/testing.md).
 
 ## Fitness and the decision
+
+A second scorer entry point exists that takes the mutation contract and enforces
+the `required_evidence` ids that contract declares, as gates additional to the
+ones below, weighting against the contract's own objective set. Nothing wires it:
+the port the CLI scores through has no parameter for a contract. Every number and
+every claim in the rest of this section describes the path that does run, and is
+unaffected by it. See `RISK-002`.
 
 ```text
 candidate --> hard gates pass? --no--> discard
@@ -578,8 +589,16 @@ tool-unavailable fallback is in `AGENTS.md`.
 - `docs/context-store.md` records the repo-native context-store model.
 - `specs/capabilities/CAP-001-mutation-fitness-loop.toon` records the first
   living capability.
-- `specs/changes/CHG-001-mutation-fitness-loop/` records the first proposed
+- `specs/changes/CHG-001-mutation-fitness-loop/` records the first accepted
   implementation slice.
+- `specs/changes/CHG-002-live-loop-policy/` records the live-loop policy: the
+  operator set, the mutation-contract envelope and the fitness objectives.
+- `specs/changes/CHG-006-fitness-signal-identifiers/` records the typed fitness
+  identifier scheme.
+- `specs/changes/CHG-008-structured-reliability-evidence/` records reliability
+  deriving from structured check status rather than summary text.
+- `specs/changes/CHG-014-contract-aware-scoring/` records the contract-aware
+  scorer entry point, which is not wired into the CLI.
 
 ## AI-assisted delivery statement
 

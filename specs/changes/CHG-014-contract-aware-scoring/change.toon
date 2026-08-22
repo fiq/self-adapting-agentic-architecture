@@ -1,7 +1,7 @@
 change:
   id: CHG-014
   title: Make the scorer capable of enforcing a declared mutation contract
-  status: proposed
+  status: delivered
   intent: Give PhenotypeFitnessScorer an entry point that receives a MutationContract and a typed channel of observed results keyed by its declared required_evidence ids, so a declared gate can be enforced. This builds the capability; it does not migrate the wired promotion path, so RISK-002 stays open.
   audience_level: developer
   relates_to:
@@ -105,13 +105,13 @@ tasks:
     status: completed
   - id: T5
     slice: read the contract's declared objective set for both the objective-presence gate and the weighting on the contract-aware path only, leaving the contractless path on DEFAULT_OBJECTIVES; reading one from the contract and the other from the global would become incoherent the moment the validator is relaxed
-    status: pending
+    status: completed
   - id: T6
     slice: record undeclared results as inert non-gate entries written before gate outcomes, per S5
     status: completed
   - id: T7
     slice: record what remains in RISK-002, CHG-002 T4b, README and wiki, and open the missing loop-side task: producing and accepting a MutationContract inside MutationEvaluationLoop is currently only a HANDOFF backlog line and a CHG-005 risk note, not a tracked task in any change. RISK-002 stays open
-    status: pending
+    status: completed
 
 non_goals:
   - migrating MutationEvaluationLoop from Mutation onto MutationContract, which is the reason RISK-002 stays open. T7 must open a task for it, because today it exists only as a HANDOFF backlog line and a CHG-005 risk note

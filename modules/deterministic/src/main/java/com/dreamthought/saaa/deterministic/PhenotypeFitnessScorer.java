@@ -70,7 +70,10 @@ public final class PhenotypeFitnessScorer {
         boolean checksPassed = !phenotype.evidence().checks().isEmpty() && phenotype.evidence().checksPassed();
         boolean behaviorCasesPassed = !phenotype.behaviorCases().isEmpty()
                 && phenotype.behaviorCases().stream().allMatch(c -> c.status() == CheckStatus.PASSED);
-        boolean objectiveScoresPresent = hasEveryObjectiveScore(phenotype);
+        List<FitnessObjective> objectiveSet = contract == null
+                ? MutationOperatorPolicy.DEFAULT_OBJECTIVES
+                : contract.objectives();
+        boolean objectiveScoresPresent = hasEveryObjectiveScore(phenotype, objectiveSet);
         // A candidate that changed no file has no behavioral variation to evaluate: its passing
         // checks are evidence about the baseline, and parsimony rewards the empty diff with 1.0.
         // Measured in files rather than lines, so a mode-only change still counts as a realization.
@@ -89,7 +92,7 @@ public final class PhenotypeFitnessScorer {
         boolean gatesPassed = checksPassed && behaviorCasesPassed && objectiveScoresPresent
                 && realizationNonEmpty && declaredEvidencePassed;
 
-        double rawScore = gatesPassed ? weightedScore(phenotype) : 0.0;
+        double rawScore = gatesPassed ? weightedScore(phenotype, objectiveSet) : 0.0;
         FitnessDecision decision = gatesPassed && rawScore >= PROMOTION_THRESHOLD
                 ? FitnessDecision.PROMOTE
                 : FitnessDecision.DISCARD;
@@ -117,12 +120,20 @@ public final class PhenotypeFitnessScorer {
     }
 
     /**
-     * Reads {@code DEFAULT_OBJECTIVES} rather than the operator's defaults because {@link #score} never
-     * receives the contract, so it cannot know the operator. Safe only while every operator shares one
-     * objective set, which {@code PhenotypeFitnessScorerTest} asserts. See RISK-002 and task T4b.
+     * Reads the objective set the caller supplied: the contract's own on the contract-aware path, and
+     * {@code DEFAULT_OBJECTIVES} on the contractless one, which cannot know the operator. The
+     * contractless case is safe only while every operator shares one objective set, which
+     * {@code PhenotypeFitnessScorerTest.everyOperatorSharesTheObjectiveSetTheScorerAssumes} asserts.
+     * That tripwire stays until the wired path becomes contract-aware. See RISK-002 and CHG-002 T4b.
+     *
+     * <p>Presence and weighting read the same set deliberately. Taking one from the contract and the
+     * other from the global would become incoherent the moment
+     * {@code MutationContractValidator.requireDeterministicObjectives} is relaxed to permit a
+     * per-operator objective set.
      */
-    private static boolean hasEveryObjectiveScore(PhenotypeEvidence phenotype) {
-        return MutationOperatorPolicy.DEFAULT_OBJECTIVES.stream()
+    private static boolean hasEveryObjectiveScore(
+            PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
+        return objectiveSet.stream()
                 .map(FitnessObjective::id)
                 .allMatch(id -> isFraction(phenotype.objectiveScores().get(id)));
     }
@@ -131,9 +142,9 @@ public final class PhenotypeFitnessScorer {
         return score != null && Double.isFinite(score) && score >= 0.0 && score <= 1.0;
     }
 
-    /** Weights come from {@code DEFAULT_OBJECTIVES} for the same reason as {@link #hasEveryObjectiveScore}. */
-    private static double weightedScore(PhenotypeEvidence phenotype) {
-        return MutationOperatorPolicy.DEFAULT_OBJECTIVES.stream()
+    /** Weights come from the same objective set the presence gate used, for the reason given there. */
+    private static double weightedScore(PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
+        return objectiveSet.stream()
                 .mapToDouble(objective -> objective.weight() * phenotype.objectiveScores().get(objective.id()))
                 .sum();
     }
