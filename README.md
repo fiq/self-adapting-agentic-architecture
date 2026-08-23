@@ -282,7 +282,7 @@ mutation operator so candidates stay comparable. Values are derived in
 | Objective | Weight | Derived from | Varies between eligible candidates? |
 |---|---:|---|---|
 | `subject.objective.task_success` | 0.40 | fraction of declared behaviour cases that passed | No |
-| `subject.objective.reliability` | 0.20 | `1.0` unless structured check evidence has status `TIMED_OUT` | No, in practice |
+| `subject.objective.reliability` | 0.20 | pass fraction across repeated runs of each behaviour case, set by `--reliability-runs`; with one run, `1.0` unless check evidence has status `TIMED_OUT` | Yes, when repeats are asked for |
 | `subject.objective.cost_latency_budget` | 0.20 | worst `budget / measured` over benchmarks, clamped to `[0, 1]`, starting at `1.0` | Only when `--benchmark`/`--benchmark-budget` are given |
 | `subject.objective.behavioral_safety` | 0.10 | pass fraction of the checks named by `--safety-probe`, or `1.0` when none are declared | Yes, when probes are declared |
 | `subject.objective.parsimony` | 0.10 | `1 - (linesChanged / --max-lines)`, clamped | Yes |
@@ -300,10 +300,25 @@ is `0.40 + 0.20 + 0.20 + 0.10 + 0.0975 = 0.9975`, reported as `1.00`.
 `subject.invariant.required_behavior_cases`, so the passed fraction is 1.0 by
 construction. Partial credit would need the gate relaxed first.
 
-`subject.objective.reliability` only drops when a check times out and records structured
-`TIMED_OUT` evidence; an ordinary failed check leaves the objective at 1.0, although either result
-fails the deterministic checks gate. The diagnostic summary still contains timeout text, but
-candidate-controlled stdout cannot spoof reliability.
+`subject.objective.reliability` used to have the same problem, and `--reliability-runs` is the
+answer to it. Ask for more than one run and each behaviour case is executed that many times. The
+first run gates exactly as before; the extra runs are graded, and the objective becomes the fraction
+of runs that passed.
+
+So a candidate that passes eight of ten runs is still eligible — it met the gate — but scores `0.8`
+where a candidate passing all ten scores `1.0`. Both promote, and they no longer look identical
+afterwards. That is the point: choosing which of two winners to breed from needs them to differ.
+
+A flaky run lowers a score rather than discarding the candidate, because the repeats are withheld
+from the checks gate in the same way safety probes are. They are withheld from the gate only, never
+from the record: every run stays in the evidence, so a lowered score can be traced to the run that
+lowered it.
+
+With a single run the objective keeps its old meaning — `1.0` unless a check records structured
+`TIMED_OUT` evidence — so a run that does not ask for repeats is unchanged. Making it a pass fraction
+at one run would simply have duplicated `task_success`, which is already the pass fraction of the
+same cases. The diagnostic summary still contains timeout text, but candidate-controlled stdout
+cannot spoof reliability.
 
 `subject.objective.cost_latency_budget` varies only if the run asks it to. `EvolveRunner` now takes
 an injected `BenchmarkRunner`, and `saaa-evolve` accepts repeatable `--benchmark

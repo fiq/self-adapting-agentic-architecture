@@ -21,11 +21,40 @@ public record ScoringConfig(
         Set<String> behaviorCaseNames,
         int maxLinesChanged,
         Map<String, Double> benchmarkBudgets,
-        Set<String> safetyProbeNames) {
+        Set<String> safetyProbeNames,
+        int reliabilityRuns) {
+
+    /**
+     * Separates a behaviour case from the index of a repeated run of it, as in
+     * {@code unit_tests_pass.run2}. Repeated runs carry the same command and a distinct name so each
+     * result is separately attributable, and they are withheld from the deterministic-checks gate:
+     * the canonical run decides whether the candidate is eligible, the repeats grade how reliably it
+     * holds. Without the withholding a single flaky run would discard rather than lower a score,
+     * which is the trap that kept reliability pinned at 1.0 for every candidate that promoted.
+     */
+    public static final String REPEAT_RUN_SEPARATOR = ".run";
+
+    /** The behaviour case a check result belongs to, collapsing any repeated-run suffix. */
+    public static String baseCaseName(String checkName) {
+        int separator = checkName.lastIndexOf(REPEAT_RUN_SEPARATOR);
+        if (separator <= 0) {
+            return checkName;
+        }
+        String suffix = checkName.substring(separator + REPEAT_RUN_SEPARATOR.length());
+        return !suffix.isEmpty() && suffix.chars().allMatch(Character::isDigit)
+                ? checkName.substring(0, separator)
+                : checkName;
+    }
+
+    /** Every check gates and each behaviour case runs once. */
+    public ScoringConfig(Set<String> behaviorCaseNames, int maxLinesChanged,
+            Map<String, Double> benchmarkBudgets, Set<String> safetyProbeNames) {
+        this(behaviorCaseNames, maxLinesChanged, benchmarkBudgets, safetyProbeNames, 1);
+    }
 
     /** Every prior caller keeps its behaviour: no probes declared means the objective stays 1.0. */
     public ScoringConfig(Set<String> behaviorCaseNames, int maxLinesChanged, Map<String, Double> benchmarkBudgets) {
-        this(behaviorCaseNames, maxLinesChanged, benchmarkBudgets, Set.of());
+        this(behaviorCaseNames, maxLinesChanged, benchmarkBudgets, Set.of(), 1);
     }
 
     public ScoringConfig {
@@ -55,6 +84,9 @@ public record ScoringConfig(
         }
         if (maxLinesChanged <= 0) {
             throw new IllegalArgumentException("maxLinesChanged must be positive");
+        }
+        if (reliabilityRuns < 1) {
+            throw new IllegalArgumentException("reliabilityRuns must be at least 1");
         }
     }
 }

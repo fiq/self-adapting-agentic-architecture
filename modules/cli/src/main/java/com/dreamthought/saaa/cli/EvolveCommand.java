@@ -84,6 +84,13 @@ public final class EvolveCommand implements Callable<Integer> {
                     + "property that must hold belongs in --required-evidence, which discards.")
     private List<String> safetyProbes = new ArrayList<>();
 
+    @Option(names = "--reliability-runs",
+            description = "How many times to run each behaviour case. The first run gates as before; "
+                    + "the rest grade the reliability objective as a pass fraction, so a flaky "
+                    + "candidate scores lower instead of being discarded. Default 1, which leaves "
+                    + "the objective at its previous value.")
+    private int reliabilityRuns = 1;
+
     @Spec
     private CommandSpec spec;
 
@@ -145,7 +152,7 @@ public final class EvolveCommand implements Callable<Integer> {
         var result = new EvolveRunner(benchmarkRunner).run(
                 new EvolveRunRequest(
                         targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task,
-                        Optional.empty(), benchmarkBudgets, contract, List.copyOf(safetyProbes)),
+                        Optional.empty(), benchmarkBudgets, contract, List.copyOf(safetyProbes), reliabilityRuns),
                 new ConsoleReporter(out));
         out.printf("  journal    %s%n", result.journalPath());
         out.flush();

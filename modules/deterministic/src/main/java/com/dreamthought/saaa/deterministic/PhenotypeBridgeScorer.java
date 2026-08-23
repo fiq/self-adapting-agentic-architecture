@@ -7,6 +7,7 @@ import com.dreamthought.saaa.domain.CheckStatus;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import java.util.Optional;
+import java.util.Set;
 import com.dreamthought.saaa.domain.MutationContract;
 import com.dreamthought.saaa.domain.FitnessSignalId;
 import com.dreamthought.saaa.domain.RealizationSummary;
@@ -72,7 +73,7 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
 
         Map<String, Double> objectives = new LinkedHashMap<>();
         objectives.put(FitnessSignalId.objective("task_success").canonical(), passedFraction(behaviorCases));
-        objectives.put(FitnessSignalId.objective("reliability").canonical(), allChecksRan(evidence) ? 1.0 : 0.0);
+        objectives.put(FitnessSignalId.objective("reliability").canonical(), reliabilityScore(evidence));
         objectives.put(
                 FitnessSignalId.objective("cost_latency_budget").canonical(), budgetScore(evidence.benchmarks()));
         objectives.put(FitnessSignalId.objective("behavioral_safety").canonical(),
@@ -86,7 +87,7 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         // which does gate. The probe stays in the evidence either way, so a lowered safety score can
         // always be traced to the probe that produced it.
         var phenotype = new PhenotypeEvidence(
-                evidence, behaviorCases, objectives, realization, config.safetyProbeNames());
+                evidence, behaviorCases, objectives, realization, nonGatingCheckNames(evidence));
         // A declared required_evidence id names a check that must exist and pass, so the declaration
         // is enforced against evidence this run already collected rather than a separate pipeline.
         return contract
@@ -110,9 +111,56 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         return (double) passed / behaviorCases.size();
     }
 
+    /**
+     * The fraction of behaviour-case runs that passed, counting every repeated run separately.
+     *
+     * <p>This objective used to ask only whether nothing timed out, which no candidate that cleared
+     * the deterministic-checks gate could ever fail: a timed-out check is not a passed check, so the
+     * gate had already discarded it. The objective restated its own gate and sat at 1.0 for every
+     * candidate that promoted, pinning a fifth of the weight.
+     *
+     * <p>With repeated runs it measures something the gate does not: the canonical run decides
+     * eligibility, and the repeats show how reliably that result holds. A candidate passing eight of
+     * ten runs is eligible and scores 0.8; one passing all ten scores 1.0. A timed-out run counts as
+     * a failed run, which is the same rule everywhere else here — absent evidence is not passing
+     * evidence.
+     *
+     * <p>With a single run per case the value is 1.0 for any candidate that reaches the objectives,
+     * so a caller who declares no repeats is unaffected.
+     */
+    private double reliabilityScore(EvaluationEvidence evidence) {
+        // With one run per case there is no repeat evidence, so there is nothing to say about
+        // consistency and the old timeout rule is kept exactly. Returning a pass fraction here
+        // instead would make this objective a second copy of task_success, which is already the pass
+        // fraction of the same behaviour cases: it would double-weight failing a case rather than
+        // measure anything new.
+        if (config.reliabilityRuns() <= 1) {
+            return allChecksRan(evidence) ? 1.0 : 0.0;
+        }
+        var runs = evidence.checks().stream()
+                .filter(check -> config.behaviorCaseNames().contains(
+                        ScoringConfig.baseCaseName(check.name())))
+                .toList();
+        if (runs.isEmpty()) {
+            return 0.0;
+        }
+        long passed = runs.stream().filter(check -> check.status() == CheckStatus.PASSED).count();
+        return (double) passed / runs.size();
+    }
+
     /** Timeout is structured evidence; summaries remain candidate-controlled diagnostic text. */
     private static boolean allChecksRan(EvaluationEvidence evidence) {
         return evidence.checks().stream().noneMatch(check -> check.status() == CheckStatus.TIMED_OUT);
+    }
+
+    /** Repeated runs grade rather than gate, so only the canonical run of each case reaches the gate. */
+    private Set<String> nonGatingCheckNames(EvaluationEvidence evidence) {
+        var withheld = new java.util.LinkedHashSet<>(config.safetyProbeNames());
+        evidence.checks().stream()
+                .map(CheckEvidence::name)
+                .filter(name -> !ScoringConfig.baseCaseName(name).equals(name))
+                .forEach(withheld::add);
+        return withheld;
     }
 
     /**
