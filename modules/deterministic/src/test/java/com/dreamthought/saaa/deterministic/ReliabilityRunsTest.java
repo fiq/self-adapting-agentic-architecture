@@ -48,9 +48,11 @@ final class ReliabilityRunsTest {
                 .containsEntry("subject.objective.reliability", 0.75);
         assertThat(consistent.objectives())
                 .containsEntry("subject.objective.reliability", 1.0);
-        assertThat(flaky.aggregateScore())
+        // Compared through FitnessScore rather than a bare number: both promoted, so the ordering
+        // falls through to magnitude, which is the discrimination this change exists to create.
+        assertThat(flaky.fitnessScore())
                 .as("this is the point: two candidates that both promote no longer score the same")
-                .isLessThan(consistent.aggregateScore());
+                .isLessThan(consistent.fitnessScore());
     }
 
     /**
