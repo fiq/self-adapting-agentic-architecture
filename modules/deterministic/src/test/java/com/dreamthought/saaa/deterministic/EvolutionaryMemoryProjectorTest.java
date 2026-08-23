@@ -11,6 +11,7 @@ import com.dreamthought.saaa.domain.EvolutionaryMemoryRecord;
 import com.dreamthought.saaa.domain.EvolutionContext;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessScore;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.RetrievalBundle;
@@ -34,7 +35,8 @@ final class EvolutionaryMemoryProjectorTest {
                 List.of(new CheckEvidence("tests", CheckStatus.FAILED, "one assertion failed")),
                 List.of(new BenchmarkEvidence("latency", 12.0, "ms")),
                 Instant.parse("2026-08-02T00:00:00Z"));
-        var result = new FitnessResult(candidate, evidence, Map.of("quality", 0.4), 0.4, FitnessDecision.DISCARD);
+        var result = new FitnessResult(candidate, evidence, Map.of("quality", 0.4),
+                FitnessScore.of(0.4, FitnessDecision.DISCARD));
         var retrieval = new RetrievalBundle(
                 RetrievalMode.HYBRID, "retrieval-config-v1", "base123", "graph-schema-v1",
                 "capsule-v1", "rrf-v1", "fixture-model", "lineage-novelty-v1", List.of(),
@@ -49,7 +51,7 @@ final class EvolutionaryMemoryProjectorTest {
         assertThat(store.record.memoryPolicyId()).isEqualTo("lineage-novelty-v1");
         assertThat(store.record.changedPaths()).containsExactly("src/Workflow.java");
         assertThat(store.record.checks()).containsExactlyElementsOf(evidence.checks());
-        assertThat(store.record.aggregateFitness()).isEqualTo(0.4);
+        assertThat(store.record.fitnessScore().rawMagnitude()).isEqualByComparingTo("0.4");
         assertThat(retrieval.diagnostics().historicalWeightCap()).isEqualTo(0.10);
     }
 

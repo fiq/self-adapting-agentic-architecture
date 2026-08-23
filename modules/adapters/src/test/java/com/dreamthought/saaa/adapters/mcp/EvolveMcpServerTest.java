@@ -8,6 +8,7 @@ import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessScore;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -72,7 +73,7 @@ final class EvolveMcpServerTest {
         var objectives = new LinkedHashMap<String, Double>();
         objectives.put("subject.objective.task_success", 1.0);
         objectives.put("subject.invariant.deterministic_checks", 1.0);
-        var fitness = new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE);
+        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE));
         return new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md"));
     }
 }

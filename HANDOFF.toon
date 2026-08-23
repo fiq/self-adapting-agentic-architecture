@@ -1,21 +1,20 @@
 session:
-  updated: 2026-08-22
-  status: chg_021_merged_population_slice_next
-  branch: main
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture (feat-chg-021-safety removed after merge)
-  head: origin/main at 35610cb
-  head_note: CHG-021 makes the fitness function discriminate: behavioral_safety scores declared probes, and a failed candidate keeps its magnitude instead of being zeroed, which is what a population needs to choose between failures. The promote decision is unchanged and still gated. Independent codex review raised three blockers, all confirmed against the code and fixed on the branch before merge: memory selection ranked on score alone, withheld probes were deleted from the recorded evidence rather than only from the gate, and the acceptance test could not fail if the probe never ran.
+  updated: 2026-08-23
+  status: chg_023_fitness_score_delivered
+  branch: feat/chg-023-fitness-score
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-023-fitness-score
+  head: current branch CHG-023 commit
+  head_note: CHG-023 replaces the independent magnitude and decision fields with comparable FitnessScore, stores raw magnitude in SQLite and reviewable envelopes, and rounds only at the console boundary. It deliberately replaces disposable local schema and envelope names rather than retaining aggregate compatibility aliases.
   dirty: false
-  pushed: true
+  pushed: false
 
 goal:
-  current: codify session-efficient, budget-aware multi-model operating practice for the agentic loop
-  phase: chg_012_model_session_efficiency
-  interlude: automatic runtime routing remains deferred until Q-010's measured usage, price identity and ablation evidence exist
+  current: deliver CHG-023 FitnessScore as one decision-aware, raw-magnitude value
+  phase: delivered
+  interlude: no migration is required because the local experiment ledger is empty and disposable
 
 next_actions:
-  - C6 is now unblocked and is the next foundation: the population slice with ranking, sorting on decision then magnitude. ADR-0002 names it as the missing Layer-1 piece
-  - the FitnessScore type carrying score and semantics together, which makes a semantics-ignoring ordering unrepresentable rather than merely forbidden, and stores the raw value so ranking is not quantised to 0.01. Needs a persistence migration; RISK-007 and CON-002 carry the reasoning. Belongs with C6
+  - C6 is now unblocked and is the next foundation: the population slice with decision-aware raw-magnitude ranking. ADR-0002 names it as the missing Layer-1 piece
   - reclaim reliability, which restates its own gate and needs repeated execution to mean anything
   - C5 (done, merged as CHG-021): make behavioral_safety a real signal. Critical forbidden-action probes as a hard gate, predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective, and reviewer models used to discover probes rather than to grade candidates. CHG-019 makes this buildable, because behavioral_safety_cases_pass is already declared by PROMPT_POLICY_CHANGE and a declared id can now gate
   - C6: the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation. It needs objectives that discriminate, which is C5
@@ -23,6 +22,8 @@ next_actions:
   - consider whether contractless runs should stay the default. Declared gates now enforce, but nothing declares them unless an operator passes --operator, so the enforcement exists and is mostly unused
 
 active_assumptions:
+  - CHG-023 deliberately replaces empty local SQLite and reviewable-envelope schema rather than migrating it; no data is preserved and no compatibility alias remains
+  - FitnessScore is the only comparison value for result and evolutionary-memory ordering; callers needing a machine magnitude receive BigDecimal rather than a primitive double
   - ACP command configuration is local process selection, not automatic complexity or ethics routing
   - AgentHarnessMutationProposer receives retrieval as advisory context and deterministic policies remain the only approval authority
   - real OpenCode, Goose, Codex and Claude ACP interoperability remains opt-in until an installed command is available
@@ -45,6 +46,33 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-23 CHG-023 final validation: project test, project component-test, project integration-test and project check all pass; project check-changes also passes
+  - 2026-08-23 CHG-023 mutation evidence: replacing FitnessScore's decision rank with a constant made LineageNoveltyMemoryPolicyTest.aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion fail; rendering four decimal places made ConsoleReporterTest.roundsRawMagnitudeOnlyWhenRenderingTheConsoleReport fail; rounding before SQLite write made SqliteEvolutionaryMemoryStoreIntegrationTest.roundTripsObservableMemoryInTheExperimentLedger fail; lowering the raw promotion threshold to 0.79 made PhenotypeFitnessScorerPropertyTest.decisionIsDerivedFromRawSumNotRoundedAggregate fail. Each implementation mutation was restored immediately.
+  - 2026-08-23 CHG-023 project test: pass after raw FitnessScore, scorer, persistence and console changes
+  - 2026-08-23 CHG-023 project check-changes: pass
+
+chg_023_delivery:
+  spec: specs/changes/CHG-023-fitness-score
+  completed_work:
+    - FitnessScore compares decision before raw BigDecimal magnitude; FitnessResult and EvolutionaryMemoryRecord no longer carry independent primitive magnitude fields
+    - scorer stores raw magnitude, ConsoleReporter alone renders two decimal places, and golden fixtures now pin raw values
+    - SQLite, reviewable envelopes, journal, graph and MCP transport carry the cohesive value; aggregate field names and the MCP display compatibility field were deleted
+  files_changed:
+    - modules/domain/src/main/java/com/dreamthought/saaa/domain/FitnessScore.java
+    - modules/domain/src/main/java/com/dreamthought/saaa/domain/FitnessResult.java
+    - modules/domain/src/main/java/com/dreamthought/saaa/domain/EvolutionaryMemoryRecord.java
+    - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/PhenotypeFitnessScorer.java
+    - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/LineageNoveltyMemoryPolicy.java
+    - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/sqlite/SqliteEvolutionaryMemoryStore.java
+    - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/sqlite/SqliteExperimentMetadataStore.java
+    - modules/cli/src/main/java/com/dreamthought/saaa/cli/ConsoleReporter.java
+    - specs/changes/CHG-023-fitness-score
+  knowledge_consulted:
+    - CON-002
+    - RISK-007
+    - PAT-004
+  knowledge_update: no new node; CHG-023 directly implements the recorded CON-002 destination and resolves the tracked RISK-007 exposure
+  team_fallback: single lead implementation; no independent reviewer was requested because the user directed a bounded build-and-commit task and no PR is opened
   - 2026-08-23 all six source sets pass with --rerun-tasks; project check 7/7
   - 2026-08-23 CHG-021 review fixes: 25 tasks executed with --rerun-tasks, project check 7/7, check-changes OK
   - 2026-08-23 mutation-verified each new assertion by breaking the mechanism it claims to test. Removing probe scheduling from EvolveRunner fails the acceptance test; restoring the evidence deletion in PhenotypeBridgeScorer fails aWithheldProbeStaysInTheRecordedEvidence; reverting LineageNoveltyMemoryPolicy to score-only ordering fails aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion. Each was restored immediately after
@@ -957,4 +985,3 @@ task_path:
       sha_references: HANDOFF.toon, the specs, PAT and LRN entries and merged PR bodies cite SHAs that stop resolving after the rewrite. Fix the in-repo references in the same change; merged PR bodies on the host cannot be fixed and stay as historical record
       honest_limit: rewriting does not remove the data already published. The original commits stay fetchable by SHA on the host, remain visible in pull request views, and exist in every clone and fork already taken. The rewrite cleans the tip, not the record. It is still worth doing so the canonical history is clean, and the owner has accepted that limit
       prevention_already_landed: CHG-015 forbids credential-shaped strings in commit messages and guards it, so the count cannot grow while C7 waits
-

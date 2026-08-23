@@ -41,7 +41,7 @@ public final class ConsoleReporter implements EvolutionReporter {
 
     @Override
     public void scored(FitnessResult result) {
-        out.printf("  score      %.2f%n", result.aggregateScore());
+        out.printf("  score      %.2f%n", result.fitnessScore().rawMagnitude());
         out.printf("  %s%n", result.decision());
         out.flush();
     }

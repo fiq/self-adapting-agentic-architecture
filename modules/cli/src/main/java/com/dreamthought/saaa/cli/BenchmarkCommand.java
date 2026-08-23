@@ -91,7 +91,8 @@ public final class BenchmarkCommand implements Callable<Integer> {
             var retrieval = result.retrieval();
             return new RetrievalAttemptMetrics(
                     task.id(), mode, attempt, fitness.decision() == FitnessDecision.PROMOTE,
-                    fitness.aggregateScore(), fitness.aggregateScore() - task.baselineFitness(),
+                    fitness.fitnessScore().rawMagnitude().doubleValue(),
+                    fitness.fitnessScore().rawMagnitude().doubleValue() - task.baselineFitness(),
                     failed, 0, failed, realization.filesChanged(), 0, inputTokens, outputTokens, 0,
                     result.wallClockMillis(), result.retrievalMillis(),
                     retrieval.diagnostics().graphNodesConsidered(), retrieval.capsules().size(),

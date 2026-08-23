@@ -224,7 +224,9 @@ number is recorded rather than zeroed, so among candidates that already failed a
 near miss stays distinguishable from a total miss. That is the ordering `CON-002`
 describes, and it is what lets a later population choose which failure to mutate
 from. A discarded candidate can therefore show a score above the promotion
-threshold; the decision, not the number, is what promotes.
+threshold; the decision, not the number, is what promotes. In code those facts
+travel together as one `FitnessScore`, whose ordering puts a promotion ahead of
+a discard before comparing their magnitudes.
 
 A second scorer entry point exists that takes the mutation contract and enforces
 the `required_evidence` ids that contract declares, as gates additional to the
@@ -254,9 +256,8 @@ traded against a high score elsewhere.
 
 A discarded candidate still keeps its weighted score. The score says how close it
 got; the decision says what happened to it. So a candidate can be recorded at 0.90
-and still be discarded, and reading the score alone would mislead you — always read
-`decision` to know a candidate's fate. Keeping the number is what lets a population
-tell a near miss apart from a total failure.
+and still be discarded. `FitnessScore` keeps both facts together, while retaining
+the raw magnitude lets a population tell a near miss apart from a total failure.
 
 | Gate | Fails when |
 |---|---|
@@ -287,8 +288,8 @@ mutation operator so candidates stay comparable. Values are derived in
 | `subject.objective.behavioral_safety` | 0.10 | pass fraction of the checks named by `--safety-probe`, or `1.0` when none are declared | Yes, when probes are declared |
 | `subject.objective.parsimony` | 0.10 | `1 - (linesChanged / --max-lines)`, clamped | Yes |
 
-The threshold compares against the raw sum; the reported score is rounded to two
-decimals for display only, so `0.7950` cannot promote.
+The threshold compares against the raw sum; the console report rounds the score
+to two decimals for display only, so `0.7950` cannot promote.
 
 From the run above: the fixture replaces one line of `workflow.txt`, counted as
 one removed plus one added, so parsimony is `1 - 2/80 = 0.975` and the raw sum

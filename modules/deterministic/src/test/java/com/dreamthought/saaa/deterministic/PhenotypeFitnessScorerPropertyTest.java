@@ -151,7 +151,8 @@ final class PhenotypeFitnessScorerPropertyTest {
         var lowResult = scorer.score(CANDIDATE, passingEvidenceWithObjective("subject.objective.parsimony", lower));
         var highResult = scorer.score(CANDIDATE, passingEvidenceWithObjective("subject.objective.parsimony", higher));
 
-        assertThat(highResult.aggregateScore()).isGreaterThanOrEqualTo(lowResult.aggregateScore());
+        assertThat(highResult.fitnessScore().rawMagnitude())
+                .isGreaterThanOrEqualTo(lowResult.fitnessScore().rawMagnitude());
     }
 
     /**
@@ -170,7 +171,8 @@ final class PhenotypeFitnessScorerPropertyTest {
         var highResult = scorer.score(
                 CANDIDATE, passingEvidenceWithObjective("subject.objective.task_success", higher));
 
-        assertThat(highResult.aggregateScore()).isGreaterThanOrEqualTo(lowResult.aggregateScore());
+        assertThat(highResult.fitnessScore().rawMagnitude())
+                .isGreaterThanOrEqualTo(lowResult.fitnessScore().rawMagnitude());
     }
 
     /**
@@ -189,17 +191,14 @@ final class PhenotypeFitnessScorerPropertyTest {
     }
 
     /**
-     * The reported {@code aggregateScore} rounds to two decimals; the decision must not use the
-     * rounded value. With every objective at {@code 0.797}, the raw weighted sum is {@code 0.797}
-     * (strictly less than the threshold) but the reported {@code aggregateScore} rounds to
-     * {@code 0.80}. A scorer mutation that moved the comparison onto the rounded value would flip
-     * this candidate from DISCARD to PROMOTE.
+     * The stored magnitude is raw, and the decision must use that same raw value. With every
+     * objective at {@code 0.797}, the weighted sum is strictly less than the threshold.
      */
     @Test
     void decisionIsDerivedFromRawSumNotRoundedAggregate() {
         var result = scorer.score(CANDIDATE, passingEvidenceWithAllObjectives(0.797));
 
-        assertThat(result.aggregateScore()).isEqualTo(0.80);
+        assertThat(result.fitnessScore().rawMagnitude()).isEqualByComparingTo("0.797");
         assertThat(result.decision()).isEqualTo(FitnessDecision.DISCARD);
     }
 

@@ -19,8 +19,7 @@ public record EvolutionaryMemoryRecord(
         List<String> retrievedEvidenceIds,
         List<CheckEvidence> checks,
         List<BenchmarkEvidence> benchmarks,
-        double aggregateFitness,
-        FitnessDecision decision,
+        FitnessScore fitnessScore,
         Instant evaluatedAt
 ) {
     public EvolutionaryMemoryRecord {
@@ -37,10 +36,7 @@ public record EvolutionaryMemoryRecord(
         retrievedEvidenceIds = List.copyOf(Objects.requireNonNull(retrievedEvidenceIds, "retrievedEvidenceIds"));
         checks = List.copyOf(Objects.requireNonNull(checks, "checks"));
         benchmarks = List.copyOf(Objects.requireNonNull(benchmarks, "benchmarks"));
-        if (!Double.isFinite(aggregateFitness)) {
-            throw new IllegalArgumentException("aggregateFitness must be finite");
-        }
-        decision = Objects.requireNonNull(decision, "decision");
+        fitnessScore = Objects.requireNonNull(fitnessScore, "fitnessScore");
         evaluatedAt = Objects.requireNonNull(evaluatedAt, "evaluatedAt");
     }
 
@@ -57,12 +53,11 @@ public record EvolutionaryMemoryRecord(
             List<String> retrievedEvidenceIds,
             List<CheckEvidence> checks,
             List<BenchmarkEvidence> benchmarks,
-            double aggregateFitness,
-            FitnessDecision decision,
+            FitnessScore fitnessScore,
             Instant evaluatedAt) {
         this(evolutionContext, memoryPolicyId, mutationId, mutationSummary, mutationScope,
                 candidateId, candidateCommit, retrievalMode, retrievalConfigurationId, List.of(),
-                retrievedEvidenceIds, checks, benchmarks, aggregateFitness, decision, evaluatedAt);
+                retrievedEvidenceIds, checks, benchmarks, fitnessScore, evaluatedAt);
     }
 
     public String baselineRepositoryRevision() {

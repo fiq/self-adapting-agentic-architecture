@@ -1,0 +1,72 @@
+change:
+  id: CHG-023
+  title: Keep fitness magnitude and decision inseparable
+  status: delivered
+  intent: Prevent semantics-free ranking and preserve raw near-miss resolution by carrying a candidate's magnitude and decision in one ordered value.
+  audience_level: developer
+  relates_to:
+    - CON-002
+    - RISK-007
+    - PAT-004
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: Fitness is one ordered domain value whose decision outranks magnitude, and whose magnitude remains raw until presentation.
+    scenarios:
+      - id: S1
+        when: a discarded candidate has a raw magnitude of 0.95 and a promoted candidate has 0.85
+        then: comparison ranks the promoted candidate higher
+        and:
+          - consumers receive FitnessScore rather than an independently sortable primitive score
+      - id: S2
+        when: two discarded candidates have raw magnitudes 0.5949 and 0.5851
+        then: the archive ranks 0.5949 higher without a rounded tie
+      - id: S3
+        when: a raw magnitude of 0.5949 is persisted and reported
+        then: storage preserves 0.5949 and the console displays 0.59
+      - id: S4
+        when: an otherwise eligible candidate scores 0.797
+        then: it is discarded because the unchanged promotion threshold compares the raw magnitude
+
+acceptance:
+  - scenario: S1
+    test_id: domain/FitnessScoreTest.ordersPromotionAboveADiscardEvenWhenTheDiscardHasTheLargerMagnitude
+    layer: unit
+  - scenario: S1
+    test_id: deterministic/LineageNoveltyMemoryPolicyTest.aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/LineageNoveltyMemoryPolicyTest.magnitudeStillOrdersRecordsWithinOneDecision
+    layer: unit
+  - scenario: S2
+    test_id: adapters/SqliteEvolutionaryMemoryStoreIntegrationTest.roundTripsObservableMemoryInTheExperimentLedger
+    layer: integration
+  - scenario: S3
+    test_id: cli/ConsoleReporterTest.roundsRawMagnitudeOnlyWhenRenderingTheConsoleReport
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/PhenotypeFitnessScorerPropertyTest.decisionIsDerivedFromRawSumNotRoundedAggregate
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: introduce FitnessScore and replace separate result and memory fields
+    status: completed
+  - id: T2
+    slice: retain raw scorer magnitude and round only at the console boundary
+    status: completed
+  - id: T3
+    slice: replace SQLite and envelope aggregate names without compatibility paths
+    status: completed
+  - id: T4
+    slice: prove decision-first and raw-precision behaviour with unit and integration tests
+    status: completed
+
+non_goals:
+  - migration of local experiment ledgers
+  - compatibility aliases for aggregate score fields
+  - a changed promotion threshold or gate policy
+
+risks:
+  - SQLite REAL storage is appropriate for the current [0,1] objective range, while FitnessScore keeps the domain comparison out of primitive double APIs.

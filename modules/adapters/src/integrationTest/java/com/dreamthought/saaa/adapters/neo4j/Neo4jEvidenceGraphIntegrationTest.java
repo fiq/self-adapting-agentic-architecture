@@ -21,6 +21,7 @@ import com.dreamthought.saaa.domain.RetrievalMode;
 import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.CheckStatus;
 import com.dreamthought.saaa.domain.FitnessDecision;
+import com.dreamthought.saaa.domain.FitnessScore;
 import java.time.Instant;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
@@ -100,7 +101,7 @@ final class Neo4jEvidenceGraphIntegrationTest {
                     RetrievalMode.HYBRID, "retrieval-config-v1",
                     List.of("fixture/type:example.Loop"), List.of(),
                     List.of(new CheckEvidence("tests", CheckStatus.FAILED, "fixture failure")),
-                    List.of(), 0.2, FitnessDecision.DISCARD, Instant.parse("2026-08-02T00:00:00Z")));
+                    List.of(), FitnessScore.of(0.2, FitnessDecision.DISCARD), Instant.parse("2026-08-02T00:00:00Z")));
             graph.replaceEvolutionaryMemory(List.of(new EvolutionaryMemoryRecord(
                     new EvolutionContext("integration-fixture", "rev-1", "saaa", "process-rev-1"),
                     "lineage-novelty-v1", "mutation-1", "bounded fixture",
@@ -108,7 +109,7 @@ final class Neo4jEvidenceGraphIntegrationTest {
                     RetrievalMode.HYBRID, "retrieval-config-v1",
                     List.of("fixture/type:example.Loop"), List.of(),
                     List.of(new CheckEvidence("tests", CheckStatus.FAILED, "fixture failure")),
-                    List.of(), 0.2, FitnessDecision.DISCARD,
+                    List.of(), FitnessScore.of(0.2, FitnessDecision.DISCARD),
                     Instant.parse("2026-08-02T00:00:00Z"))), "lineage-novelty-v1");
             assertThat(graph.memoryStatus().policyId()).contains("lineage-novelty-v1");
             assertThat(graph.memoryStatus().activeEvaluations()).isEqualTo(1);

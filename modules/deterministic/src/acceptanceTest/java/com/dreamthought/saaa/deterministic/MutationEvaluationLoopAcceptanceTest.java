@@ -49,8 +49,7 @@ final class MutationEvaluationLoopAcceptanceTest {
                         evaluatedCandidate,
                         evidence,
                         Map.of("correctness", 1.0, "throughput", 0.4),
-                        0.59,
-                        DISCARD
+                        com.dreamthought.saaa.domain.FitnessScore.of(0.59, DISCARD)
                 ),
                 metadata,
                 decisions,
@@ -99,8 +98,7 @@ final class MutationEvaluationLoopAcceptanceTest {
                         unexpectedCandidate,
                         evidence,
                         Map.of("correctness", 1.0),
-                        1.0,
-                        DISCARD
+                        com.dreamthought.saaa.domain.FitnessScore.of(1.0, DISCARD)
                 ),
                 metadata,
                 decisions

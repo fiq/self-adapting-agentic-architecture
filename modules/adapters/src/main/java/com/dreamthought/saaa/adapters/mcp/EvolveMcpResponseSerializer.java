@@ -67,9 +67,8 @@ public final class EvolveMcpResponseSerializer {
         json.append("]},");
         appendObjectives(json, result.objectives());
         json.append(',');
-        json.append("\"aggregateScore\":").append(result.aggregateScore()).append(',');
-        json.append("\"aggregateScoreDisplay\":").append(quote("%.2f".formatted(result.aggregateScore()))).append(',');
-        json.append("\"decision\":").append(quote(result.decision().name())).append(',');
+        appendFitnessScore(json, result);
+        json.append(',');
         json.append("\"journalPath\":").append(quote(journalPath.toAbsolutePath().normalize().toString()));
         json.append('}');
         return json.toString();
@@ -95,9 +94,8 @@ public final class EvolveMcpResponseSerializer {
         json.append("},");
         appendObjectives(json, result.objectives());
         json.append(',');
-        json.append("\"aggregateScore\":").append(result.aggregateScore()).append(',');
-        json.append("\"aggregateScoreDisplay\":").append(quote("%.2f".formatted(result.aggregateScore()))).append(',');
-        json.append("\"decision\":").append(quote(result.decision().name())).append(',');
+        appendFitnessScore(json, result);
+        json.append(',');
         json.append("\"journalPath\":").append(quote(runResult.journalPath().toString()));
         json.append('}');
         String scrubbed = scrubber.scrub(json.toString());
@@ -112,6 +110,13 @@ public final class EvolveMcpResponseSerializer {
         json.append("\"name\":").append(quote(check.name())).append(',');
         json.append("\"status\":").append(quote(check.status().name())).append(',');
         json.append("\"summary\":").append(quote(capped(check.summary(), CHECK_SUMMARY_LIMIT)));
+        json.append('}');
+    }
+
+    private static void appendFitnessScore(StringBuilder json, FitnessResult result) {
+        json.append("\"fitnessScore\":{");
+        json.append("\"rawMagnitude\":").append(result.fitnessScore().rawMagnitude()).append(',');
+        json.append("\"decision\":").append(quote(result.fitnessScore().decision().name()));
         json.append('}');
     }
 

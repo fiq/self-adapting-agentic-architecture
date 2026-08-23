@@ -89,7 +89,7 @@ final class ContractAwareFitnessTest {
                         RequiredEvidenceResult.passed("regression_case_added", "one case added")));
 
         assertThat(result.decision()).isEqualTo(PROMOTE);
-        assertThat(result.aggregateScore()).isGreaterThan(0.0);
+        assertThat(result.fitnessScore().rawMagnitude()).isGreaterThan(java.math.BigDecimal.ZERO);
     }
 
     @Test

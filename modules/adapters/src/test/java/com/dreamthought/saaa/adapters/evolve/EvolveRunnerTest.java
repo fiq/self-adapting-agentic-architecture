@@ -122,8 +122,8 @@ final class EvolveRunnerTest {
 
         assertThat(withinBudget.fitnessResult().objectives()).containsEntry(objectiveKey, 1.0);
         assertThat(overBudget.fitnessResult().objectives()).containsEntry(objectiveKey, 0.5);
-        assertThat(overBudget.fitnessResult().aggregateScore())
-                .isLessThan(withinBudget.fitnessResult().aggregateScore());
+        assertThat(overBudget.fitnessResult().fitnessScore().rawMagnitude())
+                .isLessThan(withinBudget.fitnessResult().fitnessScore().rawMagnitude());
     }
 
     private static com.dreamthought.saaa.deterministic.MutationProposer ignoredBaselineProposer() {

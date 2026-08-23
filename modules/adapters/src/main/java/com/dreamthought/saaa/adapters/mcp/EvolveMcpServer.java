@@ -74,16 +74,19 @@ public final class EvolveMcpServer {
         properties.put("candidate", candidate);
         properties.put("evidence", evidenceSchema());
         properties.put("objectives", Map.of("type", "object", "additionalProperties", Map.of("type", "number")));
-        properties.put("aggregateScore", Map.of("type", "number"));
-        properties.put("aggregateScoreDisplay", Map.of("type", "string"));
-        properties.put("decision", Map.of("type", "string", "enum", List.of("PROMOTE", "DISCARD")));
+        properties.put("fitnessScore", Map.of(
+                "type", "object", "additionalProperties", false,
+                "required", List.of("rawMagnitude", "decision"),
+                "properties", Map.of(
+                        "rawMagnitude", Map.of("type", "number"),
+                        "decision", Map.of("type", "string", "enum", List.of("PROMOTE", "DISCARD")))));
         properties.put("journalPath", Map.of("type", "string"));
 
         var schema = new LinkedHashMap<String, Object>();
         schema.put("type", "object");
         schema.put("additionalProperties", false);
         schema.put("required", List.of(
-                "candidate", "evidence", "objectives", "aggregateScore", "aggregateScoreDisplay", "decision", "journalPath"));
+                "candidate", "evidence", "objectives", "fitnessScore", "journalPath"));
         schema.put("properties", properties);
         return schema;
     }

@@ -31,6 +31,6 @@ public final class JournalDecisionSink implements CandidateDecisionSink {
     private void record(String decision, CandidateBranchRef candidateBranchRef, FitnessResult result) {
         Objects.requireNonNull(candidateBranchRef, "candidateBranchRef");
         Objects.requireNonNull(result, "result");
-        decisions.add(decision + " " + candidateBranchRef.value() + " " + result.aggregateScore());
+        decisions.add(decision + " " + candidateBranchRef.value() + " " + result.fitnessScore().rawMagnitude());
     }
 }
