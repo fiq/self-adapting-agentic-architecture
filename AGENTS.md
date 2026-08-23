@@ -309,6 +309,23 @@ when the response reserve would be consumed. Record the retained session ID,
 route and reset reason in `HANDOFF.toon`; the repository, spec and handoff
 remain the durable context.
 
+Token spend is a cost to manage, not a byproduct. Prefer the cheapest action that
+answers the question: read the part of the file you need rather than the whole
+file, search rather than enumerate, and check a fact once rather than re-deriving
+it. Do not re-read what is already in context, do not restate a plan you have
+already stated, and do not narrate options you are not going to take.
+
+Delegation and review both cost real tokens, so spend them where independent
+challenge actually pays: a bounded implementation another agent can do while you
+work, or a review aimed at ground no earlier pass covered. A subagent that
+re-derives context you already hold is the expensive way to get an answer you
+could have written yourself.
+
+Verify before investigating. A wrong diagnosis costs more than the check that
+would have prevented it: confirm the file exists, the command ran, the output is
+what you think it is. Most expensive debugging in this repository has been an
+agent reasoning at length from a premise one command would have falsified.
+
 Choose the cheapest model class likely to complete the bounded task reliably.
 Give delegated models a compact context packet with source references rather
 than the full repository. Before invoking a model, set and record an input,

@@ -95,6 +95,13 @@ A generated project AGENTS.md must include:
     cannot be redacted after the fact, because rewriting leaves the originals
     fetchable by SHA, visible in pull request views, and present in every clone
     and fork. Tool and co-author attribution is fine.
+20c. **Token economy** — spend the cheapest action that answers the question:
+    read the part of the file you need, search rather than enumerate, check a
+    fact once rather than re-deriving it. Do not re-read what is in context or
+    restate a plan already stated. Delegation and review cost real tokens, so
+    aim them at independent challenge rather than at re-deriving held context.
+    Verify before investigating: a wrong diagnosis costs more than the check
+    that would have falsified it.
 21. **Git provenance** — real commit dates, no history rewriting.
 
 ## CLAUDE.md
