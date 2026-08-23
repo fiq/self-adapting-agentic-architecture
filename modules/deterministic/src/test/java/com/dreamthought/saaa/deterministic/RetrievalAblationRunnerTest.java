@@ -43,4 +43,27 @@ final class RetrievalAblationRunnerTest {
         assertThat(report.treatments()).filteredOn(summary -> summary.mode() == RetrievalMode.NONE)
                 .singleElement().satisfies(summary -> assertThat(summary.accepted()).isZero());
     }
+
+
+    /**
+     * CHG-023. A discarded candidate keeps its magnitude, so the largest fitness in a treatment can
+     * belong to an attempt that failed a gate. Reporting that as the treatment's best fitness would
+     * credit a retrieval mode for a candidate it rejected, which is the score-only ordering this
+     * change exists to remove.
+     */
+    @Test
+    void bestFitnessIsTheBestAcceptedAttemptNotTheLargestNumber() {
+        var runner = new RetrievalAblationRunner((task, mode, attempt) -> new RetrievalAttemptMetrics(
+                task.id(), mode, attempt, attempt == 2, attempt == 2 ? 0.70 : 0.95,
+                0.0, 0, 0, 0, 1, 0, 100, 20, 0, 1000, 0, 0, 0, 0, 0, 2,
+                "retrieval-config-v1", "lineage-novelty-v1"));
+
+        var report = runner.run("ablation-best", List.of(
+                new RetrievalAblationTask("task-a", "first", 0.5)),
+                List.of(RetrievalMode.NONE), 2);
+
+        assertThat(report.treatments().getFirst().bestFitness())
+                .as("the rejected 0.95 must not outrank the accepted 0.70")
+                .isEqualTo(0.70);
+    }
 }

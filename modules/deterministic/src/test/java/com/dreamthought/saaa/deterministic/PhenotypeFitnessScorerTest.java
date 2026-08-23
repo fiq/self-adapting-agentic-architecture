@@ -38,7 +38,7 @@ final class PhenotypeFitnessScorerTest {
         // stays binary and the score records how close the candidate got. Asserting the score is
         // still weighted, rather than asserting the decision twice, keeps this sensitive to the
         // zeroing coming back.
-        assertThat(result.aggregateScore())
+        assertThat(result.fitnessScore().rawMagnitude().doubleValue())
                 .as("a failed gate discards without erasing how close the candidate got")
                 .isGreaterThan(0.0);
     }
@@ -79,7 +79,7 @@ final class PhenotypeFitnessScorerTest {
         ));
 
         assertThat(result.decision()).isEqualTo(PROMOTE);
-        assertThat(result.aggregateScore()).isEqualTo(0.87);
+        assertThat(result.fitnessScore().rawMagnitude()).isEqualByComparingTo("0.87");
     }
 
     @Test
@@ -96,7 +96,7 @@ final class PhenotypeFitnessScorerTest {
         // stays binary and the score records how close the candidate got. Asserting the score is
         // still weighted, rather than asserting the decision twice, keeps this sensitive to the
         // zeroing coming back.
-        assertThat(result.aggregateScore())
+        assertThat(result.fitnessScore().rawMagnitude().doubleValue())
                 .as("a failed gate discards without erasing how close the candidate got")
                 .isGreaterThan(0.0);
         assertThat(result.objectives())
@@ -123,7 +123,7 @@ final class PhenotypeFitnessScorerTest {
         // stays binary and the score records how close the candidate got. Asserting the score is
         // still weighted, rather than asserting the decision twice, keeps this sensitive to the
         // zeroing coming back.
-        assertThat(result.aggregateScore())
+        assertThat(result.fitnessScore().rawMagnitude().doubleValue())
                 .as("a failed gate discards without erasing how close the candidate got")
                 .isGreaterThan(0.0);
         assertThat(result.objectives())
@@ -166,7 +166,7 @@ final class PhenotypeFitnessScorerTest {
                 realized()
         ));
 
-        assertThat(result.aggregateScore()).isEqualTo(0.80);
+        assertThat(result.fitnessScore().rawMagnitude()).isEqualByComparingTo("0.795");
         assertThat(result.decision()).isEqualTo(DISCARD);
     }
 
@@ -199,9 +199,9 @@ final class PhenotypeFitnessScorerTest {
         assertThat(promoted.decision())
                 .as("a candidate clearing every structural gate still promotes without any contract")
                 .isEqualTo(PROMOTE);
-        assertThat(promoted.aggregateScore())
+        assertThat(promoted.fitnessScore().rawMagnitude())
                 .as("the contractless weighted sum is unchanged")
-                .isEqualTo(1.00);
+                .isEqualByComparingTo("1.0");
         assertThat(promoted.objectives())
                 .as("the contractless audit map still carries exactly the five objectives and four gates")
                 .hasSize(9)

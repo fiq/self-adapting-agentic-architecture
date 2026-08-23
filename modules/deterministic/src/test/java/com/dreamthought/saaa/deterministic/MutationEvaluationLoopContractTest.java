@@ -66,7 +66,7 @@ final class MutationEvaluationLoopContractTest {
                 (evaluated, evidence, suppliedContract) -> {
                     seen.set(suppliedContract);
                     return new FitnessResult(
-                            evaluated, evidence, Map.of(), 0.10, FitnessDecision.DISCARD);
+                            evaluated, evidence, Map.of(), com.dreamthought.saaa.domain.FitnessScore.of(0.10, FitnessDecision.DISCARD));
                 },
                 new ExperimentMetadataStore() {
                     @Override

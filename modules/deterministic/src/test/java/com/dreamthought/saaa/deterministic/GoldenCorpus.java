@@ -78,7 +78,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                0.59);
+                "0.59");
     }
 
     /**
@@ -98,7 +98,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                0.59);
+                "0.59");
     }
 
     /**
@@ -119,7 +119,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                1.00);
+                "1.00");
     }
 
     /**
@@ -139,7 +139,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 PROMOTE,
-                1.00);
+                "0.99875");
     }
 
     /**
@@ -159,7 +159,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 PROMOTE,
-                0.95);
+                "0.95");
     }
 
     /**
@@ -192,7 +192,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of("publish-latency", 50.0),
                 PROMOTE,
-                0.80);
+                "0.80");
     }
 
     /**
@@ -214,7 +214,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of("publish-latency", 50.0),
                 DISCARD,
-                0.80);
+                "0.797619047619047616");
     }
 
     /**
@@ -235,7 +235,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                1.00);
+                "1.00");
     }
 
     /**
@@ -266,7 +266,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 PROMOTE,
-                1.00);
+                "0.9975");
     }
 
     private GoldenCorpus() {
@@ -285,7 +285,7 @@ final class GoldenCorpus {
      * @param maxLinesChanged the change budget parsimony is scored against
      * @param benchmarkBudgets budgets used to score {@code cost_latency_budget}
      * @param expectedDecision the scorer must reproduce this decision
-     * @param expectedAggregateScore the scorer must reproduce this aggregate (reported, so rounded)
+     * @param expectedRawMagnitude the scorer must reproduce this raw weighted magnitude
      */
     record Entry(
             String name,
@@ -296,6 +296,6 @@ final class GoldenCorpus {
             int maxLinesChanged,
             Map<String, Double> benchmarkBudgets,
             FitnessDecision expectedDecision,
-            double expectedAggregateScore) {
+            String expectedRawMagnitude) {
     }
 }

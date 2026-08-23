@@ -28,16 +28,16 @@ final class FailedCandidateMagnitudeTest {
 
         assertThat(nearMiss.decision()).isEqualTo(FitnessDecision.DISCARD);
         assertThat(totalMiss.decision()).isEqualTo(FitnessDecision.DISCARD);
-        assertThat(nearMiss.aggregateScore())
+        assertThat(nearMiss.fitnessScore().rawMagnitude())
                 .as("three of four passing must outrank one of four, or a population cannot choose")
-                .isGreaterThan(totalMiss.aggregateScore());
+                .isGreaterThan(totalMiss.fitnessScore().rawMagnitude());
     }
 
     @Test
     void theDecisionIsStillBinaryAndUntradeable() {
         var nearMiss = score(3, 4);
 
-        assertThat(nearMiss.aggregateScore())
+        assertThat(nearMiss.fitnessScore().rawMagnitude().doubleValue())
                 .as("a failing candidate can score above the promotion threshold")
                 .isGreaterThan(PhenotypeFitnessScorer.PROMOTION_THRESHOLD);
         assertThat(nearMiss.decision())
@@ -64,9 +64,9 @@ final class FailedCandidateMagnitudeTest {
         assertThat(result.decision())
                 .as("a non-finite objective fails the required-objective-scores gate")
                 .isEqualTo(FitnessDecision.DISCARD);
-        assertThat(result.aggregateScore())
+        assertThat(result.fitnessScore().rawMagnitude())
                 .as("the recorded magnitude must stay within the range a score can occupy")
-                .isBetween(0.0, 1.0);
+                .isBetween(java.math.BigDecimal.ZERO, java.math.BigDecimal.ONE);
     }
 
     @Test
@@ -74,10 +74,8 @@ final class FailedCandidateMagnitudeTest {
         var result = scoreWith(Double.NaN);
 
         assertThat(result.decision()).isEqualTo(FitnessDecision.DISCARD);
-        assertThat(result.aggregateScore()).isBetween(0.0, 1.0);
-        assertThat(Double.isNaN(result.aggregateScore()))
-                .as("a NaN contribution must not reach the record even indirectly")
-                .isFalse();
+        assertThat(result.fitnessScore().rawMagnitude())
+                .isBetween(java.math.BigDecimal.ZERO, java.math.BigDecimal.ONE);
     }
 
     private static com.dreamthought.saaa.domain.FitnessResult scoreWith(double taskSuccess) {

@@ -6,8 +6,10 @@ import com.dreamthought.saaa.domain.CheckStatus;
 import com.dreamthought.saaa.domain.EvolutionContext;
 import com.dreamthought.saaa.domain.EvolutionaryMemoryRecord;
 import com.dreamthought.saaa.domain.FitnessDecision;
+import com.dreamthought.saaa.domain.FitnessScore;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.RetrievalMode;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -16,7 +18,7 @@ import java.util.Map;
 
 /** Small deterministic codec for the repository's reviewable TOON experiment envelope. */
 final class ExperimentEnvelopeCodec {
-    static final String SCHEMA = "saaa-experiment-envelope-v2";
+    static final String SCHEMA = "saaa-experiment-envelope-v3";
 
     String encode(EvolutionaryMemoryRecord record) {
         var out = new StringBuilder("experiment_envelope:\n");
@@ -33,8 +35,8 @@ final class ExperimentEnvelopeCodec {
         scalar(out, "candidate_commit", record.candidateCommit());
         scalar(out, "retrieval_mode", record.retrievalMode().name());
         scalar(out, "retrieval_configuration_id", record.retrievalConfigurationId());
-        scalar(out, "aggregate_fitness", Double.toString(record.aggregateFitness()));
-        scalar(out, "decision", record.decision().name());
+        scalar(out, "raw_magnitude", record.fitnessScore().rawMagnitude().toPlainString());
+        scalar(out, "decision", record.fitnessScore().decision().name());
         scalar(out, "evaluated_at", record.evaluatedAt().toString());
         out.append("  changed_paths[").append(record.changedPaths().size()).append("]:\n");
         record.changedPaths().forEach(value -> out.append("    - ").append(csv(List.of(value))).append('\n'));
@@ -95,8 +97,8 @@ final class ExperimentEnvelopeCodec {
                 required(scalar, "candidate_id"), required(scalar, "candidate_commit"),
                 RetrievalMode.valueOf(required(scalar, "retrieval_mode")),
                 required(scalar, "retrieval_configuration_id"), changedPaths, evidence, checks, benchmarks,
-                Double.parseDouble(required(scalar, "aggregate_fitness")),
-                FitnessDecision.valueOf(required(scalar, "decision")),
+                new FitnessScore(new BigDecimal(required(scalar, "raw_magnitude")),
+                        FitnessDecision.valueOf(required(scalar, "decision"))),
                 Instant.parse(required(scalar, "evaluated_at")));
     }
 

@@ -9,6 +9,7 @@ import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessScore;
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.json.TypeRef;
 import java.nio.file.Path;
@@ -36,9 +37,7 @@ final class EvolveMcpToolTest {
                 .contains(
                         "\"commitSha\":\"abc123\"",
                         "\"objectives\":{",
-                        "\"aggregateScore\":0.87",
-                        "\"aggregateScoreDisplay\":\"0.87\"",
-                        "\"decision\":\"PROMOTE\"",
+                        "\"fitnessScore\":{\"rawMagnitude\":0.87,\"decision\":\"PROMOTE\"}",
                         "\"journalPath\":\"/tmp/repo/toy/journal.md\"");
     }
 
@@ -68,7 +67,7 @@ final class EvolveMcpToolTest {
         objectives.put("subject.invariant.z_last", 1.0);
         objectives.put("subject.objective.parsimony", 0.9);
         objectives.put("subject.invariant.a_first", 1.0);
-        var fitness = new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE);
+        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE));
 
         var response = toolReturning(new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md")))
                 .call(Map.of(
@@ -203,7 +202,7 @@ final class EvolveMcpToolTest {
         var objectives = new LinkedHashMap<String, Double>();
         objectives.put("subject.objective.task_success", 1.0);
         objectives.put("subject.invariant.deterministic_checks", 1.0);
-        var fitness = new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE);
+        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE));
         var response = toolReturning(new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md")))
                 .call(Map.of(
                         "targetFolder", "/tmp/repo/toy",
@@ -261,7 +260,7 @@ final class EvolveMcpToolTest {
         objectives.put("subject.objective.parsimony", 0.9);
         objectives.put("subject.invariant.deterministic_checks", 1.0);
         objectives.put("subject.invariant.non_empty_realization", 1.0);
-        var fitness = new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE);
+        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE));
         return new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md"));
     }
 
@@ -280,7 +279,7 @@ final class EvolveMcpToolTest {
                 "task_success", 1.0,
                 "hard_gate_deterministic_checks", 1.0);
         return new EvolveRunResult(
-                new FitnessResult(candidate, evidence, objectives, 0.87, FitnessDecision.PROMOTE),
+                new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE)),
                 Path.of("/tmp/repo/toy/journal.md"));
     }
 }

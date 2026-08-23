@@ -51,8 +51,8 @@ final class PhenotypeGoldenVerdictCorpusTest {
         assertThat(result.decision())
                 .as("corpus entry '%s' — %s", entry.name(), entry.rationale())
                 .isEqualTo(entry.expectedDecision());
-        assertThat(result.aggregateScore())
+        assertThat(result.fitnessScore().rawMagnitude())
                 .as("corpus entry '%s' — %s", entry.name(), entry.rationale())
-                .isEqualTo(entry.expectedAggregateScore());
+                .isEqualByComparingTo(entry.expectedRawMagnitude());
     }
 }

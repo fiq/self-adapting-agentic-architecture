@@ -5,9 +5,11 @@ import com.dreamthought.saaa.domain.CheckStatus;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessObjective;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessScore;
 import com.dreamthought.saaa.domain.FitnessSignalId;
 import com.dreamthought.saaa.domain.MutationContract;
 import com.dreamthought.saaa.domain.RequiredEvidenceResult;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +157,8 @@ public final class PhenotypeFitnessScorer {
                     gateValue(Boolean.TRUE.equals(observed.get(id))));
         }
 
-        return new FitnessResult(candidate, phenotype.evidence(), objectives, round(rawScore), decision);
+        return new FitnessResult(candidate, phenotype.evidence(), objectives,
+                new FitnessScore(weightedMagnitude(phenotype, objectiveSet), decision));
     }
 
     /**
@@ -191,9 +194,8 @@ public final class PhenotypeFitnessScorer {
                 //
                 // Retaining the magnitude is what makes this load-bearing. Zeroing on gate failure
                 // used to discard a non-finite sum before it was recorded; now the sum is always
-                // computed, and round() launders it into something the finiteness guards accept —
-                // round(+Inf) is 9.22e16 and finite. Without this filter an infinite objective would
-                // be stored as an enormous score and sort first among failures.
+                // computed. Without this filter an infinite objective would be stored as an
+                // enormous score and sort first among failures.
                 .mapToDouble(objective -> {
                     Double measured = phenotype.objectiveScores().get(objective.id());
                     return isFraction(measured) ? objective.weight() * measured : 0.0;
@@ -201,9 +203,16 @@ public final class PhenotypeFitnessScorer {
                 .sum();
     }
 
-    /** Rounds for reporting only. The threshold comparison uses the raw sum so 0.7950 cannot promote. */
-    private static double round(double score) {
-        return Math.round(score * 100.0) / 100.0;
+    /** Preserves the decimal magnitude the objectives describe without changing the double gate calculation. */
+    private static BigDecimal weightedMagnitude(PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
+        return objectiveSet.stream()
+                .map(objective -> {
+                    Double measured = phenotype.objectiveScores().get(objective.id());
+                    return isFraction(measured)
+                            ? BigDecimal.valueOf(objective.weight()).multiply(BigDecimal.valueOf(measured))
+                            : BigDecimal.ZERO;
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private static double gateValue(boolean passed) {

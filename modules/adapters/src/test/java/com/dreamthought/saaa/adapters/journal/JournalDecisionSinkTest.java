@@ -7,6 +7,7 @@ import com.dreamthought.saaa.domain.CandidateBranchRef;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessScore;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -31,6 +32,6 @@ final class JournalDecisionSinkTest {
 
     private static FitnessResult result(FitnessDecision decision, double score) {
         var evidence = new EvaluationEvidence(List.of(), List.of(), Instant.parse("2026-07-28T00:00:00Z"));
-        return new FitnessResult(CANDIDATE, evidence, Map.of(), score, decision);
+        return new FitnessResult(CANDIDATE, evidence, Map.of(), FitnessScore.of(score, decision));
     }
 }

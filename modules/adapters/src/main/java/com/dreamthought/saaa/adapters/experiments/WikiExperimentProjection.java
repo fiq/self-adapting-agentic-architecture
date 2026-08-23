@@ -48,7 +48,8 @@ public final class WikiExperimentProjection {
                     .append('|').append(plain(record.mutationSummary())).append('|')
                     .append(plain(String.join(", ", record.changedPaths()))).append('|')
                     .append(code(record.retrievalMode() + " / " + record.retrievalConfigurationId()))
-                    .append('|').append(record.aggregateFitness()).append('|').append(record.decision()).append("|\n");
+                    .append('|').append(record.fitnessScore().rawMagnitude()).append('|')
+                    .append(record.fitnessScore().decision()).append("|\n");
         }
         try {
             Files.createDirectories(target.getParent());

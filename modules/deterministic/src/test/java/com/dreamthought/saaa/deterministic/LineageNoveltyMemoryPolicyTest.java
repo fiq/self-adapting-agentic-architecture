@@ -8,6 +8,7 @@ import com.dreamthought.saaa.domain.EvolutionContext;
 import com.dreamthought.saaa.domain.EvolutionaryMemoryPolicyConfig;
 import com.dreamthought.saaa.domain.EvolutionaryMemoryRecord;
 import com.dreamthought.saaa.domain.FitnessDecision;
+import com.dreamthought.saaa.domain.FitnessScore;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.RetrievalMode;
 import java.time.Instant;
@@ -97,9 +98,9 @@ final class LineageNoveltyMemoryPolicyTest {
                 new EvolutionaryMemoryPolicyConfig("fixture-policy-v1", 1, 0, 0, 0, 0, 1));
         // Recency deliberately favours the weaker record, so a comparator that reached for
         // evaluatedAt before magnitude would return the other one.
-        var nearMiss = record("near-miss", "base-0", "commit-near", 0.75, "hard-gate",
+        var nearMiss = record("near-miss", "base-0", "commit-near", 0.5949, "hard-gate",
                 CheckStatus.FAILED, Instant.parse("2026-01-01T00:00:00Z"), List.of());
-        var totalMiss = record("total-miss", "base-0", "commit-total", 0.10, "hard-gate",
+        var totalMiss = record("total-miss", "base-0", "commit-total", 0.5851, "hard-gate",
                 CheckStatus.FAILED, Instant.parse("2026-06-01T00:00:00Z"), List.of());
 
         assertThat(policy.select(List.of(totalMiss, nearMiss)))
@@ -138,7 +139,7 @@ final class LineageNoveltyMemoryPolicyTest {
                 MutationScope.WORKFLOW_DEFINITION, id, commit, RetrievalMode.HYBRID,
                 "retrieval-config-v1", evidence,
                 List.of(new CheckEvidence(checkName, checkStatus, checkStatus.name().toLowerCase())),
-                List.of(), fitness, checkStatus == CheckStatus.PASSED ? FitnessDecision.PROMOTE : FitnessDecision.DISCARD,
-                evaluatedAt);
+                List.of(), FitnessScore.of(fitness,
+                checkStatus == CheckStatus.PASSED ? FitnessDecision.PROMOTE : FitnessDecision.DISCARD), evaluatedAt);
     }
 }

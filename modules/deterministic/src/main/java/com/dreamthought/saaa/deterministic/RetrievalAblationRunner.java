@@ -60,9 +60,26 @@ public final class RetrievalAblationRunner {
                 mode, attempts.size(), accepted,
                 attempts.isEmpty() ? 0 : (double) accepted / attempts.size(),
                 firstAccepted.length == 0 ? 0 : java.util.Arrays.stream(firstAccepted).average().orElse(0),
-                attempts.stream().mapToDouble(RetrievalAttemptMetrics::fitness).max().orElse(0),
+                bestFitness(attempts),
                 improvement, cost, cost == 0 ? 0 : improvement / cost,
                 accepted == 0 ? 0 : (double) contextTokens / accepted);
+    }
+
+    /**
+     * The fitness of the best attempt, not the largest fitness seen.
+     *
+     * <p>A discarded candidate keeps its magnitude, so the largest number in this list can belong to
+     * an attempt that failed a gate. Reporting that as the treatment's best fitness would say a
+     * retrieval mode performed well on the strength of a candidate it rejected. An accepted attempt
+     * therefore outranks every rejected one, and magnitude only separates attempts that share a
+     * verdict, which is the ordering FitnessScore applies everywhere else.
+     */
+    private static double bestFitness(List<RetrievalAttemptMetrics> attempts) {
+        return attempts.stream()
+                .max(java.util.Comparator.comparing(RetrievalAttemptMetrics::accepted)
+                        .thenComparingDouble(RetrievalAttemptMetrics::fitness))
+                .map(RetrievalAttemptMetrics::fitness)
+                .orElse(0.0);
     }
 
     @FunctionalInterface

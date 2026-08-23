@@ -35,7 +35,7 @@ final class PhenotypeBridgeScorerTest {
         // The magnitude now survives a gate failure by design (CHG-021, CON-002): the decision
         // stays binary and the score records how close the candidate got.
         assertThat(result.decision()).isEqualTo(DISCARD);
-        assertThat(result.aggregateScore())
+        assertThat(result.fitnessScore().rawMagnitude().doubleValue())
                 .as("a failed gate discards without erasing how close the candidate got")
                 .isGreaterThan(0.0);
         assertThat(result.objectives())
@@ -133,8 +133,8 @@ final class PhenotypeBridgeScorerTest {
         // double for 0.9, and 1.0 minus that is 0.09999999999999998, not 0.1.
         assertThat(sprawling.score(CANDIDATE, evidence).objectives())
                 .containsEntry("subject.objective.parsimony", 0.09999999999999998);
-        assertThat(tight.score(CANDIDATE, evidence).aggregateScore())
-                .isGreaterThan(sprawling.score(CANDIDATE, evidence).aggregateScore());
+        assertThat(tight.score(CANDIDATE, evidence).fitnessScore().rawMagnitude())
+                .isGreaterThan(sprawling.score(CANDIDATE, evidence).fitnessScore().rawMagnitude());
     }
 
     @Test

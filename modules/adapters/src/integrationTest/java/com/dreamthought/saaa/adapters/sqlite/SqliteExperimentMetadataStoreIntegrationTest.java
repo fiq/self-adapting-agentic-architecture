@@ -8,6 +8,7 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessScore;
 import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -44,8 +45,7 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
                 candidate,
                 evidence,
                 Map.of("correctness", 0.0, "throughput", 0.4),
-                0.2,
-                DISCARD
+                FitnessScore.of(0.2, DISCARD)
         );
 
         store.recordCandidate(candidate);
@@ -58,7 +58,7 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
                     .isEqualTo(candidate.branchName());
             assertThat(singleText(connection, "select decision from fitness_results where candidate_id = ?", candidate.id()))
                     .isEqualTo("DISCARD");
-            assertThat(singleDouble(connection, "select aggregate_score from fitness_results where candidate_id = ?", candidate.id()))
+            assertThat(singleDouble(connection, "select raw_magnitude from fitness_results where candidate_id = ?", candidate.id()))
                     .isEqualTo(0.2);
             assertThat(singleText(
                     connection,

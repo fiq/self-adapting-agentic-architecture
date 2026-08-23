@@ -7,6 +7,7 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessScore;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationScope;
 import java.io.IOException;
@@ -35,7 +36,7 @@ final class JournalReporterTest {
         reporter.candidateCreated(CANDIDATE);
         reporter.evidenceCollected(evidence());
         reporter.scored(new FitnessResult(CANDIDATE, evidence(),
-                Map.of("subject.objective.parsimony", 0.9), 0.87, FitnessDecision.PROMOTE));
+                Map.of("subject.objective.parsimony", 0.9), FitnessScore.of(0.87, FitnessDecision.PROMOTE)));
 
         String written = Files.readString(journal);
         assertThat(written)
@@ -59,7 +60,7 @@ final class JournalReporterTest {
         reporter.candidateCreated(CANDIDATE);
         reporter.evidenceCollected(evidence());
         reporter.scored(new FitnessResult(CANDIDATE, evidence(),
-                Map.of(), 0.87, FitnessDecision.PROMOTE));
+                Map.of(), FitnessScore.of(0.87, FitnessDecision.PROMOTE)));
 
         assertThat(Files.readString(journal))
                 .contains("## earlier run")

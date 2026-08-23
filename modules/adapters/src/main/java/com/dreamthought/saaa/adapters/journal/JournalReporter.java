@@ -76,19 +76,19 @@ public final class JournalReporter implements EvolutionReporter {
                 |---|---|
                 | commit | %s |
                 | checks | %s |
-                | score | %.2f |
+                | score | %s |
                 | decision | %s |
 
-                Scored %.2f against a threshold of 0.80.
+                Scored %s against a threshold of 0.80.
                 """.formatted(
                         Instant.now(clock),
                         candidateId,
                         hypothesis,
                         commit,
                         checks,
-                        result.aggregateScore(),
+                        result.fitnessScore().rawMagnitude(),
                         result.decision(),
-                        result.aggregateScore());
+                        result.fitnessScore().rawMagnitude());
     }
 
     private void append(String text) {

@@ -59,7 +59,7 @@ final class MutationEvaluationLoopReportingTest {
                 ignored -> List.of(CheckEvidence.passed("workflow-check", "ok")),
                 ignored -> List.of(),
                 (evaluated, evidence, contract) -> new FitnessResult(
-                        evaluated, evidence, Map.of(), 0.10, FitnessDecision.DISCARD),
+                        evaluated, evidence, Map.of(), com.dreamthought.saaa.domain.FitnessScore.of(0.10, FitnessDecision.DISCARD)),
                 new ExperimentMetadataStore() {
                     @Override
                     public void recordCandidate(Candidate recorded) { }

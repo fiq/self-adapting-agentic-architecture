@@ -91,7 +91,7 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                     execute(connection, """
                             create table if not exists fitness_results (
                               candidate_id text primary key not null references candidates(id) on delete cascade,
-                              aggregate_score real not null,
+                              raw_magnitude real not null,
                               decision text not null,
                               evaluated_at text not null
                             )
@@ -205,11 +205,11 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
 
     private static void writeFitnessResult(Connection connection, FitnessResult result) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
-                insert or replace into fitness_results(candidate_id, aggregate_score, decision, evaluated_at)
+                insert or replace into fitness_results(candidate_id, raw_magnitude, decision, evaluated_at)
                 values (?, ?, ?, ?)
                 """)) {
             statement.setString(1, result.candidate().id());
-            statement.setDouble(2, result.aggregateScore());
+            statement.setBigDecimal(2, result.fitnessScore().rawMagnitude());
             statement.setString(3, result.decision().name());
             statement.setString(4, result.evidence().evaluatedAt().toString());
             statement.executeUpdate();

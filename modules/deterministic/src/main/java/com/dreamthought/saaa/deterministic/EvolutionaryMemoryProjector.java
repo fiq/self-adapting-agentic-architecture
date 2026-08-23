@@ -55,8 +55,8 @@ public final class EvolutionaryMemoryProjector {
                 retrieval.mode(), retrieval.configurationId(),
                 changedPathInspector.inspect(result.candidate()),
                 retrieval.capsules().stream().map(capsule -> capsule.subject().stableId()).toList(),
-                result.evidence().checks(), result.evidence().benchmarks(), result.aggregateScore(),
-                result.decision(), result.evidence().evaluatedAt()));
+                result.evidence().checks(), result.evidence().benchmarks(), result.fitnessScore(),
+                result.evidence().evaluatedAt()));
     }
 
     public static EvolutionaryMemoryProjector disabled() {

@@ -356,7 +356,7 @@ public final class Neo4jEvidenceGraph
     public void append(EvolutionaryMemoryRecord record) {
         Objects.requireNonNull(record, "record");
         String evaluationId = "evaluation:" + record.candidateId();
-        String summary = "decision=" + record.decision() + "; failed checks="
+        String summary = "decision=" + record.fitnessScore().decision() + "; failed checks="
                 + record.checks().stream().filter(check -> check.status() != CheckStatus.PASSED)
                         .map(check -> check.name() + ": " + check.summary()).toList();
         try (Session session = session()) {
@@ -395,7 +395,8 @@ public final class Neo4jEvidenceGraph
                         "repositoryId", config.repositoryId(), "mutationId", record.mutationId(),
                         "mutationSummary", record.mutationSummary(), "candidateId", record.candidateId(),
                         "candidateCommit", record.candidateCommit(), "evaluationId", evaluationId,
-                        "fitness", record.aggregateFitness(), "decision", record.decision().name(),
+                        "fitness", record.fitnessScore().rawMagnitude().doubleValue(),
+                        "decision", record.fitnessScore().decision().name(),
                         "summary", summary, "evaluatedAt", record.evaluatedAt().toString(),
                         "retrievalMode", record.retrievalMode().name(),
                         "retrievalConfigurationId", record.retrievalConfigurationId(),
