@@ -222,10 +222,19 @@ boundaries, acceptance scenarios or canonical commands change.
 
 ## Branch and PR workflow
 
-Use one bounded issue per branch. Open a PR for integration. Human or lead
-agent owns merge. Direct commits to `main` require explicit user
-authorisation. Force-push requires explicit authorisation and never targets
-`main`. CI must pass before merge.
+Use one bounded issue per branch. Open a PR for integration, as a draft as soon
+as the branch has something on it rather than when the work is finished, so the
+diff is reviewable while it is still cheap to redirect. Human or lead agent owns
+merge. Direct commits to `main` require explicit user authorisation. Force-push
+requires explicit authorisation and never targets `main`. CI must pass before
+merge.
+
+Commit in small steps as the work proceeds, not in one commit at the end. Each
+commit should leave the suite green and carry one reviewable idea, with its
+mutation evidence in the message where the change touches a gate, a decision, an
+audit record or a promotion. A single large commit hides which change caused
+which effect, which is the same defect the testing rule exists to prevent: when
+the whole slice lands at once, a regression has no bisectable boundary.
 
 If PR or GitHub tooling is unavailable, use the tool-unavailable integration
 fallback only when the user explicitly authorises skipping the PR:
@@ -478,6 +487,43 @@ Put the most important conclusion first. Use concise sections, short
 paragraphs, small tables and ASCII diagrams as complexity rises. At hard
 choices, attribute relevant persona stances as `discourages`, `accepts` or
 `encourages`, then let the lead synthesize.
+
+### Plain English is the default, not the fallback
+
+Explain in plain English, with bullets and an ASCII diagram, before reaching for
+the technical register. This applies to conversation and to user-facing
+documents alike.
+
+- Say what the thing *is* in ordinary words before naming it.
+- Introduce a term before using it, or do not use the term.
+- Prefer a bulleted list to a paragraph, and a diagram to a prose description of
+  a flow, a layering or a lifecycle.
+- When asking for a decision, attach a recommendation to each option and say
+  plainly what you do *not* need decided.
+
+Precision and plainness are not in tension. The failure mode is not length: it
+is jargon used before it is introduced, and structure that buries the decision
+inside the analysis. Keep the class names and `file:line` evidence, and put them
+where they support a claim rather than where they carry it.
+
+The same standard governs `README.md` and the documents under `docs/`. Do not
+shorten for its own sake — an earlier cut removed load-bearing rationale and had
+to be partly reverted.
+
+### Rewriting a document you did not write
+
+A clarity pass must not become a content pass. The rule is that every factual
+claim in the rewrite has to be present in the original.
+
+The characteristic failure is an invented summary sentence: a tidy
+generalisation such as "each port is filled by an adapter", which reads well,
+was never claimed, and is false. That exact sentence reached `docs/wiki/` in a
+delegated pass and inverted the deterministic boundary, because scoring
+deliberately does not live in an adapter. Reviewing prose for style does not
+catch these; only checking each claim against the source does.
+
+Where a statement is unclear and cannot be verified, keep the original wording
+and say so, rather than rewriting it into something plausible.
 
 ## Handoff requirements
 
