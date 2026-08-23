@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 /**
  * What a fitness magnitude was measured against, reduced to one comparable fingerprint.
@@ -68,13 +67,30 @@ public record ScoringContext(
      * count do not.
      */
     public String fingerprint() {
-        String canonical = objectives.stream()
-                        .map(objective -> objective.id() + "=" + objective.weight())
-                        .collect(Collectors.joining(","))
-                + "|held-out:" + String.join(",", new TreeSet<>(heldOutCaseNames))
-                + "|withheld:" + String.join(",", new TreeSet<>(withheldCheckNames))
-                + "|threshold:" + promotionThreshold;
-        return HexFormat.of().formatHex(digest(canonical)).substring(0, 16);
+        var canonical = new StringBuilder();
+        for (FitnessObjective objective : objectives) {
+            field(canonical, objective.id());
+            field(canonical, Double.toString(objective.weight()));
+        }
+        new TreeSet<>(heldOutCaseNames).forEach(name -> field(canonical, "held-out:" + name));
+        new TreeSet<>(withheldCheckNames).forEach(name -> field(canonical, "withheld:" + name));
+        field(canonical, "threshold:" + promotionThreshold);
+        return HexFormat.of().formatHex(digest(canonical.toString())).substring(0, 16);
+    }
+
+    /**
+     * Appends one length-prefixed field.
+     *
+     * <p>Joining with delimiters is not safe here. Objective ids and case names are only required to
+     * be non-blank, so a separator can appear inside a value: the single objective
+     * {@code ("a=0.1,b", 0.2)} joins to exactly the same string as the two objectives
+     * {@code ("a", 0.1), ("b", 0.2)}, and the held-out set {@code {"a,b"}} to the same string as
+     * {@code {"a", "b"}}. Those are deterministic pre-hash collisions between configurations this
+     * type exists to tell apart. Prefixing each field with its length makes the encoding
+     * unambiguous whatever the value contains.
+     */
+    private static void field(StringBuilder canonical, String value) {
+        canonical.append(value.length()).append(':').append(value);
     }
 
     private static byte[] digest(String value) {

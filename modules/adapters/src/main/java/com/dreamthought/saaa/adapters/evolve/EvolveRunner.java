@@ -146,7 +146,7 @@ public final class EvolveRunner {
                 BehaviourCaseChecks.forCases(caseAndProbeNames, gitRoot.relativize(folder)),
                 request.behaviourCases(), request.reliabilityRuns());
         requireWorkflowIsNotCheckScript(gitRoot, workflowPath, checks);
-        requireRunnableCheckScripts(gitRoot, checks, request.safetyProbes());
+        requireRunnableCheckScripts(gitRoot, checks, request.safetyProbes(), request.heldOutCases());
 
         String relativeWorkflow = gitRoot.relativize(workflowPath).toString();
         String repositoryRevision = GitRepositoryRevision.workingTree(gitRoot);
@@ -200,13 +200,28 @@ public final class EvolveRunner {
                 wallMillis, timedRetriever.elapsedMillis());
     }
 
+    /**
+     * Names the option the caller actually passed, so a bad script sends the reader to the right
+     * flag. Probes and held-out cases both travel with the behaviour cases so they get executed, and
+     * calling either one a behaviour case points at `--behaviour-case` for a script the caller
+     * declared with a different option.
+     */
+    private static String kindOf(
+            String checkName, Collection<String> probeNames, Collection<String> heldOutNames) {
+        if (probeNames.contains(checkName)) {
+            return "safety probe";
+        }
+        return heldOutNames.contains(checkName) ? "held-out case" : "behaviour case";
+    }
+
     private static void requireRunnableCheckScripts(
-            Path gitRoot, List<CommandCheck> checks, Collection<String> probeNames) {
+            Path gitRoot, List<CommandCheck> checks, Collection<String> probeNames,
+            Collection<String> heldOutNames) {
         for (CommandCheck check : checks) {
             // Name the option the caller actually passed. Probes travel with the behaviour cases so
             // they get executed, and calling a bad probe a behaviour case sends the reader to the
             // wrong flag.
-            String kind = probeNames.contains(check.name()) ? "safety probe" : "behaviour case";
+            String kind = kindOf(check.name(), probeNames, heldOutNames);
             Path script = gitRoot.resolve(check.command().get(0)).normalize();
             if (!Files.isRegularFile(script, LinkOption.NOFOLLOW_LINKS)) {
                 throw new IllegalArgumentException(

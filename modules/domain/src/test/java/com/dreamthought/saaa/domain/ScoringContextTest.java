@@ -72,6 +72,31 @@ final class ScoringContextTest {
     }
 
     /**
+     * Objective ids and case names are only required to be non-blank, so a delimiter can appear
+     * inside a value. Joining with separators made one objective named {@code a=0.1,b} encode
+     * exactly like two objectives {@code a} and {@code b} — a deterministic collision between the
+     * very configurations this type exists to tell apart. Length-prefixing each field removes it.
+     */
+    @Test
+    void anObjectiveIdContainingDelimitersDoesNotCollideWithTwoObjectives() {
+        var one = new ScoringContext(
+                List.of(new FitnessObjective("a=0.1,b", 0.2)), Set.of(), Set.of(), 0.80);
+        var two = new ScoringContext(
+                List.of(new FitnessObjective("a", 0.1), new FitnessObjective("b", 0.2)),
+                Set.of(), Set.of(), 0.80);
+
+        assertThat(one.fingerprint()).isNotEqualTo(two.fingerprint());
+    }
+
+    @Test
+    void aCaseNameContainingADelimiterDoesNotCollideWithTwoNames() {
+        var one = new ScoringContext(OBJECTIVES, Set.of("a,b"), Set.of(), 0.80);
+        var two = new ScoringContext(OBJECTIVES, Set.of("a", "b"), Set.of(), 0.80);
+
+        assertThat(one.fingerprint()).isNotEqualTo(two.fingerprint());
+    }
+
+    /**
      * Declaration order of a name set is not a measurement, so it must not split the fingerprint.
      * Without this the same configuration would look incomparable with itself between JVM runs.
      */
