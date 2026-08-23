@@ -1,21 +1,25 @@
 session:
   updated: 2026-08-23
-  status: chg_023_fitness_score_delivered
-  branch: feat/chg-023-fitness-score
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-023-fitness-score
-  head: current branch CHG-023 commit
-  head_note: CHG-023 replaces the independent magnitude and decision fields with comparable FitnessScore, stores raw magnitude in SQLite and reviewable envelopes, and rounds only at the console boundary. It deliberately replaces disposable local schema and envelope names rather than retaining aggregate compatibility aliases.
+  status: chg_021_022_023_merged_population_slice_next
+  branch: main
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
+  head: origin/main at cc0d030
+  head_note: Three changes merged in sequence and the scorer now discriminates in both directions. CHG-021 stopped erasing a failed candidate's magnitude and gave behavioral_safety a real evidence source, which discriminates among failures. CHG-022 gave reliability something the gate does not consume - repeated runs of each behaviour case - which discriminates among winners. CHG-023 bound magnitude and decision into one comparable FitnessScore and stopped rounding before storage. Nothing is open: no PR, no branch, no worktree, main green on all 25 tasks with project check 7/7.
   dirty: false
-  pushed: false
+  pushed: true
 
 goal:
-  current: deliver CHG-023 FitnessScore as one decision-aware, raw-magnitude value
-  phase: delivered
-  interlude: no migration is required because the local experiment ledger is empty and disposable
+  current: the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation
+  phase: ready_to_start
+  interlude: its three preconditions are merged; what remains unfixed is recorded in next_actions rather than assumed away
 
 next_actions:
-  - C6 is now unblocked and is the next foundation: the population slice with decision-aware raw-magnitude ranking. ADR-0002 names it as the missing Layer-1 piece
-  - reclaim reliability, which restates its own gate and needs repeated execution to mean anything
+  - C6, the population slice: evaluate several candidates per generation and rank them. ADR-0002 names it as the missing Layer-1 piece. Preconditions are now met - the scorer discriminates among failures (CHG-021) and among winners (CHG-022), and FitnessScore orders decision-first (CHG-023). Start a fresh session for it; it is architecture work and deserves full context
+  - task_success is still pinned at 1.0 for every promoted candidate, because the gate requires every declared case to pass. Fixing it needs an evidence source the gate does not consume, such as a held-out set. This bears directly on ranking a population and is the largest remaining hole in the fitness function
+  - an undeclared objective still contributes 1.0, so a run that measures nothing scores well on what it did not measure. Renormalising the weighted sum over only the objectives a run actually measured would fix it and would change the meaning of every recorded score, so it needs its own change
+  - repeated runs execute sequentially in one worktree with no reset, so a non-idempotent check can pass then fail on state it mutated itself. That measures the reliability of a contaminated sequence rather than of the candidate
+  - the ledger and evolutionary memory keep aggregate fitness but not per-objective values, so a reader there cannot attribute a score drop to reliability rather than parsimony or cost
+  - HistoricalOutcome reconstructs a primitive magnitude/decision pair inside modules/domain, where FitnessScore is available. MCP and Neo4j emitting the pair separately is partly inherent to JSON; this one is not. Tracked by RISK-007
   - C5 (done, merged as CHG-021): make behavioral_safety a real signal. Critical forbidden-action probes as a hard gate, predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective, and reviewer models used to discover probes rather than to grade candidates. CHG-019 makes this buildable, because behavioral_safety_cases_pass is already declared by PROMPT_POLICY_CHANGE and a declared id can now gate
   - C6: the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation. It needs objectives that discriminate, which is C5
   - C7: rewrite main's history to strip session URLs. The authorisation, method and limits are recorded in the task path below; do not summarise them away
