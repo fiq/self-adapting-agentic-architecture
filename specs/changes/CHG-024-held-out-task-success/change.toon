@@ -9,6 +9,7 @@ change:
     - CON-002
     - RISK-002
     - RISK-007
+    - RISK-008
     - PAT-004
     - Q-004
 
@@ -91,10 +92,10 @@ tasks:
     status: completed
   - id: T5
     slice: carry a ScoringContext fingerprint on FitnessResult and refuse comparison across differing fingerprints
-    status: in_progress
+    status: completed
   - id: T6
     slice: README, wiki and knowledge updates, including a RISK entry for held-out reliance on WORKFLOW_DEFINITION scope
-    status: pending
+    status: completed
 
 non_goals:
   - population evaluation or ranking, which is CHG-025

@@ -105,6 +105,7 @@ the deliberate exception: it is the interactive session client invoked as
 | `--profile` | `fixture` | `fixture`, `openai-compatible` or `acp` |
 | `--workflow-file` | `workflow.txt` | the file inside the target folder being replaced |
 | `--behaviour-case` | required | check name that hard-gates promotion; repeatable |
+| `--held-out-case` | optional | check name that runs and scores but gates nothing, so `task_success` can separate two candidates that both pass every required case; repeatable |
 | `--max-lines` | `80` | change budget; both a pre-realisation validator and the parsimony denominator |
 | `--retrieval` | `NONE` | `NONE`, `VECTOR`, `GRAPH` or `HYBRID` |
 | `--task` | a bounded default goal | intent passed to retrieval and to the model prompt |
@@ -282,7 +283,7 @@ mutation operator so candidates stay comparable. Values are derived in
 
 | Objective | Weight | Derived from | Varies between eligible candidates? |
 |---|---:|---|---|
-| `subject.objective.task_success` | 0.40 | fraction of declared behaviour cases that passed | No |
+| `subject.objective.task_success` | 0.40 | fraction of declared behaviour cases that passed, counting cases named by `--held-out-case` | Yes, when held-out cases are declared |
 | `subject.objective.reliability` | 0.20 | pass fraction across repeated runs of each behaviour case, set by `--reliability-runs`; with one run, `1.0` unless check evidence has status `TIMED_OUT` | Yes, when repeats are asked for |
 | `subject.objective.cost_latency_budget` | 0.20 | worst `budget / measured` over benchmarks, clamped to `[0, 1]`, starting at `1.0` | Only when `--benchmark`/`--benchmark-budget` are given |
 | `subject.objective.behavioral_safety` | 0.10 | pass fraction of the checks named by `--safety-probe`, or `1.0` when none are declared | Yes, when probes are declared |
@@ -295,11 +296,35 @@ From the run above: the fixture replaces one line of `workflow.txt`, counted as
 one removed plus one added, so parsimony is `1 - 2/80 = 0.975` and the raw sum
 is `0.40 + 0.20 + 0.20 + 0.10 + 0.0975 = 0.9975`, reported as `1.00`.
 
-### Why three of those five decide nothing, and a fourth only when asked
+### Why two of those five decide nothing unless asked, and how the largest one was freed
 
-`subject.objective.task_success` duplicates its own gate: every declared case must pass to clear
-`subject.invariant.required_behavior_cases`, so the passed fraction is 1.0 by
-construction. Partial credit would need the gate relaxed first.
+`subject.objective.task_success` used to duplicate its own gate. Every declared case had to pass to
+clear `subject.invariant.required_behavior_cases`, so the passed fraction was `1.0` by construction
+and the largest weight in the scorer could not tell two promoted candidates apart.
+
+`--held-out-case` is the answer to it. A held-out case runs and is recorded like any other, and it
+counts towards `task_success`, but it decides no gate. A candidate that passes every required case
+is still eligible when a held-out case fails — it simply scores lower for it.
+
+That was not a matter of relaxing the gate. There are two gates that judge behaviour and they read
+different lists: `subject.invariant.deterministic_checks` reads the checks a run executed, while
+`subject.invariant.required_behavior_cases` reads the behaviour-case list that `task_success` is
+also computed from. Held-out cases are the one kind of check that has to feed the objective and stay
+out of the gate at the same time, so the two views of that list are separated in
+`PhenotypeEvidence`.
+
+Two consequences worth knowing before declaring one.
+
+- **A held-out case must run to mean anything.** A declared case that produced no evidence is
+  recorded as failed, so one whose script never executed would lower the score from absence rather
+  than from measurement. The suite asserts execution separately, before trusting any assertion about
+  the score.
+- **The ratio decides how much room there is.** `task_success` carries `0.40`, so one failing case
+  out of `n` costs `0.40/n`. A promotion normally sits near `0.90`, leaving roughly `0.10` above the
+  `0.80` threshold. With three required cases beside one held-out case a held-out failure costs
+  `0.10` and the candidate still promotes; with one of each it costs `0.20` and falls through the
+  floor. That is the intended behaviour — a candidate failing half its cases has not earned a
+  promotion — but "held out" does not mean "free".
 
 `subject.objective.reliability` used to have the same problem, and `--reliability-runs` is the
 answer to it. Ask for more than one run and each behaviour case is executed that many times. The
@@ -593,10 +618,19 @@ the same loop on product code gated by existing tests and benchmarks
 replacement and no benchmark gating exists).
 
 Population and conceptual crossover stay foundation slices that upgrade all
-three at once. Both are blocked on the same thing, and it is the thing described
+three at once. Both needed the same thing first, and it is the thing described
 in [Why this shape](#why-this-shape): objectives that actually vary between
 passing candidates. Ranking candidates on a score that cannot separate them
 would be theatre.
+
+`--held-out-case` supplies that variation for the largest objective, so the
+score can now separate two candidates that both pass every required case. What
+it does not yet supply is evidence that the resulting order is any *good*.
+Showing that needs a third kind of evidence the scorer never sees — a sealed set
+the ranking is checked against afterwards — because a case that feeds the score
+cannot also be the proof that the score ranked well. Until that exists, the
+honest claim is that ranking has become possible, not that it has been shown to
+be useful.
 
 ## Agent startup
 
