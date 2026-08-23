@@ -12,6 +12,13 @@ import java.util.Objects;
  *
  * <p>The magnitude is held at a normalised scale so that {@code equals} and {@code compareTo} agree,
  * which {@link Comparable} requires and which a raw {@code BigDecimal} component would violate.
+ *
+ * <p>This type does not make a score-only ordering impossible, and claiming so would be wrong:
+ * {@code rawMagnitude()} is public because arithmetic on the magnitude is legitimate — a delta
+ * against a baseline, an average across attempts. What it does is make the correct ordering the
+ * easy one and the incorrect one visible at the call site, where {@code comparing(x::rawMagnitude)}
+ * reads as the deliberate act it is. Ordering that ignores {@code decision} remains a review
+ * concern, not a compile error.
  */
 public record FitnessScore(BigDecimal rawMagnitude, FitnessDecision decision)
         implements Comparable<FitnessScore> {
