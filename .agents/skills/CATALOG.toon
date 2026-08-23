@@ -4,6 +4,11 @@ skills:
     trigger: project_profile_absent_or_material_project_shape_unknown
     purpose: orchestrate discovery, specialisation, identity rewrite and validation
 
+  review_routing:
+    path: coordination/review-routing/SKILL.md
+    trigger: change_touches_gate_decision_audit_or_promotion_or_pr_about_to_be_marked_ready
+    purpose: decide how many independent review passes a change needs, route each to a model and a region, and judge merge readiness from what returns
+
   detect_project_shape:
     path: discovery/detect-project-shape/SKILL.md
     trigger: repository_shape_unknown
