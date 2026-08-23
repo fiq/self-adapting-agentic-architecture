@@ -145,7 +145,7 @@ public final class EvolveCommand implements Callable<Integer> {
         var result = new EvolveRunner(benchmarkRunner).run(
                 new EvolveRunRequest(
                         targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task,
-                        Optional.empty(), benchmarkBudgets, contract, Set.copyOf(safetyProbes)),
+                        Optional.empty(), benchmarkBudgets, contract, List.copyOf(safetyProbes)),
                 new ConsoleReporter(out));
         out.printf("  journal    %s%n", result.journalPath());
         out.flush();

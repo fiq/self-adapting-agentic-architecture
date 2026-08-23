@@ -3,6 +3,7 @@ package com.dreamthought.saaa.deterministic;
 import static com.dreamthought.saaa.domain.CheckEvidence.failed;
 import static com.dreamthought.saaa.domain.CheckEvidence.passed;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Candidate;
@@ -115,6 +116,20 @@ final class BehaviouralSafetyScoreTest {
         assertThat(result.decision())
                 .as("keeping the probe in the evidence must not let it reach the gate")
                 .isEqualTo(com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
+    }
+
+    /**
+     * A probe named for a structural gate would be withheld from that gate while the gate's own
+     * signal still records its outcome, so the audit trail would show the probe failing beside a
+     * passing gate of the same name. Declared required evidence already rejects these reserved
+     * names; probes must too, or the two declaration routes disagree about what a name may mean.
+     */
+    @Test
+    void aProbeMayNotBeNamedForAStructuralGate() {
+        assertThatThrownBy(() -> new ScoringConfig(
+                        Set.of("publish-guard"), 80, Map.of(), Set.of("deterministic_checks")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("deterministic_checks");
     }
 
     private static com.dreamthought.saaa.domain.FitnessResult score(

@@ -40,20 +40,22 @@ deltas:
         then: it is executed alongside the behaviour cases, so the objective measures a result rather than an absence
       - id: S7
         when: a probe is withheld from the gate so that it grades
-        then: it remains in the recorded evidence, so the audit trail can name the probe that lowered the score
+        then: the scored result still carries the probe, so the audit trail can name the probe that lowered the score
         and:
-          - everything durable downstream is written from the scored result, so a probe dropped there would vanish from SQLite, the ledger, evolutionary memory and MCP
           - withholding narrows the gate only, never the record
+          - the named test asserts the scored result, which is the object SQLite, the ledger, evolutionary memory and MCP are each written from. It does not exercise those consumers, so the durability of each remains covered by their own tests rather than by this scenario
       - id: S8
         when: a discarded candidate records a higher score than a promoted one
         then: evolutionary memory still ranks the promoted candidate above it
         and:
-          - decision partitions the ordering and magnitude only breaks ties inside a partition, per CON-002
+          - decision partitions the ordering and magnitude orders records inside a partition, per CON-002
+          - both halves are asserted, because a comparator that ignored score entirely would satisfy the partition half alone
       - id: S9
-        when: a category's best representative was already taken by an earlier selection pass
-        then: the category slot reaches a record the selection does not already hold
+        when: a category's representative was already taken by an earlier selection pass
+        then: the slot advances to the next class that is not yet represented, when one exists
         and:
           - decision-first ordering offers the same promoted record to every pass, so a slot spent on a duplicate would leave the category unrepresented while reporting it filled
+          - a class whose representative is already selected is treated as represented and skipped rather than falling through to its other members, which is what one-representative-per-class means
 
 acceptance:
   - scenario: S1
@@ -79,6 +81,9 @@ acceptance:
     layer: unit
   - scenario: S8
     test_id: deterministic/LineageNoveltyMemoryPolicyTest.aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion
+    layer: unit
+  - scenario: S8
+    test_id: deterministic/LineageNoveltyMemoryPolicyTest.magnitudeStillOrdersRecordsWithinOneDecision
     layer: unit
   - scenario: S9
     test_id: deterministic/LineageNoveltyMemoryPolicyTest.aNoveltySlotIsNotSpentOnARecordAlreadySelected
@@ -111,6 +116,9 @@ tasks:
     status: completed
   - id: T9
     slice: stop a category slot being spent on an already-selected record, which decision-first ordering turned from an occasional collision into a certainty
+    status: completed
+  - id: T10
+    slice: make selection independent of archive input order, reject probe names reserved for structural gates, preserve declared probe order through execution, and fix the locale-sensitive failure fingerprint
     status: completed
 
 non_goals:

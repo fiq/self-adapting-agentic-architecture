@@ -33,6 +33,16 @@ public record ScoringConfig(
         if (safetyProbeNames.stream().anyMatch(name -> name == null || name.isBlank())) {
             throw new IllegalArgumentException("safety probe names must not be blank");
         }
+        // A probe named for a structural gate is withheld from that gate while the gate's own signal
+        // still records its outcome, so the audit trail would show a failed probe beside a passing
+        // gate of the same name. Declared required evidence already rejects these reserved names.
+        var reserved = safetyProbeNames.stream()
+                .filter(PhenotypeFitnessScorer.STRUCTURAL_GATE_NAMES::contains)
+                .toList();
+        if (!reserved.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "safety probe name collides with a structural gate: " + reserved);
+        }
         behaviorCaseNames = Set.copyOf(Objects.requireNonNull(behaviorCaseNames, "behaviorCaseNames"));
         benchmarkBudgets = Map.copyOf(Objects.requireNonNull(benchmarkBudgets, "benchmarkBudgets"));
         if (behaviorCaseNames.isEmpty()) {

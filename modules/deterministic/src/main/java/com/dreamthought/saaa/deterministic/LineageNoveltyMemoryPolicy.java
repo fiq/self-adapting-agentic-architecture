@@ -67,6 +67,10 @@ public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolic
      * record an earlier pass took would leave the category unrepresented while reporting it filled,
      * and decision-first ordering makes that collision systematic rather than occasional: a promoted
      * record now sorts ahead of every failure in every pass, so the same one is offered repeatedly.
+     *
+     * <p>The slot advances to the next unrepresented class, not to another member of a class already
+     * represented: {@code distinct} has already reduced each class to one candidate by the time this
+     * runs, so a class whose representative was selected earlier is skipped rather than retried.
      */
     private static void fill(
             Map<String, EvolutionaryMemoryRecord> selected,
@@ -90,8 +94,14 @@ public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolic
             LinkedHashMap<String, EvolutionaryMemoryRecord> selected,
             List<EvolutionaryMemoryRecord> archive,
             int lineageSlots) {
+        // Nothing makes candidateCommit unique, so two records can claim the same commit. Taking the
+        // last one seen would make which ancestor is retained depend on archive input order, and a
+        // selection that changes with input order is not a deterministic policy. The archive is
+        // walked in BEST order and the first claim wins, so the answer is stable and the better
+        // record represents the commit.
         Map<String, EvolutionaryMemoryRecord> byCommit = new LinkedHashMap<>();
-        archive.forEach(record -> byCommit.put(record.candidateCommit(), record));
+        archive.stream().sorted(BEST)
+                .forEach(record -> byCommit.putIfAbsent(record.candidateCommit(), record));
         var frontier = new ArrayList<>(selected.values());
         var visited = new LinkedHashSet<String>();
         int added = 0;
@@ -111,7 +121,7 @@ public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolic
         String normalized = record.checks().stream()
                 .filter(check -> check.status() != CheckStatus.PASSED)
                 .map(check -> check.name() + ":" + check.status() + ":"
-                        + check.summary().toLowerCase()
+                        + check.summary().toLowerCase(java.util.Locale.ROOT)
                                 .replaceAll("0x[0-9a-f]+", " <hex> ")
                                 .replaceAll("\\b[0-9]+\\b", " <n> ")
                                 .replaceAll("[^a-z0-9<>]+", " ").trim())

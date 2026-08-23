@@ -87,6 +87,28 @@ final class LineageNoveltyMemoryPolicyTest {
     }
 
     /**
+     * Decision partitions the ordering; magnitude still has to order records inside a partition, or
+     * the near miss worth mutating from next is indistinguishable from the total miss. Asserting only
+     * that promotions outrank failures would pass for a comparator that ignored score entirely.
+     */
+    @Test
+    void magnitudeStillOrdersRecordsWithinOneDecision() {
+        var policy = new LineageNoveltyMemoryPolicy(
+                new EvolutionaryMemoryPolicyConfig("fixture-policy-v1", 1, 0, 0, 0, 0, 1));
+        // Recency deliberately favours the weaker record, so a comparator that reached for
+        // evaluatedAt before magnitude would return the other one.
+        var nearMiss = record("near-miss", "base-0", "commit-near", 0.75, "hard-gate",
+                CheckStatus.FAILED, Instant.parse("2026-01-01T00:00:00Z"), List.of());
+        var totalMiss = record("total-miss", "base-0", "commit-total", 0.10, "hard-gate",
+                CheckStatus.FAILED, Instant.parse("2026-06-01T00:00:00Z"), List.of());
+
+        assertThat(policy.select(List.of(totalMiss, nearMiss)))
+                .extracting(EvolutionaryMemoryRecord::candidateId)
+                .as("among failures the near miss is the one worth keeping")
+                .containsExactly("near-miss");
+    }
+
+    /**
      * A category slot exists to bring something new into the selection. If its representative was
      * already taken as a champion, spending the slot on that same record adds nothing and the
      * category goes unrepresented. Decision-first ordering turned this from an occasional collision
