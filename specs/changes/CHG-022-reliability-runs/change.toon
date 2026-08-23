@@ -17,7 +17,7 @@ deltas:
     scenarios:
       - id: S1
         when: a behaviour case is declared with repeated runs and one repeat fails
-        then: reliability is the pass fraction across all runs and the candidate still promotes
+        then: reliability is the pass fraction across all runs and the gates are unaffected
         and:
           - a flaky candidate scores strictly lower than a consistent one, which is the discrimination among winners this exists to provide
       - id: S2
@@ -41,6 +41,21 @@ deltas:
         and:
           - repeats are added after script resolution, so a repeat cannot introduce a script path that was not already required to exist and be executable
           - safety probes are not repeated, because they already grade and repeating them would change what their pass fraction means
+      - id: S7
+        when: enough repeats fail that the weighted sum falls below the promotion threshold
+        then: the candidate is discarded although every gate passed
+        and:
+          - repeats grade rather than gate, but a graded objective still moves the sum and the threshold still applies, which is exactly how a failing safety probe behaves
+      - id: S8
+        when: the operator asks for repeats through the CLI
+        then: each behaviour case is executed that many times and every result reaches the transcript under its own name
+        and:
+          - asserted end to end, because a unit test that injects repeat evidence into the scorer stays green even when nothing schedules a repeat
+      - id: S9
+        when: a run count is outside the supported range
+        then: it is rejected
+        and:
+          - each repeat re-executes a candidate-authored script, so an unbounded count schedules work rather than producing evidence
       - id: S6
         when: a behaviour case is declared with a name ending in the repeated-run suffix
         then: it is rejected
@@ -69,6 +84,18 @@ acceptance:
   - scenario: S6
     test_id: adapters/BehaviourCaseChecksTest.aCaseMayNotBeNamedForARepeatedRun
     layer: unit
+  - scenario: S7
+    test_id: deterministic/ReliabilityRunsTest.aSufficientlyUnreliableCandidateFallsBelowTheThreshold
+    layer: unit
+  - scenario: S8
+    test_id: cli/EvolveContractAcceptanceTest.reliabilityRunsExecuteEachBehaviourCaseAgain
+    layer: acceptance
+  - scenario: S9
+    test_id: deterministic/ReliabilityRunsTest.anUnboundedRunCountIsRejected
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/ReliabilityRunsTest.asingleRunStillDropsOnATimeout
+    layer: unit
 
 tasks:
   - id: T1
@@ -82,6 +109,12 @@ tasks:
     status: completed
   - id: T4
     slice: construct repeated runs after script resolution and expose --reliability-runs
+    status: completed
+  - id: T5
+    slice: derive the withheld repeat names from the configuration rather than recognising a name pattern, so a check that merely looks like a repeat cannot escape the gate
+    status: completed
+  - id: T6
+    slice: bound the run count, and assert the wiring end to end because the unit tests inject repeat evidence and cannot see a disconnected runner
     status: completed
 
 non_goals:

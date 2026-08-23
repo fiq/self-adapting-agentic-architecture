@@ -34,6 +34,33 @@ public record ScoringConfig(
      */
     public static final String REPEAT_RUN_SEPARATOR = ".run";
 
+    /**
+     * Each repeat re-executes a candidate-authored script, so the run count multiplies wall-clock
+     * cost directly. An unbounded count would let one flag schedule billions of checks before
+     * anything executes, which exhausts memory rather than producing evidence.
+     */
+    public static final int MAX_RELIABILITY_RUNS = 50;
+
+    /**
+     * The exact names the repeated runs of this configuration carry.
+     *
+     * <p>Derived from the declared cases and the run count rather than recognised by pattern, so a
+     * check that merely looks like a repeat cannot be withheld from the gate. Inferring from the name
+     * would let an unexpected result called {@code compile.run2} silently escape the checks gate.
+     */
+    public Set<String> repeatRunNames() {
+        if (reliabilityRuns <= 1) {
+            return Set.of();
+        }
+        var names = new java.util.LinkedHashSet<String>();
+        for (String caseName : behaviorCaseNames) {
+            for (int run = 2; run <= reliabilityRuns; run++) {
+                names.add(caseName + REPEAT_RUN_SEPARATOR + run);
+            }
+        }
+        return Set.copyOf(names);
+    }
+
     /** The behaviour case a check result belongs to, collapsing any repeated-run suffix. */
     public static String baseCaseName(String checkName) {
         int separator = checkName.lastIndexOf(REPEAT_RUN_SEPARATOR);
@@ -85,8 +112,10 @@ public record ScoringConfig(
         if (maxLinesChanged <= 0) {
             throw new IllegalArgumentException("maxLinesChanged must be positive");
         }
-        if (reliabilityRuns < 1) {
-            throw new IllegalArgumentException("reliabilityRuns must be at least 1");
+        if (reliabilityRuns < 1 || reliabilityRuns > MAX_RELIABILITY_RUNS) {
+            throw new IllegalArgumentException(
+                    "reliabilityRuns must be between 1 and " + MAX_RELIABILITY_RUNS
+                            + ", got " + reliabilityRuns);
         }
     }
 }

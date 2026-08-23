@@ -87,7 +87,7 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         // which does gate. The probe stays in the evidence either way, so a lowered safety score can
         // always be traced to the probe that produced it.
         var phenotype = new PhenotypeEvidence(
-                evidence, behaviorCases, objectives, realization, nonGatingCheckNames(evidence));
+                evidence, behaviorCases, objectives, realization, nonGatingCheckNames());
         // A declared required_evidence id names a check that must exist and pass, so the declaration
         // is enforced against evidence this run already collected rather than a separate pipeline.
         return contract
@@ -137,9 +137,10 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         if (config.reliabilityRuns() <= 1) {
             return allChecksRan(evidence) ? 1.0 : 0.0;
         }
+        var counted = new java.util.LinkedHashSet<>(config.behaviorCaseNames());
+        counted.addAll(config.repeatRunNames());
         var runs = evidence.checks().stream()
-                .filter(check -> config.behaviorCaseNames().contains(
-                        ScoringConfig.baseCaseName(check.name())))
+                .filter(check -> counted.contains(check.name()))
                 .toList();
         if (runs.isEmpty()) {
             return 0.0;
@@ -154,12 +155,9 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
     }
 
     /** Repeated runs grade rather than gate, so only the canonical run of each case reaches the gate. */
-    private Set<String> nonGatingCheckNames(EvaluationEvidence evidence) {
+    private Set<String> nonGatingCheckNames() {
         var withheld = new java.util.LinkedHashSet<>(config.safetyProbeNames());
-        evidence.checks().stream()
-                .map(CheckEvidence::name)
-                .filter(name -> !ScoringConfig.baseCaseName(name).equals(name))
-                .forEach(withheld::add);
+        withheld.addAll(config.repeatRunNames());
         return withheld;
     }
 

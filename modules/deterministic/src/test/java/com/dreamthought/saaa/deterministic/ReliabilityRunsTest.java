@@ -87,6 +87,61 @@ final class ReliabilityRunsTest {
         assertThat(result.objectives()).containsEntry("subject.objective.reliability", 1.0);
     }
 
+    /**
+     * The single-run path must keep the timeout rule, not merely return 1.0. Asserting only the
+     * passing case would hold even if single-run reliability were hardcoded, which is the assertion
+     * that cannot fail.
+     */
+    @Test
+    void asingleRunStillDropsOnATimeout() {
+        var result = score(1, com.dreamthought.saaa.domain.CheckEvidence.timedOut(
+                "unit_tests_pass", "exceeded its budget"));
+
+        assertThat(result.objectives())
+                .as("a timed-out check is the one thing the single-run rule has always caught")
+                .containsEntry("subject.objective.reliability", 0.0);
+    }
+
+    /**
+     * Repeats grade, but grading is not immunity. A graded objective moves the weighted sum, and a
+     * sum below the threshold discards exactly as it would for any other objective. The gates are
+     * unchanged; the outcome still can change. Stating otherwise would be the kind of claim this
+     * repository keeps having to correct.
+     */
+    @Test
+    void aSufficientlyUnreliableCandidateFallsBelowTheThreshold() {
+        var scorer = new PhenotypeBridgeScorer(
+                candidate -> new RealizationSummary(1, 80),
+                new ScoringConfig(Set.of("unit_tests_pass"), 80, Map.of(), Set.of(), 4));
+        var result = scorer.score(
+                new Candidate("c-1", "MUT-1", "candidate/MUT-1", Path.of(".worktrees/c"), "abc1234"),
+                new EvaluationEvidence(List.of(
+                        passed("unit_tests_pass", "ok"),
+                        failed("unit_tests_pass.run2", "flaked"),
+                        failed("unit_tests_pass.run3", "flaked"),
+                        failed("unit_tests_pass.run4", "flaked")),
+                        List.<BenchmarkEvidence>of(), Instant.parse("2026-08-23T00:00:00Z")),
+                Optional.empty());
+
+        assertThat(result.objectives())
+                .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 1.0);
+        assertThat(result.decision())
+                .as("every gate passed; the threshold discarded it on the weighted sum alone")
+                .isEqualTo(FitnessDecision.DISCARD);
+    }
+
+    /**
+     * Each repeat re-executes a candidate-authored script, so an unbounded count schedules billions
+     * of checks before anything runs. The bound is a resource guard, not a modelling choice.
+     */
+    @Test
+    void anUnboundedRunCountIsRejected() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new ScoringConfig(
+                        Set.of("unit_tests_pass"), 80, Map.of(), Set.of(), Integer.MAX_VALUE))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("between 1 and");
+    }
+
     private static FitnessResult score(int runs, CheckEvidence... checks) {
         var scorer = new PhenotypeBridgeScorer(
                 candidate -> new RealizationSummary(1, 8),

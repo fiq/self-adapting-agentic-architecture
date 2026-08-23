@@ -28,11 +28,18 @@ across all runs.
 A candidate passing eight of ten runs is eligible and scores 0.8. One passing all ten scores 1.0.
 Both promote, and they no longer score the same.
 
-## What does not change
+## What does not change, stated precisely
 
-The decision. A candidate that fails its canonical run is discarded exactly as before, and no number
-of passing repeats buys it a promotion. Withholding applies to the gate, never to the record: every
-run stays in the evidence, so a lowered score can be traced to the run that lowered it.
+The gates. A candidate that fails its canonical run is discarded exactly as before, and no number of
+passing repeats buys it a promotion.
+
+The promotion *rule* is also unchanged: `gatesPassed && rawScore >= 0.80`. But the rule reads the
+score, and reliability now moves the score, so a sufficiently unreliable candidate can fall below the
+threshold and be discarded with every gate passing. Saying repeats "grade rather than discard" is
+true of the gate and false of the outcome. A failing safety probe has always had the same property.
+
+Withholding applies to the gate, never to the record: every run stays in the evidence, so a lowered
+score can be traced to the run that lowered it.
 
 Callers who declare no repeats are unaffected. At one run per case the objective keeps its previous
 meaning, timeout rule included.

@@ -309,13 +309,19 @@ So a candidate that passes eight of ten runs is still eligible — it met the ga
 where a candidate passing all ten scores `1.0`. Both promote, and they no longer look identical
 afterwards. That is the point: choosing which of two winners to breed from needs them to differ.
 
-A flaky run lowers a score rather than discarding the candidate, because the repeats are withheld
-from the checks gate in the same way safety probes are. They are withheld from the gate only, never
-from the record: every run stays in the evidence, so a lowered score can be traced to the run that
-lowered it.
+A flaky run does not fail a *gate*: the repeats are withheld from the checks gate in the same way
+safety probes are. But grading is not immunity. A graded objective moves the weighted sum, and a sum
+below `0.80` is discarded whatever produced it — so a candidate unreliable enough still loses, by the
+threshold rather than by a gate. The same is true of a failing safety probe. What changed is which
+question decides: a gate asks "is this eligible at all", the threshold asks "is it good enough".
+
+Withholding narrows the gate only, never the record: every run stays in the evidence, so a lowered
+score can be traced to the run that lowered it.
 
 With a single run the objective keeps its old meaning — `1.0` unless a check records structured
-`TIMED_OUT` evidence — so a run that does not ask for repeats is unchanged. Making it a pass fraction
+`TIMED_OUT` evidence — so a run that does not ask for repeats scores as it did before — though a behaviour case or probe
+named with a `.run<number>` suffix is now rejected outright, because such a name would collapse onto
+another when runs are grouped. Making it a pass fraction
 at one run would simply have duplicated `task_success`, which is already the pass fraction of the
 same cases. The diagnostic summary still contains timeout text, but candidate-controlled stdout
 cannot spoof reliability.
