@@ -1,10 +1,10 @@
 session:
   updated: 2026-08-22
-  status: chg_020_mutation_evidence
-  branch: feat/chg-020-prove-assertions-can-fail
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-020-mutation
-  head: origin/main at 18a75e0
-  head_note: CHG-019 merged, so a declared required_evidence id now gates a live promotion and RISK-002 narrows to the contractless path. CHG-020 records that a passing test is not evidence until it has been seen to fail, from five assertions that could not fail on 2026-08-22.
+  status: chg_021_discriminating_fitness
+  branch: feat/chg-021-behavioural-safety-signal
+  worktree: /home/raf/Code/github/self-adapting-agentic-architecture/.worktrees/feat-chg-021-safety
+  head: feat/chg-021-behavioural-safety-signal at 0399685, based on origin/main at 45043b4
+  head_note: CHG-021 makes the fitness function discriminate: behavioral_safety scores declared probes, and a failed candidate keeps its magnitude instead of being zeroed, which is what a population needs to choose between failures. The promote decision is unchanged and still gated. Independent codex review raised three blockers, all confirmed against the code and fixed on the branch before merge: memory selection ranked on score alone, withheld probes were deleted from the recorded evidence rather than only from the gate, and the acceptance test could not fail if the probe never ran.
   dirty: false
   pushed: true
 
@@ -14,6 +14,7 @@ goal:
   interlude: automatic runtime routing remains deferred until Q-010's measured usage, price identity and ablation evidence exist
 
 next_actions:
+  - merge PR #39 once authorised. Two independent codex passes, all findings confirmed against the code and fixed; the second pass found a blocker inside the first pass's fix, so a third pass over the starvation fix is available and has not been run
   - C5: make behavioral_safety a real signal. Critical forbidden-action probes as a hard gate, predeclared non-critical robustness probes whose deterministic pass fraction becomes the 0.10 objective, and reviewer models used to discover probes rather than to grade candidates. CHG-019 makes this buildable, because behavioral_safety_cases_pass is already declared by PROMPT_POLICY_CHANGE and a declared id can now gate
   - C6: the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation. It needs objectives that discriminate, which is C5
   - C7: rewrite main's history to strip session URLs. The authorisation, method and limits are recorded in the task path below; do not summarise them away
@@ -42,6 +43,20 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-23 all six source sets pass with --rerun-tasks; project check 7/7
+  - 2026-08-23 CHG-021 review fixes: 25 tasks executed with --rerun-tasks, project check 7/7, check-changes OK
+  - 2026-08-23 mutation-verified each new assertion by breaking the mechanism it claims to test. Removing probe scheduling from EvolveRunner fails the acceptance test; restoring the evidence deletion in PhenotypeBridgeScorer fails aWithheldProbeStaysInTheRecordedEvidence; reverting LineageNoveltyMemoryPolicy to score-only ordering fails aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion. Each was restored immediately after
+  - 2026-08-23 a GLM-5.2-flex pass briefed on arithmetic, null handling and determinism independently reproduced five of the codex findings and added two of its own. The first, that round(+Inf) is 9.223372036854776E16 and therefore passes every isFinite guard, was confirmed by running it: retaining the magnitude made a non-finite objective reachable all the way into storage, where it would sort first among failures. Weighting now reads the same isFraction predicate the presence gate uses. The second, that the stored score is rounded to two decimals and that rounded value is what memory ranks by, is recorded in RISK-007 rather than fixed here
+  - 2026-08-23 that GLM pass was run against a live worktree while edits were in flight, so its first finding is an artefact of the setup rather than the change. Give a reviewer a quiescent tree or a detached worktree at the reviewed commit
+  - 2026-08-23 a third codex pass over the starvation fix and the CLI/adapter wiring found no blockers and seven should-fixes, all confirmed and fixed: archive-input-order dependence in ancestor selection, a locale-sensitive failure fingerprint, probe execution order lost to Set.copyOf whose iteration order varies per JVM run, structural gate names accepted as probe names, an error message calling a bad probe a behaviour case, and two spec scenarios claiming more than their tests asserted
+  - 2026-08-23 the third pass also surfaced three tests in PhenotypeFitnessScorerTest where an earlier bulk edit of mine had replaced an aggregateScore assertion with a duplicate decision assertion, so they pinned the decision twice and the score not at all. Restored to assert the retained magnitude
+  - 2026-08-23 a second codex pass over the fix commit found a blocker in the fix itself: decision-first ordering starved the novelty category, because every pass is now offered the same promoted record first and a slot spent on an already-selected record leaves its category unrepresented. Confirmed red before fixing, and the mutation still fails after the assertion was loosened off console padding
+  - 2026-08-23 the CLI transcript cannot detect the evidence deletion at all, because ConsoleReporter prints checks the journal cached before scoring. That is why S7 is asserted on the scored result rather than end to end, and it is the reason the original acceptance assertion looked sufficient and was not
+  - 2026-08-23 mutation, absent probe counts as passed: 3 failures, restored
+  - 2026-08-23 mutation, probes left in the deterministic-checks gate: 3 failures, restored
+  - 2026-08-23 mutation, last-wins on a repeated probe name: initially 0 failures, which exposed a fail-wins rule with no assertion behind it; a test was added with the failing entry first and the mutation then failed 3
+  - 2026-08-23 mutation, withholding logic disabled with probes declared: initially 0 failures, which exposed that probe scripts were never executed at all, so the objective read 0.0 from absence. After executing probes alongside behaviour cases the same mutation failed 3
+  - 2026-08-23 mutation, zeroing restored on gate failure: the magnitude tests fail, and the golden corpus records the retained magnitudes 0.59 and 1.00 rather than 0.0
   - 2026-08-22 nix develop --command .agentic-template/bin/project check: pass after the spec revision
   - 2026-08-22 nix develop --command .agentic-template/bin/project check-changes: pass; the first draft was rejected for relates_to CAP-001, since capability specs are not knowledge ids
   - 2026-08-22 verified each GLM blocker directly against the code rather than accepting the review: MutationEvaluationLoop:160 and :206, MutationContractValidator.requireDeterministicObjectives, and PhenotypeFitnessScorer:73 and :84

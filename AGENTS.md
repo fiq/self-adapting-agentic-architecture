@@ -152,6 +152,16 @@ A passing mutation shows the assertion is sensitive to that one change. It does
 not show the oracle is right or the semantics are the intended ones, so it does
 not replace review.
 
+Mutate the mechanism, not only the assertion. A test can pass because the thing
+it describes never ran: a probe whose script was never executed scored zero from
+absence rather than from measurement, and the test read green. If breaking the
+code under test changes nothing, the test is not weak, it is disconnected — find
+out which before trusting either.
+
+Record the mutation alongside the test run in `HANDOFF.toon`: what was broken,
+that the suite failed, and that the file was restored. A claim that a suite
+passes carries no weight without it.
+
 Watch for the assertions that most often cannot fail: one that checks a key is
 present when the key is written whatever the outcome, one that pins a decision
 without pinning why, one whose fixture already satisfies it, and one whose

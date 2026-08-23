@@ -86,7 +86,7 @@ implemented** means no code.
 | Interactive harness session | Partial | `saaa sa` exposes explicit target and proposer-route selection, then runs either bounded whole-file workflow or code evolution through the existing deterministic loop |
 | MCP exposure | Partial | `saaa-mcp` offers the `saaa_evolve` tool to other agents over the Model Context Protocol on standard input and output; startup and the tool's input contract are tested, client-disconnect handling is not |
 | Benchmark-backed objectives | Partial | `--benchmark`/`--benchmark-budget` wire a real `JmhBenchmarkRunner` from `:cli` into `EvolveRunner`; with neither flag given the run still measures nothing, and only one static JMH benchmark class ships, and it runs with no warmup, one iteration and no forks, so a single measurement is dominated by noise rather than by the candidate |
-| Behavioural-safety evidence | Not implemented | the objective is the literal `1.0` |
+| Behavioural-safety evidence | Partial | `--safety-probe` names checks whose pass fraction becomes the objective; a probe that did not run counts as failed. Probes grade rather than gate, so a failing probe lowers the score and does not discard. With no probes declared the objective stays at `1.0` |
 | Retrieval treatments | Partial | `NONE` needs nothing; `VECTOR`, `GRAPH` and `HYBRID` need Neo4j and an embedding endpoint |
 | Population, ranking, selection | Not implemented | |
 | Recombination | Not implemented | `ConceptualCrossoverPolicy` exists with unit tests and is wired into no command |
@@ -218,6 +218,14 @@ hold that line, listed in [docs/wiki/testing.md](docs/wiki/testing.md).
 
 ## Fitness and the decision
 
+A candidate that fails a gate keeps its score. The decision stays binary and
+un-tradeable — a failing gate always discards, whatever the score says — but the
+number is recorded rather than zeroed, so among candidates that already failed a
+near miss stays distinguishable from a total miss. That is the ordering `CON-002`
+describes, and it is what lets a later population choose which failure to mutate
+from. A discarded candidate can therefore show a score above the promotion
+threshold; the decision, not the number, is what promotes.
+
 A second scorer entry point exists that takes the mutation contract and enforces
 the `required_evidence` ids that contract declares, as gates additional to the
 ones below, weighting against the contract's own objective set. Nothing wires it:
@@ -241,8 +249,14 @@ promote(c)  = eligible(c) and fitness(c) >= 0.80
 
 ### Hard gates
 
-Fail one and the candidate scores 0.00 and is discarded, whatever else is true.
-A gate cannot be traded against a high score elsewhere.
+Fail one and the candidate is discarded, whatever else is true. A gate cannot be
+traded against a high score elsewhere.
+
+A discarded candidate still keeps its weighted score. The score says how close it
+got; the decision says what happened to it. So a candidate can be recorded at 0.90
+and still be discarded, and reading the score alone would mislead you — always read
+`decision` to know a candidate's fate. Keeping the number is what lets a population
+tell a near miss apart from a total failure.
 
 | Gate | Fails when |
 |---|---|
@@ -270,7 +284,7 @@ mutation operator so candidates stay comparable. Values are derived in
 | `subject.objective.task_success` | 0.40 | fraction of declared behaviour cases that passed | No |
 | `subject.objective.reliability` | 0.20 | `1.0` unless structured check evidence has status `TIMED_OUT` | No, in practice |
 | `subject.objective.cost_latency_budget` | 0.20 | worst `budget / measured` over benchmarks, clamped to `[0, 1]`, starting at `1.0` | Only when `--benchmark`/`--benchmark-budget` are given |
-| `subject.objective.behavioral_safety` | 0.10 | the literal `1.0` | No |
+| `subject.objective.behavioral_safety` | 0.10 | pass fraction of the checks named by `--safety-probe`, or `1.0` when none are declared | Yes, when probes are declared |
 | `subject.objective.parsimony` | 0.10 | `1 - (linesChanged / --max-lines)`, clamped | Yes |
 
 The threshold compares against the raw sum; the reported score is rounded to two

@@ -40,6 +40,8 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -122,9 +124,17 @@ public final class EvolveRunner {
         if (!Files.isRegularFile(workflowPath, LinkOption.NOFOLLOW_LINKS)) {
             throw new IllegalArgumentException("workflow file not found: " + workflowPath);
         }
-        var checks = BehaviourCaseChecks.forCases(request.behaviourCases(), gitRoot.relativize(folder));
+        // Probes are executed alongside behaviour cases so the objective has evidence to score. They
+        // are separated again at the scorer, which withholds them from the deterministic-checks gate;
+        // without running them here every probe would count as absent and the objective would always
+        // read 0.0 for a caller who declared any.
+        var caseAndProbeNames = new ArrayList<>(request.behaviourCases());
+        request.safetyProbes().stream()
+                .filter(name -> !caseAndProbeNames.contains(name))
+                .forEach(caseAndProbeNames::add);
+        var checks = BehaviourCaseChecks.forCases(caseAndProbeNames, gitRoot.relativize(folder));
         requireWorkflowIsNotCheckScript(gitRoot, workflowPath, checks);
-        requireRunnableCheckScripts(gitRoot, checks);
+        requireRunnableCheckScripts(gitRoot, checks, request.safetyProbes());
 
         String relativeWorkflow = gitRoot.relativize(workflowPath).toString();
         String repositoryRevision = GitRepositoryRevision.workingTree(gitRoot);
@@ -152,7 +162,7 @@ public final class EvolveRunner {
                         new GitRealizationInspector(),
                         new ScoringConfig(
                                 Set.copyOf(request.behaviourCases()), request.maxLines(),
-                                request.benchmarkBudgets())),
+                                request.benchmarkBudgets(), Set.copyOf(request.safetyProbes()))),
                 new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite")),
                 new JournalDecisionSink(),
                 new CompositeReporter(List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture)),
@@ -177,18 +187,23 @@ public final class EvolveRunner {
                 wallMillis, timedRetriever.elapsedMillis());
     }
 
-    private static void requireRunnableCheckScripts(Path gitRoot, List<CommandCheck> checks) {
+    private static void requireRunnableCheckScripts(
+            Path gitRoot, List<CommandCheck> checks, Collection<String> probeNames) {
         for (CommandCheck check : checks) {
+            // Name the option the caller actually passed. Probes travel with the behaviour cases so
+            // they get executed, and calling a bad probe a behaviour case sends the reader to the
+            // wrong flag.
+            String kind = probeNames.contains(check.name()) ? "safety probe" : "behaviour case";
             Path script = gitRoot.resolve(check.command().get(0)).normalize();
             if (!Files.isRegularFile(script, LinkOption.NOFOLLOW_LINKS)) {
                 throw new IllegalArgumentException(
-                        "behaviour case " + check.name() + " needs a regular script file, which "
+                        kind + " " + check.name() + " needs a regular script file, which "
                                 + script + " is not; a symlinked check script is refused because it can "
                                 + "point outside the candidate");
             }
             if (!Files.isExecutable(script)) {
                 throw new IllegalArgumentException(
-                        "behaviour case " + check.name() + " has a script that is not executable: " + script);
+                        kind + " " + check.name() + " has a script that is not executable: " + script);
             }
         }
     }

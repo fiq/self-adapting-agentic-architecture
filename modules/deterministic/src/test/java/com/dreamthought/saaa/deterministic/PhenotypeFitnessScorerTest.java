@@ -34,7 +34,13 @@ final class PhenotypeFitnessScorerTest {
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
-        assertThat(result.aggregateScore()).isZero();
+        // The magnitude now survives a gate failure by design (CHG-021, CON-002): the decision
+        // stays binary and the score records how close the candidate got. Asserting the score is
+        // still weighted, rather than asserting the decision twice, keeps this sensitive to the
+        // zeroing coming back.
+        assertThat(result.aggregateScore())
+                .as("a failed gate discards without erasing how close the candidate got")
+                .isGreaterThan(0.0);
     }
 
     @Test
@@ -86,7 +92,13 @@ final class PhenotypeFitnessScorerTest {
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
-        assertThat(result.aggregateScore()).isZero();
+        // The magnitude now survives a gate failure by design (CHG-021, CON-002): the decision
+        // stays binary and the score records how close the candidate got. Asserting the score is
+        // still weighted, rather than asserting the decision twice, keeps this sensitive to the
+        // zeroing coming back.
+        assertThat(result.aggregateScore())
+                .as("a failed gate discards without erasing how close the candidate got")
+                .isGreaterThan(0.0);
         assertThat(result.objectives())
                 .containsEntry(PhenotypeFitnessScorer.DETERMINISTIC_CHECKS_GATE.canonical(), 0.0);
     }
@@ -107,7 +119,13 @@ final class PhenotypeFitnessScorerTest {
         ));
 
         assertThat(result.decision()).isEqualTo(DISCARD);
-        assertThat(result.aggregateScore()).isZero();
+        // The magnitude now survives a gate failure by design (CHG-021, CON-002): the decision
+        // stays binary and the score records how close the candidate got. Asserting the score is
+        // still weighted, rather than asserting the decision twice, keeps this sensitive to the
+        // zeroing coming back.
+        assertThat(result.aggregateScore())
+                .as("a failed gate discards without erasing how close the candidate got")
+                .isGreaterThan(0.0);
         assertThat(result.objectives())
                 .containsEntry(PhenotypeFitnessScorer.NON_EMPTY_REALIZATION_GATE.canonical(), 0.0);
     }

@@ -11,9 +11,38 @@ import java.util.Set;
  *                          hard-gate promotion
  * @param maxLinesChanged   the change budget parsimony is measured against
  * @param benchmarkBudgets  benchmark name to its budget in the benchmark's own unit
+ * @param safetyProbeNames  checks whose pass fraction becomes the behavioural-safety objective.
+ *                          These grade rather than gate: a failing probe lowers the score and does
+ *                          not discard, so a safety property that must hold belongs in a contract's
+ *                          required evidence instead, where absence or failure discards. Declaring
+ *                          none leaves the objective at its 1.0 starting point
  */
-public record ScoringConfig(Set<String> behaviorCaseNames, int maxLinesChanged, Map<String, Double> benchmarkBudgets) {
+public record ScoringConfig(
+        Set<String> behaviorCaseNames,
+        int maxLinesChanged,
+        Map<String, Double> benchmarkBudgets,
+        Set<String> safetyProbeNames) {
+
+    /** Every prior caller keeps its behaviour: no probes declared means the objective stays 1.0. */
+    public ScoringConfig(Set<String> behaviorCaseNames, int maxLinesChanged, Map<String, Double> benchmarkBudgets) {
+        this(behaviorCaseNames, maxLinesChanged, benchmarkBudgets, Set.of());
+    }
+
     public ScoringConfig {
+        safetyProbeNames = Set.copyOf(Objects.requireNonNull(safetyProbeNames, "safetyProbeNames"));
+        if (safetyProbeNames.stream().anyMatch(name -> name == null || name.isBlank())) {
+            throw new IllegalArgumentException("safety probe names must not be blank");
+        }
+        // A probe named for a structural gate is withheld from that gate while the gate's own signal
+        // still records its outcome, so the audit trail would show a failed probe beside a passing
+        // gate of the same name. Declared required evidence already rejects these reserved names.
+        var reserved = safetyProbeNames.stream()
+                .filter(PhenotypeFitnessScorer.STRUCTURAL_GATE_NAMES::contains)
+                .toList();
+        if (!reserved.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "safety probe name collides with a structural gate: " + reserved);
+        }
         behaviorCaseNames = Set.copyOf(Objects.requireNonNull(behaviorCaseNames, "behaviorCaseNames"));
         benchmarkBudgets = Map.copyOf(Objects.requireNonNull(benchmarkBudgets, "benchmarkBudgets"));
         if (behaviorCaseNames.isEmpty()) {

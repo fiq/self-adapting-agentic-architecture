@@ -3,6 +3,7 @@ package com.dreamthought.saaa.deterministic;
 import com.dreamthought.saaa.domain.CheckStatus;
 import com.dreamthought.saaa.domain.EvolutionaryMemoryPolicyConfig;
 import com.dreamthought.saaa.domain.EvolutionaryMemoryRecord;
+import com.dreamthought.saaa.domain.FitnessDecision;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -19,8 +20,13 @@ import java.util.Map;
  * deterministic exploration reservoir. Recency only breaks otherwise equal choices.
  */
 public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolicy {
+    // Decision outranks score. A discarded candidate keeps its weighted magnitude, so ordering on
+    // score alone would let a high-scoring failure take a champion slot from a lower-scoring
+    // promotion. Score only ranks within one decision, never across the two.
     private static final Comparator<EvolutionaryMemoryRecord> BEST = Comparator
-            .comparingDouble(EvolutionaryMemoryRecord::aggregateFitness).reversed()
+            .comparingInt((EvolutionaryMemoryRecord record) ->
+                    record.decision() == FitnessDecision.PROMOTE ? 0 : 1)
+            .thenComparing(Comparator.comparingDouble(EvolutionaryMemoryRecord::aggregateFitness).reversed())
             .thenComparing(EvolutionaryMemoryRecord::evaluatedAt, Comparator.reverseOrder())
             .thenComparing(EvolutionaryMemoryRecord::candidateId);
     private final EvolutionaryMemoryPolicyConfig config;
@@ -36,22 +42,44 @@ public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolic
         var ordered = archive.stream().sorted(BEST).toList();
         var selected = new LinkedHashMap<String, EvolutionaryMemoryRecord>();
 
-        distinct(ordered, record -> record.mutationScope() + "|" + record.retrievalConfigurationId())
-                .stream().limit(config.championSlots()).forEach(record -> put(selected, record));
+        fill(selected, distinct(ordered,
+                record -> record.mutationScope() + "|" + record.retrievalConfigurationId()),
+                config.championSlots());
         addAncestors(selected, archive, config.lineageSlots());
 
-        distinct(ordered.stream().filter(record -> record.checks().stream()
+        fill(selected, distinct(ordered.stream().filter(record -> record.checks().stream()
                         .anyMatch(check -> check.status() != CheckStatus.PASSED)).toList(),
-                LineageNoveltyMemoryPolicy::failureFingerprint)
-                .stream().limit(config.failureFingerprintSlots()).forEach(record -> put(selected, record));
+                LineageNoveltyMemoryPolicy::failureFingerprint),
+                config.failureFingerprintSlots());
 
-        distinct(ordered, LineageNoveltyMemoryPolicy::noveltySignature)
-                .stream().limit(config.noveltySlots()).forEach(record -> put(selected, record));
+        fill(selected, distinct(ordered, LineageNoveltyMemoryPolicy::noveltySignature),
+                config.noveltySlots());
 
-        ordered.stream().sorted(Comparator.comparing(record -> digest(record.candidateId())))
-                .limit(config.explorationSlots()).forEach(record -> put(selected, record));
+        fill(selected, ordered.stream()
+                .sorted(Comparator.comparing(record -> digest(record.candidateId()))).toList(),
+                config.explorationSlots());
 
         return selected.values().stream().limit(config.maxActiveEvaluations()).toList();
+    }
+
+    /**
+     * A category slot buys a record the selection does not already hold. Counting a slot against a
+     * record an earlier pass took would leave the category unrepresented while reporting it filled,
+     * and decision-first ordering makes that collision systematic rather than occasional: a promoted
+     * record now sorts ahead of every failure in every pass, so the same one is offered repeatedly.
+     *
+     * <p>The slot advances to the next unrepresented class, not to another member of a class already
+     * represented: {@code distinct} has already reduced each class to one candidate by the time this
+     * runs, so a class whose representative was selected earlier is skipped rather than retried.
+     */
+    private static void fill(
+            Map<String, EvolutionaryMemoryRecord> selected,
+            List<EvolutionaryMemoryRecord> candidates,
+            int slots) {
+        candidates.stream()
+                .filter(record -> !selected.containsKey(record.candidateId()))
+                .limit(slots)
+                .forEach(record -> put(selected, record));
     }
 
     private static List<EvolutionaryMemoryRecord> distinct(
@@ -66,8 +94,14 @@ public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolic
             LinkedHashMap<String, EvolutionaryMemoryRecord> selected,
             List<EvolutionaryMemoryRecord> archive,
             int lineageSlots) {
+        // Nothing makes candidateCommit unique, so two records can claim the same commit. Taking the
+        // last one seen would make which ancestor is retained depend on archive input order, and a
+        // selection that changes with input order is not a deterministic policy. The archive is
+        // walked in BEST order and the first claim wins, so the answer is stable and the better
+        // record represents the commit.
         Map<String, EvolutionaryMemoryRecord> byCommit = new LinkedHashMap<>();
-        archive.forEach(record -> byCommit.put(record.candidateCommit(), record));
+        archive.stream().sorted(BEST)
+                .forEach(record -> byCommit.putIfAbsent(record.candidateCommit(), record));
         var frontier = new ArrayList<>(selected.values());
         var visited = new LinkedHashSet<String>();
         int added = 0;
@@ -87,7 +121,7 @@ public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolic
         String normalized = record.checks().stream()
                 .filter(check -> check.status() != CheckStatus.PASSED)
                 .map(check -> check.name() + ":" + check.status() + ":"
-                        + check.summary().toLowerCase()
+                        + check.summary().toLowerCase(java.util.Locale.ROOT)
                                 .replaceAll("0x[0-9a-f]+", " <hex> ")
                                 .replaceAll("\\b[0-9]+\\b", " <n> ")
                                 .replaceAll("[^a-z0-9<>]+", " ").trim())

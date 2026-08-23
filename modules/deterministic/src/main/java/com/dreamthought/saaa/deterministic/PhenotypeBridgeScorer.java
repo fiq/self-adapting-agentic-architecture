@@ -75,10 +75,18 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         objectives.put(FitnessSignalId.objective("reliability").canonical(), allChecksRan(evidence) ? 1.0 : 0.0);
         objectives.put(
                 FitnessSignalId.objective("cost_latency_budget").canonical(), budgetScore(evidence.benchmarks()));
-        objectives.put(FitnessSignalId.objective("behavioral_safety").canonical(), 1.0);
+        objectives.put(FitnessSignalId.objective("behavioral_safety").canonical(),
+                safetyScore(evidence));
         objectives.put(FitnessSignalId.objective("parsimony").canonical(), parsimony(realization));
 
-        var phenotype = new PhenotypeEvidence(evidence, behaviorCases, objectives, realization);
+        // A safety probe is a check, and every failing check fails the deterministic-checks gate, so
+        // a probe left gating would discard rather than grade. Probes are withheld from the gate for
+        // the same reason behaviour cases are separated from build health: they answer a different
+        // question. A safety property that must hold belongs in a contract's required evidence,
+        // which does gate. The probe stays in the evidence either way, so a lowered safety score can
+        // always be traced to the probe that produced it.
+        var phenotype = new PhenotypeEvidence(
+                evidence, behaviorCases, objectives, realization, config.safetyProbeNames());
         // A declared required_evidence id names a check that must exist and pass, so the declaration
         // is enforced against evidence this run already collected rather than a separate pipeline.
         return contract
@@ -124,6 +132,31 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         // name that itself contains one, and silently miss its budget — the bug this exists to fix.
         int separator = evidenceName.lastIndexOf(BenchmarkRunner.DERIVED_NAME_SEPARATOR);
         return separator <= 0 ? null : config.benchmarkBudgets().get(evidenceName.substring(0, separator));
+    }
+
+    /**
+     * The pass fraction of the declared safety probes. A probe that produced no evidence counts as
+     * failed, the same rule the gates apply, because a probe that did not run has not shown the
+     * property holds.
+     *
+     * <p>Probes grade and do not gate. A safety property that must hold belongs in a contract's
+     * required evidence, where absence or failure discards the candidate; this objective carries
+     * 0.10 of the weighted sum and could never be the only thing preventing a promotion.
+     */
+    private double safetyScore(EvaluationEvidence evidence) {
+        var declared = config.safetyProbeNames();
+        if (declared.isEmpty()) {
+            return 1.0;
+        }
+        Map<String, Boolean> observed = new LinkedHashMap<>();
+        for (CheckEvidence check : evidence.checks()) {
+            if (declared.contains(check.name())) {
+                observed.merge(check.name(), check.status() == CheckStatus.PASSED,
+                        (first, second) -> first && second);
+            }
+        }
+        long passed = declared.stream().filter(name -> Boolean.TRUE.equals(observed.get(name))).count();
+        return (double) passed / declared.size();
     }
 
     private double budgetScore(List<BenchmarkEvidence> benchmarks) {

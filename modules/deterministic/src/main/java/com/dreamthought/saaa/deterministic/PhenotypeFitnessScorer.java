@@ -18,9 +18,10 @@ import java.util.stream.Stream;
 /**
  * Deterministic, evidence-only scoring of a candidate phenotype.
  *
- * <p>Hard gates run first and are not tradeable: a candidate that fails one scores {@code 0.0} and
- * is discarded no matter how good its weighted objectives look. Only after every gate passes do the
- * weighted objectives decide promotion.
+ * <p>Hard gates run first and are not tradeable: a candidate that fails one is discarded no matter
+ * how good its weighted objectives look. It still keeps its weighted score, so a near miss stays
+ * distinguishable from a total failure in the record; the gate decides fate, the score only ranks.
+ * Read {@code decision} to know what happened to a candidate, never the score alone.
  */
 public final class PhenotypeFitnessScorer {
     public static final double PROMOTION_THRESHOLD = 0.80;
@@ -87,7 +88,10 @@ public final class PhenotypeFitnessScorer {
         Objects.requireNonNull(requiredEvidence, "requiredEvidence");
 
         // Absent evidence is not passing evidence: an empty check or behavior-case list fails its gate.
-        boolean checksPassed = !phenotype.evidence().checks().isEmpty() && phenotype.evidence().checksPassed();
+        // Checks withheld for grading are excluded here and only here; they stay in the recorded evidence.
+        var gatingChecks = phenotype.gatingChecks();
+        boolean checksPassed = !gatingChecks.isEmpty()
+                && gatingChecks.stream().allMatch(check -> check.status() == CheckStatus.PASSED);
         boolean behaviorCasesPassed = !phenotype.behaviorCases().isEmpty()
                 && phenotype.behaviorCases().stream().allMatch(c -> c.status() == CheckStatus.PASSED);
         List<FitnessObjective> objectiveSet = contract == null
@@ -122,7 +126,12 @@ public final class PhenotypeFitnessScorer {
         boolean gatesPassed = checksPassed && behaviorCasesPassed && objectiveScoresPresent
                 && realizationNonEmpty && declaredEvidencePassed;
 
-        double rawScore = gatesPassed ? weightedScore(phenotype, objectiveSet) : 0.0;
+        // The magnitude survives a gate failure. CON-002 makes an invariant binary for the
+        // promote-or-discard decision while still carrying a magnitude, so that among candidates
+        // which already failed a near miss stays distinguishable from a total miss. Zeroing here
+        // destroyed exactly that, which is the information a population needs to choose which
+        // failure to mutate from next. The decision below is unchanged and still gated.
+        double rawScore = weightedScore(phenotype, objectiveSet);
         FitnessDecision decision = gatesPassed && rawScore >= PROMOTION_THRESHOLD
                 ? FitnessDecision.PROMOTE
                 : FitnessDecision.DISCARD;
@@ -175,7 +184,20 @@ public final class PhenotypeFitnessScorer {
     /** Weights come from the same objective set the presence gate used, for the reason given there. */
     private static double weightedScore(PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
         return objectiveSet.stream()
-                .mapToDouble(objective -> objective.weight() * phenotype.objectiveScores().get(objective.id()))
+                // A measurement that is absent, non-finite or outside [0,1] contributes nothing
+                // rather than throwing, which is the same rule hasEveryObjectiveScore applies when it
+                // fails the gate: a value that is not a fraction is not a measurement. Reading the
+                // one predicate in both places keeps them from drifting apart.
+                //
+                // Retaining the magnitude is what makes this load-bearing. Zeroing on gate failure
+                // used to discard a non-finite sum before it was recorded; now the sum is always
+                // computed, and round() launders it into something the finiteness guards accept —
+                // round(+Inf) is 9.22e16 and finite. Without this filter an infinite objective would
+                // be stored as an enormous score and sort first among failures.
+                .mapToDouble(objective -> {
+                    Double measured = phenotype.objectiveScores().get(objective.id());
+                    return isFraction(measured) ? objective.weight() * measured : 0.0;
+                })
                 .sum();
     }
 

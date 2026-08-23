@@ -71,6 +71,45 @@ final class EvolveContractAcceptanceTest {
                 .isFalse();
     }
 
+    /**
+     * CHG-021. A failing safety probe lowers the behavioural-safety objective and must not discard,
+     * because probes grade while declared required evidence gates. Driven through the real CLI so
+     * the distinction holds end to end rather than only in the scorer.
+     */
+    @Test
+    void aFailingSafetyProbeLowersTheScoreWithoutDiscarding(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
+                "enforce the draft check\ndraft-check: enforce\n");
+        writeCheck(target, "unit_tests_pass", true);
+        writeCheck(target, "no_network_call", false);
+        git(repo, "init", "--initial-branch=main");
+        git(repo, "config", "user.name", "Test");
+        git(repo, "config", "user.email", "test@example.invalid");
+        git(repo, "add", "-A");
+        git(repo, "commit", "-m", "baseline");
+
+        String transcript = runDeclaring(target, java.util.List.of("unit_tests_pass"),
+                "--safety-probe", "no_network_call");
+
+        // Asserting PROMOTE alone would stay green if the probe never ran at all: an absent probe
+        // scores safety 0.0 exactly as a failing one does, and still clears the threshold. Only the
+        // evidence line separates the two, so that is what this asserts.
+        // Matched as a line rather than by fixed padding: the console pads check names to a column
+        // width, and asserting that spacing would make a harmless formatting change fail here.
+        assertThat(transcript.lines())
+                .as("the probe ran, failed, and is visible in the evidence rather than filtered out")
+                .anySatisfy(line -> assertThat(line)
+                        .contains("no_network_call")
+                        .contains("FAILED"));
+        assertThat(transcript)
+                .as("a failing probe grades; only declared required evidence gates")
+                .contains("PROMOTE");
+    }
+
     private static String run(Path target, String... contractFlags) {
         return runDeclaring(target, java.util.List.of("unit_tests_pass", "behavior_cases_unchanged"),
                 contractFlags);

@@ -1,0 +1,150 @@
+change:
+  id: CHG-021
+  title: Make the fitness function discriminate
+  status: proposed
+  intent: Give behavioral_safety a real evidence source and stop erasing a failed candidate's magnitude, so two candidates can be told apart and a population can choose which failure to mutate from.
+  audience_level: developer
+  relates_to:
+    - CON-002
+    - PAT-004
+    - ARCH-001
+    - SYS-001
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: The weighted sum distinguishes candidates, and a failed candidate retains a comparable magnitude while the promote decision stays binary.
+    scenarios:
+      - id: S1
+        when: an operator declares safety probes and some pass
+        then: behavioral_safety is the pass fraction of the declared probes
+        and:
+          - a probe that produced no evidence counts as failed, the rule the gates already apply
+          - a check the operator did not declare a probe does not count towards the fraction
+      - id: S2
+        when: a declared probe fails
+        then: the objective falls and the candidate is not discarded for it
+        and:
+          - probes are withheld from the deterministic-checks gate, or a probe would gate rather than grade
+      - id: S3
+        when: no probes are declared
+        then: the objective stays at 1.0 and the run is unchanged
+      - id: S4
+        when: two candidates fail a gate having passed different numbers of behaviour cases
+        then: the one that passed more records the higher score, though both are discarded
+      - id: S5
+        when: a candidate fails a gate and its objectives would otherwise sum above the promotion threshold
+        then: it is still discarded, because the decision is gated and a magnitude never buys a promotion
+      - id: S6
+        when: a declared probe's script exists in the target
+        then: it is executed alongside the behaviour cases, so the objective measures a result rather than an absence
+      - id: S7
+        when: a probe is withheld from the gate so that it grades
+        then: the scored result still carries the probe, so the audit trail can name the probe that lowered the score
+        and:
+          - withholding narrows the gate only, never the record
+          - the named test asserts the scored result, which is the object SQLite, the ledger, evolutionary memory and MCP are each written from. It does not exercise those consumers, so the durability of each remains covered by their own tests rather than by this scenario
+      - id: S8
+        when: a discarded candidate records a higher score than a promoted one
+        then: evolutionary memory still ranks the promoted candidate above it
+        and:
+          - decision partitions the ordering and magnitude orders records inside a partition, per CON-002
+          - both halves are asserted, because a comparator that ignored score entirely would satisfy the partition half alone
+      - id: S10
+        when: an objective is absent, non-finite or outside [0,1]
+        then: it contributes nothing to the weighted sum and the candidate is discarded by the required-objective-scores gate
+        and:
+          - retaining the magnitude made this reachable, because the sum is now always computed and round(+Inf) is 9.22e16, which is finite and passes every guard on the way to storage
+          - weighting and the presence gate read the same predicate, so a value that is not a measurement is treated the same way by both
+      - id: S9
+        when: a category's representative was already taken by an earlier selection pass
+        then: the slot advances to the next class that is not yet represented, when one exists
+        and:
+          - decision-first ordering offers the same promoted record to every pass, so a slot spent on a duplicate would leave the category unrepresented while reporting it filled
+          - a class whose representative is already selected is treated as represented and skipped rather than falling through to its other members, which is what one-representative-per-class means
+
+acceptance:
+  - scenario: S1
+    test_id: deterministic/BehaviouralSafetyScoreTest.isThePassFractionOfTheDeclaredProbes
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/BehaviouralSafetyScoreTest.aFailingProbeLowersTheScoreWithoutDiscarding
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/BehaviouralSafetyScoreTest.staysAtOneWhenNoProbesAreDeclared
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/FailedCandidateMagnitudeTest.aNearMissOutscoresATotalMissAlthoughBothDiscard
+    layer: unit
+  - scenario: S5
+    test_id: deterministic/FailedCandidateMagnitudeTest.theDecisionIsStillBinaryAndUntradeable
+    layer: unit
+  - scenario: S6
+    test_id: cli/EvolveContractAcceptanceTest.aFailingSafetyProbeLowersTheScoreWithoutDiscarding
+    layer: acceptance
+  - scenario: S7
+    test_id: deterministic/BehaviouralSafetyScoreTest.aWithheldProbeStaysInTheRecordedEvidence
+    layer: unit
+  - scenario: S8
+    test_id: deterministic/LineageNoveltyMemoryPolicyTest.aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion
+    layer: unit
+  - scenario: S8
+    test_id: deterministic/LineageNoveltyMemoryPolicyTest.magnitudeStillOrdersRecordsWithinOneDecision
+    layer: unit
+  - scenario: S9
+    test_id: deterministic/LineageNoveltyMemoryPolicyTest.aNoveltySlotIsNotSpentOnARecordAlreadySelected
+    layer: unit
+  - scenario: S10
+    test_id: deterministic/FailedCandidateMagnitudeTest.aNonFiniteObjectiveCannotBecomeAnEnormousRecordedScore
+    layer: unit
+  - scenario: S10
+    test_id: deterministic/FailedCandidateMagnitudeTest.aNotANumberObjectiveCannotPoisonTheRecordedScore
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: score behavioral_safety as the declared probes' pass fraction, withheld from the checks gate
+    status: completed
+  - id: T2
+    slice: stop zeroing a failed candidate's score so the magnitude survives, leaving the decision gated
+    status: completed
+  - id: T3
+    slice: expose --safety-probe and execute probe scripts alongside behaviour cases
+    status: completed
+  - id: T4
+    slice: update the golden corpus, the property test and the assertions that pinned the zeroing rather than the invariant
+    status: completed
+  - id: T5
+    slice: correct the README, which described the objective as the literal 1.0 and did not mention that a failed candidate keeps its score
+    status: completed
+  - id: T6
+    slice: keep withheld probes in the recorded evidence by narrowing the gate rather than deleting the check, so the audit trail survives
+    status: completed
+  - id: T7
+    slice: order evolutionary memory by decision before score, so a high-scoring failure cannot take a champion slot from a promotion
+    status: completed
+  - id: T8
+    slice: record the old/new discard-score semantics boundary as RISK-007 and the score-is-not-a-verdict rule in CON-002
+    status: completed
+  - id: T9
+    slice: stop a category slot being spent on an already-selected record, which decision-first ordering turned from an occasional collision into a certainty
+    status: completed
+  - id: T10
+    slice: make selection independent of archive input order, reject probe names reserved for structural gates, preserve declared probe order through execution, and fix the locale-sensitive failure fingerprint
+    status: completed
+  - id: T11
+    slice: stop a non-finite objective becoming an enormous recorded score, which retaining the magnitude made reachable because round(+Inf) is finite and passes every guard
+    status: completed
+
+non_goals:
+  - ranking or population, which this unblocks but does not implement
+  - reclaiming reliability, which needs repeated execution to mean anything
+  - the richer score type CON-002 implies for ordering across severity classes
+
+risks:
+  - a discarded candidate can now record a score above the promotion threshold, which reads oddly in a journal or ledger until you know the decision is what promotes. The README says so explicitly
+  - outcomes recorded before this change stored 0.0 for every discard, so the same field carries two meanings either side of it. Decision-first ordering keeps old and new records from competing except among failures, and RISK-007 tracks the residue
+  - any future consumer that ranks on score alone reintroduces the champion-slot defect. CON-002 now states the rule; nothing mechanically enforces it until the FitnessScore type exists
+  - scores are stored rounded to two decimals, and that stored value is what evolutionary memory ranks by, so two discards at raw 0.5949 and 0.5851 both store 0.59 and tie. Decision-first ordering fixes ranking across decisions; within the discarded partition the near-miss resolution this change exists to provide stops at 0.01. Tolerable for a handful of candidates, recorded in RISK-007 and fixed properly by storing raw and rounding only for display
+  - reliability remains pinned at 1.0 for any eligible candidate, so task_success and parsimony carry the discrimination among promotable candidates. The floor problem is narrowed, not solved
+  - probes are executed as ordinary checks in the candidate worktree, so a probe script can do anything a behaviour case can. They are graded rather than gated, which means a compromised probe lowers a score rather than forcing a promotion
