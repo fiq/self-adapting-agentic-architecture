@@ -35,6 +35,12 @@ deltas:
         and:
           - task_success carries 0.40, so one failing case in n costs 0.40/n, which exceeds a typical promotion's headroom when n is 2
           - the discard is threshold arithmetic rather than a gate the held-out case tripped, so the ratio of held-out to gating cases governs both resolution and survivability
+      - id: S5
+        when: a candidate is scored
+        then: the result carries the fingerprint of the objectives, weights, withheld checks and threshold it was measured against
+        and:
+          - a result built without one reports legacy-unversioned rather than appearing comparable
+          - the fingerprint is not backfilled for older records, because inventing one would fabricate provenance
       - id: S4
         when: a held-out name collides with a gating case, a safety probe, a structural gate or a derived repeat-run name
         then: the scoring configuration is rejected at construction
@@ -51,6 +57,15 @@ acceptance:
   - scenario: S3
     test_id: cli/EvolveCommandAcceptanceTest.aThinGatingRatioLetsOneHeldOutFailureFallThroughThePromotionFloor
     layer: acceptance
+  - scenario: S5
+    test_id: domain/ScoringContextTest.changingTheHeldOutSetChangesTheFingerprint
+    layer: unit
+  - scenario: S5
+    test_id: deterministic/ScorerStampsScoringContextTest.aScoredResultCarriesARealScoringContextRatherThanLegacy
+    layer: unit
+  - scenario: S5
+    test_id: deterministic/ScorerStampsScoringContextTest.aResultBuiltWithoutAContextReportsLegacy
+    layer: unit
   - scenario: S4
     test_id: deterministic/HeldOutCaseConfigTest.rejectsAHeldOutCaseThatIsAlsoAGatingBehaviourCase
     layer: unit
@@ -76,7 +91,7 @@ tasks:
     status: completed
   - id: T5
     slice: carry a ScoringContext fingerprint on FitnessResult and refuse comparison across differing fingerprints
-    status: pending
+    status: in_progress
   - id: T6
     slice: README, wiki and knowledge updates, including a RISK entry for held-out reliance on WORKFLOW_DEFINITION scope
     status: pending
