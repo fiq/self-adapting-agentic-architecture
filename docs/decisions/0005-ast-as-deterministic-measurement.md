@@ -73,7 +73,7 @@ layer, none of them involving a model:
    ┌──────────────┐
    │  AST parse   │  adapter — the parser is a dependency
    └──────┬───────┘
-          │  StructuralSummary (domain value)
+          │  StructuralEvidence (domain value)
           ▼
    ┌───────────────────────────────────────────────┐
    │ 1. DISTANCE   how different are two candidates │ → duplicate detection,
@@ -92,9 +92,12 @@ layer, none of them involving a model:
 
 ### Why each one earns its place
 
-**Distance** replaces diff hashing in `CHG-025`. Two realizations whose
-structural distance is below a declared threshold are the same candidate, and the
-generation records `duplicate_realization` on evidence rather than on text.
+**Distance** replaces diff hashing in `CHG-025`. Two realizations with the same
+normalized syntax hash for the changed symbol are the same candidate, and the
+generation records `duplicate_realization` on evidence rather than on text. A
+thresholded distance is deliberately *not* the duplicate rule: a threshold needs
+calibrating against labelled examples before anyone can defend the number, so
+distance stays a novelty and convergence signal until it has been.
 
 **Convergence** is the deterministic trigger `SearchPosture` never had. When the
 mean pairwise distance across a generation falls below a declared floor, the
@@ -120,51 +123,145 @@ objectives it varies between candidates that all pass.
 
 ## Contracts
 
-These are the interfaces to agree before implementation.
+These were revised after an independent research pass. The first version was
+wrong in a way worth recording.
 
-**C1 — `StructuralSummary` (domain).** A plain value: node counts by kind,
-maximum nesting depth, fan-out, and a canonical structural hash. No parser types
-leak into it. `domain` keeps its zero dependencies.
+> **C1 as originally written could not support C3.** It specified a
+> `StructuralSummary` of node counts, maximum nesting depth, fan-out and a hash,
+> then asked C3 to compute tree edit distance from it. Tree edit distance needs
+> the tree. Summary statistics cannot reconstruct one, so the distance policy
+> could never have been implemented against the value the domain carried.
 
-**C2 — `SourceStructureInspector` (deterministic port).** Takes a candidate and a
-path set, returns `StructuralSummary` per file. The implementation lives in
-`adapters`, because a parser is a provider-shaped dependency and
-`deterministic` must stay free of them. This is the same boundary that keeps
-LangChain4j out of the scoring layer.
+**C1 — `StructuralEvidence` (domain).** Auditable evidence, not a bag of
+statistics:
 
-**C3 — `StructuralDistance` (deterministic policy).** Pure function over two
-`StructuralSummary` values returning `[0,1]`. Deterministic, total, and
-independent of formatting. Tree edit distance is the intended implementation;
-the port does not name it, so a cheaper approximation can be substituted under a
-new policy id.
+```
+StructuralEvidence
+  schemaId, languageId, parserId, normalizationPolicyId
+  sourceContentHash
+  normalizedSyntaxHash          <- exact-duplicate decisions use this
+  changedSymbolIds              <- stable enclosing symbols
+  changedNodeFingerprints       <- data, never parser types
+  metrics { kindCounts, maxDepth, fanOut, ... }   <- complexity/convergence only
+  completeness { COMPLETE | RECOVERED_WITH_ERRORS | UNPARSEABLE | UNSUPPORTED }
+```
 
-**C4 — versioned policy ids.** `structural-distance-v1`,
-`convergence-posture-v1`. Changing semantics requires a new id, exactly as
-`lineage-novelty-v1` and the `ScoringContext` fingerprint already do. A distance
-computed under one policy is never compared with one computed under another.
+`metrics` informs complexity and convergence. It must never decide identity.
 
-**C5 — language support is explicit and degradable.** An unparseable or
-unsupported file yields *no* summary rather than a zero-distance one. Absent
-structure is not identical structure — the same rule as absent evidence not
-being passing evidence. A generation whose candidates cannot be parsed falls
-back to the existing behaviour and records that it did.
+**C2 — inspection and comparison are separate ports.**
+`SourceStructureInspector` returns `StructuralEvidence` including the exact
+parser, grammar and normalization policy ids. A separate adapter-side
+`StructuralComparisonService` retains or reconstructs the normalized tree to
+compute a distance. Splitting them stops the domain claiming to hold enough
+information for a comparison it cannot perform. Parser objects stay in
+`adapters`; `changedNodeFingerprints` cross the boundary as data.
+
+**C3 — three relations, not one distance.** Collapsing these into a single
+`[0,1]` number is what invites the false claim that structure implies behaviour:
+
+| Relation | Meaning | Cost |
+|---|---|---|
+| `EXACT_NORMALIZED_DUPLICATE` | canonical normalized hash equality | cheap, exact |
+| `STRUCTURAL_DISTANCE` | bounded tree distance, syntax-relative | moderate |
+| `EQUIVALENT_UNDER_LAWS` | `PROVEN / NOT_PROVEN / UNSUPPORTED / BUDGET_EXCEEDED` plus a rewrite-law-set id | future, expensive |
+
+**None of these may be described as "the same functional behaviour."** Rice's
+theorem forecloses deciding that for arbitrary programs; every relation here is
+equivalence under an explicitly declared syntactic or algebraic policy.
+
+**C4 — version the whole measurement provenance.** Policy ids alone are
+insufficient. Comparable identity includes language and grammar version,
+normalized-schema version, normalization policy, distance algorithm and cost
+model, and later any rewrite-law set or CPG schema version. Any mismatch yields
+`INCOMPARABLE` rather than a silently numeric answer — the rule the
+`ScoringContext` fingerprint already applies to fitness magnitudes.
+
+**C5 — four completeness states, not two.** `COMPLETE` alone is eligible for a
+blast-radius gate. `RECOVERED_WITH_ERRORS` may feed metrics or advisory
+comparison and may never gate. `UNPARSEABLE` and `UNSUPPORTED` yield no
+evidence. If either side of a comparison is not `COMPLETE`, the result is
+`INCOMPARABLE` and the run records why.
+
+## Does category theory carry weight here?
+
+**Not as a dependency, and not as a decision boundary.** The research separated
+the genuinely applied results from the categorically-flavoured ones.
+
+- **Catamorphisms and recursion schemes are useful as implementation
+  discipline.** An AST is a recursive algebraic data type and every measurement
+  above is a compositional fold over it. That improves testability and keeps one
+  traversal honest; it adds no information and decides nothing.
+- **"Compiling to categories"** is real but needs a restricted typed functional
+  source language. It does not span arbitrary Java, Python or JavaScript methods.
+- **Categorical graph rewriting (double-pushout)** is real, with genuine
+  confluence theory, and would matter if SAAA ever adopted *verified*
+  transformation rules with a preserved interface. ADR-0005 deliberately does not
+  mutate, so it is the wrong abstraction at the wrong time.
+- **Operads, props and sheaf-cohomological analysis** are research-stage. No
+  primary source supports a mature, cheap, multi-language equivalence tool.
+
+Honest verdict: **use categorical language for exposition and folds for
+implementation; do not put category theory in a contract.** The load-bearing
+mechanisms are a normalized representation plus graph analysis.
+
+## Cross-language, and the one graph across APIs
+
+A Java-specific tree is wrong long-term, and the answer is staged rather than a
+single technology.
+
+```
+   NOW           tree-sitter concrete syntax trees
+                 -> normalized per language, robust, error-recovering
+                 -> gives EXACT_NORMALIZED_DUPLICATE and changed-symbol evidence
+                      |
+   LATER         code property graph: AST + CFG + PDG in one attributed
+                 multigraph, the Joern/CPG schema shape
+                 -> dependency cycles, interface preservation, reachability,
+                    and the cross-API questions
+                      |
+   EXCEPTIONAL   e-graphs under an audited rewrite-law set, for a small pure
+                 typed expression subset only
+```
+
+The CPG layer is what **a single graph spanning code and the APIs the project
+knows about** would actually be built from: a directed, labelled, attributed
+multigraph with a common query surface across language front ends. That is the
+right shape for "did this edit introduce a dependency cycle", "did it preserve
+the exported interface", "does this reach a public API".
+
+Two things make it cheaper here than it sounds. `ADR-0004` already runs a local
+Neo4j with repository-partitioned `SUBJECT` and `PROCESS` projections linked by
+evolution contexts, so a structural projection extends an experiment that exists
+rather than adding infrastructure. And the projection stays *derived* — the
+repository remains canonical, as `docs/context-store.md` requires.
+
+What must not be smuggled in with it: CPG front ends differ in resolution
+precision across dynamic dispatch, reflection, generated code and incomplete
+projects. A CPG query is an analysis result, not a language-independent proof,
+and adopting the full Joern stack is well beyond the local-CLI base case.
+
+Learned embeddings such as GraphCodeBERT or UniXcoder are excluded from C1–C5.
+They give probabilistic ranking, not reproducible symbolic identity, and
+`ARCH-001` does not permit a model-version-dependent number to gate a promotion.
+They stay legitimate as advisory retrieval, where `ARCH-002` already puts that
+class of evidence.
 
 ## The base case
 
-The smallest slice that proves the idea and is useful on its own:
+The smallest slice that proves the idea and is useful alone:
 
-1. `StructuralSummary`, `SourceStructureInspector`, `StructuralDistance` with a
-   Java implementation in `adapters`.
-2. **Duplicate detection in `CHG-025` uses structural distance instead of a diff
-   hash.** One consumer, immediately load-bearing, and directly testable: two
-   candidates differing only in whitespace must be detected as duplicates, and
-   two differing in a statement must not.
-3. Nothing else. Convergence, blast radius and complexity land only once the
-   distance measure is trusted.
+1. Parse the **changed symbol** — not the whole file — and produce
+   `StructuralEvidence` with a normalized syntax hash. Java first, via
+   tree-sitter if multi-language is wanted immediately.
+2. **Duplicate detection in `CHG-025` uses `EXACT_NORMALIZED_DUPLICATE` on the
+   changed symbol**, replacing the diff hash. Not a thresholded whole-file
+   metric, which would need calibration before the threshold could be trusted.
+3. Prove exactly three things: a whitespace- or comment-only change normalizes
+   identically; a changed statement does not; a modification outside the declared
+   symbol is detected.
 
-That ordering matters. Distance is the primitive the other three are built from,
-and shipping it alone means a defect in it surfaces in one place rather than
-four.
+`STRUCTURAL_DISTANCE` stays a novelty and convergence signal until calibrated
+against labelled examples. Nothing claims behavioural equivalence.
 
 ## Consequences
 

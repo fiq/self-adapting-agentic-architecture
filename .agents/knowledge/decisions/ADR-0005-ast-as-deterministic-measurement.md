@@ -63,10 +63,41 @@ The architecture fitness function must be extended to enforce it.
 
 ## Base case
 
-Ship structural distance alone, consumed by duplicate detection in the
-population slice. Convergence, blast radius and complexity follow only once
-distance is trusted, so a defect in the primitive surfaces in one place rather
-than four.
+Ship the normalized syntax hash of the changed symbol, consumed by duplicate
+detection in the population slice. Convergence, blast radius and complexity
+follow only once that primitive is trusted, so a defect surfaces in one place
+rather than four. A thresholded distance is not the duplicate rule until the
+threshold has been calibrated against labelled examples.
+
+## Corrected after research
+
+The first draft specified a lossy `StructuralSummary` — node counts, depth,
+fan-out, a hash — and then asked the distance policy to compute tree edit
+distance from it. Tree edit distance needs the tree, so that contract could
+never have been implemented. C1 now carries auditable `StructuralEvidence`, and
+inspection is separated from comparison so the domain cannot claim to hold
+information it does not.
+
+## Category theory is not load-bearing
+
+Catamorphisms are useful implementation discipline — every measurement here is a
+compositional fold — but add no information and decide nothing. "Compiling to
+categories" needs a restricted typed functional source language. Categorical
+graph rewriting would matter only if SAAA adopted verified transformation rules,
+which this decision explicitly does not. Rice's theorem forecloses deciding
+behavioural equivalence for arbitrary programs, so every relation offered here is
+equivalence under a declared syntactic or algebraic policy and must never be
+described as "the same functional behaviour".
+
+## One graph across APIs
+
+A code property graph — AST, control flow and program dependence in one
+attributed multigraph — is the right later shape for dependency cycles,
+interface preservation and reachability across the APIs a project knows about.
+ADR-0004's Neo4j already holds partitioned SUBJECT and PROCESS projections, so
+this extends a running experiment rather than adding infrastructure, and the
+projection stays derived. Learned embeddings are excluded from these contracts:
+they rank probabilistically and cannot gate a promotion under ARCH-001.
 
 ## Explicitly not granted
 
