@@ -45,6 +45,56 @@ final class FailedCandidateMagnitudeTest {
                 .isEqualTo(FitnessDecision.DISCARD);
     }
 
+    /**
+     * Retaining the magnitude made an unreachable path reachable. Zeroing on gate failure used to
+     * discard a non-finite weighted sum before it was recorded; now the sum is always computed, and
+     * {@code Math.round} launders it into something that passes every finiteness guard:
+     * {@code round(+Inf)} is {@code 9.22e16} and finite, {@code round(NaN)} is {@code 0.0}. A
+     * candidate carrying an infinite objective would therefore be stored with an enormous score and
+     * would sort first among failures — the ranking this change exists to make trustworthy.
+     *
+     * <p>A value that is not a fraction is not a measurement, so it contributes nothing, which is the
+     * same rule the required-objective-scores gate applies. The gate still fails and the candidate is
+     * still discarded; the point is that the recorded magnitude stays meaningful.
+     */
+    @Test
+    void aNonFiniteObjectiveCannotBecomeAnEnormousRecordedScore() {
+        var result = scoreWith(Double.POSITIVE_INFINITY);
+
+        assertThat(result.decision())
+                .as("a non-finite objective fails the required-objective-scores gate")
+                .isEqualTo(FitnessDecision.DISCARD);
+        assertThat(result.aggregateScore())
+                .as("the recorded magnitude must stay within the range a score can occupy")
+                .isBetween(0.0, 1.0);
+    }
+
+    @Test
+    void aNotANumberObjectiveCannotPoisonTheRecordedScore() {
+        var result = scoreWith(Double.NaN);
+
+        assertThat(result.decision()).isEqualTo(FitnessDecision.DISCARD);
+        assertThat(result.aggregateScore()).isBetween(0.0, 1.0);
+        assertThat(Double.isNaN(result.aggregateScore()))
+                .as("a NaN contribution must not reach the record even indirectly")
+                .isFalse();
+    }
+
+    private static com.dreamthought.saaa.domain.FitnessResult scoreWith(double taskSuccess) {
+        return new PhenotypeFitnessScorer().score(
+                new Candidate("c-1", "MUT-1", "candidate/MUT-1", Path.of(".worktrees/c"), "abc1234"),
+                new PhenotypeEvidence(
+                        new EvaluationEvidence(List.of(passed("build", "ok")),
+                                List.<BenchmarkEvidence>of(), Instant.parse("2026-08-23T00:00:00Z")),
+                        List.of(BehaviorCaseEvidence.passed("case-0", "ok")),
+                        Map.of("subject.objective.task_success", taskSuccess,
+                                "subject.objective.reliability", 1.0,
+                                "subject.objective.cost_latency_budget", 1.0,
+                                "subject.objective.behavioral_safety", 1.0,
+                                "subject.objective.parsimony", 0.975),
+                        new RealizationSummary(1, 8)));
+    }
+
     private static com.dreamthought.saaa.domain.FitnessResult score(int passing, int declared) {
         var cases = new java.util.ArrayList<BehaviorCaseEvidence>();
         for (int i = 0; i < declared; i++) {

@@ -57,3 +57,21 @@ Any of these turns it back into a correctness problem:
 
 Option 3 is the destination; it needs a persistence migration and belongs with the
 population slice, not here.
+
+## The stored magnitude is quantised to two decimals
+
+A related limit, found by a second reviewer on the same change. Promotion compares
+the raw weighted sum, but what gets stored is `round(rawScore)` to two decimals,
+and that stored value is what `LineageNoveltyMemoryPolicy` ranks by.
+
+Two discarded candidates at raw `0.5949` and `0.5851` both store `0.59` and tie.
+Decision-first ordering fixed ranking *across* the two decisions; within the
+discarded partition the near-miss resolution this change exists to provide stops
+at `0.01`. With a handful of candidates that is tolerable. With a population large
+enough for collisions to be common, ranking degenerates toward the tie-break —
+recency — which is not a fitness signal.
+
+The `FitnessScore` type in option 3 above is where this is fixed too: store the
+raw value and round only for display. Rounding at the point of storage throws away
+information that cannot be recovered, and does so inside the field the archive
+sorts on.

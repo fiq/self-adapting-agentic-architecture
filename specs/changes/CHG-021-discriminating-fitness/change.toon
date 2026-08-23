@@ -50,6 +50,12 @@ deltas:
         and:
           - decision partitions the ordering and magnitude orders records inside a partition, per CON-002
           - both halves are asserted, because a comparator that ignored score entirely would satisfy the partition half alone
+      - id: S10
+        when: an objective is absent, non-finite or outside [0,1]
+        then: it contributes nothing to the weighted sum and the candidate is discarded by the required-objective-scores gate
+        and:
+          - retaining the magnitude made this reachable, because the sum is now always computed and round(+Inf) is 9.22e16, which is finite and passes every guard on the way to storage
+          - weighting and the presence gate read the same predicate, so a value that is not a measurement is treated the same way by both
       - id: S9
         when: a category's representative was already taken by an earlier selection pass
         then: the slot advances to the next class that is not yet represented, when one exists
@@ -88,6 +94,12 @@ acceptance:
   - scenario: S9
     test_id: deterministic/LineageNoveltyMemoryPolicyTest.aNoveltySlotIsNotSpentOnARecordAlreadySelected
     layer: unit
+  - scenario: S10
+    test_id: deterministic/FailedCandidateMagnitudeTest.aNonFiniteObjectiveCannotBecomeAnEnormousRecordedScore
+    layer: unit
+  - scenario: S10
+    test_id: deterministic/FailedCandidateMagnitudeTest.aNotANumberObjectiveCannotPoisonTheRecordedScore
+    layer: unit
 
 tasks:
   - id: T1
@@ -120,6 +132,9 @@ tasks:
   - id: T10
     slice: make selection independent of archive input order, reject probe names reserved for structural gates, preserve declared probe order through execution, and fix the locale-sensitive failure fingerprint
     status: completed
+  - id: T11
+    slice: stop a non-finite objective becoming an enormous recorded score, which retaining the magnitude made reachable because round(+Inf) is finite and passes every guard
+    status: completed
 
 non_goals:
   - ranking or population, which this unblocks but does not implement
@@ -130,6 +145,6 @@ risks:
   - a discarded candidate can now record a score above the promotion threshold, which reads oddly in a journal or ledger until you know the decision is what promotes. The README says so explicitly
   - outcomes recorded before this change stored 0.0 for every discard, so the same field carries two meanings either side of it. Decision-first ordering keeps old and new records from competing except among failures, and RISK-007 tracks the residue
   - any future consumer that ranks on score alone reintroduces the champion-slot defect. CON-002 now states the rule; nothing mechanically enforces it until the FitnessScore type exists
-  - scores are stored rounded to two decimals, so two near misses differing by less than 0.005 record identically. Tolerable when comparing a handful of candidates, and it needs revisiting before a population large enough for that to collide
+  - scores are stored rounded to two decimals, and that stored value is what evolutionary memory ranks by, so two discards at raw 0.5949 and 0.5851 both store 0.59 and tie. Decision-first ordering fixes ranking across decisions; within the discarded partition the near-miss resolution this change exists to provide stops at 0.01. Tolerable for a handful of candidates, recorded in RISK-007 and fixed properly by storing raw and rounding only for display
   - reliability remains pinned at 1.0 for any eligible candidate, so task_success and parsimony carry the discrimination among promotable candidates. The floor problem is narrowed, not solved
   - probes are executed as ordinary checks in the candidate worktree, so a probe script can do anything a behaviour case can. They are graded rather than gated, which means a compromised probe lowers a score rather than forcing a promotion

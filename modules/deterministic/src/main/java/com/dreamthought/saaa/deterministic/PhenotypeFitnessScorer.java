@@ -184,11 +184,20 @@ public final class PhenotypeFitnessScorer {
     /** Weights come from the same objective set the presence gate used, for the reason given there. */
     private static double weightedScore(PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
         return objectiveSet.stream()
-                // A missing measurement contributes nothing rather than throwing. Before the
-                // magnitude was retained, the missing-objective gate short-circuited to 0.0 and
-                // this was never reached with an absent key; now it is.
-                .mapToDouble(objective -> objective.weight()
-                        * phenotype.objectiveScores().getOrDefault(objective.id(), 0.0))
+                // A measurement that is absent, non-finite or outside [0,1] contributes nothing
+                // rather than throwing, which is the same rule hasEveryObjectiveScore applies when it
+                // fails the gate: a value that is not a fraction is not a measurement. Reading the
+                // one predicate in both places keeps them from drifting apart.
+                //
+                // Retaining the magnitude is what makes this load-bearing. Zeroing on gate failure
+                // used to discard a non-finite sum before it was recorded; now the sum is always
+                // computed, and round() launders it into something the finiteness guards accept —
+                // round(+Inf) is 9.22e16 and finite. Without this filter an infinite objective would
+                // be stored as an enormous score and sort first among failures.
+                .mapToDouble(objective -> {
+                    Double measured = phenotype.objectiveScores().get(objective.id());
+                    return isFraction(measured) ? objective.weight() * measured : 0.0;
+                })
                 .sum();
     }
 
