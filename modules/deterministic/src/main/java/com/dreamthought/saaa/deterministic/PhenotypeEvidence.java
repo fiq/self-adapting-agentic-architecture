@@ -24,7 +24,8 @@ public record PhenotypeEvidence(
         List<BehaviorCaseEvidence> behaviorCases,
         Map<String, Double> objectiveScores,
         RealizationSummary realization,
-        Set<String> nonGatingCheckNames
+        Set<String> nonGatingCheckNames,
+        Set<String> heldOutCaseNames
 ) {
     public PhenotypeEvidence {
         evidence = Objects.requireNonNull(evidence, "evidence");
@@ -32,6 +33,17 @@ public record PhenotypeEvidence(
         objectiveScores = Map.copyOf(Objects.requireNonNull(objectiveScores, "objectiveScores"));
         realization = Objects.requireNonNull(realization, "realization");
         nonGatingCheckNames = Set.copyOf(Objects.requireNonNull(nonGatingCheckNames, "nonGatingCheckNames"));
+        heldOutCaseNames = Set.copyOf(Objects.requireNonNull(heldOutCaseNames, "heldOutCaseNames"));
+    }
+
+    /** No held-out cases: every behaviour case both gates and scores, as before CHG-024. */
+    public PhenotypeEvidence(
+            EvaluationEvidence evidence,
+            List<BehaviorCaseEvidence> behaviorCases,
+            Map<String, Double> objectiveScores,
+            RealizationSummary realization,
+            Set<String> nonGatingCheckNames) {
+        this(evidence, behaviorCases, objectiveScores, realization, nonGatingCheckNames, Set.of());
     }
 
     /** Every check gates. */
@@ -40,7 +52,30 @@ public record PhenotypeEvidence(
             List<BehaviorCaseEvidence> behaviorCases,
             Map<String, Double> objectiveScores,
             RealizationSummary realization) {
-        this(evidence, behaviorCases, objectiveScores, realization, Set.of());
+        this(evidence, behaviorCases, objectiveScores, realization, Set.of(), Set.of());
+    }
+
+    /**
+     * The behaviour cases the {@code required_behavior_cases} gate judges.
+     *
+     * <p>This exists because {@code nonGatingCheckNames} cannot do the job. That set narrows
+     * {@link #gatingChecks()}, which filters {@code evidence.checks()}; the behaviour-case gate reads
+     * {@link #behaviorCases()}, a different collection that {@code task_success} is also computed
+     * from. Safety probes and reliability repeats never collide with this because they are never
+     * behaviour cases at all — they grade from the check evidence directly.
+     *
+     * <p>A held-out case is the one kind of check that must feed the objective and withhold from the
+     * gate at the same time, so the two views of the same list have to be separated here. Held-out
+     * cases stay in {@code behaviorCases} so they still lower {@code task_success}; they are removed
+     * only from what the gate sees. See CHG-024.
+     */
+    public List<BehaviorCaseEvidence> gatingBehaviorCases() {
+        if (heldOutCaseNames.isEmpty()) {
+            return behaviorCases;
+        }
+        return behaviorCases.stream()
+                .filter(behaviorCase -> !heldOutCaseNames.contains(behaviorCase.id()))
+                .toList();
     }
 
     /** The checks the deterministic-checks gate judges: everything not withheld for grading. */

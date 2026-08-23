@@ -94,8 +94,14 @@ public final class PhenotypeFitnessScorer {
         var gatingChecks = phenotype.gatingChecks();
         boolean checksPassed = !gatingChecks.isEmpty()
                 && gatingChecks.stream().allMatch(check -> check.status() == CheckStatus.PASSED);
-        boolean behaviorCasesPassed = !phenotype.behaviorCases().isEmpty()
-                && phenotype.behaviorCases().stream().allMatch(c -> c.status() == CheckStatus.PASSED);
+        // Reads the gating view, not the full list. A held-out case stays in `behaviorCases` so it
+        // still lowers `task_success`, but it decides no gate: a candidate whose required behaviour
+        // holds is eligible even when a held-out case fails, and that is the whole point of holding
+        // one out. The emptiness check still applies to the gating view, so declaring only held-out
+        // cases cannot vacuously satisfy the gate. See CHG-024.
+        var gatingBehaviorCases = phenotype.gatingBehaviorCases();
+        boolean behaviorCasesPassed = !gatingBehaviorCases.isEmpty()
+                && gatingBehaviorCases.stream().allMatch(c -> c.status() == CheckStatus.PASSED);
         List<FitnessObjective> objectiveSet = contract == null
                 ? MutationOperatorPolicy.DEFAULT_OBJECTIVES
                 : contract.objectives();

@@ -1,0 +1,92 @@
+change:
+  id: CHG-024
+  title: Held-out behaviour cases so task_success can discriminate between promoted candidates
+  status: accepted
+  intent: Let a promoted candidate score below 1.0 on task_success, so two candidates that both pass every required case remain comparable.
+  audience_level: developer
+  relates_to:
+    - ADR-0002
+    - CON-002
+    - RISK-002
+    - RISK-007
+    - PAT-004
+    - Q-004
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: A behaviour case may be held out, so that it runs and scores without deciding eligibility.
+    scenarios:
+      - id: S1
+        when: a held-out case is declared
+        then: its script is executed and its outcome recorded as check evidence
+        and:
+          - a declared case that produced no evidence is recorded as failed, so a held-out case that never ran would lower task_success from absence rather than measurement
+          - execution is therefore asserted separately from scoring, and the scoring assertion is not trusted until it holds
+      - id: S2
+        when: every gating behaviour case passes and a held-out case fails
+        then: task_success falls below 1.0 and the candidate is still eligible
+        and:
+          - the required_behavior_cases gate reads only the gating view of the behaviour cases
+          - the deterministic_checks gate does not see the held-out case either, because a failing check would otherwise discard through the other gate
+      - id: S3
+        when: one gating case is declared beside one held-out case and the held-out case fails
+        then: the raw magnitude falls below the 0.80 threshold and the candidate is discarded
+        and:
+          - task_success carries 0.40, so one failing case in n costs 0.40/n, which exceeds a typical promotion's headroom when n is 2
+          - the discard is threshold arithmetic rather than a gate the held-out case tripped, so the ratio of held-out to gating cases governs both resolution and survivability
+      - id: S4
+        when: a held-out name collides with a gating case, a safety probe, a structural gate or a derived repeat-run name
+        then: the scoring configuration is rejected at construction
+        and:
+          - only the structural-gate rule is inherited; the other three are new, because until held-out cases no two declared name sets could name one check with different meanings
+
+acceptance:
+  - scenario: S1
+    test_id: cli/EvolveCommandAcceptanceTest.executesADeclaredHeldOutCaseRatherThanScoringItFromAbsence
+    layer: acceptance
+  - scenario: S2
+    test_id: cli/EvolveCommandAcceptanceTest.aFailingHeldOutCaseLowersTheScoreWithoutDiscardingTheCandidate
+    layer: acceptance
+  - scenario: S3
+    test_id: cli/EvolveCommandAcceptanceTest.aThinGatingRatioLetsOneHeldOutFailureFallThroughThePromotionFloor
+    layer: acceptance
+  - scenario: S4
+    test_id: deterministic/HeldOutCaseConfigTest.rejectsAHeldOutCaseThatIsAlsoAGatingBehaviourCase
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/HeldOutCaseConfigTest.rejectsAHeldOutCaseShapedLikeARepeatedRun
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/HeldOutCaseConfigTest.withholdsAHeldOutCaseFromTheGateWhileKeepingItInTheScoredList
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: separate the gating view of behaviour cases from the scored list so a held-out case feeds task_success without gating
+    status: completed
+  - id: T2
+    slice: execute declared held-out cases and bring them under the check-script guards
+    status: completed
+  - id: T3
+    slice: reject held-out names that collide with another declared set
+    status: completed
+  - id: T4
+    slice: unit-level coverage for ScoringConfig collision rules and PhenotypeEvidence.gatingBehaviorCases
+    status: completed
+  - id: T5
+    slice: carry a ScoringContext fingerprint on FitnessResult and refuse comparison across differing fingerprints
+    status: pending
+  - id: T6
+    slice: README, wiki and knowledge updates, including a RISK entry for held-out reliance on WORKFLOW_DEFINITION scope
+    status: pending
+
+non_goals:
+  - population evaluation or ranking, which is CHG-025
+  - renormalising the weighted sum over measured objectives only
+  - changing the promotion threshold, the objective weights, or which cases gate
+  - migrating local experiment data, which is derived and rebuilt
+
+risks:
+  - A held-out case is a script in the repository. It is out of a candidate's reach only because mutation scope is WORKFLOW_DEFINITION; requireWorkflowIsNotCheckScript alone does not protect it, so widening scope would make held-out cases mutable by the candidate they grade.
+  - task_success resolution is 0.40/n. With few cases the objective two-bins candidates rather than ordering them finely, and ordering within a bin still falls back to parsimony.

@@ -84,6 +84,14 @@ public final class EvolveCommand implements Callable<Integer> {
                     + "property that must hold belongs in --required-evidence, which discards.")
     private List<String> safetyProbes = new ArrayList<>();
 
+    @Option(names = "--held-out-case",
+            description = "Behaviour case that runs and scores but decides no gate. Repeatable. "
+                    + "A failing held-out case lowers task_success without discarding the candidate, "
+                    + "so two candidates that both pass every required case remain comparable. A "
+                    + "held-out case that did not run counts as failed, and one that must hold "
+                    + "belongs in --behaviour-case, which gates.")
+    private List<String> heldOutCases = new ArrayList<>();
+
     @Option(names = "--reliability-runs",
             description = "How many times to run each behaviour case. The first run gates as before; "
                     + "the rest grade the reliability objective as a pass fraction, so a flaky "
@@ -152,7 +160,8 @@ public final class EvolveCommand implements Callable<Integer> {
         var result = new EvolveRunner(benchmarkRunner).run(
                 new EvolveRunRequest(
                         targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task,
-                        Optional.empty(), benchmarkBudgets, contract, List.copyOf(safetyProbes), reliabilityRuns),
+                        Optional.empty(), benchmarkBudgets, contract, List.copyOf(safetyProbes),
+                        reliabilityRuns, List.copyOf(heldOutCases)),
                 new ConsoleReporter(out));
         out.printf("  journal    %s%n", result.journalPath());
         out.flush();

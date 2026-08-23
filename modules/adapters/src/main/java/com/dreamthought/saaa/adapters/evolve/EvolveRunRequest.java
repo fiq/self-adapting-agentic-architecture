@@ -25,7 +25,10 @@ public record EvolveRunRequest(
         // the same declaration would produce a differently ordered audit trail each time.
         List<String> safetyProbes,
         // How many times each behaviour case runs. The first run gates; the rest grade reliability.
-        int reliabilityRuns
+        int reliabilityRuns,
+        // Cases that run and feed `task_success` but decide no gate, so a promoted candidate can
+        // score below 1.0 on it. Ordered for the same reason safetyProbes is. See CHG-024.
+        List<String> heldOutCases
 ) {
     public EvolveRunRequest(
             Path targetFolder,
@@ -43,21 +46,21 @@ public record EvolveRunRequest(
                 RetrievalMode.NONE,
                 "Improve the target while preserving all declared behaviour cases",
                 Optional.empty(),
-                Map.of(), Optional.empty(), List.of(), 1);
+                Map.of(), Optional.empty(), List.of(), 1, List.of());
     }
 
     public EvolveRunRequest(
             Path targetFolder, String profile, String workflowFile, List<String> behaviourCases,
             int maxLines, RetrievalMode retrievalMode, String task) {
         this(targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task, Optional.empty(),
-                Map.of(), Optional.empty(), List.of(), 1);
+                Map.of(), Optional.empty(), List.of(), 1, List.of());
     }
 
     public EvolveRunRequest(
             Path targetFolder, String profile, String workflowFile, List<String> behaviourCases,
             int maxLines, RetrievalMode retrievalMode, String task, Optional<String> runId) {
         this(targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task, runId,
-                Map.of(), Optional.empty(), List.of(), 1);
+                Map.of(), Optional.empty(), List.of(), 1, List.of());
     }
 
     /** Every prior caller keeps its behaviour: no contract declared means no declared gate. */
@@ -66,7 +69,7 @@ public record EvolveRunRequest(
             int maxLines, RetrievalMode retrievalMode, String task, Optional<String> runId,
             Map<String, Double> benchmarkBudgets) {
         this(targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task, runId,
-                benchmarkBudgets, Optional.empty(), List.of(), 1);
+                benchmarkBudgets, Optional.empty(), List.of(), 1, List.of());
     }
 
     /**
@@ -91,6 +94,8 @@ public record EvolveRunRequest(
         if (reliabilityRuns < 1) {
             throw new IllegalArgumentException("reliabilityRuns must be at least 1");
         }
+        heldOutCases = List.copyOf(new java.util.LinkedHashSet<>(
+                Objects.requireNonNull(heldOutCases, "heldOutCases")));
         retrievalMode = Objects.requireNonNull(retrievalMode, "retrievalMode");
         task = requireNonBlank(task, "task");
         runId = Objects.requireNonNull(runId, "runId").map(value -> requireSafeId(value, "runId"));

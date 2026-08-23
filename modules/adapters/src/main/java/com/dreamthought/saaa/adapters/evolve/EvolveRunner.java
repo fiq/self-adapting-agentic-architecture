@@ -132,6 +132,14 @@ public final class EvolveRunner {
         request.safetyProbes().stream()
                 .filter(name -> !caseAndProbeNames.contains(name))
                 .forEach(caseAndProbeNames::add);
+        // Held-out cases must execute for the same reason probes must: the scorer records a declared
+        // case that produced no evidence as failed, so a held-out case that never ran would lower
+        // `task_success` from absence rather than from measurement, and the run would look like it
+        // had measured something it never executed. Adding them here also brings them under
+        // `requireRunnableCheckScripts` and `requireWorkflowIsNotCheckScript` below.
+        request.heldOutCases().stream()
+                .filter(name -> !caseAndProbeNames.contains(name))
+                .forEach(caseAndProbeNames::add);
         // Repeats are added after the scripts are resolved, so a repeat cannot introduce a new script
         // path: it re-runs one that already had to exist and be executable.
         var checks = BehaviourCaseChecks.withRepeatedRuns(
@@ -167,7 +175,7 @@ public final class EvolveRunner {
                         new ScoringConfig(
                                 Set.copyOf(request.behaviourCases()), request.maxLines(),
                                 request.benchmarkBudgets(), Set.copyOf(request.safetyProbes()),
-                                request.reliabilityRuns())),
+                                request.reliabilityRuns(), Set.copyOf(request.heldOutCases()))),
                 new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite")),
                 new JournalDecisionSink(),
                 new CompositeReporter(List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture)),
