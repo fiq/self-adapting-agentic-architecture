@@ -10,6 +10,7 @@ import com.dreamthought.saaa.adapters.repository.RepositoryEmbeddingIndexer;
 import com.dreamthought.saaa.adapters.sqlite.SqliteRetrievalProjectionStore;
 import com.dreamthought.saaa.adapters.langchain4j.LangChain4jEmbeddingAdapter;
 import com.dreamthought.saaa.adapters.langchain4j.SmallRyeEmbeddingEndpointConfigSource;
+import com.dreamthought.saaa.deterministic.EvolutionaryMemoryPolicy;
 import com.dreamthought.saaa.deterministic.CachedSemanticEmbeddingModel;
 import com.dreamthought.saaa.domain.EmbeddedRepositoryProjection;
 import com.dreamthought.saaa.domain.ProjectionStatus;
@@ -77,7 +78,9 @@ public final class LocalEvidenceIndex {
             RepositoryProjection projection = new RepositoryEvidenceIndexer(new RepositoryEvidenceExtractor(), graph)
                     .build(historic.path(), historic.revision(), GitRepositoryRevision.repositoryId(root));
             graph.replaceEvolutionaryMemory(
-                    policy.selectForRevision(archive.records(), historic.revision()), policy.id());
+                    policy.selectForRevision(archive.records(), historic.revision(),
+                            EvolutionaryMemoryPolicy.currentFingerprintOf(archive.records())),
+                    policy.id());
             return projection;
         }
     }
@@ -85,6 +88,10 @@ public final class LocalEvidenceIndex {
     private static void replayMemory(Path root, Neo4jEvidenceGraph graph) {
         var archive = LocalEvolutionaryMemoryFactory.archive(root);
         var policy = LocalEvolutionaryMemoryFactory.policy();
-        graph.replaceEvolutionaryMemory(policy.select(archive.records()), policy.id());
+        // A replay has no run in flight, so the newest record in the archive defines what is current.
+        graph.replaceEvolutionaryMemory(
+                policy.select(archive.records(),
+                        EvolutionaryMemoryPolicy.currentFingerprintOf(archive.records())),
+                policy.id());
     }
 }

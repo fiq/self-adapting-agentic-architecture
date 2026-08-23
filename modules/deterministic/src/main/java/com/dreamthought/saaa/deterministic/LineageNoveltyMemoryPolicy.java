@@ -34,7 +34,7 @@ public final class LineageNoveltyMemoryPolicy implements EvolutionaryMemoryPolic
     @Override public String id() { return config.id(); }
 
     @Override
-    public List<EvolutionaryMemoryRecord> select(List<EvolutionaryMemoryRecord> archive) {
+    public List<EvolutionaryMemoryRecord> selectComparable(List<EvolutionaryMemoryRecord> archive) {
         var ordered = archive.stream().sorted(BEST).toList();
         var selected = new LinkedHashMap<String, EvolutionaryMemoryRecord>();
 

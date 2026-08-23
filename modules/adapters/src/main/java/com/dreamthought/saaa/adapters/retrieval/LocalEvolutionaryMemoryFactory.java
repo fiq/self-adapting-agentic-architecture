@@ -36,7 +36,10 @@ public final class LocalEvolutionaryMemoryFactory {
             wiki.render(envelopes.records());
             try (var graph = Neo4jEvidenceGraph.connect(
                     new SmallRyeNeo4jConfigSource().load(root))) {
-                graph.replaceEvolutionaryMemory(policy.select(sqlite.records()), policy.id());
+                // The record just appended is the run in flight, so its fingerprint is what
+                // "current" means here; the working set is inflated around this evaluation.
+                graph.replaceEvolutionaryMemory(
+                        policy.select(sqlite.records(), record.scoringFingerprint()), policy.id());
             }
         };
     }
