@@ -132,7 +132,11 @@ public final class EvolveRunner {
         request.safetyProbes().stream()
                 .filter(name -> !caseAndProbeNames.contains(name))
                 .forEach(caseAndProbeNames::add);
-        var checks = BehaviourCaseChecks.forCases(caseAndProbeNames, gitRoot.relativize(folder));
+        // Repeats are added after the scripts are resolved, so a repeat cannot introduce a new script
+        // path: it re-runs one that already had to exist and be executable.
+        var checks = BehaviourCaseChecks.withRepeatedRuns(
+                BehaviourCaseChecks.forCases(caseAndProbeNames, gitRoot.relativize(folder)),
+                request.behaviourCases(), request.reliabilityRuns());
         requireWorkflowIsNotCheckScript(gitRoot, workflowPath, checks);
         requireRunnableCheckScripts(gitRoot, checks, request.safetyProbes());
 
@@ -162,7 +166,8 @@ public final class EvolveRunner {
                         new GitRealizationInspector(),
                         new ScoringConfig(
                                 Set.copyOf(request.behaviourCases()), request.maxLines(),
-                                request.benchmarkBudgets(), Set.copyOf(request.safetyProbes()))),
+                                request.benchmarkBudgets(), Set.copyOf(request.safetyProbes()),
+                                request.reliabilityRuns())),
                 new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite")),
                 new JournalDecisionSink(),
                 new CompositeReporter(List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture)),

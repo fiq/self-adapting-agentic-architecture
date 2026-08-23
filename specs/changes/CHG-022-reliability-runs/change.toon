@@ -1,0 +1,128 @@
+change:
+  id: CHG-022
+  title: Give the reliability objective something to measure
+  status: proposed
+  intent: Let each behaviour case run more than once so reliability grades how consistently a result holds, instead of restating its own gate and sitting at 1.0 for every candidate that promotes.
+  audience_level: developer
+  relates_to:
+    - CON-002
+    - PAT-004
+    - ARCH-001
+    - SYS-001
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: Reliability measures consistency across repeated runs of a behaviour case, so two candidates that both clear every gate can score differently.
+    scenarios:
+      - id: S1
+        when: a behaviour case is declared with repeated runs and one repeat fails
+        then: reliability is the pass fraction across all runs and the gates are unaffected
+        and:
+          - a flaky candidate scores strictly lower than a consistent one, which is the discrimination among winners this exists to provide
+      - id: S2
+        when: a repeated run fails
+        then: the deterministic-checks gate still passes
+        and:
+          - repeats grade rather than gate, or one flaky run would discard rather than lower a score, which is the trap that kept this objective pinned
+      - id: S3
+        when: a repeated run has produced evidence
+        then: it stays in the recorded evidence
+        and:
+          - withholding narrows the gate only, never the record, so a lowered score can be traced to the run that lowered it
+      - id: S4
+        when: a caller declares one run per case
+        then: reliability keeps its previous meaning including the timeout rule
+        and:
+          - a pass fraction at a single run would duplicate task_success, which is already the pass fraction of the same behaviour cases, and would double-weight failing a case rather than measure anything new
+      - id: S5
+        when: repeated runs are constructed
+        then: each carries the same command as its canonical run and a distinct name
+        and:
+          - repeats are added after script resolution, so a repeat cannot introduce a script path that was not already required to exist and be executable
+          - safety probes are not repeated, because they already grade and repeating them would change what their pass fraction means
+      - id: S7
+        when: enough repeats fail that the weighted sum falls below the promotion threshold
+        then: the candidate is discarded although every gate passed
+        and:
+          - repeats grade rather than gate, but a graded objective still moves the sum and the threshold still applies, which is exactly how a failing safety probe behaves
+      - id: S8
+        when: the operator asks for repeats through the CLI
+        then: each behaviour case is executed that many times and every result reaches the transcript under its own name
+        and:
+          - asserted end to end, because a unit test that injects repeat evidence into the scorer stays green even when nothing schedules a repeat
+      - id: S9
+        when: a run count is outside the supported range
+        then: it is rejected
+        and:
+          - each repeat re-executes a candidate-authored script, so an unbounded count schedules work rather than producing evidence
+      - id: S6
+        when: a behaviour case is declared with a name ending in the repeated-run suffix
+        then: it is rejected
+        and:
+          - such a name would collapse onto a different base name when runs are grouped, so two distinct cases would be scored as one
+
+acceptance:
+  - scenario: S1
+    test_id: deterministic/ReliabilityRunsTest.aFlakyCandidateScoresLowerThanAConsistentOneAndBothStillPromote
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/ReliabilityRunsTest.aFailedRepeatRunDoesNotFailTheChecksGate
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/ReliabilityRunsTest.theFailingRepeatRunStaysInTheRecordedEvidence
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/ReliabilityRunsTest.asingleRunKeepsTheObjectiveUnchanged
+    layer: unit
+  - scenario: S5
+    test_id: adapters/BehaviourCaseChecksTest.repeatedRunsShareTheCanonicalCommand
+    layer: unit
+  - scenario: S5
+    test_id: adapters/BehaviourCaseChecksTest.probesAreNotRepeated
+    layer: unit
+  - scenario: S6
+    test_id: adapters/BehaviourCaseChecksTest.aCaseMayNotBeNamedForARepeatedRun
+    layer: unit
+  - scenario: S7
+    test_id: deterministic/ReliabilityRunsTest.aSufficientlyUnreliableCandidateFallsBelowTheThreshold
+    layer: unit
+  - scenario: S8
+    test_id: cli/EvolveContractAcceptanceTest.reliabilityRunsExecuteEachBehaviourCaseAgain
+    layer: acceptance
+  - scenario: S9
+    test_id: deterministic/ReliabilityRunsTest.anUnboundedRunCountIsRejected
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/ReliabilityRunsTest.asingleRunStillDropsOnATimeout
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: add reliabilityRuns to ScoringConfig with a repeat-run naming convention and base-name collapsing
+    status: completed
+  - id: T2
+    slice: score reliability as the pass fraction across runs, keeping single-run semantics unchanged
+    status: completed
+  - id: T3
+    slice: withhold repeat runs from the deterministic-checks gate while keeping them in the evidence
+    status: completed
+  - id: T4
+    slice: construct repeated runs after script resolution and expose --reliability-runs
+    status: completed
+  - id: T5
+    slice: derive the withheld repeat names from the configuration rather than recognising a name pattern, so a check that merely looks like a repeat cannot escape the gate
+    status: completed
+  - id: T6
+    slice: bound the run count, and assert the wiring end to end because the unit tests inject repeat evidence and cannot see a disconnected runner
+    status: completed
+
+non_goals:
+  - task_success, which is pinned at 1.0 among promoted candidates for the same structural reason and needs a broader evidence source than the gated cases
+  - renormalising the weighted sum over only the objectives a run actually measured, which is a separate correction to undeclared objectives scoring 1.0
+  - population and ranking, which this unblocks but does not implement
+
+risks:
+  - repeated runs multiply wall-clock cost by the run count, so a caller trades time for signal. The default of one run keeps existing runs unchanged
+  - a case that fails every run lowers both task_success and reliability, so an outright failure is weighted twice. The marginal content of reliability is consistency among cases that do pass, which is the case that matters for choosing parents
+  - a behaviour case named with a .run<digits> suffix would collapse onto a different base name when runs are grouped, so declaring one is now rejected outright rather than silently scored as another case

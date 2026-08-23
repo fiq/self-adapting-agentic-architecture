@@ -110,6 +110,39 @@ final class EvolveContractAcceptanceTest {
                 .contains("PROMOTE");
     }
 
+    /**
+     * CHG-022. Driven through the real CLI because the unit tests inject repeat evidence directly
+     * into the scorer and so stay green even if nothing ever schedules a repeat. This asserts the
+     * wiring: the flag must cause N executions whose results reach the transcript under their own
+     * names, or the objective grades an absence.
+     */
+    @Test
+    void reliabilityRunsExecuteEachBehaviourCaseAgain(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
+                "enforce the draft check\ndraft-check: enforce\n");
+        writeCheck(target, "unit_tests_pass", true);
+        git(repo, "init", "--initial-branch=main");
+        git(repo, "config", "user.name", "Test");
+        git(repo, "config", "user.email", "test@example.invalid");
+        git(repo, "add", "-A");
+        git(repo, "commit", "-m", "baseline");
+
+        String transcript = runDeclaring(target, java.util.List.of("unit_tests_pass"),
+                "--reliability-runs", "3");
+
+        assertThat(transcript.lines().filter(line -> line.contains("unit_tests_pass")).count())
+                .as("three runs of one case must produce three separately named results")
+                .isEqualTo(3L);
+        assertThat(transcript)
+                .as("each repeat is attributable, or a lowered score cannot be explained")
+                .contains("unit_tests_pass.run2")
+                .contains("unit_tests_pass.run3");
+    }
+
     private static String run(Path target, String... contractFlags) {
         return runDeclaring(target, java.util.List.of("unit_tests_pass", "behavior_cases_unchanged"),
                 contractFlags);

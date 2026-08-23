@@ -1,7 +1,9 @@
 package com.dreamthought.saaa.adapters.evolve;
 
 import com.dreamthought.saaa.adapters.checks.CommandCheckRunner.CommandCheck;
+import com.dreamthought.saaa.deterministic.ScoringConfig;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -48,6 +50,14 @@ public final class BehaviourCaseChecks {
         var seen = new HashSet<String>();
         var checks = new ArrayList<CommandCheck>(caseNames.size());
         for (String name : caseNames) {
+            // A declared case ending .run<digits> would collapse onto a different base name when the
+            // scorer groups repeated runs, so the two would be scored as one case. Reserving the
+            // suffix is cheaper than making the grouping ambiguous.
+            if (!ScoringConfig.baseCaseName(name).equals(name)) {
+                throw new IllegalArgumentException(
+                        "behaviour case name may not end with the repeated-run suffix "
+                                + ScoringConfig.REPEAT_RUN_SEPARATOR + "<number>: " + name);
+            }
             if (!SAFE_CASE_NAME.matcher(name).matches()) {
                 throw new IllegalArgumentException(
                         "behaviour case name must be a single safe file-name segment "
@@ -61,6 +71,42 @@ public final class BehaviourCaseChecks {
             checks.add(new CommandCheck(name, List.of(scriptPath(checkDirectory, name)), CHECK_TIMEOUT));
         }
         return List.copyOf(checks);
+    }
+
+    /**
+     * Adds repeated runs of each behaviour case, named {@code <case>.run2}, {@code <case>.run3} and
+     * so on, all executing the same script.
+     *
+     * <p>The names differ so each result is separately attributable in the evidence; the commands are
+     * identical because the point is to run the same check again, not a different one. The scorer
+     * withholds the repeats from the deterministic-checks gate, so the canonical run decides whether
+     * the candidate is eligible and the repeats grade how reliably that result holds.
+     *
+     * <p>Safety probes are deliberately not repeated: they already grade rather than gate, and
+     * repeating them would change what their pass fraction means.
+     */
+    public static List<CommandCheck> withRepeatedRuns(
+            List<CommandCheck> checks, Collection<String> repeatableNames, int runs) {
+        Objects.requireNonNull(checks, "checks");
+        Objects.requireNonNull(repeatableNames, "repeatableNames");
+        if (runs < 1) {
+            throw new IllegalArgumentException("runs must be at least 1");
+        }
+        if (runs == 1) {
+            return checks;
+        }
+        var withRepeats = new ArrayList<>(checks);
+        for (CommandCheck check : checks) {
+            if (!repeatableNames.contains(check.name())) {
+                continue;
+            }
+            for (int run = 2; run <= runs; run++) {
+                withRepeats.add(new CommandCheck(
+                        check.name() + ScoringConfig.REPEAT_RUN_SEPARATOR + run,
+                        check.command(), check.timeout(), check.environmentAllowList()));
+            }
+        }
+        return List.copyOf(withRepeats);
     }
 
     /**

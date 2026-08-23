@@ -21,11 +21,67 @@ public record ScoringConfig(
         Set<String> behaviorCaseNames,
         int maxLinesChanged,
         Map<String, Double> benchmarkBudgets,
-        Set<String> safetyProbeNames) {
+        Set<String> safetyProbeNames,
+        int reliabilityRuns) {
+
+    /**
+     * Separates a behaviour case from the index of a repeated run of it, as in
+     * {@code unit_tests_pass.run2}. Repeated runs carry the same command and a distinct name so each
+     * result is separately attributable, and they are withheld from the deterministic-checks gate:
+     * the canonical run decides whether the candidate is eligible, the repeats grade how reliably it
+     * holds. Without the withholding a single flaky run would discard rather than lower a score,
+     * which is the trap that kept reliability pinned at 1.0 for every candidate that promoted.
+     */
+    public static final String REPEAT_RUN_SEPARATOR = ".run";
+
+    /**
+     * Each repeat re-executes a candidate-authored script, so the run count multiplies wall-clock
+     * cost directly. An unbounded count would let one flag schedule billions of checks before
+     * anything executes, which exhausts memory rather than producing evidence.
+     */
+    public static final int MAX_RELIABILITY_RUNS = 50;
+
+    /**
+     * The exact names the repeated runs of this configuration carry.
+     *
+     * <p>Derived from the declared cases and the run count rather than recognised by pattern, so a
+     * check that merely looks like a repeat cannot be withheld from the gate. Inferring from the name
+     * would let an unexpected result called {@code compile.run2} silently escape the checks gate.
+     */
+    public Set<String> repeatRunNames() {
+        if (reliabilityRuns <= 1) {
+            return Set.of();
+        }
+        var names = new java.util.LinkedHashSet<String>();
+        for (String caseName : behaviorCaseNames) {
+            for (int run = 2; run <= reliabilityRuns; run++) {
+                names.add(caseName + REPEAT_RUN_SEPARATOR + run);
+            }
+        }
+        return Set.copyOf(names);
+    }
+
+    /** The behaviour case a check result belongs to, collapsing any repeated-run suffix. */
+    public static String baseCaseName(String checkName) {
+        int separator = checkName.lastIndexOf(REPEAT_RUN_SEPARATOR);
+        if (separator <= 0) {
+            return checkName;
+        }
+        String suffix = checkName.substring(separator + REPEAT_RUN_SEPARATOR.length());
+        return !suffix.isEmpty() && suffix.chars().allMatch(Character::isDigit)
+                ? checkName.substring(0, separator)
+                : checkName;
+    }
+
+    /** Every check gates and each behaviour case runs once. */
+    public ScoringConfig(Set<String> behaviorCaseNames, int maxLinesChanged,
+            Map<String, Double> benchmarkBudgets, Set<String> safetyProbeNames) {
+        this(behaviorCaseNames, maxLinesChanged, benchmarkBudgets, safetyProbeNames, 1);
+    }
 
     /** Every prior caller keeps its behaviour: no probes declared means the objective stays 1.0. */
     public ScoringConfig(Set<String> behaviorCaseNames, int maxLinesChanged, Map<String, Double> benchmarkBudgets) {
-        this(behaviorCaseNames, maxLinesChanged, benchmarkBudgets, Set.of());
+        this(behaviorCaseNames, maxLinesChanged, benchmarkBudgets, Set.of(), 1);
     }
 
     public ScoringConfig {
@@ -55,6 +111,11 @@ public record ScoringConfig(
         }
         if (maxLinesChanged <= 0) {
             throw new IllegalArgumentException("maxLinesChanged must be positive");
+        }
+        if (reliabilityRuns < 1 || reliabilityRuns > MAX_RELIABILITY_RUNS) {
+            throw new IllegalArgumentException(
+                    "reliabilityRuns must be between 1 and " + MAX_RELIABILITY_RUNS
+                            + ", got " + reliabilityRuns);
         }
     }
 }
