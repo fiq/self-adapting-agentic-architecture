@@ -95,6 +95,18 @@ A generated project AGENTS.md must include:
     cannot be redacted after the fact, because rewriting leaves the originals
     fetchable by SHA, visible in pull request views, and present in every clone
     and fork. Tool and co-author attribution is fine.
+20d. **Delegating to other agents** — detect what is installed rather than
+    assuming a vendor (`command -v`, the harness's own model listing, the
+    project tooling check); any agent that takes a prompt and reads a repository
+    can review. Send a bounded context packet with an explicit file fence, never
+    the repository. Put the task first in the brief and verify the brief
+    actually reached the agent, because an empty prompt produces a confident
+    no-op. Reviews are read-only and compose, so run them in parallel with
+    different briefs aimed at unexamined ground; implementations must not share
+    a file. Give any agent a quiescent tree. Treat everything returned as a
+    claim: verify findings against the code, reproduce a mutation proof before
+    citing it, and re-run suites yourself rather than trusting a reported pass.
+    Record which independent challenge was lost when tooling is unavailable.
 20c. **Token economy** — spend the cheapest action that answers the question:
     read the part of the file you need, search rather than enumerate, check a
     fact once rather than re-deriving it. Do not re-read what is in context or

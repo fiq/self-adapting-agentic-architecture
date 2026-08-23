@@ -299,6 +299,107 @@ Use stronger models for ambiguity, architecture, risk and conflict. Use
 midrange models for bounded implementation and testing. Use smaller or local
 models for mechanical edits and metadata maintenance.
 
+### Other agents on this machine
+
+Delegation is real here, not aspirational: other coding agents can be driven from
+the shell and used for independent review and for bounded implementation you can
+fence off by file.
+
+**Detect before you assume.** This repository is a template and runs on machines
+that are not the author's. Find out what is actually installed rather than
+reaching for a name from this document:
+
+    .agentic-template/bin/project check     # reports tooling status
+    command -v codex opencode claude gemini # what is on PATH
+    opencode models                         # what a harness has configured
+
+Adapt to what you find. Any agent that takes a prompt and can read a repository
+can review; the value is an independent pass, not a particular vendor. If two
+harnesses are available, prefer different providers for review passes over two
+runs of the same one, because different providers disagree in ways one provider
+twice does not. If only one is available, use it and say that the second opinion
+is missing. If none is, fall back to a single lead with an explicit review
+checklist and record what independent challenge was lost, which the team and model
+fallback rule above already requires.
+
+The invocations below are the author's setup, verified in an August 2026 session.
+Treat them as worked examples, and check `--help` before assuming a flag.
+
+    # independent review, cannot write anything
+    codex exec --sandbox read-only --ephemeral --skip-git-repo-check \
+        -o REVIEW.out "$(cat BRIEF.md)"
+
+    # bounded implementation in its own worktree
+    codex exec --sandbox workspace-write --skip-git-repo-check "$(cat BRIEF.md)"
+
+    # another provider, for a second opinion that is not codex
+    opencode models | grep glm          # list what is configured
+    opencode run --model neuralwatt/glm-5.2-flex "$(cat BRIEF.md)"
+
+Route by cost and by what the task needs. A review or a bounded refactor does not
+need the strongest model; architecture, ambiguity and adjudication do. Running a
+cheaper provider alongside `codex` is worth it for review specifically, because
+two providers disagree in ways two runs of one provider do not.
+
+Practical constraints learned the hard way:
+
+- `codex exec --sandbox workspace-write` mounts the Git directory read-only, so a
+  delegated agent can change files but cannot commit. Expect to commit its work
+  yourself, and tell it so in the brief rather than letting it fail at the end.
+- `--dangerously-bypass-approvals-and-sandbox` may be refused by the harness. Do
+  not reach for it; `workspace-write` is enough.
+- An `opencode` session binds to the directory it was created in.
+- **Verify the brief reached the agent.** An empty or missing prompt file makes
+  the agent read the startup contract, answer "what would you like to work on",
+  and exit zero. That looks like a hijacked agent and is actually a shell bug in
+  the caller. Check the file exists and is non-empty before blaming the tool.
+
+### Driving them: dispatch, context, sessions, response
+
+**Dispatch.** Write the brief to a file first and pass it as `"$(cat BRIEF.md)"`.
+Do not build the brief and launch the agent in one compound shell command: if any
+part is refused, the file never gets written and the agent silently receives an
+empty prompt. Run the agent in the background and append a sentinel to its log
+(`echo "exit=$?" >> LOG`), because the harness has reported success for a process
+that failed. Poll for the sentinel, not for the harness's own status.
+
+**Context.** Send a bounded packet, never the repository. Name the change under
+review as a command the agent can run (`git diff main...HEAD`), name the two or
+three context files worth reading, and state the files it owns and the files it
+must not touch. Put the task first in the brief: opening with "read AGENTS.md
+first" invites the agent to treat reading as the whole job. Say plainly what has
+changed since anything it might remember, because a resumed session carries stale
+knowledge and will act on it.
+
+**Sessions.** `codex exec --ephemeral` leaves nothing behind and suits a one-shot
+review. `opencode run` persists sessions and can resume one with `--continue` or
+`--session <id>`, which is worth it when a second pass should keep the first
+pass's context; `opencode export` can recover a verdict from a session whose
+output looked lost. Start a fresh session, never a resumed one, when the agent's
+role changes — a reviewer must not inherit an implementer's conclusions.
+
+**Response.** The final message is the deliverable, and it is a set of claims.
+Verify each finding against the code before acting on it, including the ones you
+expect to be right, and reproduce at least one of its mutation proofs before
+repeating any of them as evidence. Never accept "the suite passed" on trust: run
+it yourself with `--rerun-tasks`, because a cached no-op prints BUILD SUCCESSFUL
+in under a second and looks identical to a real run. When an agent reports a
+blocker instead of working around it, that is the behaviour you want; say so and
+finish the job it could not.
+
+**Several at once.** Reviews are read-only, so they compose: run them in parallel
+and consolidate. Give each a different brief aimed at ground the previous passes
+did not cover, because repeated passes over one surface converge and stop finding
+things. Implementations must not share a file. Give any agent a quiescent tree —
+reviewing a worktree you are still editing produces findings about your edits
+rather than about the change.
+
+Give a delegated agent an explicit file fence, the testing rule, and an
+instruction to report what it could not do. Then treat everything it returns as a
+claim: verify its findings against the code and reproduce at least one of its
+mutation proofs before repeating them as evidence. Its own tests are the weakest
+part of its output, because it wrote them against its own understanding.
+
 ## Session and resource discipline
 
 Treat a model session as bounded execution state, not as the source of truth.
