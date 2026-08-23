@@ -28,8 +28,17 @@ deltas:
       - id: S4
         when: an otherwise eligible candidate scores 0.797
         then: it is discarded because the unchanged promotion threshold compares the raw magnitude
+      - id: S5
+        when: two magnitudes differ only in scale, such as a value read back from storage
+        then: they compare equal and are equal
+        and:
+          - BigDecimal.equals distinguishes 0.5 from 0.50 while compareTo calls them equal, so a record carrying a raw BigDecimal has an equals inconsistent with its own ordering
+          - the inconsistency does not fail loudly: a TreeSet keeps one of the pair, a HashSet keeps both, and a round-tripped magnitude stops equalling the one that was written
 
 acceptance:
+  - scenario: S5
+    test_id: domain/FitnessScoreTest.twoMagnitudesThatCompareEqualAreEqual
+    layer: unit
   - scenario: S1
     test_id: domain/FitnessScoreTest.ordersPromotionAboveADiscardEvenWhenTheDiscardHasTheLargerMagnitude
     layer: unit

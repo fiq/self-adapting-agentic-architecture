@@ -9,11 +9,20 @@ import java.util.Objects;
  * <p>The natural order is worst to best: a promotion outranks a discard, then a larger magnitude
  * breaks ties. Consumers that need the best candidate therefore use this value's natural order in
  * reverse rather than constructing a score-only comparator.
+ *
+ * <p>The magnitude is held at a normalised scale so that {@code equals} and {@code compareTo} agree,
+ * which {@link Comparable} requires and which a raw {@code BigDecimal} component would violate.
  */
 public record FitnessScore(BigDecimal rawMagnitude, FitnessDecision decision)
         implements Comparable<FitnessScore> {
     public FitnessScore {
         rawMagnitude = Objects.requireNonNull(rawMagnitude, "rawMagnitude");
+        // Normalise the scale so equals agrees with compareTo. BigDecimal.equals distinguishes 0.5
+        // from 0.50 while compareTo calls them equal, and this is a record, so its generated equals
+        // inherits that. A Comparable whose equals disagrees with its ordering breaks quietly: a
+        // TreeSet keeps one of the pair, a HashSet keeps both, and a magnitude read back from storage
+        // at a different scale stops equalling the one that was written.
+        rawMagnitude = rawMagnitude.stripTrailingZeros();
         decision = Objects.requireNonNull(decision, "decision");
     }
 
