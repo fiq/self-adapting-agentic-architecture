@@ -8,14 +8,24 @@ into a score with fixed code, and records promote or discard. Nothing merges.
 proposal -> isolated Git candidate -> measured evidence -> fixed decision -> promote or discard
 ```
 
+Why this exists: two failure modes follow every model around. It can state,
+fluently, something that is not so — hallucination. And it learned from a
+training corpus that froze, so its defaults age — yesterday's idioms proposed
+with confidence into a field that has moved on. A better prompt fixes neither,
+because the same model ends up grading its own homework.
+
+The counterweight is empiricism plus determinism. Everything the loop believes,
+it measured: a proposal is executed, not read, and its score comes from check
+scripts you wrote, run against an isolated worktree. Everything it decides,
+fixed code decides: validation, the pass-or-fail gates, the weighted objectives,
+the 0.80 promotion threshold and the promote-or-discard rule are plain Java
+that the model cannot talk its way past. A model may propose or repair a
+candidate, but it must never approve its own result.
+
 The intended target is what an agent depends on rather than the agent itself: a
 workflow definition, a prompt policy, a tool-selection strategy, a set of
 guardrails. Anything that is a file and can be graded by a script exiting 0 or 1.
-
-Fixed in code: validation, the pass-or-fail gates, the weighted objectives, the
-0.80 promotion threshold and the promote-or-discard rule. A model may propose or
-repair a candidate, but it must never approve its own result. Those gates and
-that weighted sum are explained under
+The gates and the weighted sum are explained under
 [Fitness and the decision](#fitness-and-the-decision); you do not need them yet.
 
 This is an experiment, and an early one. The loop runs end to end for one
