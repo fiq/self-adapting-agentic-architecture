@@ -31,7 +31,8 @@ final class GitExperimentEnvelopeStoreIntegrationTest {
                 List.of("ARCH-001", "type:example.Loop"),
                 List.of(new CheckEvidence("tests", CheckStatus.FAILED, "one, useful failure")),
                 List.of(new BenchmarkEvidence("latency", 3.0, "ms")),
-                FitnessScore.of(0.3, FitnessDecision.DISCARD), Instant.parse("2026-08-02T00:00:00Z"));
+                FitnessScore.of(0.3, FitnessDecision.DISCARD), "fixture-fingerprint",
+                Instant.parse("2026-08-02T00:00:00Z"));
         var store = new GitExperimentEnvelopeStore(repository);
 
         store.append(record);

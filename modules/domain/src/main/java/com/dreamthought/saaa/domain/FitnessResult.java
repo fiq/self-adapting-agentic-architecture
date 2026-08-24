@@ -2,7 +2,6 @@ package com.dreamthought.saaa.domain;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public record FitnessResult(
         Candidate candidate,
@@ -10,9 +9,10 @@ public record FitnessResult(
         Map<String, Double> objectives,
         FitnessScore fitnessScore,
         // What the magnitude was measured against. Two results are comparable only when these agree;
-        // see ScoringContext and RISK-007. Absent for a result built before CHG-024, which stays
-        // readable as history and never becomes comparable.
-        Optional<ScoringContext> scoringContext
+        // see ScoringContext and RISK-007. Mandatory rather than optional: a result that could omit
+        // it would let production silently produce an uncomparable score, which is the trap an
+        // independent review flagged when this was defaulted.
+        ScoringContext scoringContext
 ) {
     public FitnessResult {
         candidate = Objects.requireNonNull(candidate, "candidate");
@@ -22,22 +22,9 @@ public record FitnessResult(
         scoringContext = Objects.requireNonNull(scoringContext, "scoringContext");
     }
 
-    /** A result whose scoring context was not captured, such as one built by an older caller. */
-    public FitnessResult(
-            Candidate candidate,
-            EvaluationEvidence evidence,
-            Map<String, Double> objectives,
-            FitnessScore fitnessScore) {
-        this(candidate, evidence, objectives, fitnessScore, Optional.empty());
-    }
-
-    /**
-     * The fingerprint this result may be compared against, or {@code legacy-unversioned} when the
-     * context was never captured. Never absent, so a caller cannot forget to handle the legacy case
-     * and silently compare across a semantics boundary.
-     */
+    /** The fingerprint this result may be compared against. */
     public String scoringFingerprint() {
-        return scoringContext.map(ScoringContext::fingerprint).orElse(ScoringContext.LEGACY_UNVERSIONED);
+        return scoringContext.fingerprint();
     }
 
     public FitnessDecision decision() {

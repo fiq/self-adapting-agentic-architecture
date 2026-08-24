@@ -20,6 +20,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 final class EvolveMcpServerTest {
+    /** Any scoring context; these tests assert reporting and transport, not comparability. */
+    private static final com.dreamthought.saaa.domain.ScoringContext TEST_SCORING_CONTEXT =
+            new com.dreamthought.saaa.domain.ScoringContext(
+                    java.util.List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
+                    java.util.Set.of(), java.util.Set.of(), 0.80);
+
     @Test
     void cliFailureDoesNotTerminateTheMcpServer() {
         var calls = new AtomicInteger();
@@ -73,7 +79,7 @@ final class EvolveMcpServerTest {
         var objectives = new LinkedHashMap<String, Double>();
         objectives.put("subject.objective.task_success", 1.0);
         objectives.put("subject.invariant.deterministic_checks", 1.0);
-        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE));
+        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE), TEST_SCORING_CONTEXT);
         return new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md"));
     }
 }

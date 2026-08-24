@@ -16,6 +16,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 final class LineageNoveltyMemoryPolicyTest {
+    private static final String FIXTURE_FINGERPRINT = "0000111122223333";
     @Test
     void selectsByEvolutionaryValueAndKeepsKnownChampionLineageWithinABound() {
         var policy = new LineageNoveltyMemoryPolicy(
@@ -47,7 +48,7 @@ final class LineageNoveltyMemoryPolicyTest {
                                 Instant.EPOCH, List.of()),
                         record("other", "current", "candidate-b", 0.9, "tests", CheckStatus.PASSED,
                                 Instant.EPOCH.plusSeconds(1), List.of())), "historic",
-                        com.dreamthought.saaa.domain.ScoringContext.LEGACY_UNVERSIONED))
+                        FIXTURE_FINGERPRINT))
                 .extracting(EvolutionaryMemoryRecord::candidateId)
                 .containsExactly("matching");
     }
@@ -138,9 +139,10 @@ final class LineageNoveltyMemoryPolicyTest {
                 new EvolutionContext("subject", baseline, "saaa", "process-1"),
                 "fixture-policy-v1", "mutation-" + id, "summary " + id,
                 MutationScope.WORKFLOW_DEFINITION, id, commit, RetrievalMode.HYBRID,
-                "retrieval-config-v1", evidence,
+                "retrieval-config-v1", List.of(), evidence,
                 List.of(new CheckEvidence(checkName, checkStatus, checkStatus.name().toLowerCase())),
                 List.of(), FitnessScore.of(fitness,
-                checkStatus == CheckStatus.PASSED ? FitnessDecision.PROMOTE : FitnessDecision.DISCARD), evaluatedAt);
+                checkStatus == CheckStatus.PASSED ? FitnessDecision.PROMOTE : FitnessDecision.DISCARD),
+                FIXTURE_FINGERPRINT, evaluatedAt);
     }
 }

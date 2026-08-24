@@ -12,7 +12,6 @@ import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessScore;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.RetrievalMode;
-import com.dreamthought.saaa.domain.ScoringContext;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -50,24 +49,6 @@ final class ScoringContextEnforcementTest {
                 .as("a record scored under another configuration must not be ranked, however high")
                 .extracting(EvolutionaryMemoryRecord::candidateId)
                 .containsExactly("under-current");
-    }
-
-    /**
-     * A record written before the fingerprint existed has no honest configuration to recover, so it
-     * is readable as history and never ranked. Backfilling one would fabricate provenance.
-     */
-    @Test
-    void aLegacyRecordIsNeverRankedBesideAFingerprintedOne() {
-        var policy = new LineageNoveltyMemoryPolicy(CONFIG);
-        var archive = List.of(
-                record("legacy", ScoringContext.LEGACY_UNVERSIONED, 0.99, CheckStatus.PASSED),
-                record("current", CURRENT, 0.81, CheckStatus.PASSED));
-
-        var selected = policy.select(archive, CURRENT);
-
-        assertThat(selected)
-                .extracting(EvolutionaryMemoryRecord::candidateId)
-                .containsExactly("current");
     }
 
     /**

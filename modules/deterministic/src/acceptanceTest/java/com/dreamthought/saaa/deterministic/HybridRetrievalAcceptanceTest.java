@@ -214,7 +214,10 @@ final class HybridRetrievalAcceptanceTest {
                 java.util.Optional<com.dreamthought.saaa.domain.MutationContract> contract) {
             seenCandidate = candidate;
             return new FitnessResult(candidate, evidence, Map.of("score", 0.1),
-                    com.dreamthought.saaa.domain.FitnessScore.of(0.1, FitnessDecision.DISCARD));
+                    com.dreamthought.saaa.domain.FitnessScore.of(0.1, FitnessDecision.DISCARD),
+                    new com.dreamthought.saaa.domain.ScoringContext(
+                            java.util.List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
+                            java.util.Set.of(), java.util.Set.of(), 0.80));
         }
     }
 

@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.adapters.experiments;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dreamthought.saaa.adapters.sqlite.SqliteEvolutionaryMemoryStore;
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
@@ -12,7 +13,7 @@ import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessScore;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.RetrievalMode;
-import com.dreamthought.saaa.domain.ScoringContext;
+import java.sql.DriverManager;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -20,13 +21,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * CHG-024. A fingerprint that does not survive persistence is worse than none at all: every reloaded
- * record would read as legacy, the comparability filter would exclude all of them, and the working
- * set would be silently empty for every run after a restart.
+ * CHG-024. A fingerprint that does not survive persistence is worse than none at all: if reload
+ * lost it, every record would claim comparability it never had, and nothing downstream could tell.
  *
  * <p>These pin the round trip on both durable surfaces — the local ledger and the Git-visible
  * envelope that rebuilds it. A distinctive fingerprint is used rather than a plausible-looking one,
- * so a implementation that defaulted the column could not accidentally match.
+ * so an implementation that defaulted the column could not accidentally match.
+ *
+ * <p>Neither surface defaults a missing fingerprint. An earlier draft carrying a default marker was
+ * flagged by independent review: any writer that forgot to stamp would silently fabricate
+ * provenance. The envelope codec rejects the document and the ledger schema rejects the row.
  */
 final class ScoringFingerprintRoundTripIntegrationTest {
     private static final String FINGERPRINT = "9f86d081884c7d65";
@@ -44,17 +48,27 @@ final class ScoringFingerprintRoundTripIntegrationTest {
     }
 
     /**
-     * A record written before the fingerprint existed keeps reading as legacy rather than acquiring
-     * a fabricated one. Backfilling would invent provenance the run never had.
+     * The schema carries no default: a raw row written without the column is rejected, so no
+     * future writer path can bypass the record's own validation and invent provenance.
      */
     @Test
-    void aRecordWithoutAContextStillReadsAsLegacyAfterAReload(@TempDir Path tempDir) {
-        var store = new SqliteEvolutionaryMemoryStore(tempDir.resolve("experiments.sqlite"));
-        store.append(record(ScoringContext.LEGACY_UNVERSIONED));
+    void aRowWithoutAFingerprintIsRejectedByTheLedgerSchema(@TempDir Path tempDir) throws Exception {
+        var database = tempDir.resolve("experiments.sqlite");
+        new SqliteEvolutionaryMemoryStore(database);
 
-        assertThat(store.records()).singleElement()
-                .extracting(EvolutionaryMemoryRecord::scoringFingerprint)
-                .isEqualTo(ScoringContext.LEGACY_UNVERSIONED);
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+                var statement = connection.prepareStatement("""
+                        insert into evolutionary_memory(
+                          candidate_id, subject_repository_id, baseline_repository_revision,
+                          process_repository_id, process_repository_revision, memory_policy_id,
+                          mutation_id, mutation_summary, mutation_scope, candidate_commit, retrieval_mode,
+                          retrieval_configuration_id, raw_magnitude, decision, evaluated_at)
+                        values ('c', 's', 'r', 'p', 'pr', 'm', 'mu', 'ms', 'WORKFLOW_DEFINITION',
+                                'cc', 'HYBRID', 'rc', 0.5, 'DISCARD', '2026-08-24T00:00:00Z')
+                        """)) {
+            assertThatThrownBy(statement::executeUpdate)
+                    .hasMessageContaining("scoring_fingerprint");
+        }
     }
 
     @Test
@@ -64,6 +78,22 @@ final class ScoringFingerprintRoundTripIntegrationTest {
         var decoded = codec.decode(codec.encode(record(FINGERPRINT)));
 
         assertThat(decoded.scoringFingerprint()).isEqualTo(FINGERPRINT);
+    }
+
+    /**
+     * An envelope without a fingerprint cannot say what its magnitude was measured against, so it
+     * is rejected rather than admitted with a default that would fabricate provenance.
+     */
+    @Test
+    void anEnvelopeWithoutAFingerprintIsRejected() {
+        var codec = new ExperimentEnvelopeCodec();
+        var stripped = codec.encode(record(FINGERPRINT)).lines()
+                .filter(line -> !line.trim().startsWith("scoring_fingerprint:"))
+                .reduce("", (left, right) -> left + right + "\n");
+
+        assertThatThrownBy(() -> codec.decode(stripped))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("scoring_fingerprint");
     }
 
     private static EvolutionaryMemoryRecord record(String fingerprint) {

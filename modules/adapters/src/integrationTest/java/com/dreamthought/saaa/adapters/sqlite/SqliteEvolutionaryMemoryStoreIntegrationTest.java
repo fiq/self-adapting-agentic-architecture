@@ -30,7 +30,8 @@ final class SqliteEvolutionaryMemoryStoreIntegrationTest {
                 "retrieval-config-v1", List.of("src/example/Loop.java"), List.of("ARCH-001"),
                 List.of(new CheckEvidence("tests", CheckStatus.FAILED, "failed")),
                 List.of(new BenchmarkEvidence("latency", 3.0, "ms")),
-                FitnessScore.of(0.5949, FitnessDecision.DISCARD), Instant.parse("2026-08-02T00:00:00Z"));
+                FitnessScore.of(0.5949, FitnessDecision.DISCARD), "fixture-fingerprint",
+                Instant.parse("2026-08-02T00:00:00Z"));
 
         store.append(memory);
         store.append(memory);

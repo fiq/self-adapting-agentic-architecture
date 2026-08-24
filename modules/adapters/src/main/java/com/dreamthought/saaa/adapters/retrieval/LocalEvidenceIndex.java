@@ -78,8 +78,10 @@ public final class LocalEvidenceIndex {
             RepositoryProjection projection = new RepositoryEvidenceIndexer(new RepositoryEvidenceExtractor(), graph)
                     .build(historic.path(), historic.revision(), GitRepositoryRevision.repositoryId(root));
             graph.replaceEvolutionaryMemory(
-                    policy.selectForRevision(archive.records(), historic.revision(),
-                            EvolutionaryMemoryPolicy.currentFingerprintOf(archive.records())),
+                    EvolutionaryMemoryPolicy.currentFingerprintOf(archive.records())
+                            .map(fingerprint -> policy.selectForRevision(
+                                    archive.records(), historic.revision(), fingerprint))
+                            .orElse(java.util.List.of()),
                     policy.id());
             return projection;
         }
@@ -88,10 +90,13 @@ public final class LocalEvidenceIndex {
     private static void replayMemory(Path root, Neo4jEvidenceGraph graph) {
         var archive = LocalEvolutionaryMemoryFactory.archive(root);
         var policy = LocalEvolutionaryMemoryFactory.policy();
-        // A replay has no run in flight, so the newest record in the archive defines what is current.
+        // A replay has no run in flight, so the newest record in the archive defines what is
+        // current. An empty archive has no current configuration and selects nothing, rather than
+        // inventing a fingerprint no run produced.
         graph.replaceEvolutionaryMemory(
-                policy.select(archive.records(),
-                        EvolutionaryMemoryPolicy.currentFingerprintOf(archive.records())),
+                EvolutionaryMemoryPolicy.currentFingerprintOf(archive.records())
+                        .map(fingerprint -> policy.select(archive.records(), fingerprint))
+                        .orElse(java.util.List.of()),
                 policy.id());
     }
 }

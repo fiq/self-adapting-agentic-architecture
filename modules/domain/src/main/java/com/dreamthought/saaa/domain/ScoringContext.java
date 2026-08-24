@@ -41,13 +41,6 @@ public record ScoringContext(
         Set<String> withheldCheckNames,
         double promotionThreshold
 ) {
-    /**
-     * A record written before scoring context was captured. Such a record is readable as history but
-     * is never comparable with a fingerprinted one, because there is no honest way to recover which
-     * configuration produced it. Backfilling a fingerprint would invent provenance.
-     */
-    public static final String LEGACY_UNVERSIONED = "legacy-unversioned";
-
     public ScoringContext {
         objectives = List.copyOf(Objects.requireNonNull(objectives, "objectives"));
         heldOutCaseNames = Set.copyOf(Objects.requireNonNull(heldOutCaseNames, "heldOutCaseNames"));

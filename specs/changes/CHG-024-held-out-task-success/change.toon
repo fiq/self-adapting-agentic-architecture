@@ -38,15 +38,16 @@ deltas:
           - the discard is threshold arithmetic rather than a gate the held-out case tripped, so the ratio of held-out to gating cases governs both resolution and survivability
       - id: S6
         when: a fingerprinted record is written to the ledger or a Git envelope and read back
-        then: the fingerprint survives, and a record written without one still reads as legacy
+        then: the fingerprint survives, and a document or row written without one is rejected rather than defaulted
         and:
           - a fingerprint lost on reload would be worse than none, because the comparability filter would then exclude every reloaded record and the working set would be silently empty after a restart
+          - a defaulted fingerprint would fabricate provenance, so both durable surfaces refuse a missing one
       - id: S5
         when: a candidate is scored
         then: the result carries the fingerprint of the objectives, weights, withheld checks and threshold it was measured against
         and:
-          - a result built without one reports legacy-unversioned rather than appearing comparable
-          - the fingerprint is not backfilled for older records, because inventing one would fabricate provenance
+          - the scoring context is a mandatory constructor argument, so the only way to omit it fails at construction rather than producing an uncomparable result
+          - this is a new project with no pre-fingerprint records, so nothing is backfilled and no legacy marker exists
       - id: S4
         when: a held-out name collides with a gating case, a safety probe, a structural gate or a derived repeat-run name
         then: the scoring configuration is rejected at construction
@@ -67,16 +68,22 @@ acceptance:
     test_id: domain/ScoringContextTest.changingTheHeldOutSetChangesTheFingerprint
     layer: unit
   - scenario: S5
-    test_id: deterministic/ScorerStampsScoringContextTest.aScoredResultCarriesARealScoringContextRatherThanLegacy
+    test_id: deterministic/ScorerStampsScoringContextTest.aScoredResultCarriesTheStampedScoringContext
     layer: unit
   - scenario: S5
-    test_id: deterministic/ScorerStampsScoringContextTest.aResultBuiltWithoutAContextReportsLegacy
+    test_id: deterministic/ScorerStampsScoringContextTest.aResultCannotBeConstructedWithoutAScoringContext
     layer: unit
   - scenario: S6
     test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.theScoringFingerprintSurvivesTheSqliteLedger
     layer: integration
   - scenario: S6
     test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.theScoringFingerprintSurvivesTheLedgerEnvelope
+    layer: integration
+  - scenario: S6
+    test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.aRowWithoutAFingerprintIsRejectedByTheLedgerSchema
+    layer: integration
+  - scenario: S6
+    test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.anEnvelopeWithoutAFingerprintIsRejected
     layer: integration
   - scenario: S4
     test_id: deterministic/HeldOutCaseConfigTest.rejectsAHeldOutCaseThatIsAlsoAGatingBehaviourCase

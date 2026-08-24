@@ -22,6 +22,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 final class JournalReporterTest {
+    /** Any scoring context; these tests assert reporting and transport, not comparability. */
+    private static final com.dreamthought.saaa.domain.ScoringContext TEST_SCORING_CONTEXT =
+            new com.dreamthought.saaa.domain.ScoringContext(
+                    java.util.List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
+                    java.util.Set.of(), java.util.Set.of(), 0.80);
+
     private static final Candidate CANDIDATE =
             new Candidate("cand-1", "MUT-1", "candidate/toy-MUT-1", Path.of("/tmp/wt"), "abc1234");
 
@@ -36,7 +42,7 @@ final class JournalReporterTest {
         reporter.candidateCreated(CANDIDATE);
         reporter.evidenceCollected(evidence());
         reporter.scored(new FitnessResult(CANDIDATE, evidence(),
-                Map.of("subject.objective.parsimony", 0.9), FitnessScore.of(0.87, FitnessDecision.PROMOTE)));
+                Map.of("subject.objective.parsimony", 0.9), FitnessScore.of(0.87, FitnessDecision.PROMOTE), TEST_SCORING_CONTEXT));
 
         String written = Files.readString(journal);
         assertThat(written)
@@ -60,7 +66,7 @@ final class JournalReporterTest {
         reporter.candidateCreated(CANDIDATE);
         reporter.evidenceCollected(evidence());
         reporter.scored(new FitnessResult(CANDIDATE, evidence(),
-                Map.of(), FitnessScore.of(0.87, FitnessDecision.PROMOTE)));
+                Map.of(), FitnessScore.of(0.87, FitnessDecision.PROMOTE), TEST_SCORING_CONTEXT));
 
         assertThat(Files.readString(journal))
                 .contains("## earlier run")

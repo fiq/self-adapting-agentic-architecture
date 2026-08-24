@@ -8,7 +8,6 @@ import com.dreamthought.saaa.domain.EvolutionaryMemoryRecord;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessScore;
 import com.dreamthought.saaa.domain.MutationScope;
-import com.dreamthought.saaa.domain.ScoringContext;
 import com.dreamthought.saaa.domain.RetrievalMode;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -101,10 +100,10 @@ final class ExperimentEnvelopeCodec {
                 required(scalar, "retrieval_configuration_id"), changedPaths, evidence, checks, benchmarks,
                 new FitnessScore(new BigDecimal(required(scalar, "raw_magnitude")),
                         FitnessDecision.valueOf(required(scalar, "decision"))),
-                // Envelopes written before CHG-024 carry no fingerprint. They stay readable as
-                // history and read as legacy, which is never ranked beside a fingerprinted record.
-                // Defaulting is not backfilling: it records that the provenance is unknown.
-                scalar.getOrDefault("scoring_fingerprint", ScoringContext.LEGACY_UNVERSIONED),
+                // Required, not defaulted. An envelope without a fingerprint cannot say what its
+                // magnitude was measured against, so it is rejected rather than admitted with
+                // invented provenance.
+                required(scalar, "scoring_fingerprint"),
                 Instant.parse(required(scalar, "evaluated_at")));
     }
 

@@ -140,9 +140,9 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                       mutation_scope text not null, candidate_commit text not null, retrieval_mode text not null,
                       retrieval_configuration_id text not null, raw_magnitude real not null,
                       decision text not null,
-                      -- Defaulted rather than migrated: the local ledger is derived and rebuilt, and
-                      -- a row written before CHG-024 has no honest fingerprint to recover.
-                      scoring_fingerprint text not null default 'legacy-unversioned',
+                      -- Required, not defaulted: a row that cannot say what its magnitude was
+                      -- measured against would be ranked under invented provenance.
+                      scoring_fingerprint text not null,
                       evaluated_at text not null
                     )
                     """);

@@ -45,7 +45,10 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
                 candidate,
                 evidence,
                 Map.of("correctness", 0.0, "throughput", 0.4),
-                FitnessScore.of(0.2, DISCARD)
+                FitnessScore.of(0.2, DISCARD),
+                new com.dreamthought.saaa.domain.ScoringContext(
+                        List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
+                        java.util.Set.of(), java.util.Set.of(), 0.80)
         );
 
         store.recordCandidate(candidate);

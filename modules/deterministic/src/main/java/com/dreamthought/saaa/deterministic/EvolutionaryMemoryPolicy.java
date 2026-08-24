@@ -3,6 +3,7 @@ package com.dreamthought.saaa.deterministic;
 import com.dreamthought.saaa.domain.EvolutionaryMemoryRecord;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /** Selects a bounded graph working set without deleting durable experiment history. */
 public interface EvolutionaryMemoryPolicy {
@@ -17,10 +18,10 @@ public interface EvolutionaryMemoryPolicy {
      * in place produced exactly the defect CHG-024 exists to close — a guard written down and never
      * read. See RISK-002 for the same shape elsewhere.
      *
-     * <p>Records scored under another configuration, and legacy records that never carried one, stay
-     * in the archive and are simply not ranked. A magnitude produced under different weights, a
-     * different held-out set or a different threshold is not a worse number, it is a different
-     * measurement.
+     * <p>Records scored under another configuration stay in the archive and are simply not ranked.
+     * A magnitude produced under different weights, a different held-out set or a different
+     * threshold is not a worse number, it is a different measurement. Every record carries a
+     * fingerprint by construction, so the filter cannot silently pass a record that never had one.
      */
     default List<EvolutionaryMemoryRecord> select(
             List<EvolutionaryMemoryRecord> archive, String currentFingerprint) {
@@ -44,15 +45,16 @@ public interface EvolutionaryMemoryPolicy {
      * id so the choice is deterministic rather than dependent on archive order.
      *
      * <p>A replay has no run in flight to take the fingerprint from, so it takes the most recent
-     * measurement in the archive and ranks what is comparable with that. An empty archive has no
-     * current configuration, and reports the legacy marker rather than inventing one.
+     * measurement in the archive and ranks what is comparable with that.
+     *
+     * <p>An empty archive has no current configuration and yields none. Callers select nothing rather
+     * than inventing a fingerprint no run produced.
      */
-    static String currentFingerprintOf(List<EvolutionaryMemoryRecord> archive) {
+    static Optional<String> currentFingerprintOf(List<EvolutionaryMemoryRecord> archive) {
         return archive.stream()
                 .max(java.util.Comparator.comparing(EvolutionaryMemoryRecord::evaluatedAt)
                         .thenComparing(EvolutionaryMemoryRecord::candidateId))
-                .map(EvolutionaryMemoryRecord::scoringFingerprint)
-                .orElse(com.dreamthought.saaa.domain.ScoringContext.LEGACY_UNVERSIONED);
+                .map(EvolutionaryMemoryRecord::scoringFingerprint);
     }
 
     default List<EvolutionaryMemoryRecord> selectForRevision(

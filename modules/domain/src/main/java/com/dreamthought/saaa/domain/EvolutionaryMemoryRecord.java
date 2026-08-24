@@ -21,9 +21,9 @@ public record EvolutionaryMemoryRecord(
         List<BenchmarkEvidence> benchmarks,
         FitnessScore fitnessScore,
         // What the fitness magnitude was measured against. Two records are comparable only when
-        // these agree, so a ranking that mixes them is comparing quantities that were never the
-        // same measurement. LEGACY_UNVERSIONED marks a record written before the context existed;
-        // it stays readable as history and is never ranked. See ScoringContext and RISK-007.
+        // these agree, so a ranking that mixes them compares quantities that were never the same
+        // measurement. Mandatory: a defaulted fingerprint would let a record claim comparability it
+        // never had. See ScoringContext and RISK-007.
         String scoringFingerprint,
         Instant evaluatedAt
 ) {
@@ -44,53 +44,6 @@ public record EvolutionaryMemoryRecord(
         fitnessScore = Objects.requireNonNull(fitnessScore, "fitnessScore");
         scoringFingerprint = Require.nonBlank(scoringFingerprint, "scoringFingerprint");
         evaluatedAt = Objects.requireNonNull(evaluatedAt, "evaluatedAt");
-    }
-
-    public EvolutionaryMemoryRecord(
-            EvolutionContext evolutionContext,
-            String memoryPolicyId,
-            String mutationId,
-            String mutationSummary,
-            MutationScope mutationScope,
-            String candidateId,
-            String candidateCommit,
-            RetrievalMode retrievalMode,
-            String retrievalConfigurationId,
-            List<String> retrievedEvidenceIds,
-            List<CheckEvidence> checks,
-            List<BenchmarkEvidence> benchmarks,
-            FitnessScore fitnessScore,
-            Instant evaluatedAt) {
-        this(evolutionContext, memoryPolicyId, mutationId, mutationSummary, mutationScope,
-                candidateId, candidateCommit, retrievalMode, retrievalConfigurationId, List.of(),
-                retrievedEvidenceIds, checks, benchmarks, fitnessScore,
-                ScoringContext.LEGACY_UNVERSIONED, evaluatedAt);
-    }
-
-    /**
-     * A record whose scoring context was not captured. Kept so existing callers compile unchanged;
-     * such a record reads as legacy and is never ranked beside a fingerprinted one.
-     */
-    public EvolutionaryMemoryRecord(
-            EvolutionContext evolutionContext,
-            String memoryPolicyId,
-            String mutationId,
-            String mutationSummary,
-            MutationScope mutationScope,
-            String candidateId,
-            String candidateCommit,
-            RetrievalMode retrievalMode,
-            String retrievalConfigurationId,
-            List<String> changedPaths,
-            List<String> retrievedEvidenceIds,
-            List<CheckEvidence> checks,
-            List<BenchmarkEvidence> benchmarks,
-            FitnessScore fitnessScore,
-            Instant evaluatedAt) {
-        this(evolutionContext, memoryPolicyId, mutationId, mutationSummary, mutationScope,
-                candidateId, candidateCommit, retrievalMode, retrievalConfigurationId, changedPaths,
-                retrievedEvidenceIds, checks, benchmarks, fitnessScore,
-                ScoringContext.LEGACY_UNVERSIONED, evaluatedAt);
     }
 
     public String baselineRepositoryRevision() {

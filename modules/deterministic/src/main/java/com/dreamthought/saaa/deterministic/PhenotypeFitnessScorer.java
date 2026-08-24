@@ -173,7 +173,7 @@ public final class PhenotypeFitnessScorer {
 
         return new FitnessResult(candidate, phenotype.evidence(), objectives,
                 new FitnessScore(weightedMagnitude(phenotype, objectiveSet), decision),
-                java.util.Optional.of(scoringContext));
+                scoringContext);
     }
 
     /**

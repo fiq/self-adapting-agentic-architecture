@@ -23,6 +23,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
 final class EvolveMcpToolTest {
+    /** Any scoring context; these tests assert reporting and transport, not comparability. */
+    private static final com.dreamthought.saaa.domain.ScoringContext TEST_SCORING_CONTEXT =
+            new com.dreamthought.saaa.domain.ScoringContext(
+                    java.util.List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
+                    java.util.Set.of(), java.util.Set.of(), 0.80);
+
     @Test
     void returnsAStructuredFitnessResultRatherThanText() {
         var tool = toolReturning(successfulRun());
@@ -67,7 +73,7 @@ final class EvolveMcpToolTest {
         objectives.put("subject.invariant.z_last", 1.0);
         objectives.put("subject.objective.parsimony", 0.9);
         objectives.put("subject.invariant.a_first", 1.0);
-        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE));
+        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE), TEST_SCORING_CONTEXT);
 
         var response = toolReturning(new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md")))
                 .call(Map.of(
@@ -202,7 +208,7 @@ final class EvolveMcpToolTest {
         var objectives = new LinkedHashMap<String, Double>();
         objectives.put("subject.objective.task_success", 1.0);
         objectives.put("subject.invariant.deterministic_checks", 1.0);
-        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE));
+        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE), TEST_SCORING_CONTEXT);
         var response = toolReturning(new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md")))
                 .call(Map.of(
                         "targetFolder", "/tmp/repo/toy",
@@ -260,7 +266,7 @@ final class EvolveMcpToolTest {
         objectives.put("subject.objective.parsimony", 0.9);
         objectives.put("subject.invariant.deterministic_checks", 1.0);
         objectives.put("subject.invariant.non_empty_realization", 1.0);
-        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE));
+        var fitness = new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE), TEST_SCORING_CONTEXT);
         return new EvolveRunResult(fitness, Path.of("/tmp/repo/toy/journal.md"));
     }
 
@@ -279,7 +285,7 @@ final class EvolveMcpToolTest {
                 "task_success", 1.0,
                 "hard_gate_deterministic_checks", 1.0);
         return new EvolveRunResult(
-                new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE)),
+                new FitnessResult(candidate, evidence, objectives, FitnessScore.of(0.87, FitnessDecision.PROMOTE), TEST_SCORING_CONTEXT),
                 Path.of("/tmp/repo/toy/journal.md"));
     }
 }

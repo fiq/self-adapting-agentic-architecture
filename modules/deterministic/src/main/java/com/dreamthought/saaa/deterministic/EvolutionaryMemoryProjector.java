@@ -56,9 +56,9 @@ public final class EvolutionaryMemoryProjector {
                 changedPathInspector.inspect(result.candidate()),
                 retrieval.capsules().stream().map(capsule -> capsule.subject().stableId()).toList(),
                 result.evidence().checks(), result.evidence().benchmarks(), result.fitnessScore(),
-                // Carried from the result rather than defaulted. Without this every projected record
-                // would read as legacy, the comparability filter would exclude all of them, and the
-                // working set would be silently empty for every run.
+                // Carried from the result rather than defaulted. A projected record without the
+                // run's own fingerprint would claim comparability it never had, and nothing
+                // downstream could tell.
                 result.scoringFingerprint(),
                 result.evidence().evaluatedAt()));
     }

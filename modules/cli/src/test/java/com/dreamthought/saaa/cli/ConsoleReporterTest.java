@@ -17,6 +17,12 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 final class ConsoleReporterTest {
+    /** Any scoring context; this test asserts rendering, not comparability. */
+    private static final com.dreamthought.saaa.domain.ScoringContext TEST_SCORING_CONTEXT =
+            new com.dreamthought.saaa.domain.ScoringContext(
+                    java.util.List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
+                    java.util.Set.of(), java.util.Set.of(), 0.80);
+
     @Test
     void roundsRawMagnitudeOnlyWhenRenderingTheConsoleReport() {
         var output = new StringWriter();
@@ -24,7 +30,8 @@ final class ConsoleReporterTest {
         var result = new FitnessResult(
                 new Candidate("candidate-1", "mutation-1", "candidate/1", Path.of("/tmp/candidate"), "abc123"),
                 new EvaluationEvidence(List.of(), List.of(), Instant.EPOCH), Map.of(),
-                new FitnessScore(new BigDecimal("0.5949"), FitnessDecision.DISCARD));
+                new FitnessScore(new BigDecimal("0.5949"), FitnessDecision.DISCARD),
+                TEST_SCORING_CONTEXT);
 
         reporter.scored(result);
 

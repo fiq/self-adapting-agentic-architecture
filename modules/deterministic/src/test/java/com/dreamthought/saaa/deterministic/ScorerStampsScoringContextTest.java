@@ -1,12 +1,13 @@
 package com.dreamthought.saaa.deterministic;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
+import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.RealizationSummary;
-import com.dreamthought.saaa.domain.ScoringContext;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -15,11 +16,16 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /**
- * CHG-024. The scorer stamps the scoring context, so only a genuinely older record is legacy.
+ * CHG-024. The scorer stamps the scoring context, and the context is mandatory.
  *
  * <p>A field that exists but is never populated is the failure PAT-004 describes: an assertion that
  * the key is present passes whatever the outcome. These assert the fingerprint is real and that it
  * responds to a configuration change, which a constant could not do.
+ *
+ * <p>There is no legacy form. An earlier draft defaulted a missing context to a marker string, and
+ * an independent review flagged the trap: any code path that forgot to stamp would silently produce
+ * comparable-looking history instead of failing. The context is now a required constructor
+ * argument, so the failure surface is a rejected construction rather than a poisoned ranking.
  */
 final class ScorerStampsScoringContextTest {
     private static final PhenotypeFitnessScorer SCORER = new PhenotypeFitnessScorer();
@@ -46,13 +52,13 @@ final class ScorerStampsScoringContextTest {
     }
 
     @Test
-    void aScoredResultCarriesARealScoringContextRatherThanLegacy() {
+    void aScoredResultCarriesTheStampedScoringContext() {
         var result = SCORER.score(candidate(), phenotype(Set.of("held_out")));
 
-        assertThat(result.scoringContext()).isPresent();
+        assertThat(result.scoringContext().withheldCheckNames()).contains("held_out");
         assertThat(result.scoringFingerprint())
-                .as("a freshly scored result must never read as legacy")
-                .isNotEqualTo(ScoringContext.LEGACY_UNVERSIONED);
+                .as("the fingerprint is derived from the stamped context, not a constant")
+                .isEqualTo(result.scoringContext().fingerprint());
     }
 
     /**
@@ -69,13 +75,20 @@ final class ScorerStampsScoringContextTest {
         assertThat(other).isNotEqualTo(one);
     }
 
-    /** A result built without a context reports legacy rather than pretending to be comparable. */
+    /**
+     * The context is a required constructor argument, so the only way to omit it is to pass null,
+     * and that is rejected rather than defaulted. A default is exactly what an independent review
+     * flagged: a code path that forgets to stamp would silently produce uncomparable history.
+     */
     @Test
-    void aResultBuiltWithoutAContextReportsLegacy() {
+    void aResultCannotBeConstructedWithoutAScoringContext() {
         var scored = SCORER.score(candidate(), phenotype(Set.of()));
-        var legacy = new com.dreamthought.saaa.domain.FitnessResult(
-                scored.candidate(), scored.evidence(), scored.objectives(), scored.fitnessScore());
 
-        assertThat(legacy.scoringFingerprint()).isEqualTo(ScoringContext.LEGACY_UNVERSIONED);
+        assertThatNullPointerException()
+                .as("omitting the scoring context must fail loudly, not default to invented provenance")
+                .isThrownBy(() -> new FitnessResult(
+                        scored.candidate(), scored.evidence(), scored.objectives(),
+                        scored.fitnessScore(), null))
+                .withMessage("scoringContext");
     }
 }
