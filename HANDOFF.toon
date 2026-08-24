@@ -3,10 +3,10 @@ session:
   status: chg_024_purged_legacy_fingerprint_review_next
   branch: feat/chg-024-held-out-task-success
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
-  head: feat/chg-024-held-out-task-success pending commit of purge work
-  head_note: CHG-024 branch, PR #42 draft. Scoring fingerprint is stamped, enforced and round-trips both durable surfaces. The LEGACY_UNVERSIONED default is purged - new project, nothing to backfill, and a default would fabricate provenance. ScoringContext is a mandatory FitnessResult constructor argument; envelope codec rejects a missing scoring_fingerprint; the SQLite schema has no default. ADR-0005 (the AST measures, it does not mutate) is proposed and corrected after a research pass found C1 unimplementable. Next: adversarial review pinned to the pushed sha, then PR #42 can go ready.
-  dirty: true
-  pushed: false
+  head: feat/chg-024-held-out-task-success at 4559395
+  head_note: CHG-024 branch, PR #42 draft. Scoring fingerprint is stamped, enforced and round-trips both durable surfaces. The LEGACY_UNVERSIONED default is purged - new project, nothing to backfill, and a default would fabricate provenance. ScoringContext is a mandatory FitnessResult constructor argument; envelope codec rejects a missing scoring_fingerprint; the SQLite schema has no default. ADR-0005 (the AST measures, it does not mutate) is proposed and corrected after a research pass found C1 unimplementable. Next: adversarial review pinned to 4559395, then PR #42 can go ready.
+  dirty: false
+  pushed: true
 
 goal:
   current: land CHG-024 (held-out task_success plus scoring-fingerprint comparability) on PR #42, then the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation
