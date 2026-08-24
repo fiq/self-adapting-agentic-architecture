@@ -169,7 +169,10 @@ public final class PhenotypeFitnessScorer {
                 objectiveSet,
                 phenotype.heldOutCaseNames(),
                 phenotype.nonGatingCheckNames(),
-                PROMOTION_THRESHOLD);
+                PROMOTION_THRESHOLD,
+                phenotype.gatingCaseNames(),
+                phenotype.maxLinesChanged(),
+                phenotype.benchmarkBudgets());
 
         return new FitnessResult(candidate, phenotype.evidence(), objectives,
                 new FitnessScore(weightedMagnitude(phenotype, objectiveSet), decision),

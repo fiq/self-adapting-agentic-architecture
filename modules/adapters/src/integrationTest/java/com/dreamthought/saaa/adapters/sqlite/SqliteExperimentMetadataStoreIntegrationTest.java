@@ -48,7 +48,8 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
                 FitnessScore.of(0.2, DISCARD),
                 new com.dreamthought.saaa.domain.ScoringContext(
                         List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
-                        java.util.Set.of(), java.util.Set.of(), 0.80)
+                        java.util.Set.of(), java.util.Set.of(), 0.80,
+                        java.util.Set.of("case"), 80, java.util.Map.of())
         );
 
         store.recordCandidate(candidate);
@@ -101,7 +102,8 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
                 FitnessScore.of(0.5, DISCARD),
                 new com.dreamthought.saaa.domain.ScoringContext(
                         List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
-                        java.util.Set.of("held_out_x"), java.util.Set.of(), 0.80));
+                        java.util.Set.of("held_out_x"), java.util.Set.of(), 0.80,
+                        java.util.Set.of("case"), 80, java.util.Map.of()));
 
         store.recordFitness(result);
 

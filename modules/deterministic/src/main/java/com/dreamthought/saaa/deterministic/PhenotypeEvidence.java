@@ -25,7 +25,13 @@ public record PhenotypeEvidence(
         Map<String, Double> objectiveScores,
         RealizationSummary realization,
         Set<String> nonGatingCheckNames,
-        Set<String> heldOutCaseNames
+        Set<String> heldOutCaseNames,
+        // Configuration the scorer cannot otherwise see, carried here so the scoring context can
+        // fingerprint everything that changes what a magnitude means. The scorer knows the objective
+        // set and the threshold; only the bridge knows these. See ScoringContext.
+        Set<String> gatingCaseNames,
+        int maxLinesChanged,
+        Map<String, Double> benchmarkBudgets
 ) {
     public PhenotypeEvidence {
         evidence = Objects.requireNonNull(evidence, "evidence");
@@ -34,6 +40,27 @@ public record PhenotypeEvidence(
         realization = Objects.requireNonNull(realization, "realization");
         nonGatingCheckNames = Set.copyOf(Objects.requireNonNull(nonGatingCheckNames, "nonGatingCheckNames"));
         heldOutCaseNames = Set.copyOf(Objects.requireNonNull(heldOutCaseNames, "heldOutCaseNames"));
+        gatingCaseNames = Set.copyOf(Objects.requireNonNull(gatingCaseNames, "gatingCaseNames"));
+        benchmarkBudgets = Map.copyOf(Objects.requireNonNull(benchmarkBudgets, "benchmarkBudgets"));
+        if (maxLinesChanged <= 0) {
+            throw new IllegalArgumentException("maxLinesChanged must be positive");
+        }
+    }
+
+    /**
+     * Held-out cases declared, but no scoring configuration carried. Suitable for tests that assert
+     * gate behaviour rather than comparability; a scoring context built from this cannot fingerprint
+     * the configuration, so production must use the canonical constructor.
+     */
+    public PhenotypeEvidence(
+            EvaluationEvidence evidence,
+            List<BehaviorCaseEvidence> behaviorCases,
+            Map<String, Double> objectiveScores,
+            RealizationSummary realization,
+            Set<String> nonGatingCheckNames,
+            Set<String> heldOutCaseNames) {
+        this(evidence, behaviorCases, objectiveScores, realization, nonGatingCheckNames,
+                heldOutCaseNames, Set.of(), 1, Map.of());
     }
 
     /** No held-out cases: every behaviour case both gates and scores, as before CHG-024. */
@@ -43,7 +70,8 @@ public record PhenotypeEvidence(
             Map<String, Double> objectiveScores,
             RealizationSummary realization,
             Set<String> nonGatingCheckNames) {
-        this(evidence, behaviorCases, objectiveScores, realization, nonGatingCheckNames, Set.of());
+        this(evidence, behaviorCases, objectiveScores, realization, nonGatingCheckNames, Set.of(),
+                Set.of(), 1, Map.of());
     }
 
     /** Every check gates. */
@@ -52,7 +80,8 @@ public record PhenotypeEvidence(
             List<BehaviorCaseEvidence> behaviorCases,
             Map<String, Double> objectiveScores,
             RealizationSummary realization) {
-        this(evidence, behaviorCases, objectiveScores, realization, Set.of(), Set.of());
+        this(evidence, behaviorCases, objectiveScores, realization, Set.of(), Set.of(),
+                Set.of(), 1, Map.of());
     }
 
     /**

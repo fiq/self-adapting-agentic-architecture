@@ -6,7 +6,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
@@ -39,7 +41,15 @@ public record ScoringContext(
         // the reliability run count implicitly: raising the count adds repeat-run names here, so a
         // run scored over more repeats cannot fingerprint the same as one scored over fewer.
         Set<String> withheldCheckNames,
-        double promotionThreshold
+        double promotionThreshold,
+        // The three below were omitted originally and an independent review found the gap: each is a
+        // live request input that changes what a magnitude means, so two differently configured runs
+        // could share a fingerprint and be ranked together - the exact mixing this type prevents.
+        // Gating case names are task_success's denominator, maxLinesChanged is parsimony's, and
+        // budgets are what cost_latency_budget is measured against.
+        Set<String> gatingCaseNames,
+        int maxLinesChanged,
+        Map<String, Double> benchmarkBudgets
 ) {
     public ScoringContext {
         objectives = List.copyOf(Objects.requireNonNull(objectives, "objectives"));
@@ -47,6 +57,11 @@ public record ScoringContext(
         withheldCheckNames = Set.copyOf(Objects.requireNonNull(withheldCheckNames, "withheldCheckNames"));
         if (!Double.isFinite(promotionThreshold)) {
             throw new IllegalArgumentException("promotionThreshold must be finite");
+        }
+        gatingCaseNames = Set.copyOf(Objects.requireNonNull(gatingCaseNames, "gatingCaseNames"));
+        benchmarkBudgets = Map.copyOf(Objects.requireNonNull(benchmarkBudgets, "benchmarkBudgets"));
+        if (maxLinesChanged <= 0) {
+            throw new IllegalArgumentException("maxLinesChanged must be positive");
         }
     }
 
@@ -67,6 +82,10 @@ public record ScoringContext(
         }
         new TreeSet<>(heldOutCaseNames).forEach(name -> field(canonical, "held-out:" + name));
         new TreeSet<>(withheldCheckNames).forEach(name -> field(canonical, "withheld:" + name));
+        new TreeSet<>(gatingCaseNames).forEach(name -> field(canonical, "gating:" + name));
+        new TreeMap<>(benchmarkBudgets)
+                .forEach((name, budget) -> field(canonical, "budget:" + name + "=" + budget));
+        field(canonical, "max-lines:" + maxLinesChanged);
         field(canonical, "threshold:" + promotionThreshold);
         return HexFormat.of().formatHex(digest(canonical.toString())).substring(0, 16);
     }

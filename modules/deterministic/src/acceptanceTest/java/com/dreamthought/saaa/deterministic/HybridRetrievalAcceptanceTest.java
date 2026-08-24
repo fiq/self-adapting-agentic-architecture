@@ -217,7 +217,8 @@ final class HybridRetrievalAcceptanceTest {
                     com.dreamthought.saaa.domain.FitnessScore.of(0.1, FitnessDecision.DISCARD),
                     new com.dreamthought.saaa.domain.ScoringContext(
                             java.util.List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
-                            java.util.Set.of(), java.util.Set.of(), 0.80));
+                            java.util.Set.of(), java.util.Set.of(), 0.80,
+                                java.util.Set.of("case"), 80, java.util.Map.of()));
         }
     }
 

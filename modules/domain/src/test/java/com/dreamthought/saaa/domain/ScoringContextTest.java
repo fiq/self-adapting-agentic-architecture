@@ -3,6 +3,7 @@ package com.dreamthought.saaa.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +21,7 @@ final class ScoringContextTest {
             new FitnessObjective("subject.objective.parsimony", 0.60));
 
     private static ScoringContext context() {
-        return new ScoringContext(OBJECTIVES, Set.of("held_out"), Set.of("probe", "held_out"), 0.80);
+        return new ScoringContext(OBJECTIVES, Set.of("held_out"), Set.of("probe", "held_out"), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
     }
 
     @Test
@@ -31,7 +32,7 @@ final class ScoringContextTest {
     @Test
     void changingTheHeldOutSetChangesTheFingerprint() {
         var other = new ScoringContext(
-                OBJECTIVES, Set.of("held_out", "second"), Set.of("probe", "held_out", "second"), 0.80);
+                OBJECTIVES, Set.of("held_out", "second"), Set.of("probe", "held_out", "second"), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
         assertThat(other.fingerprint()).isNotEqualTo(context().fingerprint());
     }
 
@@ -40,14 +41,14 @@ final class ScoringContextTest {
         var reweighted = new ScoringContext(
                 List.of(new FitnessObjective("subject.objective.task_success", 0.50),
                         new FitnessObjective("subject.objective.parsimony", 0.50)),
-                Set.of("held_out"), Set.of("probe", "held_out"), 0.80);
+                Set.of("held_out"), Set.of("probe", "held_out"), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
         assertThat(reweighted.fingerprint()).isNotEqualTo(context().fingerprint());
     }
 
     @Test
     void changingTheProbeSetChangesTheFingerprint() {
         var other = new ScoringContext(
-                OBJECTIVES, Set.of("held_out"), Set.of("other_probe", "held_out"), 0.80);
+                OBJECTIVES, Set.of("held_out"), Set.of("other_probe", "held_out"), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
         assertThat(other.fingerprint()).isNotEqualTo(context().fingerprint());
     }
 
@@ -61,13 +62,13 @@ final class ScoringContextTest {
     void scoringOverMoreReliabilityRepeatsChangesTheFingerprint() {
         var other = new ScoringContext(
                 OBJECTIVES, Set.of("held_out"),
-                Set.of("probe", "held_out", "gating.run2", "gating.run3"), 0.80);
+                Set.of("probe", "held_out", "gating.run2", "gating.run3"), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
         assertThat(other.fingerprint()).isNotEqualTo(context().fingerprint());
     }
 
     @Test
     void changingThePromotionThresholdChangesTheFingerprint() {
-        var other = new ScoringContext(OBJECTIVES, Set.of("held_out"), Set.of("probe", "held_out"), 0.75);
+        var other = new ScoringContext(OBJECTIVES, Set.of("held_out"), Set.of("probe", "held_out"), 0.75, Set.of("case_a"), 80, Map.<String, Double>of());
         assertThat(other.fingerprint()).isNotEqualTo(context().fingerprint());
     }
 
@@ -80,18 +81,18 @@ final class ScoringContextTest {
     @Test
     void anObjectiveIdContainingDelimitersDoesNotCollideWithTwoObjectives() {
         var one = new ScoringContext(
-                List.of(new FitnessObjective("a=0.1,b", 0.2)), Set.of(), Set.of(), 0.80);
+                List.of(new FitnessObjective("a=0.1,b", 0.2)), Set.of(), Set.of(), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
         var two = new ScoringContext(
                 List.of(new FitnessObjective("a", 0.1), new FitnessObjective("b", 0.2)),
-                Set.of(), Set.of(), 0.80);
+                Set.of(), Set.of(), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
 
         assertThat(one.fingerprint()).isNotEqualTo(two.fingerprint());
     }
 
     @Test
     void aCaseNameContainingADelimiterDoesNotCollideWithTwoNames() {
-        var one = new ScoringContext(OBJECTIVES, Set.of("a,b"), Set.of(), 0.80);
-        var two = new ScoringContext(OBJECTIVES, Set.of("a", "b"), Set.of(), 0.80);
+        var one = new ScoringContext(OBJECTIVES, Set.of("a,b"), Set.of(), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
+        var two = new ScoringContext(OBJECTIVES, Set.of("a", "b"), Set.of(), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
 
         assertThat(one.fingerprint()).isNotEqualTo(two.fingerprint());
     }
@@ -103,9 +104,44 @@ final class ScoringContextTest {
     @Test
     void theOrderNamesWereDeclaredInDoesNotChangeTheFingerprint() {
         var one = new ScoringContext(
-                OBJECTIVES, new java.util.LinkedHashSet<>(List.of("a", "b")), Set.of("probe"), 0.80);
+                OBJECTIVES, new java.util.LinkedHashSet<>(List.of("a", "b")), Set.of("probe"), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
         var other = new ScoringContext(
-                OBJECTIVES, new java.util.LinkedHashSet<>(List.of("b", "a")), Set.of("probe"), 0.80);
+                OBJECTIVES, new java.util.LinkedHashSet<>(List.of("b", "a")), Set.of("probe"), 0.80, Set.of("case_a"), 80, Map.<String, Double>of());
         assertThat(one.fingerprint()).isEqualTo(other.fingerprint());
+    }
+
+    /**
+     * Found by an independent review. The fingerprint omitted three live request inputs that each
+     * change what a magnitude means, so two runs configured differently could share a fingerprint
+     * and be ranked against each other — the exact mixing this type exists to prevent.
+     *
+     * <p>Each is asserted separately: a single combined assertion would pass if any one of them were
+     * wired and the others forgotten.
+     */
+    @Test
+    void changingTheGatingCaseSetChangesTheFingerprint() {
+        assertThat(contextWith(Set.of("case_a", "case_b"), 80, Map.of()).fingerprint())
+                .as("gating cases are task_success's denominator")
+                .isNotEqualTo(contextWith(Set.of("case_a"), 80, Map.of()).fingerprint());
+    }
+
+    @Test
+    void changingTheLineBudgetChangesTheFingerprint() {
+        assertThat(contextWith(Set.of("case_a"), 800, Map.of()).fingerprint())
+                .as("maxLinesChanged is parsimony's denominator")
+                .isNotEqualTo(contextWith(Set.of("case_a"), 80, Map.of()).fingerprint());
+    }
+
+    @Test
+    void changingABenchmarkBudgetChangesTheFingerprint() {
+        assertThat(contextWith(Set.of("case_a"), 80, Map.of("bench", 10.0)).fingerprint())
+                .as("budgets are what cost_latency_budget is measured against")
+                .isNotEqualTo(contextWith(Set.of("case_a"), 80, Map.of("bench", 20.0)).fingerprint());
+    }
+
+    private static ScoringContext contextWith(
+            Set<String> gatingCaseNames, int maxLinesChanged, Map<String, Double> budgets) {
+        return new ScoringContext(OBJECTIVES, Set.of("held_out"), Set.of("probe", "held_out"), 0.80,
+                gatingCaseNames, maxLinesChanged, budgets);
     }
 }

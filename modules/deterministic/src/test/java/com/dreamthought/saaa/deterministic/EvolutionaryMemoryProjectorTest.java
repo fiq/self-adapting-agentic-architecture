@@ -39,7 +39,8 @@ final class EvolutionaryMemoryProjectorTest {
                 FitnessScore.of(0.4, FitnessDecision.DISCARD),
                 new com.dreamthought.saaa.domain.ScoringContext(
                         List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
-                        java.util.Set.of(), java.util.Set.of(), 0.80));
+                        java.util.Set.of(), java.util.Set.of(), 0.80,
+                        java.util.Set.of("case"), 80, java.util.Map.of()));
         var retrieval = new RetrievalBundle(
                 RetrievalMode.HYBRID, "retrieval-config-v1", "base123", "graph-schema-v1",
                 "capsule-v1", "rrf-v1", "fixture-model", "lineage-novelty-v1", List.of(),

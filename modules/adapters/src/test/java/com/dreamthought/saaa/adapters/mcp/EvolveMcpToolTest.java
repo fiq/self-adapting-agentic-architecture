@@ -27,7 +27,8 @@ final class EvolveMcpToolTest {
     private static final com.dreamthought.saaa.domain.ScoringContext TEST_SCORING_CONTEXT =
             new com.dreamthought.saaa.domain.ScoringContext(
                     java.util.List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
-                    java.util.Set.of(), java.util.Set.of(), 0.80);
+                    java.util.Set.of(), java.util.Set.of(), 0.80,
+                    java.util.Set.of("case"), 80, java.util.Map.of());
 
     @Test
     void returnsAStructuredFitnessResultRatherThanText() {

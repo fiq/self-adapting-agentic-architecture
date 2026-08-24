@@ -95,7 +95,8 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         // always be traced to the probe that produced it.
         var phenotype = new PhenotypeEvidence(
                 evidence, behaviorCases, objectives, realization, nonGatingCheckNames(),
-                config.heldOutCaseNames());
+                config.heldOutCaseNames(),
+                config.behaviorCaseNames(), config.maxLinesChanged(), config.benchmarkBudgets());
         // A declared required_evidence id names a check that must exist and pass, so the declaration
         // is enforced against evidence this run already collected rather than a separate pipeline.
         return contract
