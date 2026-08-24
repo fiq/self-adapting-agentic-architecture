@@ -182,6 +182,48 @@ comparison and may never gate. `UNPARSEABLE` and `UNSUPPORTED` yield no
 evidence. If either side of a comparison is not `COMPLETE`, the result is
 `INCOMPARABLE` and the run records why.
 
+## Behavioural equivalence is measurable — empirically, not statically
+
+Rice's theorem forecloses *deciding* behavioural equivalence for arbitrary
+programs by static analysis. It says nothing about **observing** it.
+
+SAAA already owns the apparatus. Acceptance behaviour cases, held-out cases,
+benchmarks and declared external contracts form an envelope, and two candidates
+that agree across all of it are observationally equivalent *within that
+envelope*. That is a real, deterministic, reproducible measurement — and unlike
+the static relations above, it speaks to behaviour rather than shape.
+
+So C3 gains a fourth relation, and it is the only one entitled to the word
+behaviour:
+
+| Relation | Kind | Speaks to |
+|---|---|---|
+| `EXACT_NORMALIZED_DUPLICATE` | static | shape |
+| `STRUCTURAL_DISTANCE` | static | shape |
+| `EQUIVALENT_UNDER_LAWS` | static, future | algebra under declared rewrites |
+| `OBSERVATIONALLY_EQUIVALENT` | **empirical** | behaviour, within a declared envelope |
+
+Three constraints keep it honest.
+
+- **The envelope must be declared and versioned.** "Equivalent" means nothing
+  without naming which cases, which benchmarks and which contracts were run.
+  Widening or narrowing the envelope changes the claim, so it is part of the
+  comparable identity exactly as the scoring fingerprint is.
+- **Side effects are excluded, and that exclusion is a caveat rather than a
+  detail.** Two candidates agreeing on every observed output may still differ in
+  what they write, log, emit, retry or cost. The envelope observes what it
+  observes; the claim is bounded by it.
+- **Absence of a difference is not proof of sameness.** A passing envelope shows
+  no difference was detected, which is weaker than equivalence and must be
+  reported as such.
+
+This reframes the whole ADR's ambition usefully. Static structure is the *cheap
+proxy*: it runs without executing anything and is available for every candidate
+in a generation. Observational equivalence is the *expensive truth*: it requires
+running the envelope. The right use of the AST is to decide which candidates are
+worth spending the expensive measurement on — exactly the role FunSearch gives
+its evaluator, with structure as the filter in front of it.
+
 ## Does category theory carry weight here?
 
 **Not as a dependency, and not as a decision boundary.** The research separated

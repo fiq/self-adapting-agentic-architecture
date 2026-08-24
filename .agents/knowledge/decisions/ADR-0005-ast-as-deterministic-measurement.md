@@ -89,6 +89,19 @@ behavioural equivalence for arbitrary programs, so every relation offered here i
 equivalence under a declared syntactic or algebraic policy and must never be
 described as "the same functional behaviour".
 
+## Behavioural equivalence is empirical, not static
+
+Rice's theorem forecloses deciding behavioural equivalence statically; it says
+nothing about observing it. Acceptance cases, held-out cases, benchmarks and
+declared external contracts form an envelope, and two candidates agreeing across
+it are observationally equivalent within that envelope. That is the only relation
+here entitled to the word behaviour, and it is bounded three ways: the envelope
+must be declared and versioned as part of comparable identity, side effects are
+excluded, and no detected difference is weaker than sameness.
+
+Structure is therefore the cheap proxy that decides which candidates are worth
+the expensive measurement, not a substitute for it.
+
 ## One graph across APIs
 
 A code property graph — AST, control flow and program dependence in one

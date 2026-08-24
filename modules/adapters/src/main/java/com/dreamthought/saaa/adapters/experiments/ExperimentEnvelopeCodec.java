@@ -8,6 +8,7 @@ import com.dreamthought.saaa.domain.EvolutionaryMemoryRecord;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessScore;
 import com.dreamthought.saaa.domain.MutationScope;
+import com.dreamthought.saaa.domain.ScoringContext;
 import com.dreamthought.saaa.domain.RetrievalMode;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -37,6 +38,7 @@ final class ExperimentEnvelopeCodec {
         scalar(out, "retrieval_configuration_id", record.retrievalConfigurationId());
         scalar(out, "raw_magnitude", record.fitnessScore().rawMagnitude().toPlainString());
         scalar(out, "decision", record.fitnessScore().decision().name());
+        scalar(out, "scoring_fingerprint", record.scoringFingerprint());
         scalar(out, "evaluated_at", record.evaluatedAt().toString());
         out.append("  changed_paths[").append(record.changedPaths().size()).append("]:\n");
         record.changedPaths().forEach(value -> out.append("    - ").append(csv(List.of(value))).append('\n'));
@@ -99,6 +101,10 @@ final class ExperimentEnvelopeCodec {
                 required(scalar, "retrieval_configuration_id"), changedPaths, evidence, checks, benchmarks,
                 new FitnessScore(new BigDecimal(required(scalar, "raw_magnitude")),
                         FitnessDecision.valueOf(required(scalar, "decision"))),
+                // Envelopes written before CHG-024 carry no fingerprint. They stay readable as
+                // history and read as legacy, which is never ranked beside a fingerprinted record.
+                // Defaulting is not backfilling: it records that the provenance is unknown.
+                scalar.getOrDefault("scoring_fingerprint", ScoringContext.LEGACY_UNVERSIONED),
                 Instant.parse(required(scalar, "evaluated_at")));
     }
 

@@ -36,6 +36,11 @@ deltas:
         and:
           - task_success carries 0.40, so one failing case in n costs 0.40/n, which exceeds a typical promotion's headroom when n is 2
           - the discard is threshold arithmetic rather than a gate the held-out case tripped, so the ratio of held-out to gating cases governs both resolution and survivability
+      - id: S6
+        when: a fingerprinted record is written to the ledger or a Git envelope and read back
+        then: the fingerprint survives, and a record written without one still reads as legacy
+        and:
+          - a fingerprint lost on reload would be worse than none, because the comparability filter would then exclude every reloaded record and the working set would be silently empty after a restart
       - id: S5
         when: a candidate is scored
         then: the result carries the fingerprint of the objectives, weights, withheld checks and threshold it was measured against
@@ -67,6 +72,12 @@ acceptance:
   - scenario: S5
     test_id: deterministic/ScorerStampsScoringContextTest.aResultBuiltWithoutAContextReportsLegacy
     layer: unit
+  - scenario: S6
+    test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.theScoringFingerprintSurvivesTheSqliteLedger
+    layer: integration
+  - scenario: S6
+    test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.theScoringFingerprintSurvivesTheLedgerEnvelope
+    layer: integration
   - scenario: S4
     test_id: deterministic/HeldOutCaseConfigTest.rejectsAHeldOutCaseThatIsAlsoAGatingBehaviourCase
     layer: unit

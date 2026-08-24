@@ -47,8 +47,9 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                       candidate_id, subject_repository_id, baseline_repository_revision,
                       process_repository_id, process_repository_revision, memory_policy_id,
                       mutation_id, mutation_summary, mutation_scope, candidate_commit, retrieval_mode,
-                      retrieval_configuration_id, raw_magnitude, decision, evaluated_at)
-                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      retrieval_configuration_id, raw_magnitude, decision, scoring_fingerprint,
+                      evaluated_at)
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     on conflict(candidate_id) do update set
                       subject_repository_id=excluded.subject_repository_id,
                       baseline_repository_revision=excluded.baseline_repository_revision,
@@ -60,6 +61,7 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                       retrieval_mode=excluded.retrieval_mode,
                       retrieval_configuration_id=excluded.retrieval_configuration_id,
                       raw_magnitude=excluded.raw_magnitude, decision=excluded.decision,
+                      scoring_fingerprint=excluded.scoring_fingerprint,
                       evaluated_at=excluded.evaluated_at
                     """)) {
                 EvolutionContext context = record.evolutionContext();
@@ -77,7 +79,8 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                 attempt.setString(12, record.retrievalConfigurationId());
                 attempt.setBigDecimal(13, record.fitnessScore().rawMagnitude());
                 attempt.setString(14, record.fitnessScore().decision().name());
-                attempt.setString(15, record.evaluatedAt().toString());
+                attempt.setString(15, record.scoringFingerprint());
+                attempt.setString(16, record.evaluatedAt().toString());
                 attempt.executeUpdate();
                 deleteChildren(connection, record.candidateId());
                 writeChangedPaths(connection, record);
@@ -117,6 +120,7 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                         readChecks(connection, candidateId), readBenchmarks(connection, candidateId),
                         new FitnessScore(rows.getBigDecimal("raw_magnitude"),
                                 FitnessDecision.valueOf(rows.getString("decision"))),
+                        rows.getString("scoring_fingerprint"),
                         Instant.parse(rows.getString("evaluated_at"))));
             }
             return List.copyOf(records);
@@ -135,7 +139,11 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                       memory_policy_id text not null, mutation_id text not null, mutation_summary text not null,
                       mutation_scope text not null, candidate_commit text not null, retrieval_mode text not null,
                       retrieval_configuration_id text not null, raw_magnitude real not null,
-                      decision text not null, evaluated_at text not null
+                      decision text not null,
+                      -- Defaulted rather than migrated: the local ledger is derived and rebuilt, and
+                      -- a row written before CHG-024 has no honest fingerprint to recover.
+                      scoring_fingerprint text not null default 'legacy-unversioned',
+                      evaluated_at text not null
                     )
                     """);
             statement.execute("""
