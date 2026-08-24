@@ -10,12 +10,13 @@ Proposed.
 
 Three problems in this repository are the same problem wearing different clothes.
 
-**We cannot tell two candidates apart.** The population slice (`CHG-025`) has to
-detect when several candidates are really the same candidate. The plan of record
-was to hash the committed diff, which is wrong in both directions: two diffs
-differing only in whitespace hash differently and are the same change, while two
-genuinely different edits can produce equal line counts and look alike to
-`parsimony`.
+**We cannot tell two candidates apart.** The intended population slice — a change
+that does not exist yet; `CHG-025` is the name this repository's forward
+references reserve for it — will have to detect when several candidates are
+really the same candidate. The naive plan is to hash the committed diff, which
+is wrong in both directions: two diffs differing only in whitespace hash
+differently and are the same change, while two genuinely different edits can
+produce equal line counts and look alike to `parsimony`.
 
 **We cannot tell when the search has stalled.** `CON-001` defines two search
 postures, `hill-climb` and `exploratory-leap`, and `Q-006` records the intent
@@ -92,7 +93,8 @@ layer, none of them involving a model:
 
 ### Why each one earns its place
 
-**Distance** replaces diff hashing in `CHG-025`. Two realizations with the same
+**Distance** is what the future population change would use instead of diff
+hashing: when `CHG-025` is proposed, two realizations with the same
 normalized syntax hash for the changed symbol are the same candidate, and the
 generation records `duplicate_realization` on evidence rather than on text. A
 thresholded distance is deliberately *not* the duplicate rule: a threshold needs
@@ -104,7 +106,13 @@ mean pairwise distance across a generation falls below a declared floor, the
 population has converged and the next generation's slots shift from `hill-climb`
 to `exploratory-leap`. This is FunSearch's islands insight applied without
 adopting islands: we do not need subpopulations to *detect* premature
-convergence, only to measure structural spread.
+convergence, only to measure structural spread. The analogy is one of purpose,
+not mechanism: islands *prevent* premature convergence by partitioning, while
+the trigger here *detects* it by measurement. Convergence therefore ships no
+earlier than `STRUCTURAL_DISTANCE`: the mean pairwise distance it reads is that
+relation's output, so both arrive together, and its per-generation cost is the
+pairwise O(n²) number of comparisons on a generation of size n on top of the
+per-candidate parse.
 
 Crucially this is a **selection rule applied after eligibility**, never a
 weighted objective. `Q-006` and the existing handoff design input both record
@@ -156,6 +164,14 @@ compute a distance. Splitting them stops the domain claiming to hold enough
 information for a comparison it cannot perform. Parser objects stay in
 `adapters`; `changedNodeFingerprints` cross the boundary as data.
 
+The source of the tree must be named, because `StructuralEvidence` carries a
+hash, not a tree. Retention is per-evaluation, in memory, by the
+`StructuralComparisonService` itself: the service that parsed the evidence keeps
+the tree alive only as long as the comparisons it performs. Anything needing a
+tree later re-parses the recorded source revision through the same pinned
+parser and normalization policy; it never persists the tree, because a persisted
+tree would bypass the C4 provenance check on its next read.
+
 **C3 — three relations, not one distance.** Collapsing these into a single
 `[0,1]` number is what invites the false claim that structure implies behaviour:
 
@@ -181,6 +197,13 @@ blast-radius gate. `RECOVERED_WITH_ERRORS` may feed metrics or advisory
 comparison and may never gate. `UNPARSEABLE` and `UNSUPPORTED` yield no
 evidence. If either side of a comparison is not `COMPLETE`, the result is
 `INCOMPARABLE` and the run records why.
+
+"May never gate" is pinned to the blast-radius gate's declared precondition and
+to any later gate that consumes structural evidence: each must require
+`COMPLETE` before reading the evidence at all. It does not mean partial-parse
+metrics are absent from promotion arithmetic — a complexity objective built from
+`RECOVERED_WITH_ERRORS` metrics enters the weighted sum exactly as any objective
+does, which is the same treatment parsimony already receives.
 
 ## Behavioural equivalence is measurable — empirically, not statically
 
@@ -295,12 +318,15 @@ The smallest slice that proves the idea and is useful alone:
 1. Parse the **changed symbol** — not the whole file — and produce
    `StructuralEvidence` with a normalized syntax hash. Java first, via
    tree-sitter if multi-language is wanted immediately.
-2. **Duplicate detection in `CHG-025` uses `EXACT_NORMALIZED_DUPLICATE` on the
-   changed symbol**, replacing the diff hash. Not a thresholded whole-file
-   metric, which would need calibration before the threshold could be trusted.
+2. **Duplicate detection in the population change, when proposed, uses
+   `EXACT_NORMALIZED_DUPLICATE` on the changed symbol**, replacing the diff
+   hash. Not a thresholded whole-file metric, which would need calibration
+   before the threshold could be trusted.
 3. Prove exactly three things: a whitespace- or comment-only change normalizes
    identically; a changed statement does not; a modification outside the declared
-   symbol is detected.
+   symbol is detected. These prove *sensitivity* only. *Specificity* — that two
+   genuinely different symbols cannot collide onto one hash — is delegated to the
+   versioned normalization policy and the hash function, not proven here.
 
 `STRUCTURAL_DISTANCE` stays a novelty and convergence signal until calibrated
 against labelled examples. Nothing claims behavioural equivalence.
@@ -315,8 +341,8 @@ against labelled examples. Nothing claims behavioural equivalence.
   scope, AST-aware *realization* remains out of scope and still needs its own
   decision.
 - Parsing cost is per candidate per generation. It is far cheaper than running
-  checks, but it is not free and belongs in the cost accounting `CHG-025`
-  already has to do.
+  checks, but it is not free and belongs in the cost accounting the population
+  change will have to do when proposed.
 - If structural distance turns out not to discriminate usefully on real
   candidates, the honest outcome is to reject it and return to diff hashing. The
   base case is deliberately small enough that this is cheap.

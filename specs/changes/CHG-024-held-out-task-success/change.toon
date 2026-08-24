@@ -83,7 +83,16 @@ acceptance:
     test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.aRowWithoutAFingerprintIsRejectedByTheLedgerSchema
     layer: integration
   - scenario: S6
+    test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.aBlankFingerprintIsRejectedByTheLedgerSchema
+    layer: integration
+  - scenario: S6
     test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.anEnvelopeWithoutAFingerprintIsRejected
+    layer: integration
+  - scenario: S6
+    test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.aStaleDefaultedSchemaIsRebuildOnOpenRatherThanTrusted
+    layer: integration
+  - scenario: S6
+    test_id: adapters/SqliteExperimentMetadataStoreIntegrationTest.theScoringFingerprintIsPersistedBesideTheRawMagnitude
     layer: integration
   - scenario: S4
     test_id: deterministic/HeldOutCaseConfigTest.rejectsAHeldOutCaseThatIsAlsoAGatingBehaviourCase
