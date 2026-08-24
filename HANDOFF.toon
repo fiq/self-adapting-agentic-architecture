@@ -3,8 +3,8 @@ session:
   status: chg_024_purged_legacy_fingerprint_review_next
   branch: feat/chg-024-held-out-task-success
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
-  head: feat/chg-024-held-out-task-success at 4559395
-  head_note: CHG-024 branch, PR #42 draft. Scoring fingerprint is stamped, enforced and round-trips both durable surfaces. The LEGACY_UNVERSIONED default is purged - new project, nothing to backfill, and a default would fabricate provenance. ScoringContext is a mandatory FitnessResult constructor argument; envelope codec rejects a missing scoring_fingerprint; the SQLite schema has no default. ADR-0005 (the AST measures, it does not mutate) is proposed and corrected after a research pass found C1 unimplementable. Next: adversarial review pinned to 4559395, then PR #42 can go ready.
+  head: feat/chg-024-held-out-task-success at 36aa0ae
+  head_note: CHG-024 branch, PR #42 draft. Scoring fingerprint is stamped, enforced and round-trips all three durable surfaces. The LEGACY_UNVERSIONED default is purged - new project, nothing to backfill, and a default would fabricate provenance. Two read-only reviews ran in parallel pinned to 50e7c36: codex returned REQUEST CHANGES on the purge diff (three findings, all verified true, all fixed in cf55215); GLM-5.2-flex returned ACCEPT WITH REVISIONS on ADR-0005 (one factual fix - CHG-025 does not exist yet - applied in 36aa0ae, plus contract tightening). Next: PR #42 ready, then C6 the population slice.
   dirty: false
   pushed: true
 
@@ -13,8 +13,7 @@ goal:
   phase: review_pending
 
 next_actions:
-  - adversarial review of the CHG-024 branch pinned to its pushed sha, aimed at the purge diff; ADR-0005 gets a separate pass from a non-codex provider, because codex already reviewed it once and a second codex run is not independent challenge
-  - after review findings are addressed: mark PR #42 ready and optionally trigger full-readiness via workflow_dispatch, since it does not run on a branch
+  - mark PR #42 ready: both reviews ran pinned to 50e7c36 (codex on the purge diff, GLM on ADR-0005), their findings are addressed, and full suites and checks are green at 36aa0ae. Optionally trigger full-readiness via workflow_dispatch, since it does not run on a branch
   - then START HERE. C6, the population slice: evaluate several candidates per generation and rank them by FitnessScore. ADR-0002 names it as the missing Layer-1 piece. Its preconditions are merged or on this branch: the scorer discriminates among failures (CHG-021), among winners (CHG-022), FitnessScore orders decision-first (CHG-023), and held-out cases let task_success vary among promoted candidates (CHG-024). Fold RISK-003 into it rather than fixing that separately, because the slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - an undeclared objective still contributes 1.0, so a run that measures nothing scores well on what it did not measure. Renormalising the weighted sum over only the objectives a run actually measured would fix it and would change the meaning of every recorded score, so it needs its own change
   - migrate MutationEvaluationLoop off the transitional Mutation/MutationValidator/FitnessScorer stack onto MutationContract and PhenotypeFitnessScorer. Both stacks exist and only the old one is wired, which is why contractless runs remain the default
@@ -47,7 +46,9 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
-  - 2026-08-24 CHG-024 purge validation: full unit, acceptance and integration suites rerun with --rerun-tasks and observed to execute (ScoringFingerprintRoundTripIntegrationTest: 4 tests, 0 skipped, 0 failures); project check 7/7; check-changes OK
+  - 2026-08-24 CHG-024 review-fix validation: full unit, acceptance, integration and benchmark-integration suites rerun with --rerun-tasks, BUILD SUCCESSFUL; project check 7/7; check-changes OK
+  - 2026-08-24 CHG-024 review-fix mutation evidence: mutating schemaDefaultsTheFingerprint to false failed aStaleDefaultedSchemaIsRebuildOnOpenRatherThanTrusted; removing the CHECK fails aBlankFingerprintIsRejectedByTheLedgerSchema; writing the decision name in place of the fingerprint fails theScoringFingerprintIsPersistedBesideTheRawMagnitude. Each restored immediately.
+  - 2026-08-24 CHG-024 purge validation: full unit, acceptance and integration suites rerun with --rerun-tasks and observed to execute (ScoringFingerprintRoundTripIntegrationTest: 6 tests, 0 skipped, 0 failures); project check 7/7; check-changes OK
   - 2026-08-24 CHG-024 purge mutation evidence: defaulting the fingerprint in ExperimentEnvelopeCodec made anEnvelopeWithoutAFingerprintIsRejected fail; restoring a schema default made aRowWithoutAFingerprintIsRejectedByTheLedgerSchema fail; removing the requireNonNull made aResultCannotBeConstructedWithoutAScoringContext fail. Each implementation mutation was restored immediately.
   - 2026-08-23 CHG-023 final validation: project test, project component-test, project integration-test and project check all pass; project check-changes also passes
   - 2026-08-23 CHG-023 mutation evidence: replacing FitnessScore's decision rank with a constant made LineageNoveltyMemoryPolicyTest.aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion fail; rendering four decimal places made ConsoleReporterTest.roundsRawMagnitudeOnlyWhenRenderingTheConsoleReport fail; rounding before SQLite write made SqliteEvolutionaryMemoryStoreIntegrationTest.roundTripsObservableMemoryInTheExperimentLedger fail; lowering the raw promotion threshold to 0.79 made PhenotypeFitnessScorerPropertyTest.decisionIsDerivedFromRawSumNotRoundedAggregate fail. Each implementation mutation was restored immediately.
