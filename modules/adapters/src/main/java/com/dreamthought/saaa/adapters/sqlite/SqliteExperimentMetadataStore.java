@@ -131,6 +131,28 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                         statement.executeUpdate();
                     }
                 }
+                if (!migrationApplied(connection, 2)) {
+                    // CHG-024: the fingerprint must sit beside the magnitude it describes. SQLite
+                    // cannot ADD COLUMN ... NOT NULL without a default, and a default would invent
+                    // provenance, so the table is rebuilt. The store is derived audit data in a new
+                    // project: rows written without a fingerprint are dropped, not migrated.
+                    execute(connection, "drop table if exists fitness_results");
+                    execute(connection, """
+                            create table fitness_results (
+                              candidate_id text primary key not null references candidates(id) on delete cascade,
+                              raw_magnitude real not null,
+                              decision text not null,
+                              scoring_fingerprint text not null check (length(trim(scoring_fingerprint)) > 0),
+                              evaluated_at text not null
+                            )
+                            """);
+                    try (PreparedStatement statement = connection.prepareStatement(
+                            "insert into schema_migrations(version) values (?)"
+                    )) {
+                        statement.setInt(1, 2);
+                        statement.executeUpdate();
+                    }
+                }
                 connection.commit();
             } catch (SQLException exception) {
                 connection.rollback();
@@ -205,13 +227,15 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
 
     private static void writeFitnessResult(Connection connection, FitnessResult result) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
-                insert or replace into fitness_results(candidate_id, raw_magnitude, decision, evaluated_at)
-                values (?, ?, ?, ?)
+                insert or replace into fitness_results(
+                  candidate_id, raw_magnitude, decision, scoring_fingerprint, evaluated_at)
+                values (?, ?, ?, ?, ?)
                 """)) {
             statement.setString(1, result.candidate().id());
             statement.setBigDecimal(2, result.fitnessScore().rawMagnitude());
             statement.setString(3, result.decision().name());
-            statement.setString(4, result.evidence().evaluatedAt().toString());
+            statement.setString(4, result.scoringFingerprint());
+            statement.setString(5, result.evidence().evaluatedAt().toString());
             statement.executeUpdate();
         }
     }

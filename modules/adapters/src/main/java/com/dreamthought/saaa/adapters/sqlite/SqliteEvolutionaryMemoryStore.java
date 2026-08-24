@@ -131,6 +131,22 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
 
     private void migrate() {
         try (Connection connection = connect(); var statement = connection.createStatement()) {
+            // create table if not exists never revisits a schema decision: a database created while
+            // the column defaulted keeps defaulting on every later open. The ledger is derived and
+            // rebuildable, so a stale schema is dropped rather than migrated - an old row could
+            // never supply the fingerprint it was written without.
+            if (schemaDefaultsTheFingerprint(connection)) {
+                for (String table : List.of("evolutionary_memory_changed_paths",
+                        "evolutionary_memory_evidence", "evolutionary_memory_checks",
+                        "evolutionary_memory_benchmarks", "evolutionary_memory")) {
+                    statement.execute("drop table if exists " + table);
+                }
+            }
+            // scoring_fingerprint: required, with no schema-supplied value. A row that cannot say
+            // what its magnitude was measured against would be ranked under invented provenance.
+            // NOT NULL alone still accepts the empty string, which is why the CHECK exists.
+            // (This rationale stays out of the DDL text itself: sqlite_master stores it, and the
+            // stale-schema detection above reads that text.)
             statement.execute("""
                     create table if not exists evolutionary_memory (
                       candidate_id text primary key not null,
@@ -140,9 +156,7 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                       mutation_scope text not null, candidate_commit text not null, retrieval_mode text not null,
                       retrieval_configuration_id text not null, raw_magnitude real not null,
                       decision text not null,
-                      -- Required, not defaulted: a row that cannot say what its magnitude was
-                      -- measured against would be ranked under invented provenance.
-                      scoring_fingerprint text not null,
+                      scoring_fingerprint text not null check (length(trim(scoring_fingerprint)) > 0),
                       evaluated_at text not null
                     )
                     """);
@@ -174,6 +188,17 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                     """);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to migrate evolutionary memory ledger", exception);
+        }
+    }
+
+    private static boolean schemaDefaultsTheFingerprint(Connection connection) throws SQLException {
+        // Matches an actual default clause on scoring_fingerprint, not prose: sqlite_master stores
+        // the CREATE TABLE text verbatim, comments included, so a looser substring match would
+        // rename this guard into a drop-everything-on-every-open bug.
+        try (var rows = connection.createStatement().executeQuery(
+                "select sql from sqlite_master where name = 'evolutionary_memory'")) {
+            return rows.next() && rows.getString(1).toLowerCase()
+                    .contains("scoring_fingerprint text not null default");
         }
     }
 

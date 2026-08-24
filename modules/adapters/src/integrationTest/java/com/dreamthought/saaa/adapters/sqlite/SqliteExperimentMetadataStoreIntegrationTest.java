@@ -56,7 +56,7 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         store.recordCandidate(candidate);
 
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
-            assertThat(count(connection, "schema_migrations")).isEqualTo(1);
+            assertThat(count(connection, "schema_migrations")).isEqualTo(2);
             assertThat(singleText(connection, "select branch_name from candidates where id = ?", candidate.id()))
                     .isEqualTo(candidate.branchName());
             assertThat(singleText(connection, "select decision from fitness_results where candidate_id = ?", candidate.id()))
@@ -81,6 +81,35 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
                     candidate.id(),
                     "0"
             )).isEqualTo("ops/s");
+        }
+    }
+
+    /**
+     * fitness_results is the third durable surface: leaving the fingerprint out of it would
+     * persist magnitudes with no record of what they were measured against. Independent review
+     * caught this surface keeping the old four-column shape while the other two carried it.
+     */
+    @Test
+    void theScoringFingerprintIsPersistedBesideTheRawMagnitude() throws SQLException {
+        Path database = tempDir.resolve("experiments.sqlite");
+        var store = new SqliteExperimentMetadataStore(database);
+        var candidate = new Candidate(
+                "candidate-1", "mut-1", "candidate/mut-1",
+                Path.of(".worktrees/candidate-1"), "abc1234");
+        var evidence = new EvaluationEvidence(List.of(), List.of(), Instant.parse("2026-08-24T00:00:00Z"));
+        var result = new FitnessResult(candidate, evidence, Map.of(),
+                FitnessScore.of(0.5, DISCARD),
+                new com.dreamthought.saaa.domain.ScoringContext(
+                        List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
+                        java.util.Set.of("held_out_x"), java.util.Set.of(), 0.80));
+
+        store.recordFitness(result);
+
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
+            assertThat(singleText(connection,
+                    "select scoring_fingerprint from fitness_results where candidate_id = ?",
+                    candidate.id()))
+                    .isEqualTo(result.scoringFingerprint());
         }
     }
 

@@ -163,8 +163,8 @@ public final class PhenotypeFitnessScorer {
                     gateValue(Boolean.TRUE.equals(observed.get(id))));
         }
 
-        // Stamped here rather than by the caller, so every result produced by the scorer carries the
-        // configuration it was measured against and only a genuinely older record can be legacy.
+        // Stamped here rather than by the caller, so every result produced by the scorer carries
+        // the configuration it was measured against; a result cannot exist without one.
         var scoringContext = new com.dreamthought.saaa.domain.ScoringContext(
                 objectiveSet,
                 phenotype.heldOutCaseNames(),
