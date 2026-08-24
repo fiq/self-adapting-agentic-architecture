@@ -63,8 +63,17 @@ The architecture fitness function must be extended to enforce it.
 
 ## Base case
 
-Ship the normalized syntax hash of the changed symbol, consumed by duplicate
-detection in the population slice. Convergence, blast radius and complexity
+Ship the declared-locus gate as the first consumer: `MutationContract` already
+carries `loci` and a `MutationTarget`, and nothing checks that a realization
+respected them, so it is the one capability with a live consumer today.
+Duplicate detection ships alongside and becomes load-bearing when the population
+slice exists.
+
+A second review found the original base case both contradictory - it parsed only
+the changed symbol while promising to detect edits outside it - and pointed at
+the wrong consumer, choosing the capability whose consumer does not exist yet.
+Stable symbol identity across edits is called out as unsolved rather than
+assumed: tree-sitter yields nodes, not identities that survive an edit. Convergence, blast radius and complexity
 follow only once that primitive is trusted, so a defect surfaces in one place
 rather than four. A thresholded distance is not the duplicate rule until the
 threshold has been calibrated against labelled examples.
@@ -77,6 +86,12 @@ distance from it. Tree edit distance needs the tree, so that contract could
 never have been implemented. C1 now carries auditable `StructuralEvidence`, and
 inspection is separated from comparison so the domain cannot claim to hold
 information it does not.
+
+## Normalization is the duplicate rule
+
+Policy v1 enumerates what is erased - whitespace, comments, import order - and
+what is preserved - identifier names, literal values, statement order, generated
+code. The table is the semantics, so changing a row requires a new policy id.
 
 ## Category theory is not load-bearing
 

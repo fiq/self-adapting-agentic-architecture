@@ -115,10 +115,20 @@ pairwise O(n²) number of comparisons on a generation of size n on top of the
 per-candidate parse.
 
 Crucially this is a **selection rule applied after eligibility**, never a
-weighted objective. `Q-006` and the existing handoff design input both record
+weighted objective. That distinction needs enforcing rather than asserting: a
+tripwire test pins posture and trend out of the objective set, in the same spirit
+as the existing tripwire asserting every operator shares the scorer's objective
+set. The posture decision is owned by the population slice's planner — named here
+so it does not become nobody's. `Q-006` and the existing handoff design input both record
 that adding trend or posture to the weighted sum would double-count and make
 candidates from different parents incomparable. Convergence changes what we ask
 for next; it never changes what promotes now.
+
+Two cautions on the trigger. A mean pairwise distance is blind to bimodality: two
+tight clusters far apart read as spread while the search has actually collapsed
+into two holes rather than one. And a threshold with no hysteresis will oscillate
+between postures at the boundary. Both argue for deferring the trigger until
+post-calibration telemetry exists, rather than picking a number now.
 
 **Blast radius** closes the gap `RISK-002` describes for a different gate. A
 mutation contract declares its loci; today nothing checks the realization
@@ -188,22 +198,32 @@ equivalence under an explicitly declared syntactic or algebraic policy.
 **C4 — version the whole measurement provenance.** Policy ids alone are
 insufficient. Comparable identity includes language and grammar version,
 normalized-schema version, normalization policy, distance algorithm and cost
-model, and later any rewrite-law set or CPG schema version. Any mismatch yields
+model, later any rewrite-law set or CPG schema version, **and the observation
+envelope** wherever `OBSERVATIONALLY_EQUIVALENT` is claimed. Any mismatch yields
 `INCOMPARABLE` rather than a silently numeric answer — the rule the
-`ScoringContext` fingerprint already applies to fitness magnitudes.
+`ScoringContext` fingerprint already applies to fitness magnitudes, and which an
+independent review showed is easy to under-specify: that fingerprint originally
+omitted three inputs that changed what a magnitude meant.
+
+The observation envelope is fingerprinted over case and benchmark **content or
+pinned revision**, never over ids alone — two suites sharing a case name and
+differing in what the case asserts are not the same envelope. Below a declared
+minimum bar — no held-out cases, or no benchmark where a performance claim is
+made — **no equivalence verdict issues at all** rather than a weak one.
 
 **C5 — four completeness states, not two.** `COMPLETE` alone is eligible for a
-blast-radius gate. `RECOVERED_WITH_ERRORS` may feed metrics or advisory
-comparison and may never gate. `UNPARSEABLE` and `UNSUPPORTED` yield no
-evidence. If either side of a comparison is not `COMPLETE`, the result is
-`INCOMPARABLE` and the run records why.
+blast-radius gate. `UNPARSEABLE` and `UNSUPPORTED` yield no evidence. If either
+side of a comparison is not `COMPLETE`, the result is `INCOMPARABLE` and the run
+records why.
 
-"May never gate" is pinned to the blast-radius gate's declared precondition and
-to any later gate that consumes structural evidence: each must require
-`COMPLETE` before reading the evidence at all. It does not mean partial-parse
-metrics are absent from promotion arithmetic — a complexity objective built from
-`RECOVERED_WITH_ERRORS` metrics enters the weighted sum exactly as any objective
-does, which is the same treatment parsimony already receives.
+`RECOVERED_WITH_ERRORS` may inform diagnostics and **must not become a value in
+the weighted sum**. An earlier draft let partial-parse metrics enter the sum "as
+any objective does", which would arithmetically compare a candidate that broke
+the parser against one parsed completely, by magnitude, on a promotion channel.
+An objective derived from non-`COMPLETE` evidence counts as **unmeasured**. That
+matters more than it looks, because an unmeasured objective currently contributes
+its full weight — so the two defects would have compounded into a candidate
+scoring well for being unparseable.
 
 ## Behavioural equivalence is measurable — empirically, not statically
 
@@ -313,23 +333,67 @@ class of evidence.
 
 ## The base case
 
-The smallest slice that proves the idea and is useful alone:
+Revised after a second review pass, which found the original both contradictory
+and pointed at the wrong consumer.
 
-1. Parse the **changed symbol** — not the whole file — and produce
-   `StructuralEvidence` with a normalized syntax hash. Java first, via
-   tree-sitter if multi-language is wanted immediately.
-2. **Duplicate detection in the population change, when proposed, uses
-   `EXACT_NORMALIZED_DUPLICATE` on the changed symbol**, replacing the diff
-   hash. Not a thresholded whole-file metric, which would need calibration
-   before the threshold could be trusted.
-3. Prove exactly three things: a whitespace- or comment-only change normalizes
-   identically; a changed statement does not; a modification outside the declared
-   symbol is detected. These prove *sensitivity* only. *Specificity* — that two
-   genuinely different symbols cannot collide onto one hash — is delegated to the
-   versioned normalization policy and the hash function, not proven here.
+> The original said "parse the changed symbol, **not** the whole file" and then
+> required detecting "a modification outside the declared symbol". You cannot
+> detect an out-of-symbol edit from a parse of only that symbol. Detecting it
+> needs a whole-file parse or a symbol map.
 
-`STRUCTURAL_DISTANCE` stays a novelty and convergence signal until calibrated
-against labelled examples. Nothing claims behavioural equivalence.
+**Blast radius is the first consumer, not duplicate detection.** It is the one
+capability with a live consumer *today*: `MutationContract` already carries
+`loci` and `MutationTarget(file, symbol)`, and nothing currently checks that the
+realization respected them. Duplicate detection's consumer is the population
+slice, which does not exist yet. Choosing a capability whose consumer is absent
+would have delivered plumbing with three sensitivity proofs and no observable
+change in system behaviour — against this repository's outside-in discipline,
+where every prior change drove a behaviour through an acceptance test with a live
+consumer.
+
+So the slice is:
+
+1. Parse the **changed file**, and locate the declared symbol within it. Produce
+   `StructuralEvidence` including `changedSymbolIds`.
+2. **A declared-locus gate**: a realization that modified anything outside the
+   contract's declared loci is discarded. That is a gate with a live contract
+   behind it, provable by acceptance test.
+3. `EXACT_NORMALIZED_DUPLICATE` ships alongside as the cheapest thing exercising
+   the same evidence, and becomes load-bearing when the population slice arrives.
+
+**Stable symbol identity is unsolved design work and is called out rather than
+assumed.** tree-sitter yields nodes, not identities that survive an edit.
+`changedSymbolIds` needs a defined derivation — qualified name plus arity is the
+obvious candidate — and a stated behaviour when a symbol is renamed, which under
+the declared-locus gate should be treated as leaving the locus.
+
+**Honest scope note:** whitespace and comment invariance does not strictly need
+an AST; a token-stream normaliser over the extracted symbol gets most of it. The
+AST earns its place through the locus gate and what follows it, not through the
+duplicate rule alone.
+
+## Normalization policy v1: what is erased
+
+The duplicate rule's semantics *are* this table, so it is enumerated rather than
+left to implementation.
+
+| Erased | Preserved | Why |
+|---|---|---|
+| Whitespace, indentation, line breaks | — | Formatting is not behaviour |
+| Comments | — | Not behaviour; but see the caveat below |
+| Import order | Import set | Order is not behaviour; presence is |
+| — | Identifier names | Renaming a variable is a real change to a reader, and the model proposing it meant something by it |
+| — | Literal values | Changing a constant is the commonest real mutation |
+| — | Statement order | Reordering can change behaviour, and proving otherwise is the job of `EQUIVALENT_UNDER_LAWS` |
+| — | Generated code | Never normalised specially; if generated code is in scope it is scored like any other |
+
+The comment caveat: erasing comments means a candidate whose only change is a
+comment is a duplicate of its parent, and the non-empty-realization gate will
+already have discarded it. Prompt or policy text living in comments would be a
+reason to revisit this row.
+
+Anything not in this table is preserved. Changing a row requires a new
+normalization policy id, because it changes what "the same candidate" means.
 
 ## Consequences
 
