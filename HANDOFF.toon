@@ -1,21 +1,21 @@
 session:
-  updated: 2026-08-23
-  status: chg_021_022_023_merged_population_slice_next
-  branch: main
+  updated: 2026-08-24
+  status: chg_024_purged_legacy_fingerprint_review_next
+  branch: feat/chg-024-held-out-task-success
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
-  head: origin/main at cc0d030
-  head_note: Three changes merged in sequence and the scorer now discriminates in both directions. CHG-021 stopped erasing a failed candidate's magnitude and gave behavioral_safety a real evidence source, which discriminates among failures. CHG-022 gave reliability something the gate does not consume - repeated runs of each behaviour case - which discriminates among winners. CHG-023 bound magnitude and decision into one comparable FitnessScore and stopped rounding before storage. Nothing is open: no PR, no branch, no worktree, main green on all 25 tasks with project check 7/7.
-  dirty: false
-  pushed: true
+  head: feat/chg-024-held-out-task-success pending commit of purge work
+  head_note: CHG-024 branch, PR #42 draft. Scoring fingerprint is stamped, enforced and round-trips both durable surfaces. The LEGACY_UNVERSIONED default is purged - new project, nothing to backfill, and a default would fabricate provenance. ScoringContext is a mandatory FitnessResult constructor argument; envelope codec rejects a missing scoring_fingerprint; the SQLite schema has no default. ADR-0005 (the AST measures, it does not mutate) is proposed and corrected after a research pass found C1 unimplementable. Next: adversarial review pinned to the pushed sha, then PR #42 can go ready.
+  dirty: true
+  pushed: false
 
 goal:
-  current: the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation
-  phase: ready_to_start
-  interlude: its three preconditions are merged; what remains unfixed is recorded in next_actions rather than assumed away
+  current: land CHG-024 (held-out task_success plus scoring-fingerprint comparability) on PR #42, then the population slice with ranking, which ADR-0002 names as the missing Layer-1 foundation
+  phase: review_pending
 
 next_actions:
-  - START HERE. C6, the population slice: evaluate several candidates per generation and rank them by FitnessScore. ADR-0002 names it as the missing Layer-1 piece and it is the current objective. Its preconditions are merged: the scorer discriminates among failures (CHG-021) and among winners (CHG-022), and FitnessScore orders decision-first (CHG-023). Fold RISK-003 into it rather than fixing that separately, because the slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
-  - task_success is still pinned at 1.0 for every promoted candidate, because the gate requires every declared case to pass. It needs an evidence source the gate does not consume, such as a held-out set. This is the largest remaining hole in the fitness function and it bites hardest exactly when ranking a population, so decide how to handle it while designing C6 rather than after
+  - adversarial review of the CHG-024 branch pinned to its pushed sha, aimed at the purge diff; ADR-0005 gets a separate pass from a non-codex provider, because codex already reviewed it once and a second codex run is not independent challenge
+  - after review findings are addressed: mark PR #42 ready and optionally trigger full-readiness via workflow_dispatch, since it does not run on a branch
+  - then START HERE. C6, the population slice: evaluate several candidates per generation and rank them by FitnessScore. ADR-0002 names it as the missing Layer-1 piece. Its preconditions are merged or on this branch: the scorer discriminates among failures (CHG-021), among winners (CHG-022), FitnessScore orders decision-first (CHG-023), and held-out cases let task_success vary among promoted candidates (CHG-024). Fold RISK-003 into it rather than fixing that separately, because the slice needs several live candidate worktrees at once and has to choose a candidate naming scheme anyway
   - an undeclared objective still contributes 1.0, so a run that measures nothing scores well on what it did not measure. Renormalising the weighted sum over only the objectives a run actually measured would fix it and would change the meaning of every recorded score, so it needs its own change
   - migrate MutationEvaluationLoop off the transitional Mutation/MutationValidator/FitnessScorer stack onto MutationContract and PhenotypeFitnessScorer. Both stacks exist and only the old one is wired, which is why contractless runs remain the default
   - decide whether contractless runs should stay the default. Declared gates enforce, but nothing declares them unless an operator passes --operator, so the enforcement exists and is mostly unused
@@ -47,6 +47,8 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-24 CHG-024 purge validation: full unit, acceptance and integration suites rerun with --rerun-tasks and observed to execute (ScoringFingerprintRoundTripIntegrationTest: 4 tests, 0 skipped, 0 failures); project check 7/7; check-changes OK
+  - 2026-08-24 CHG-024 purge mutation evidence: defaulting the fingerprint in ExperimentEnvelopeCodec made anEnvelopeWithoutAFingerprintIsRejected fail; restoring a schema default made aRowWithoutAFingerprintIsRejectedByTheLedgerSchema fail; removing the requireNonNull made aResultCannotBeConstructedWithoutAScoringContext fail. Each implementation mutation was restored immediately.
   - 2026-08-23 CHG-023 final validation: project test, project component-test, project integration-test and project check all pass; project check-changes also passes
   - 2026-08-23 CHG-023 mutation evidence: replacing FitnessScore's decision rank with a constant made LineageNoveltyMemoryPolicyTest.aHigherScoringFailureDoesNotTakeAChampionSlotFromAPromotion fail; rendering four decimal places made ConsoleReporterTest.roundsRawMagnitudeOnlyWhenRenderingTheConsoleReport fail; rounding before SQLite write made SqliteEvolutionaryMemoryStoreIntegrationTest.roundTripsObservableMemoryInTheExperimentLedger fail; lowering the raw promotion threshold to 0.79 made PhenotypeFitnessScorerPropertyTest.decisionIsDerivedFromRawSumNotRoundedAggregate fail. Each implementation mutation was restored immediately.
   - 2026-08-23 CHG-023 project test: pass after raw FitnessScore, scorer, persistence and console changes
