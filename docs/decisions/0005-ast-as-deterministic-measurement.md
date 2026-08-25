@@ -331,6 +331,61 @@ They give probabilistic ranking, not reproducible symbolic identity, and
 They stay legitimate as advisory retrieval, where `ARCH-002` already puts that
 class of evidence.
 
+## Unsupported is a work item, not a dead end
+
+This is a self-adapting agentic system, and that changes what "we do not support
+that language" should mean. In an ordinary tool, `UNSUPPORTED` is a shrug. Here it
+is the most useful signal the system can emit, because there is an agent on the
+other side of it who can implement the missing piece.
+
+So `UNSUPPORTED` and `UNPARSEABLE` must **fail with instructions**, not with a
+status:
+
+```
+   candidate in language L
+          |
+          v
+   no inspector registered for L
+          |
+          v
+   NOT: "unsupported, score 0"
+   BUT: a work item naming
+          - the port to implement (SourceStructureInspector)
+          - the contract it must satisfy (C1's StructuralEvidence shape)
+          - the completeness states it must distinguish (C5)
+          - the acceptance tests it must pass
+          - what is already implemented, as a worked example
+```
+
+That is the difference between a system that degrades and one that can be grown.
+The failure is a specification for its own repair.
+
+Three constraints keep it honest, and they matter more here than the idea does.
+
+- **The instruction is generated from the contract, not written by a model.** The
+  port signature, the evidence shape and the required completeness states are
+  facts the deterministic layer already holds. A model may render them; it may
+  not invent them.
+- **Implementing the component does not promote anything.** A newly contributed
+  inspector is a normal change: reviewed, tested, and landed through the usual
+  gates. `ARCH-001` is unchanged — nothing here lets the loop widen its own
+  capabilities without a human in the path.
+- **An unsupported language never scores.** The temptation is to treat a missing
+  inspector as a neutral result so runs keep flowing. That is the
+  unmeasured-objective defect again, and it would reward a candidate for being in
+  a language nothing can read. C5's rule stands: no evidence, no objective, no
+  contribution.
+
+This generalises past parsers. The same shape applies to a missing benchmark
+harness, a check runner for an unfamiliar build system, or an adapter for an
+architecture the loop has not met. The registry of what SAAA can measure is
+itself a thing the loop can be asked to extend — which is the project's own
+premise turned on its own tooling.
+
+Scope note: nothing above is in the base case. It is recorded now because it
+changes how `UNSUPPORTED` should be *shaped* when the first inspector lands, and
+a status enum is much harder to turn into a work item afterwards.
+
 ## Parser choice, researched
 
 The ADR said "tree-sitter now, code property graph later". Research found three

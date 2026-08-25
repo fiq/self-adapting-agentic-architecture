@@ -61,6 +61,25 @@ The parser is a provider-shaped dependency and lives in `adapters` behind
 `SourceStructureInspector`, exactly as LangChain4j lives behind its own boundary.
 The architecture fitness function must be extended to enforce it.
 
+## Unsupported is a work item, not a dead end
+
+In a self-adapting system, "no inspector for this language" is the most useful
+signal available, because an agent can implement the missing piece. UNSUPPORTED
+and UNPARSEABLE therefore fail with instructions - the port to implement, the
+evidence shape it must produce, the completeness states it must distinguish, the
+acceptance tests it must pass - rather than with a status.
+
+Three constraints hold. The instruction is generated from the contract rather
+than authored by a model. Implementing the component is a normal reviewed change,
+so ARCH-001 still holds and the loop cannot widen its own capabilities unattended.
+And an unsupported language never scores, because treating a missing inspector as
+neutral would reward a candidate for being unreadable - the unmeasured-objective
+defect again.
+
+Generalises past parsers to any missing measurement capability: a benchmark
+harness, a check runner for an unfamiliar build system, an adapter for an
+unmet architecture.
+
 ## Parser choice
 
 Researched rather than assumed. The official tree-sitter Java binding requires
