@@ -96,13 +96,36 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         var phenotype = new PhenotypeEvidence(
                 evidence, behaviorCases, objectives, realization, nonGatingCheckNames(),
                 config.heldOutCaseNames(),
-                config.behaviorCaseNames(), config.maxLinesChanged(), config.benchmarkBudgets());
+                config.behaviorCaseNames(), config.maxLinesChanged(), config.benchmarkBudgets(),
+                unmeasuredObjectiveIds(evidence));
         // A declared required_evidence id names a check that must exist and pass, so the declaration
         // is enforced against evidence this run already collected rather than a separate pipeline.
         return contract
                 .map(declared -> delegate.score(candidate, phenotype, declared,
                         declaredEvidenceResolver.resolve(declared.requiredEvidence(), evidence)))
                 .orElseGet(() -> delegate.score(candidate, phenotype));
+    }
+
+    /**
+     * The objectives this run had no evidence source for.
+     *
+     * <p>Keyed on what was <em>declared</em>, not on the value produced: a declared probe that passes
+     * scores {@code 1.0} and was genuinely measured. Only absence of a source counts.
+     *
+     * <p>{@code task_success}, {@code reliability} and {@code parsimony} always have a source - the
+     * behaviour cases, the checks that ran, and the realized diff - so only these two can be absent.
+     */
+    private Set<String> unmeasuredObjectiveIds(EvaluationEvidence evidence) {
+        var unmeasured = new java.util.LinkedHashSet<String>();
+        if (config.safetyProbeNames().isEmpty()) {
+            unmeasured.add(FitnessSignalId.objective("behavioral_safety").canonical());
+        }
+        // A budget is what the objective compares against; with none declared there is nothing to
+        // compare a measurement to, whether or not benchmarks ran.
+        if (config.benchmarkBudgets().isEmpty()) {
+            unmeasured.add(FitnessSignalId.objective("cost_latency_budget").canonical());
+        }
+        return Set.copyOf(unmeasured);
     }
 
     private static BehaviorCaseEvidence toBehaviorCase(CheckEvidence check) {

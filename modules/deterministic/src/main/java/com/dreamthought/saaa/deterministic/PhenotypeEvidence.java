@@ -31,7 +31,11 @@ public record PhenotypeEvidence(
         // set and the threshold; only the bridge knows these. See ScoringContext.
         Set<String> gatingCaseNames,
         int maxLinesChanged,
-        Map<String, Double> benchmarkBudgets
+        Map<String, Double> benchmarkBudgets,
+        // Objectives with no evidence source in this run. They contribute nothing and are excluded
+        // from the weight the score is normalised over, rather than contributing full marks for
+        // having measured nothing. Named by the bridge, which knows what was declared.
+        Set<String> unmeasuredObjectiveIds
 ) {
     public PhenotypeEvidence {
         evidence = Objects.requireNonNull(evidence, "evidence");
@@ -42,6 +46,8 @@ public record PhenotypeEvidence(
         heldOutCaseNames = Set.copyOf(Objects.requireNonNull(heldOutCaseNames, "heldOutCaseNames"));
         gatingCaseNames = Set.copyOf(Objects.requireNonNull(gatingCaseNames, "gatingCaseNames"));
         benchmarkBudgets = Map.copyOf(Objects.requireNonNull(benchmarkBudgets, "benchmarkBudgets"));
+        unmeasuredObjectiveIds =
+                Set.copyOf(Objects.requireNonNull(unmeasuredObjectiveIds, "unmeasuredObjectiveIds"));
         if (maxLinesChanged <= 0) {
             throw new IllegalArgumentException("maxLinesChanged must be positive");
         }
@@ -60,7 +66,7 @@ public record PhenotypeEvidence(
             Set<String> nonGatingCheckNames,
             Set<String> heldOutCaseNames) {
         this(evidence, behaviorCases, objectiveScores, realization, nonGatingCheckNames,
-                heldOutCaseNames, Set.of(), 1, Map.of());
+                heldOutCaseNames, Set.of(), 1, Map.of(), Set.of());
     }
 
     /** No held-out cases: every behaviour case both gates and scores, as before CHG-024. */
@@ -71,7 +77,7 @@ public record PhenotypeEvidence(
             RealizationSummary realization,
             Set<String> nonGatingCheckNames) {
         this(evidence, behaviorCases, objectiveScores, realization, nonGatingCheckNames, Set.of(),
-                Set.of(), 1, Map.of());
+                Set.of(), 1, Map.of(), Set.of());
     }
 
     /** Every check gates. */
@@ -81,7 +87,7 @@ public record PhenotypeEvidence(
             Map<String, Double> objectiveScores,
             RealizationSummary realization) {
         this(evidence, behaviorCases, objectiveScores, realization, Set.of(), Set.of(),
-                Set.of(), 1, Map.of());
+                Set.of(), 1, Map.of(), Set.of());
     }
 
     /**

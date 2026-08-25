@@ -105,7 +105,9 @@ public final class PhenotypeFitnessScorer {
         List<FitnessObjective> objectiveSet = contract == null
                 ? MutationOperatorPolicy.DEFAULT_OBJECTIVES
                 : contract.objectives();
-        boolean objectiveScoresPresent = hasEveryObjectiveScore(phenotype, objectiveSet);
+        // An objective nothing measured is legitimately absent, not missing by error, so the
+        // presence gate asks only about the ones a source existed for.
+        boolean objectiveScoresPresent = hasEveryObjectiveScore(phenotype, measured(phenotype, objectiveSet));
         // A candidate that changed no file has no behavioral variation to evaluate: its passing
         // checks are evidence about the baseline, and parsimony rewards the empty diff with 1.0.
         // Measured in files rather than lines, so a mode-only change still counts as a realization.
@@ -139,7 +141,12 @@ public final class PhenotypeFitnessScorer {
         // which already failed a near miss stays distinguishable from a total miss. Zeroing here
         // destroyed exactly that, which is the information a population needs to choose which
         // failure to mutate from next. The decision below is unchanged and still gated.
-        double rawScore = weightedScore(phenotype, objectiveSet);
+        // Derived from the exact magnitude rather than a second double accumulation. Renormalising
+        // made the two diverge: summing the measured weights as doubles gives 0.9000000000000001,
+        // and a candidate landing exactly on the threshold came out at 0.7999999999999999 and was
+        // discarded. Promotion must not depend on the summation order of the weight constants, and
+        // the decision must agree with the magnitude that gets stored, ranked and reported.
+        double rawScore = weightedMagnitude(phenotype, measured(phenotype, objectiveSet)).doubleValue();
         FitnessDecision decision = gatesPassed && rawScore >= PROMOTION_THRESHOLD
                 ? FitnessDecision.PROMOTE
                 : FitnessDecision.DISCARD;
@@ -175,7 +182,7 @@ public final class PhenotypeFitnessScorer {
                 phenotype.benchmarkBudgets());
 
         return new FitnessResult(candidate, phenotype.evidence(), objectives,
-                new FitnessScore(weightedMagnitude(phenotype, objectiveSet), decision),
+                new FitnessScore(weightedMagnitude(phenotype, measured(phenotype, objectiveSet)), decision),
                 scoringContext);
     }
 
@@ -191,6 +198,54 @@ public final class PhenotypeFitnessScorer {
      * {@code MutationContractValidator.requireDeterministicObjectives} is relaxed to permit a
      * per-operator objective set.
      */
+    /**
+     * The objectives this run could actually measure.
+     *
+     * <p>An objective with no evidence source used to contribute its full weight: with no safety
+     * probes and no benchmark budgets declared, a run banked {@code 0.30} of the sum for measuring
+     * nothing, more than a third of the way to the {@code 0.80} threshold. Excluding them here and
+     * normalising over what remains means a score describes what was measured, and declaring probes
+     * or budgets changes the precision of a score rather than inflating it.
+     *
+     * <p>Scores from before and after this change mean different things. That is safe only because
+     * {@code ScoringContext} fingerprints the probe set and the budget map, so the two are already
+     * refused for comparison rather than silently mixed - the mistake RISK-007 records.
+     */
+    private static List<FitnessObjective> measured(
+            PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
+        if (phenotype.unmeasuredObjectiveIds().isEmpty()) {
+            return objectiveSet;
+        }
+        var remaining = objectiveSet.stream()
+                .filter(objective -> !phenotype.unmeasuredObjectiveIds().contains(objective.id()))
+                .toList();
+        // A run that measured nothing at all has no score to give. Falling back to the full set
+        // would restore exactly the behaviour this exists to remove.
+        if (remaining.isEmpty()) {
+            throw new IllegalArgumentException("no objective in this run had an evidence source");
+        }
+        return remaining;
+    }
+
+    /** Total weight of the objectives being scored, so a magnitude is a fraction of what was measured. */
+    private static double measuredWeight(List<FitnessObjective> objectiveSet) {
+        return objectiveSet.stream().mapToDouble(FitnessObjective::weight).sum();
+    }
+
+    /**
+     * The same total in decimal, for the magnitude.
+     *
+     * <p>Summing the weights as doubles gives {@code 0.7000000000000001} for the default measured
+     * set, and dividing by that yields {@code 0.9999999999999999} where the answer is exactly one.
+     * The gate calculation keeps the double arithmetic it always had; the recorded magnitude is
+     * exact, because it is the number stored, ranked and reported.
+     */
+    private static BigDecimal measuredWeightExact(List<FitnessObjective> objectiveSet) {
+        return objectiveSet.stream()
+                .map(objective -> BigDecimal.valueOf(objective.weight()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private static boolean hasEveryObjectiveScore(
             PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
         return objectiveSet.stream()
@@ -218,7 +273,7 @@ public final class PhenotypeFitnessScorer {
                     Double measured = phenotype.objectiveScores().get(objective.id());
                     return isFraction(measured) ? objective.weight() * measured : 0.0;
                 })
-                .sum();
+                .sum() / measuredWeight(objectiveSet);
     }
 
     /** Preserves the decimal magnitude the objectives describe without changing the double gate calculation. */
@@ -230,7 +285,9 @@ public final class PhenotypeFitnessScorer {
                             ? BigDecimal.valueOf(objective.weight()).multiply(BigDecimal.valueOf(measured))
                             : BigDecimal.ZERO;
                 })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(measuredWeightExact(objectiveSet), java.math.MathContext.DECIMAL64)
+                .stripTrailingZeros();
     }
 
     private static double gateValue(boolean passed) {

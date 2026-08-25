@@ -78,7 +78,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                "0.59");
+                "0.4142857142857143");
     }
 
     /**
@@ -98,7 +98,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 DISCARD,
-                "0.59");
+                "0.4142857142857143");
     }
 
     /**
@@ -139,7 +139,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 PROMOTE,
-                "0.99875");
+                "0.9982142857142857");
     }
 
     /**
@@ -159,7 +159,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 PROMOTE,
-                "0.95");
+                "0.9285714285714286");
     }
 
     /**
@@ -182,12 +182,12 @@ final class GoldenCorpus {
     private static Entry promoteAtExactThreshold() {
         return new Entry(
                 "promote-at-exact-promotion-threshold",
-                "raw weighted sum is exactly 0.80 → PROMOTE (boundary is inclusive; catches a regression that moves the comparison from `>=` to `>`)",
+                "renormalised weighted sum is exactly 0.80 → PROMOTE (boundary is inclusive; catches a regression that moves the comparison from `>=` to `>`). Retuned when unmeasured objectives stopped contributing: behavioral_safety has no probes here so the divisor is 0.90, and the diff shrank from 40 to 24 lines to put the numerator back on 0.72. Changing the expectation instead would have deleted the only test of the inclusive boundary",
                 new EvaluationEvidence(
                         List.of(passed("build", "ok"), passed("publish-guard", "ok")),
                         List.of(com.dreamthought.saaa.domain.BenchmarkEvidence.measurement("publish-latency", 200.0, "ms")),
                         WHEN),
-                new RealizationSummary(1, 40),
+                new RealizationSummary(1, 24),
                 Set.of("publish-guard"),
                 DEFAULT_MAX_LINES,
                 Map.of("publish-latency", 50.0),
@@ -214,7 +214,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of("publish-latency", 50.0),
                 DISCARD,
-                "0.797619047619047616");
+                "0.7751322751322751");
     }
 
     /**
@@ -266,7 +266,7 @@ final class GoldenCorpus {
                 DEFAULT_MAX_LINES,
                 Map.of(),
                 PROMOTE,
-                "0.9975");
+                "0.9964285714285714");
     }
 
     private GoldenCorpus() {
