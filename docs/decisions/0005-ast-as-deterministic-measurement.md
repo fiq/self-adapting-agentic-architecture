@@ -348,8 +348,11 @@ realization respected them. Duplicate detection's consumer is the population
 slice, which does not exist yet. Choosing a capability whose consumer is absent
 would have delivered plumbing with three sensitivity proofs and no observable
 change in system behaviour — against this repository's outside-in discipline,
-where every prior change drove a behaviour through an acceptance test with a live
-consumer.
+where changes are normally driven outside-in. That norm is not universal —
+`CHG-023` shipped with unit and integration coverage and no acceptance test — but
+it was a change to a domain type with several live consumers, which is the
+property that actually matters here. A capability whose only consumer does not
+exist yet has neither.
 
 So the slice is:
 
@@ -387,10 +390,18 @@ left to implementation.
 | — | Statement order | Reordering can change behaviour, and proving otherwise is the job of `EQUIVALENT_UNDER_LAWS` |
 | — | Generated code | Never normalised specially; if generated code is in scope it is scored like any other |
 
-The comment caveat: erasing comments means a candidate whose only change is a
-comment is a duplicate of its parent, and the non-empty-realization gate will
-already have discarded it. Prompt or policy text living in comments would be a
-reason to revisit this row.
+The comment caveat, corrected after checking it: erasing comments means a
+candidate whose only change is a comment normalizes to a duplicate of its parent.
+An earlier draft of this section claimed the non-empty-realization gate would
+already have discarded such a candidate. **It would not.** That gate tests
+`filesChanged > 0`, and a comment edit changes a file — the repository's own risk
+register records the same thing about a one-character whitespace edit.
+
+So a comment-only candidate passes every gate, occupies a worktree, and is a
+duplicate. That is not a case the existing gates handle; it is precisely a case
+the duplicate rule has to catch, which strengthens rather than weakens the reason
+to erase comments. Prompt or policy text living in comments would be a reason to
+revisit this row.
 
 Anything not in this table is preserved. Changing a row requires a new
 normalization policy id, because it changes what "the same candidate" means.
