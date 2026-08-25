@@ -83,6 +83,33 @@ Generalises past parsers to any missing measurement capability: a benchmark
 harness, a check runner for an unfamiliar build system, an adapter for an
 unmet architecture.
 
+## One abstraction, filled to different depths
+
+The first draft had two - a StructuralEvidence record now and a code property
+graph later - which are the same thing at different fidelities. Keeping both means
+every capability eventually branches on which one it received.
+
+There is one layered model. Every frontend fills the syntax layer; language tools
+fill the symbol layer; richer frontends fill flow later. A capability names the
+layers it needs and a frontend declares the layers it fills, so the locus gate is
+available where symbols are and reports UNSUPPORTED elsewhere, while distance,
+complexity and convergence work anywhere a grammar exists. No capability asks
+which parser produced its input.
+
+The variation lives in which layers are populated, which is data, rather than in
+which type you got, which is a branch in every consumer.
+
+The shape is a code property graph's - one attributed multigraph over syntax,
+control flow and data dependence with a common surface across frontends. We adopt
+the shape, not the platform: Joern is an external analysis stack beyond a local
+CLI, but a minimal CPG-shaped model costs little now and keeps the platform an
+option rather than a rewrite. It is also the model the cross-API graph needs.
+
+C1's StructuralEvidence becomes the syntax-layer projection rather than a separate
+type, and its completeness states describe which layers were filled. The base case
+is unchanged; what changes is that the second language needs a second frontend
+rather than a second abstraction.
+
 ## The target language is the user's, not ours
 
 SAAA is pointed at whatever project a user wants to evolve, and at their agentic
