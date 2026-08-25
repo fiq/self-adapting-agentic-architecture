@@ -31,10 +31,10 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.14.4"
+          gradle-version: "9.5.1"
       - name: Repository checks
         run: .agentic-template/bin/project check
       - name: README check
@@ -56,9 +56,9 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.14.4"
+          gradle-version: "9.5.1"
       - name: Full readiness
         run: .agentic-template/bin/project ready

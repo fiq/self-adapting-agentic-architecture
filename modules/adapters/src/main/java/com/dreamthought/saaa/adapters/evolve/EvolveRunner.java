@@ -132,13 +132,21 @@ public final class EvolveRunner {
         request.safetyProbes().stream()
                 .filter(name -> !caseAndProbeNames.contains(name))
                 .forEach(caseAndProbeNames::add);
+        // Held-out cases must execute for the same reason probes must: the scorer records a declared
+        // case that produced no evidence as failed, so a held-out case that never ran would lower
+        // `task_success` from absence rather than from measurement, and the run would look like it
+        // had measured something it never executed. Adding them here also brings them under
+        // `requireRunnableCheckScripts` and `requireWorkflowIsNotCheckScript` below.
+        request.heldOutCases().stream()
+                .filter(name -> !caseAndProbeNames.contains(name))
+                .forEach(caseAndProbeNames::add);
         // Repeats are added after the scripts are resolved, so a repeat cannot introduce a new script
         // path: it re-runs one that already had to exist and be executable.
         var checks = BehaviourCaseChecks.withRepeatedRuns(
                 BehaviourCaseChecks.forCases(caseAndProbeNames, gitRoot.relativize(folder)),
                 request.behaviourCases(), request.reliabilityRuns());
         requireWorkflowIsNotCheckScript(gitRoot, workflowPath, checks);
-        requireRunnableCheckScripts(gitRoot, checks, request.safetyProbes());
+        requireRunnableCheckScripts(gitRoot, checks, request.safetyProbes(), request.heldOutCases());
 
         String relativeWorkflow = gitRoot.relativize(workflowPath).toString();
         String repositoryRevision = GitRepositoryRevision.workingTree(gitRoot);
@@ -167,7 +175,7 @@ public final class EvolveRunner {
                         new ScoringConfig(
                                 Set.copyOf(request.behaviourCases()), request.maxLines(),
                                 request.benchmarkBudgets(), Set.copyOf(request.safetyProbes()),
-                                request.reliabilityRuns())),
+                                request.reliabilityRuns(), Set.copyOf(request.heldOutCases()))),
                 new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite")),
                 new JournalDecisionSink(),
                 new CompositeReporter(List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture)),
@@ -192,13 +200,28 @@ public final class EvolveRunner {
                 wallMillis, timedRetriever.elapsedMillis());
     }
 
+    /**
+     * Names the option the caller actually passed, so a bad script sends the reader to the right
+     * flag. Probes and held-out cases both travel with the behaviour cases so they get executed, and
+     * calling either one a behaviour case points at `--behaviour-case` for a script the caller
+     * declared with a different option.
+     */
+    private static String kindOf(
+            String checkName, Collection<String> probeNames, Collection<String> heldOutNames) {
+        if (probeNames.contains(checkName)) {
+            return "safety probe";
+        }
+        return heldOutNames.contains(checkName) ? "held-out case" : "behaviour case";
+    }
+
     private static void requireRunnableCheckScripts(
-            Path gitRoot, List<CommandCheck> checks, Collection<String> probeNames) {
+            Path gitRoot, List<CommandCheck> checks, Collection<String> probeNames,
+            Collection<String> heldOutNames) {
         for (CommandCheck check : checks) {
             // Name the option the caller actually passed. Probes travel with the behaviour cases so
             // they get executed, and calling a bad probe a behaviour case sends the reader to the
             // wrong flag.
-            String kind = probeNames.contains(check.name()) ? "safety probe" : "behaviour case";
+            String kind = kindOf(check.name(), probeNames, heldOutNames);
             Path script = gitRoot.resolve(check.command().get(0)).normalize();
             if (!Files.isRegularFile(script, LinkOption.NOFOLLOW_LINKS)) {
                 throw new IllegalArgumentException(

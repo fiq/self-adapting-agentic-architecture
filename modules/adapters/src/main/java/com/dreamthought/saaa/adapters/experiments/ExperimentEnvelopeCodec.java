@@ -37,6 +37,7 @@ final class ExperimentEnvelopeCodec {
         scalar(out, "retrieval_configuration_id", record.retrievalConfigurationId());
         scalar(out, "raw_magnitude", record.fitnessScore().rawMagnitude().toPlainString());
         scalar(out, "decision", record.fitnessScore().decision().name());
+        scalar(out, "scoring_fingerprint", record.scoringFingerprint());
         scalar(out, "evaluated_at", record.evaluatedAt().toString());
         out.append("  changed_paths[").append(record.changedPaths().size()).append("]:\n");
         record.changedPaths().forEach(value -> out.append("    - ").append(csv(List.of(value))).append('\n'));
@@ -99,6 +100,10 @@ final class ExperimentEnvelopeCodec {
                 required(scalar, "retrieval_configuration_id"), changedPaths, evidence, checks, benchmarks,
                 new FitnessScore(new BigDecimal(required(scalar, "raw_magnitude")),
                         FitnessDecision.valueOf(required(scalar, "decision"))),
+                // Required, not defaulted. An envelope without a fingerprint cannot say what its
+                // magnitude was measured against, so it is rejected rather than admitted with
+                // invented provenance.
+                required(scalar, "scoring_fingerprint"),
                 Instant.parse(required(scalar, "evaluated_at")));
     }
 

@@ -1,0 +1,163 @@
+---
+id: ADR-0005
+type: decision
+title: AST as deterministic measurement, never as a mutation operator
+status: proposed
+reviewed_at: 2026-08-23
+summary: Adopt the abstract syntax tree as a deterministic measurement surface for structural distance, convergence detection, blast-radius checking and complexity, all inside the deterministic layer with the parser behind an adapter port. Random or model-directed AST mutation stays forbidden, and AST-aware realization remains out of scope pending its own decision.
+owners:
+  - architect
+relates_to:
+  - ARCH-001
+  - CON-001
+  - SYS-001
+  - Q-006
+  - RISK-002
+decisions:
+  - ADR-0002
+evidence:
+  - docs/decisions/0005-ast-as-deterministic-measurement.md
+  - PROJECT_PROFILE.toon
+review_after: 2027-02-28
+---
+
+# ADR-0005: AST as Deterministic Measurement
+
+Details live in `docs/decisions/0005-ast-as-deterministic-measurement.md`. This
+node exists so specs, wiki pages and other knowledge entries can link the
+decision by id.
+
+## Summary
+
+Three open problems are one problem: the population slice cannot tell two
+candidates apart, `SearchPosture` has no deterministic trigger for switching
+between `hill-climb` and `exploratory-leap`, and the weighted objectives barely
+vary between candidates that pass. All three want a deterministic measurement of
+code structure.
+
+The AST supplies it, and answers four questions without a model anywhere near
+them: how different two candidates really are, whether a generation is
+converging, whether an edit stayed inside its declared loci, and whether
+structural complexity got worse.
+
+## Load-bearing rule
+
+The model proposes because it proposes *plausible* variants. The AST is how the
+deterministic layer understands what was proposed. Random structural mutation
+produces mostly invalid programs and pushes the burden onto the evaluator, which
+inverts loop engineering. `ARCH-001` is unchanged: measurement never approves.
+
+## Convergence is a selection rule, not an objective
+
+When structural spread across a generation collapses, the *next* generation asks
+for exploration instead of exploitation. It never changes what promotes now.
+Adding posture or trend to the weighted sum would double-count objectives and
+make candidates from different parents incomparable, which `Q-006` and the
+recorded design input both warn against.
+
+## Boundary
+
+The parser is a provider-shaped dependency and lives in `adapters` behind
+`SourceStructureInspector`, exactly as LangChain4j lives behind its own boundary.
+The architecture fitness function must be extended to enforce it.
+
+## Unsupported is a work item, not a dead end
+
+In a self-adapting system, "no inspector for this language" is the most useful
+signal available, because an agent can implement the missing piece. UNSUPPORTED
+and UNPARSEABLE therefore fail with instructions - the port to implement, the
+evidence shape it must produce, the completeness states it must distinguish, the
+acceptance tests it must pass - rather than with a status.
+
+Three constraints hold. The instruction is generated from the contract rather
+than authored by a model. Implementing the component is a normal reviewed change,
+so ARCH-001 still holds and the loop cannot widen its own capabilities unattended.
+And an unsupported language never scores, because treating a missing inspector as
+neutral would reward a candidate for being unreadable - the unmeasured-objective
+defect again.
+
+Generalises past parsers to any missing measurement capability: a benchmark
+harness, a check runner for an unfamiliar build system, an adapter for an
+unmet architecture.
+
+## Parser choice
+
+Researched rather than assumed. The official tree-sitter Java binding requires
+JDK 23+ and the FFM API while this project pins JDK 21; it needs native grammar
+artifacts per language in a Nix-pinned build; and it performs no semantic
+analysis, so it cannot supply the symbol identity the declared-locus gate needs.
+JavaParser with its symbol solver is pure JVM, needs no native artifacts and no
+JDK bump, and resolves names to declarations, so it fits the Java-only base case.
+tree-sitter stays the multi-language answer, and that step is now visibly more
+expensive than a technology name implied.
+
+## Base case
+
+Ship the declared-locus gate as the first consumer: `MutationContract` already
+carries `loci` and a `MutationTarget`, and nothing checks that a realization
+respected them, so it is the one capability with a live consumer today.
+Duplicate detection ships alongside and becomes load-bearing when the population
+slice exists.
+
+A second review found the original base case both contradictory - it parsed only
+the changed symbol while promising to detect edits outside it - and pointed at
+the wrong consumer, choosing the capability whose consumer does not exist yet.
+Stable symbol identity across edits is called out as unsolved rather than
+assumed: tree-sitter yields nodes, not identities that survive an edit. Convergence, blast radius and complexity
+follow only once that primitive is trusted, so a defect surfaces in one place
+rather than four. A thresholded distance is not the duplicate rule until the
+threshold has been calibrated against labelled examples.
+
+## Corrected after research
+
+The first draft specified a lossy `StructuralSummary` — node counts, depth,
+fan-out, a hash — and then asked the distance policy to compute tree edit
+distance from it. Tree edit distance needs the tree, so that contract could
+never have been implemented. C1 now carries auditable `StructuralEvidence`, and
+inspection is separated from comparison so the domain cannot claim to hold
+information it does not.
+
+## Normalization is the duplicate rule
+
+Policy v1 enumerates what is erased - whitespace, comments, import order - and
+what is preserved - identifier names, literal values, statement order, generated
+code. The table is the semantics, so changing a row requires a new policy id.
+
+## Category theory is not load-bearing
+
+Catamorphisms are useful implementation discipline — every measurement here is a
+compositional fold — but add no information and decide nothing. "Compiling to
+categories" needs a restricted typed functional source language. Categorical
+graph rewriting would matter only if SAAA adopted verified transformation rules,
+which this decision explicitly does not. Rice's theorem forecloses deciding
+behavioural equivalence for arbitrary programs, so every relation offered here is
+equivalence under a declared syntactic or algebraic policy and must never be
+described as "the same functional behaviour".
+
+## Behavioural equivalence is empirical, not static
+
+Rice's theorem forecloses deciding behavioural equivalence statically; it says
+nothing about observing it. Acceptance cases, held-out cases, benchmarks and
+declared external contracts form an envelope, and two candidates agreeing across
+it are observationally equivalent within that envelope. That is the only relation
+here entitled to the word behaviour, and it is bounded three ways: the envelope
+must be declared and versioned as part of comparable identity, side effects are
+excluded, and no detected difference is weaker than sameness.
+
+Structure is therefore the cheap proxy that decides which candidates are worth
+the expensive measurement, not a substitute for it.
+
+## One graph across APIs
+
+A code property graph — AST, control flow and program dependence in one
+attributed multigraph — is the right later shape for dependency cycles,
+interface preservation and reachability across the APIs a project knows about.
+ADR-0004's Neo4j already holds partitioned SUBJECT and PROCESS projections, so
+this extends a running experiment rather than adding infrastructure, and the
+projection stays derived. Learned embeddings are excluded from these contracts:
+they rank probabilistically and cannot gate a promotion under ARCH-001.
+
+## Explicitly not granted
+
+Random or model-directed AST mutation, AST-aware realization, hunk application,
+LSP integration, or replacing execution-based evidence.

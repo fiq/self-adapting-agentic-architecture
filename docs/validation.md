@@ -1,6 +1,7 @@
 # Validation
 
-Validation proves behaviour and repository contract, not just a green command.
+Validation proves that behaviour and the repository contract hold. A green
+command on its own is not proof.
 
 ## Core Rules
 
@@ -12,20 +13,27 @@ Validation proves behaviour and repository contract, not just a green command.
 
 ## Layers
 
-| Layer | Use |
-|---|---|
-| Unit/domain | Pure logic, invariants and edge cases |
-| Contract | Public API, event, file or schema compatibility |
-| Component/integration | Real internal wiring and cheap dependencies |
-| E2E/manual | Runtime, UX, platform or operational risks CI cannot prove |
+A layer here is a level a test can run at, from cheap and fast up to the
+risks CI cannot prove. Use the cheapest layer that credibly covers the risk:
+
+```
+  cheapest
+
+   unit/domain            pure logic, invariants and edge cases
+   contract               public API, event, file or schema compatibility
+   component/integration  real internal wiring and cheap dependencies
+   E2E/manual             runtime, UX, platform or operational risks
+                          CI cannot prove
+```
 
 ## Architecture Fitness Functions
 
-Fitness functions are deterministic checks for architecture characteristics,
-not prose review reminders. Generated projects should identify the top 1-3
-architecture risks and encode cheap checks where practical.
+An architecture fitness function is a small deterministic check that guards an
+architecture characteristic. It runs and fails like a test; it is not a prose
+review reminder. Generated projects should identify the top 1-3 architecture
+risks and encode cheap checks where practical.
 
-Examples:
+Typical things a fitness function checks:
 
 - dependency direction and forbidden imports;
 - public contract/schema drift;
@@ -34,55 +42,73 @@ Examples:
 - performance, accessibility, security or deployability budgets;
 - container health checks and health-aware local dependencies.
 
-Wire automated fitness functions into `.agentic-template/bin/project check`,
-`.agentic-template/bin/project ready` or a specialised command they call. When
-automation is not yet credible, record the manual validation path and revisit
-trigger.
+Where fitness functions are wired:
 
-Current project-specific fitness function:
+- automated fitness functions go into `.agentic-template/bin/project check`,
+  `.agentic-template/bin/project ready` or a specialised command they call;
+- when automation is not yet credible, record the manual validation path and
+  a revisit trigger.
+
+## Checks in This Project
+
+### Boundary lint
 
 ```sh
 .agentic-template/bin/project lint
 ```
 
-It protects the deterministic model boundary by failing when LangChain4j,
-picocli, SQLite, Flyway or JMH implementation dependencies appear in
-`modules/domain/` or `modules/deterministic/`.
+`project lint` protects the deterministic model boundary. It:
 
-It also confines each provider dependency to one package, so the git, sqlite and
-checks adapters cannot import LangChain4j even though they now share a compile
-classpath with it, and it fails when a scanned layer directory is missing rather
-than reporting OK while scanning nothing.
+- fails when LangChain4j, picocli, SQLite, Flyway or JMH implementation
+  dependencies appear in `modules/domain/` or `modules/deterministic/`;
+- confines each provider dependency to one package, so the git, sqlite and
+  checks adapters cannot import LangChain4j even though they now share a
+  compile classpath with it;
+- fails when a scanned layer directory is missing, rather than reporting OK
+  while scanning nothing.
 
-The CHG-005 retrieval boundary adds an opt-in real-dependency check:
+### GraphRAG integration check (CHG-005)
 
 ```sh
 .agentic-template/bin/project graphrag-integration-test
 ```
 
-It explicitly starts the pinned Neo4j Community Compose service, runs the
-focused projection/traversal/vector/outcome-memory integration test and shuts
-the container down while retaining the named rebuildable volume. Ordinary unit,
-component and integration commands do not require Docker or Neo4j.
+An opt-in, real-dependency check added for the CHG-005 retrieval boundary. It:
 
-The ordinary integration suite also proves JGit-first clean/dirty revision
-identity, Git-visible experiment-envelope/SQLite round trips, generated wiki
-projection and historic snapshot cleanup. Native Git fallback is diagnostic;
-tests require the normal JGit path so a missing API cannot silently become the
-default. The resolved JGit 7.6.0 runtime subtree is limited to JavaEWAH, SLF4J
-and Commons Codec and was checked against the published affected ranges for
-CVE-2025-4949 and CVE-2023-4759.
+- explicitly starts the pinned Neo4j Community Compose service;
+- runs the focused projection/traversal/vector/outcome-memory integration
+  test;
+- shuts the container down while retaining the named rebuildable volume.
 
-A Grype 0.115 scan of the complete installed `saaa/lib` distribution on
-2026-08-02 found no high/critical Java finding with an available fix. This
-complements the focused JGit advisory check and should be rerun when dependency
-pins change.
+Ordinary unit, component and integration commands do not require Docker or
+Neo4j.
 
-The Neo4j image was compared with Trivy 0.72 on 2026-08-02. The selected exact
-Community UBI10 manifest had zero high/critical operating-system findings; the
-current Debian image had 94. Ten high Java findings remain because no released
-Neo4j image yet carries their fixed dependency versions. RISK-005 records the
-containment and upgrade obligation. Reproduce the scan from the Nix ecosystem:
+### What the ordinary integration suite proves
+
+- JGit-first clean/dirty revision identity;
+- Git-visible experiment-envelope/SQLite round trips;
+- generated wiki projection;
+- historic snapshot cleanup.
+
+Native Git fallback is diagnostic only: the tests require the normal JGit
+path, so a missing API cannot silently become the default.
+
+### Dependency and image scans on record
+
+- JGit: the resolved JGit 7.6.0 runtime subtree is limited to JavaEWAH, SLF4J
+  and Commons Codec and was checked against the published affected ranges for
+  CVE-2025-4949 and CVE-2023-4759.
+- Java distribution: a Grype 0.115 scan of the complete installed `saaa/lib`
+  distribution on 2026-08-02 found no high/critical Java finding with an
+  available fix. This complements the focused JGit advisory check and should
+  be rerun when dependency pins change.
+- Neo4j image: compared with Trivy 0.72 on 2026-08-02. The selected exact
+  Community UBI10 manifest had zero high/critical operating-system findings;
+  the current Debian image had 94. Ten high Java findings remain because no
+  released Neo4j image yet carries their fixed dependency versions. RISK-005
+  records the containment and upgrade obligation.
+
+Reproduce the Neo4j scan from the Nix ecosystem:
 
 ```sh
 nix shell nixpkgs#trivy --command trivy image --scanners vuln \
@@ -96,10 +122,10 @@ Record meaningful validation in `HANDOFF.toon.tests_run`.
 
 If validation is skipped or blocked, record:
 
-- command or check;
-- reason it did not run;
-- risk left open;
-- next verification path.
+- the command or check;
+- the reason it did not run;
+- the risk left open;
+- the next verification path.
 
 For non-trivial changes, also record the change handoff evidence:
 
@@ -109,6 +135,7 @@ For non-trivial changes, also record the change handoff evidence:
 
 ## CI Boundary
 
-CI should call repository commands such as `project check`, `project test` and
-`project ready`. CI YAML should not duplicate build logic that belongs in the
-repository command surface.
+- CI should call repository commands such as `project check`, `project test`
+  and `project ready`.
+- CI YAML should not duplicate build logic that belongs in the repository
+  command surface.

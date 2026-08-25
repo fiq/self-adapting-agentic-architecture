@@ -20,6 +20,11 @@ public record EvolutionaryMemoryRecord(
         List<CheckEvidence> checks,
         List<BenchmarkEvidence> benchmarks,
         FitnessScore fitnessScore,
+        // What the fitness magnitude was measured against. Two records are comparable only when
+        // these agree, so a ranking that mixes them compares quantities that were never the same
+        // measurement. Mandatory: a defaulted fingerprint would let a record claim comparability it
+        // never had. See ScoringContext and RISK-007.
+        String scoringFingerprint,
         Instant evaluatedAt
 ) {
     public EvolutionaryMemoryRecord {
@@ -37,27 +42,8 @@ public record EvolutionaryMemoryRecord(
         checks = List.copyOf(Objects.requireNonNull(checks, "checks"));
         benchmarks = List.copyOf(Objects.requireNonNull(benchmarks, "benchmarks"));
         fitnessScore = Objects.requireNonNull(fitnessScore, "fitnessScore");
+        scoringFingerprint = Require.nonBlank(scoringFingerprint, "scoringFingerprint");
         evaluatedAt = Objects.requireNonNull(evaluatedAt, "evaluatedAt");
-    }
-
-    public EvolutionaryMemoryRecord(
-            EvolutionContext evolutionContext,
-            String memoryPolicyId,
-            String mutationId,
-            String mutationSummary,
-            MutationScope mutationScope,
-            String candidateId,
-            String candidateCommit,
-            RetrievalMode retrievalMode,
-            String retrievalConfigurationId,
-            List<String> retrievedEvidenceIds,
-            List<CheckEvidence> checks,
-            List<BenchmarkEvidence> benchmarks,
-            FitnessScore fitnessScore,
-            Instant evaluatedAt) {
-        this(evolutionContext, memoryPolicyId, mutationId, mutationSummary, mutationScope,
-                candidateId, candidateCommit, retrievalMode, retrievalConfigurationId, List.of(),
-                retrievedEvidenceIds, checks, benchmarks, fitnessScore, evaluatedAt);
     }
 
     public String baselineRepositoryRevision() {

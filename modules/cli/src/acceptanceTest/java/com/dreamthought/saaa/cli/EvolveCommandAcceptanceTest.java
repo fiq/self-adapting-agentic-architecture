@@ -509,6 +509,148 @@ final class EvolveCommandAcceptanceTest {
         System.clearProperty(MODEL_NAME_PROPERTY);
     }
 
+    /**
+     * CHG-024 H0. A held-out case must actually execute. If it does not, the scorer still records it
+     * as failed through {@code PhenotypeBridgeScorer}'s "no check evidence was produced" fallback,
+     * and {@code task_success} drops from absence rather than from measurement — a green test over a
+     * script that never ran, which is the disconnected assertion AGENTS.md warns about.
+     *
+     * <p>This asserts against the journal's {@code checks} row, which is rendered from
+     * {@code EvaluationEvidence.checks()} — the list of checks that genuinely executed. The scorer's
+     * synthetic fallback never reaches it, so a held-out name appearing there cannot be produced by
+     * absence.
+     */
+    @Test
+    void executesADeclaredHeldOutCaseRatherThanScoringItFromAbsence(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        writeCheck(target, "held-out-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(),
+                "--profile", "fixture",
+                "--behaviour-case", "workflow-check",
+                "--held-out-case", "held-out-check",
+                "--max-lines", "80");
+
+        assertThat(exitCode).isZero();
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .as("the held-out script must appear in the executed-check evidence, not be inferred")
+                .contains("held-out-check PASSED");
+    }
+
+    /**
+     * CHG-024 H1, the load-bearing assertion. A failing held-out case must lower {@code task_success}
+     * without discarding the candidate. Before this change every promoted candidate scored exactly
+     * 1.0 on {@code task_success}, pinning 0.40 of the weight and leaving two promoted candidates
+     * separable only by parsimony.
+     *
+     * <p>Asserted comparatively: two runs identical but for whether the held-out case passes. Both
+     * must promote, and the failing one must score strictly lower. A single-run assertion on an
+     * absolute score would pin host-dependent arithmetic; the comparison pins the behaviour.
+     */
+    @Test
+    void aFailingHeldOutCaseLowersTheScoreWithoutDiscardingTheCandidate(@TempDir Path tempDir) throws Exception {
+        String passingJournal = runWithHeldOutCase(tempDir.resolve("passing"), 3, true);
+        String failingJournal = runWithHeldOutCase(tempDir.resolve("failing"), 3, false);
+
+        assertThat(failingJournal)
+                .as("a held-out case decides no gate, so the candidate must still promote")
+                .contains("held-out-check FAILED")
+                .contains("| decision | PROMOTE |");
+        assertThat(scoreOf(failingJournal))
+                .as("a failing held-out case must lower task_success and therefore the raw magnitude")
+                .isLessThan(scoreOf(passingJournal));
+    }
+
+    /**
+     * CHG-024, the resolution limit made explicit. {@code task_success} carries 0.40, so one failing
+     * case out of {@code n} costs {@code 0.40/n} of the raw magnitude. A promoted candidate normally
+     * sits around 0.90, leaving roughly 0.10 of headroom above the 0.80 threshold, so with a single
+     * gating case beside a single held-out case the 0.20 loss falls straight through the floor.
+     *
+     * <p>That is correct behaviour rather than a defect — a candidate failing half its behaviour
+     * cases has not earned a promotion — but it means "held out" does not mean "free". The ratio of
+     * held-out to gating cases decides both the ranking resolution and whether a held-out failure is
+     * survivable at all, so it is pinned here rather than left for someone to rediscover.
+     */
+    @Test
+    void aThinGatingRatioLetsOneHeldOutFailureFallThroughThePromotionFloor(@TempDir Path tempDir)
+            throws Exception {
+        String journal = runWithHeldOutCase(tempDir.resolve("thin"), 1, false);
+
+        assertThat(journal)
+                .as("one gating case beside one held-out case leaves too little headroom")
+                .contains("held-out-check FAILED")
+                .contains("| decision | DISCARD |");
+        assertThat(scoreOf(journal))
+                .as("the discard is by threshold arithmetic, not by a gate the held-out case tripped")
+                .isLessThan(new java.math.BigDecimal("0.80"));
+    }
+
+    /**
+     * Runs one generation with {@code gatingCases} passing behaviour cases and one held-out case that
+     * either passes or fails, and returns the journal.
+     */
+    private static String runWithHeldOutCase(Path root, int gatingCases, boolean heldOutPasses)
+            throws Exception {
+        Path repo = root.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+
+        var arguments = new ArrayList<>(List.of(
+                "saaa-evolve", target.toString(), "--profile", "fixture", "--max-lines", "80"));
+        for (int index = 1; index <= gatingCases; index++) {
+            String caseName = "workflow-check-" + index;
+            writeCheck(target, caseName, ENFORCED_CHECK);
+            arguments.add("--behaviour-case");
+            arguments.add(caseName);
+        }
+        // The held-out case reads the same realized workflow; only its expectation differs, so two
+        // runs differ in the held-out outcome alone and in nothing else that feeds the score.
+        writeCheck(target, "held-out-check", heldOutPasses ? ENFORCED_CHECK : NEVER_MATCHING_CHECK);
+        arguments.add("--held-out-case");
+        arguments.add("held-out-check");
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli())
+                .execute(arguments.toArray(String[]::new));
+
+        assertThat(exitCode).as("a failing held-out case must not fail the run").isZero();
+        return Files.readString(target.resolve("journal.md"));
+    }
+
+    private static java.math.BigDecimal scoreOf(String journal) {
+        return journal.lines()
+                .filter(line -> line.startsWith("| score |"))
+                .map(line -> new java.math.BigDecimal(line.split("\\|")[2].trim()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no score row in journal:\n" + journal));
+    }
+
+    private static final String ENFORCED_CHECK = """
+            #!/usr/bin/env bash
+            set -euo pipefail
+            grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+            """;
+
+    private static final String NEVER_MATCHING_CHECK = """
+            #!/usr/bin/env bash
+            set -euo pipefail
+            grep -q '^this-will-never-match$' "$(dirname "$0")/workflow.txt"
+            """;
+
     private static void writeCheck(Path target, String caseName, String script) throws Exception {
         Path check = target.resolve(caseName + ".sh");
         Files.writeString(check, script);

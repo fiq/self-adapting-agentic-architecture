@@ -205,6 +205,21 @@ decisions:
       - docs/architecture/module-boundaries.md
       - modules/domain/build.gradle.kts declares no dependencies, so the inward rule is a compile error
     consequence_if_changed: collapsing further into a single module would put provider libraries on the same classpath as scoring policy and reduce the LangChain4j boundary to a text search, which model-authored candidate code could satisfy while still reaching the provider
+  - id: jvm_toolchain_lts_and_recorded
+    decision: the JVM toolchain is JDK 25 with Gradle 9, pinned identically in flake.nix, the Gradle toolchain block and CI, and recorded here rather than left as a scaffolding default
+    reason:
+      - JDK 21 was set in the initialising commit with no recorded rationale anywhere - not a decision, an unexamined default, which the repository contract requires be recorded
+      - LangChain4j targets Java 17 and was never the constraint, so nothing in the dependency set held the project at 21
+      - JDK 25 is the current LTS and is packaged in nixpkgs; 23 and 24 are neither LTS nor packaged, so 25 is the only forward step that keeps the LTS discipline and a hermetic build
+      - the upgrade is a chain rather than a single pin: Gradle 8.14.4 fails on JDK 25 with only the version string as its error, so Gradle 9 moves with it
+      - CI pinned Gradle 8.14.4 separately from the Nix shell, so the two must be bumped together or CI fails on a toolchain the developer shell has already accepted
+    confidence: high
+    status: active
+    validation:
+      - build.gradle.kts JavaLanguageVersion 25, flake.nix jdk25_headless and gradle_9, .github/workflows/ci.yml java-version 25 and gradle-version 9.5.1
+      - all eight suites run with --rerun-tasks and observed to execute on the new toolchain
+      - .agentic-template/bin/project check 7/7
+    consequence_if_changed: a language-level or dependency choice assuming a JDK floor needs rechecking, and the Nix shell, Gradle toolchain and CI pins must move together or the build passes locally and fails in CI
   - id: three_layer_vision_with_vertical_slices
     decision: SAAA is designed as three concentric layers (workflow evolution, tool surface for a custom agentic loop, product-code generalisation) and delivered through vertical slices across all three layers wherever possible, with population and conceptual crossover as foundation slices that upgrade every layer at once
     reason:

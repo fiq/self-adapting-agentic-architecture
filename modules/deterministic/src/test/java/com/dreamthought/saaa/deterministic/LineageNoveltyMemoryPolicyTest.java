@@ -16,6 +16,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 final class LineageNoveltyMemoryPolicyTest {
+    private static final String FIXTURE_FINGERPRINT = "0000111122223333";
     @Test
     void selectsByEvolutionaryValueAndKeepsKnownChampionLineageWithinABound() {
         var policy = new LineageNoveltyMemoryPolicy(
@@ -29,7 +30,7 @@ final class LineageNoveltyMemoryPolicyTest {
         var distinctFailure = record("failure", "base-y", "commit-failure", 0.2, "hard-gate", CheckStatus.FAILED,
                 Instant.parse("2021-01-01T00:00:00Z"), List.of("RISK-004"));
 
-        var selected = policy.select(List.of(recentWeak, distinctFailure, ancestor, champion));
+        var selected = policy.selectComparable(List.of(recentWeak, distinctFailure, ancestor, champion));
 
         assertThat(selected).hasSizeLessThanOrEqualTo(4);
         assertThat(selected).extracting(EvolutionaryMemoryRecord::candidateId)
@@ -46,7 +47,8 @@ final class LineageNoveltyMemoryPolicyTest {
                         record("matching", "historic", "candidate-a", 0.5, "tests", CheckStatus.PASSED,
                                 Instant.EPOCH, List.of()),
                         record("other", "current", "candidate-b", 0.9, "tests", CheckStatus.PASSED,
-                                Instant.EPOCH.plusSeconds(1), List.of())), "historic"))
+                                Instant.EPOCH.plusSeconds(1), List.of())), "historic",
+                        FIXTURE_FINGERPRINT))
                 .extracting(EvolutionaryMemoryRecord::candidateId)
                 .containsExactly("matching");
     }
@@ -62,7 +64,7 @@ final class LineageNoveltyMemoryPolicyTest {
         var champion = record("champion", "commit-parent", "commit-champion", 0.9, "tests",
                 CheckStatus.PASSED, Instant.parse("2020-01-03T00:00:00Z"), List.of());
 
-        assertThat(policy.select(List.of(grandparent, parent, champion)))
+        assertThat(policy.selectComparable(List.of(grandparent, parent, champion)))
                 .extracting(EvolutionaryMemoryRecord::candidateId)
                 .containsExactly("champion", "parent");
     }
@@ -81,7 +83,7 @@ final class LineageNoveltyMemoryPolicyTest {
         var promoted = record("promoted", "base-0", "commit-promoted", 0.85, "tests",
                 CheckStatus.PASSED, Instant.parse("2026-01-01T00:00:00Z"), List.of());
 
-        assertThat(policy.select(List.of(nearMiss, promoted)))
+        assertThat(policy.selectComparable(List.of(nearMiss, promoted)))
                 .extracting(EvolutionaryMemoryRecord::candidateId)
                 .as("decision outranks score, so the promoted candidate is the champion")
                 .containsExactly("promoted");
@@ -103,7 +105,7 @@ final class LineageNoveltyMemoryPolicyTest {
         var totalMiss = record("total-miss", "base-0", "commit-total", 0.5851, "hard-gate",
                 CheckStatus.FAILED, Instant.parse("2026-06-01T00:00:00Z"), List.of());
 
-        assertThat(policy.select(List.of(totalMiss, nearMiss)))
+        assertThat(policy.selectComparable(List.of(totalMiss, nearMiss)))
                 .extracting(EvolutionaryMemoryRecord::candidateId)
                 .as("among failures the near miss is the one worth keeping")
                 .containsExactly("near-miss");
@@ -124,7 +126,7 @@ final class LineageNoveltyMemoryPolicyTest {
         var novelFailure = record("novel-failure", "base-0", "commit-novel", 0.40, "hard-gate",
                 CheckStatus.FAILED, Instant.parse("2026-01-02T00:00:00Z"), List.of("RISK-004"));
 
-        assertThat(policy.select(List.of(promoted, novelFailure)))
+        assertThat(policy.selectComparable(List.of(promoted, novelFailure)))
                 .extracting(EvolutionaryMemoryRecord::candidateId)
                 .as("the novelty slot must reach a record the champion pass did not already take")
                 .containsExactlyInAnyOrder("promoted", "novel-failure");
@@ -137,9 +139,10 @@ final class LineageNoveltyMemoryPolicyTest {
                 new EvolutionContext("subject", baseline, "saaa", "process-1"),
                 "fixture-policy-v1", "mutation-" + id, "summary " + id,
                 MutationScope.WORKFLOW_DEFINITION, id, commit, RetrievalMode.HYBRID,
-                "retrieval-config-v1", evidence,
+                "retrieval-config-v1", List.of(), evidence,
                 List.of(new CheckEvidence(checkName, checkStatus, checkStatus.name().toLowerCase())),
                 List.of(), FitnessScore.of(fitness,
-                checkStatus == CheckStatus.PASSED ? FitnessDecision.PROMOTE : FitnessDecision.DISCARD), evaluatedAt);
+                checkStatus == CheckStatus.PASSED ? FitnessDecision.PROMOTE : FitnessDecision.DISCARD),
+                FIXTURE_FINGERPRINT, evaluatedAt);
     }
 }

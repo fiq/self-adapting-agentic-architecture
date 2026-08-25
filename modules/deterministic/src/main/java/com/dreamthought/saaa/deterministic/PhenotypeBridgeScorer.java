@@ -52,9 +52,16 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
 
         // Merge rather than overwrite: two check entries can share a name, and keeping the last one
         // seen would let a passing entry hide a failing one for the same declared case.
+        // Held-out cases are behaviour cases for the objective and not for the gate, so they are
+        // collected here alongside the gating ones and separated again at the scorer through
+        // `PhenotypeEvidence.gatingBehaviorCases()`. Collecting them anywhere else would leave
+        // `task_success` unable to see them, which is the entire defect CHG-024 exists to fix.
+        var scoredCaseNames = new java.util.LinkedHashSet<>(config.behaviorCaseNames());
+        scoredCaseNames.addAll(config.heldOutCaseNames());
+
         Map<String, BehaviorCaseEvidence> observed = new LinkedHashMap<>();
         evidence.checks().stream()
-                .filter(check -> config.behaviorCaseNames().contains(check.name()))
+                .filter(check -> scoredCaseNames.contains(check.name()))
                 .forEach(check -> observed.merge(
                         check.name(),
                         toBehaviorCase(check),
@@ -63,7 +70,7 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         // Fail closed on any declared case that produced no evidence. Filtering alone would drop it
         // silently and let the gate pass on the cases that did report, which is the same weakness as
         // a declared-but-unenforced contract gate: the required behaviour was never shown to hold.
-        List<BehaviorCaseEvidence> behaviorCases = config.behaviorCaseNames().stream()
+        List<BehaviorCaseEvidence> behaviorCases = scoredCaseNames.stream()
                 .map(name -> observed.getOrDefault(
                         name, BehaviorCaseEvidence.failed(name, "no check evidence was produced for this case")))
                 .toList();
@@ -87,13 +94,46 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         // which does gate. The probe stays in the evidence either way, so a lowered safety score can
         // always be traced to the probe that produced it.
         var phenotype = new PhenotypeEvidence(
-                evidence, behaviorCases, objectives, realization, nonGatingCheckNames());
+                evidence, behaviorCases, objectives, realization, nonGatingCheckNames(),
+                config.heldOutCaseNames(),
+                config.behaviorCaseNames(), config.maxLinesChanged(), config.benchmarkBudgets(),
+                unmeasuredObjectiveIds(evidence));
         // A declared required_evidence id names a check that must exist and pass, so the declaration
         // is enforced against evidence this run already collected rather than a separate pipeline.
         return contract
                 .map(declared -> delegate.score(candidate, phenotype, declared,
                         declaredEvidenceResolver.resolve(declared.requiredEvidence(), evidence)))
                 .orElseGet(() -> delegate.score(candidate, phenotype));
+    }
+
+    /**
+     * The objectives this run had no evidence source for.
+     *
+     * <p>Keyed on what was <em>declared</em>, not on the value produced: a declared probe that passes
+     * scores {@code 1.0} and was genuinely measured. Only absence of a source counts.
+     *
+     * <p>{@code task_success}, {@code reliability} and {@code parsimony} always have a source - the
+     * behaviour cases, the checks that ran, and the realized diff - so only these two can be absent.
+     */
+    private Set<String> unmeasuredObjectiveIds(EvaluationEvidence evidence) {
+        var unmeasured = new java.util.LinkedHashSet<String>();
+        if (config.safetyProbeNames().isEmpty()) {
+            unmeasured.add(FitnessSignalId.objective("behavioral_safety").canonical());
+        }
+        // Declaring a budget is not the same as measuring against one. budgetScore starts at 1.0
+        // and only moves when a benchmark actually ran and matched a declared budget, so keying on
+        // declaration alone left the original defect alive in a narrower shape: declare a budget,
+        // run no benchmark, and the objective still scored full marks for measuring nothing.
+        if (!anyBudgetApplied(evidence.benchmarks())) {
+            unmeasured.add(FitnessSignalId.objective("cost_latency_budget").canonical());
+        }
+        return Set.copyOf(unmeasured);
+    }
+
+    /** Whether any benchmark that ran was actually compared against a declared budget. */
+    private boolean anyBudgetApplied(List<BenchmarkEvidence> benchmarks) {
+        return benchmarks.stream()
+                .anyMatch(benchmark -> budgetFor(benchmark.name()) != null && benchmark.value() > 0.0);
     }
 
     private static BehaviorCaseEvidence toBehaviorCase(CheckEvidence check) {
@@ -158,6 +198,10 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
     private Set<String> nonGatingCheckNames() {
         var withheld = new java.util.LinkedHashSet<>(config.safetyProbeNames());
         withheld.addAll(config.repeatRunNames());
+        // A held-out case is a failing check when it fails, and every failing check fails the
+        // deterministic-checks gate, so leaving it here would discard the candidate through the
+        // other gate and defeat holding it out at all.
+        withheld.addAll(config.heldOutCaseNames());
         return withheld;
     }
 

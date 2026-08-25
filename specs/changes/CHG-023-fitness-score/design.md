@@ -11,7 +11,10 @@ envelope rename their magnitude columns/field to `raw_magnitude` and write the
 unrounded value. The local ledger is disposable, so old columns and envelope
 versions are replaced rather than migrated or read through a shim.
 
-The scorer still calculates the weighted sum in `double` because the objective
+Superseded by CHG-024: the decision is now taken from the exact decimal
+magnitude, because renormalising made a separately accumulated double disagree
+with it at the threshold. As at CHG-023 the scorer calculated the weighted sum in
+`double` because the objective
 functions are doubles, and turns that finite result into `BigDecimal` once when
 forming `FitnessScore`. The gate and `0.80` threshold remain exactly as before.
 `ConsoleReporter` is the presentation boundary that renders the raw magnitude

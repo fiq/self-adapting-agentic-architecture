@@ -47,8 +47,9 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                       candidate_id, subject_repository_id, baseline_repository_revision,
                       process_repository_id, process_repository_revision, memory_policy_id,
                       mutation_id, mutation_summary, mutation_scope, candidate_commit, retrieval_mode,
-                      retrieval_configuration_id, raw_magnitude, decision, evaluated_at)
-                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      retrieval_configuration_id, raw_magnitude, decision, scoring_fingerprint,
+                      evaluated_at)
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     on conflict(candidate_id) do update set
                       subject_repository_id=excluded.subject_repository_id,
                       baseline_repository_revision=excluded.baseline_repository_revision,
@@ -60,6 +61,7 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                       retrieval_mode=excluded.retrieval_mode,
                       retrieval_configuration_id=excluded.retrieval_configuration_id,
                       raw_magnitude=excluded.raw_magnitude, decision=excluded.decision,
+                      scoring_fingerprint=excluded.scoring_fingerprint,
                       evaluated_at=excluded.evaluated_at
                     """)) {
                 EvolutionContext context = record.evolutionContext();
@@ -77,7 +79,8 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                 attempt.setString(12, record.retrievalConfigurationId());
                 attempt.setBigDecimal(13, record.fitnessScore().rawMagnitude());
                 attempt.setString(14, record.fitnessScore().decision().name());
-                attempt.setString(15, record.evaluatedAt().toString());
+                attempt.setString(15, record.scoringFingerprint());
+                attempt.setString(16, record.evaluatedAt().toString());
                 attempt.executeUpdate();
                 deleteChildren(connection, record.candidateId());
                 writeChangedPaths(connection, record);
@@ -117,6 +120,7 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                         readChecks(connection, candidateId), readBenchmarks(connection, candidateId),
                         new FitnessScore(rows.getBigDecimal("raw_magnitude"),
                                 FitnessDecision.valueOf(rows.getString("decision"))),
+                        rows.getString("scoring_fingerprint"),
                         Instant.parse(rows.getString("evaluated_at"))));
             }
             return List.copyOf(records);
@@ -127,6 +131,22 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
 
     private void migrate() {
         try (Connection connection = connect(); var statement = connection.createStatement()) {
+            // create table if not exists never revisits a schema decision: a database created while
+            // the column defaulted keeps defaulting on every later open. The ledger is derived and
+            // rebuildable, so a stale schema is dropped rather than migrated - an old row could
+            // never supply the fingerprint it was written without.
+            if (schemaDefaultsTheFingerprint(connection)) {
+                for (String table : List.of("evolutionary_memory_changed_paths",
+                        "evolutionary_memory_evidence", "evolutionary_memory_checks",
+                        "evolutionary_memory_benchmarks", "evolutionary_memory")) {
+                    statement.execute("drop table if exists " + table);
+                }
+            }
+            // scoring_fingerprint: required, with no schema-supplied value. A row that cannot say
+            // what its magnitude was measured against would be ranked under invented provenance.
+            // NOT NULL alone still accepts the empty string, which is why the CHECK exists.
+            // (This rationale stays out of the DDL text itself: sqlite_master stores it, and the
+            // stale-schema detection above reads that text.)
             statement.execute("""
                     create table if not exists evolutionary_memory (
                       candidate_id text primary key not null,
@@ -135,7 +155,9 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                       memory_policy_id text not null, mutation_id text not null, mutation_summary text not null,
                       mutation_scope text not null, candidate_commit text not null, retrieval_mode text not null,
                       retrieval_configuration_id text not null, raw_magnitude real not null,
-                      decision text not null, evaluated_at text not null
+                      decision text not null,
+                      scoring_fingerprint text not null check (length(trim(scoring_fingerprint)) > 0),
+                      evaluated_at text not null
                     )
                     """);
             statement.execute("""
@@ -166,6 +188,17 @@ public final class SqliteEvolutionaryMemoryStore implements EvolutionaryMemoryAr
                     """);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to migrate evolutionary memory ledger", exception);
+        }
+    }
+
+    private static boolean schemaDefaultsTheFingerprint(Connection connection) throws SQLException {
+        // Matches an actual default clause on scoring_fingerprint, not prose: sqlite_master stores
+        // the CREATE TABLE text verbatim, comments included, so a looser substring match would
+        // rename this guard into a drop-everything-on-every-open bug.
+        try (var rows = connection.createStatement().executeQuery(
+                "select sql from sqlite_master where name = 'evolutionary_memory'")) {
+            return rows.next() && rows.getString(1).toLowerCase()
+                    .contains("scoring_fingerprint text not null default");
         }
     }
 
