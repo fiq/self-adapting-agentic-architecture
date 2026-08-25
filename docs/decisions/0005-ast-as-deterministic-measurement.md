@@ -331,6 +331,50 @@ They give probabilistic ranking, not reproducible symbolic identity, and
 They stay legitimate as advisory retrieval, where `ARCH-002` already puts that
 class of evidence.
 
+## Parser choice, researched
+
+The ADR said "tree-sitter now, code property graph later". Research found three
+facts that make that wrong for the base case.
+
+**1. The official Java binding needs a JDK this project does not run.**
+`io.github.tree-sitter:jtreesitter` 0.26.1 requires **JDK 23+** and uses the FFM
+(Panama) API. This project pins **JDK 21** in `build.gradle.kts` and
+`jdk21_headless` in `flake.nix`. Adopting it means a toolchain bump with its own
+blast radius, or a community binding on an older JDK, which trades the official
+maintenance path for a third-party one. Community bindings for JDK 17+/11+/8+
+exist and would need their own evaluation.
+
+**2. It needs native grammar libraries.** tree-sitter and each grammar are
+`.so`/`.dylib` artifacts present at build and run time. That is a real change to
+a Nix-pinned, hermetic build, and it is per-language: multi-language support means
+multi-native-artifact support.
+
+**3. It does no semantic analysis at all.** tree-sitter parses; it does not
+resolve symbols, track scopes or infer types. This confirms what the base case
+already suspected — `changedSymbolIds` cannot come from tree-sitter. Symbol
+identity would have to be built on top, and the declared-locus gate depends on it.
+
+### Consequence: JavaParser for the base case, tree-sitter when multi-language is real
+
+The base case is Java-only and its consumer is the declared-locus gate, which
+needs exactly the symbol resolution tree-sitter lacks. **JavaParser** with
+`javaparser-symbol-solver-core` is pure JVM, needs no native artifacts, no FFM and
+no JDK bump, and `JavaSymbolSolver` resolves a name to the declaration it refers
+to — which is what a locus gate has to decide. Its licensing is Apache-2.0 /
+LGPL-3.0 and would need checking against this repository's constraints before
+adoption.
+
+tree-sitter remains the right answer for the multi-language step, and that step is
+now visibly more expensive than the ADR implied: a JDK bump or a third-party
+binding, plus native artifacts per grammar, plus symbol identity built by hand.
+That cost belongs in the right-sizing revisit rather than hidden inside a
+technology name.
+
+**What I have not verified:** JavaParser's own JDK-21 compatibility and its
+behaviour on incomplete or non-compiling sources, which matters directly to the
+`RECOVERED_WITH_ERRORS` completeness state. tree-sitter's error recovery is one of
+its genuine strengths, so this is the axis on which the choice could flip back.
+
 ## The base case
 
 Revised after a second review pass, which found the original both contradictory

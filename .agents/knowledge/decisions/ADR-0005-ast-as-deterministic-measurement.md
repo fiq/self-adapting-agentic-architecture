@@ -61,6 +61,17 @@ The parser is a provider-shaped dependency and lives in `adapters` behind
 `SourceStructureInspector`, exactly as LangChain4j lives behind its own boundary.
 The architecture fitness function must be extended to enforce it.
 
+## Parser choice
+
+Researched rather than assumed. The official tree-sitter Java binding requires
+JDK 23+ and the FFM API while this project pins JDK 21; it needs native grammar
+artifacts per language in a Nix-pinned build; and it performs no semantic
+analysis, so it cannot supply the symbol identity the declared-locus gate needs.
+JavaParser with its symbol solver is pure JVM, needs no native artifacts and no
+JDK bump, and resolves names to declarations, so it fits the Java-only base case.
+tree-sitter stays the multi-language answer, and that step is now visibly more
+expensive than a technology name implied.
+
 ## Base case
 
 Ship the declared-locus gate as the first consumer: `MutationContract` already
