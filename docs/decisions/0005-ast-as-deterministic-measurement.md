@@ -444,6 +444,67 @@ behaviour on incomplete or non-compiling sources, which matters directly to the
 `RECOVERED_WITH_ERRORS` completeness state. tree-sitter's error recovery is one of
 its genuine strengths, so this is the axis on which the choice could flip back.
 
+## One abstraction, filled to different depths
+
+The first draft had two: a `StructuralEvidence` record now, and a code property
+graph "later". That is a mistake. They are the same thing at different
+fidelities, and keeping both means every capability eventually branches on which
+one it received — the combinatorial mess of capabilities times languages, wearing
+a tidy name.
+
+**There is one model. Frontends fill as much of it as they can. Capabilities
+declare which parts they need.**
+
+```
+   ONE MODEL — layered, language-agnostic
+
+   ┌─────────────────────────────────────────────┐
+   │ syntax layer     nodes, kinds, nesting      │ ← every frontend fills this
+   ├─────────────────────────────────────────────┤
+   │ symbol layer     declarations, references   │ ← language tools fill this
+   ├─────────────────────────────────────────────┤
+   │ flow layer       control, data dependence   │ ← richer frontends, later
+   └─────────────────────────────────────────────┘
+            ▲              ▲              ▲
+     tree-sitter      JavaParser      something else
+     (~200 langs,     (Java, syntax   (whatever a user's
+      syntax only)     + symbols)      language has)
+```
+
+A capability names the layers it needs, and a frontend declares the layers it
+fills. The locus gate needs the symbol layer, so it is available for Java and
+reports `UNSUPPORTED` elsewhere. Distance, complexity and convergence need the
+syntax layer, so they work everywhere a grammar exists. **No capability ever asks
+which parser produced its input.**
+
+That is the difference between one abstraction and two: the variation lives in
+*which layers are populated*, which is data, rather than in *which type you got*,
+which is a branch in every consumer.
+
+### Why this shape and not our own invention
+
+This is what a code property graph already is: one attributed multigraph
+combining syntax, control flow and data dependence, with a common query surface
+across several language frontends. The earlier research reached that conclusion
+and then filed it under "later", which was the error.
+
+We adopt the **shape** without adopting the platform. Joern is an external
+analysis stack well beyond a local CLI, and the research was right about that.
+But defining our own minimal layered model, CPG-shaped, costs little now and
+means the platform remains an option rather than a rewrite — and it is the same
+model the earlier "one graph across the APIs a project knows about" idea needs.
+
+### What this replaces in the contracts
+
+`C1`'s `StructuralEvidence` becomes the syntax-layer projection of this model
+rather than a separate type, and its `completeness` states describe **which
+layers were filled**, not merely how well parsing went. `C2`'s inspector port
+returns the model. `C3`'s relations declare the layers they consume.
+
+The base case is unchanged: one frontend, syntax and symbol layers, Java, feeding
+the declared-locus gate. What changes is that the second language does not need a
+second abstraction — only a second frontend.
+
 ## The target language is the user's, not ours
 
 A framing error ran through the first version of this ADR and needs correcting
