@@ -26,6 +26,13 @@ CONFINED_DEPENDENCIES = [
     ("org.eclipse.jgit", "/adapters/git/", "JGit is confined to the adapters/git package"),
     ("picocli.", "modules/cli/", "picocli is confined to modules/cli"),
     ("org.openjdk.jmh", "modules/benchmarks/", "JMH is confined to modules/benchmarks"),
+    # Declared before any parser is adopted, so the boundary exists before the first import does
+    # rather than being retrofitted around code that already crossed it. ADR-0005 puts one layered
+    # model in `domain` and the frontends that fill it in `adapters`: a capability must never be
+    # able to ask which parser produced its input, and it cannot ask if it cannot see one.
+    ("com.github.javaparser", "/adapters/parser/", "JavaParser is confined to the adapters/parser package"),
+    ("io.github.treesitter", "/adapters/parser/", "tree-sitter is confined to the adapters/parser package"),
+    ("org.treesitter", "/adapters/parser/", "tree-sitter is confined to the adapters/parser package"),
 ]
 
 NO_AUTO_MERGE_COMMANDS = [
