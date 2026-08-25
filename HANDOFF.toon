@@ -13,6 +13,7 @@ goal:
   phase: review_pending
 
 next_actions:
+  - ADR-0005 is accepted as of 2026-08-26. Its first task is a spike, not code: does JavaParser run on JDK 25, what does it do with source that does not compile, and does its Apache-2.0 / LGPL-3.0 licensing fit. The second question decides the RECOVERED_WITH_ERRORS state and is the axis on which the parser choice could flip back to tree-sitter.
   - START HERE. Mark PR #42 ready for review. The branch is green on all eight suites with --rerun-tasks and project check 7/7. One short independent pass over the commits after 880b0da is worth it first, because they changed a guard's semantics and the scoring arithmetic, and nobody has reviewed those.
   - full-readiness CI only runs on push to main or workflow_dispatch, so it never gated this branch. Trigger it manually with profile=full before merge, or accept that gap knowingly.
   - ADR-0005 (AST measures, never mutates) is still Proposed after three review passes. Accepting it is a human call and it gates the AST work. Its base case is now the declared-locus gate, not duplicate detection, because MutationContract already carries loci and nothing checks them.
