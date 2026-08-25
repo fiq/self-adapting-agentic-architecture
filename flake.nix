@@ -21,8 +21,8 @@
             name = "saaa";
             runtimeInputs = [
               pkgs.git
-              pkgs.gradle
-              pkgs.jdk21_headless
+              pkgs.gradle_9
+              pkgs.jdk25_headless
               pkgs.jq
               pkgs.docker-client
               pkgs.docker-compose
@@ -82,8 +82,8 @@
           pkgs.mkShell {
             packages = [
               pkgs.git
-              pkgs.gradle
-              pkgs.jdk21_headless
+              pkgs.gradle_9
+              pkgs.jdk25_headless
               pkgs.jq
               pkgs.docker-client
               pkgs.docker-compose
