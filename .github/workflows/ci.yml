@@ -49,7 +49,11 @@ jobs:
         run: .agentic-template/bin/project lint
 
   full-readiness:
-    if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) || (github.event_name == 'workflow_dispatch' && github.event.inputs.profile == 'full') }}
+    # Gates pull requests as well as main. It used to run only after a merge, which meant its
+    # extra coverage - check-wiki, check-changes, compose-config, the not-applicable declarations -
+    # found problems on main rather than on the branch that introduced them. Two of those checks
+    # caught real defects during CHG-024 that a post-merge run would have reported too late.
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) || (github.event_name == 'workflow_dispatch' && github.event.inputs.profile == 'full') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
