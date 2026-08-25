@@ -83,6 +83,29 @@ Generalises past parsers to any missing measurement capability: a benchmark
 harness, a check runner for an unfamiliar build system, an adapter for an
 unmet architecture.
 
+## The target language is the user's, not ours
+
+SAAA is pointed at whatever project a user wants to evolve, and at their agentic
+workflow alongside it. The target language is unknown at design time, so "which
+parser" was never one choice. JavaParser is the parser for Java targets, and
+earns the first slice only because SAAA evolving SAAA is a Java target.
+
+Capabilities differ in what they need, which is the useful distinction. Duplicate
+detection, structural distance and complexity need only a tree, and off-the-shelf
+grammars cover roughly 200 languages. The declared-locus gate needs symbol
+resolution, which needs a language-specific tool. So the architecture is
+structure everywhere, semantics where a language tool exists.
+
+Do not build parsers. This is not a compiler project. Off-the-shelf first, and
+the port exists to make wrapping something else easy - a thin port decides whether
+adding a language is an afternoon or a quarter.
+
+Adding a language is therefore work SAAA hands out rather than absorbs: find an
+existing parser, wrap it to the port, declare which capabilities it supports,
+pass the acceptance tests the port names. Nobody writes a grammar. A wrapper
+supplying structure but not symbols is a first-class outcome that unlocks three
+of the four capabilities, not a degraded one.
+
 ## Parser choice
 
 Researched rather than assumed. The official tree-sitter Java binding requires
