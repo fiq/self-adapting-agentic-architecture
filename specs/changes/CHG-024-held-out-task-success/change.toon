@@ -36,6 +36,12 @@ deltas:
         and:
           - task_success carries 0.40, so one failing case in n costs 0.40/n, which exceeds a typical promotion's headroom when n is 2
           - the discard is threshold arithmetic rather than a gate the held-out case tripped, so the ratio of held-out to gating cases governs both resolution and survivability
+      - id: S7
+        when: a run declares no safety probes, or declares a benchmark budget that no benchmark ran against
+        then: that objective contributes nothing and is excluded from the weight the score is a fraction of
+        and:
+          - keying on declaration alone left the defect alive in a narrower shape, because budgetScore starts at 1.0 and only moves when a benchmark actually matched a budget
+          - the promote-or-discard decision is taken from the same exact magnitude that is stored, so the two cannot disagree at the threshold as they did when the decision accumulated its own double sum
       - id: S6
         when: a fingerprinted record is written to the ledger or a Git envelope and read back
         then: the fingerprint survives, and a document or row written without one is rejected rather than defaulted
@@ -72,6 +78,15 @@ acceptance:
     layer: unit
   - scenario: S5
     test_id: deterministic/ScorerStampsScoringContextTest.aResultCannotBeConstructedWithoutAScoringContext
+    layer: unit
+  - scenario: S7
+    test_id: deterministic/UnmeasuredObjectiveTest.aCandidateCannotReachTheThresholdOnUnmeasuredObjectives
+    layer: unit
+  - scenario: S7
+    test_id: deterministic/UnmeasuredObjectiveTest.aDeclaredBudgetWithNoBenchmarkThatRanIsStillUnmeasured
+    layer: unit
+  - scenario: S7
+    test_id: deterministic/PhenotypeGoldenVerdictCorpusTest.everyCorpusEntryReproducesItsRecordedDecision
     layer: unit
   - scenario: S6
     test_id: adapters/ScoringFingerprintRoundTripIntegrationTest.theScoringFingerprintSurvivesTheSqliteLedger
@@ -120,13 +135,15 @@ tasks:
   - id: T5
     slice: carry a ScoringContext fingerprint on FitnessResult and refuse comparison across differing fingerprints
     status: completed
+  - id: T7
+    slice: renormalise the weighted sum over measured objectives, and take the decision from the same exact magnitude
+    status: completed
   - id: T6
     slice: README, wiki and knowledge updates, including a RISK entry for held-out reliance on WORKFLOW_DEFINITION scope
     status: completed
 
 non_goals:
   - population evaluation or ranking, which is CHG-025
-  - renormalising the weighted sum over measured objectives only
   - changing the promotion threshold, the objective weights, or which cases gate
   - migrating local experiment data, which is derived and rebuilt
 

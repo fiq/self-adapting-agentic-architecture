@@ -120,12 +120,20 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         if (config.safetyProbeNames().isEmpty()) {
             unmeasured.add(FitnessSignalId.objective("behavioral_safety").canonical());
         }
-        // A budget is what the objective compares against; with none declared there is nothing to
-        // compare a measurement to, whether or not benchmarks ran.
-        if (config.benchmarkBudgets().isEmpty()) {
+        // Declaring a budget is not the same as measuring against one. budgetScore starts at 1.0
+        // and only moves when a benchmark actually ran and matched a declared budget, so keying on
+        // declaration alone left the original defect alive in a narrower shape: declare a budget,
+        // run no benchmark, and the objective still scored full marks for measuring nothing.
+        if (!anyBudgetApplied(evidence.benchmarks())) {
             unmeasured.add(FitnessSignalId.objective("cost_latency_budget").canonical());
         }
         return Set.copyOf(unmeasured);
+    }
+
+    /** Whether any benchmark that ran was actually compared against a declared budget. */
+    private boolean anyBudgetApplied(List<BenchmarkEvidence> benchmarks) {
+        return benchmarks.stream()
+                .anyMatch(benchmark -> budgetFor(benchmark.name()) != null && benchmark.value() > 0.0);
     }
 
     private static BehaviorCaseEvidence toBehaviorCase(CheckEvidence check) {

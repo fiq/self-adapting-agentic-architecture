@@ -227,20 +227,16 @@ public final class PhenotypeFitnessScorer {
         return remaining;
     }
 
-    /** Total weight of the objectives being scored, so a magnitude is a fraction of what was measured. */
-    private static double measuredWeight(List<FitnessObjective> objectiveSet) {
-        return objectiveSet.stream().mapToDouble(FitnessObjective::weight).sum();
-    }
-
     /**
-     * The same total in decimal, for the magnitude.
+     * Total weight of the objectives being scored, so a magnitude is a fraction of what was
+     * measured rather than of the whole objective set.
      *
      * <p>Summing the weights as doubles gives {@code 0.7000000000000001} for the default measured
      * set, and dividing by that yields {@code 0.9999999999999999} where the answer is exactly one.
-     * The gate calculation keeps the double arithmetic it always had; the recorded magnitude is
-     * exact, because it is the number stored, ranked and reported.
+     * The magnitude is exact because it is the number stored, ranked, reported and — since the
+     * double gate path was removed — the number the decision is taken from.
      */
-    private static BigDecimal measuredWeightExact(List<FitnessObjective> objectiveSet) {
+    private static BigDecimal measuredWeight(List<FitnessObjective> objectiveSet) {
         return objectiveSet.stream()
                 .map(objective -> BigDecimal.valueOf(objective.weight()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -257,26 +253,13 @@ public final class PhenotypeFitnessScorer {
         return score != null && Double.isFinite(score) && score >= 0.0 && score <= 1.0;
     }
 
-    /** Weights come from the same objective set the presence gate used, for the reason given there. */
-    private static double weightedScore(PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
-        return objectiveSet.stream()
-                // A measurement that is absent, non-finite or outside [0,1] contributes nothing
-                // rather than throwing, which is the same rule hasEveryObjectiveScore applies when it
-                // fails the gate: a value that is not a fraction is not a measurement. Reading the
-                // one predicate in both places keeps them from drifting apart.
-                //
-                // Retaining the magnitude is what makes this load-bearing. Zeroing on gate failure
-                // used to discard a non-finite sum before it was recorded; now the sum is always
-                // computed. Without this filter an infinite objective would be stored as an
-                // enormous score and sort first among failures.
-                .mapToDouble(objective -> {
-                    Double measured = phenotype.objectiveScores().get(objective.id());
-                    return isFraction(measured) ? objective.weight() * measured : 0.0;
-                })
-                .sum() / measuredWeight(objectiveSet);
-    }
-
-    /** Preserves the decimal magnitude the objectives describe without changing the double gate calculation. */
+    /**
+     * The weighted magnitude, renormalised over the objectives this run measured.
+     *
+     * <p>This is the only arithmetic path. The decision reads it too, so a candidate's stored score
+     * and its promote-or-discard verdict cannot disagree — they did, at the threshold, when the
+     * decision accumulated its own double sum.
+     */
     private static BigDecimal weightedMagnitude(PhenotypeEvidence phenotype, List<FitnessObjective> objectiveSet) {
         return objectiveSet.stream()
                 .map(objective -> {
@@ -286,7 +269,7 @@ public final class PhenotypeFitnessScorer {
                             : BigDecimal.ZERO;
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(measuredWeightExact(objectiveSet), java.math.MathContext.DECIMAL64)
+                .divide(measuredWeight(objectiveSet), java.math.MathContext.DECIMAL64)
                 .stripTrailingZeros();
     }
 

@@ -80,4 +80,31 @@ final class UnmeasuredObjectiveTest {
     private static Candidate candidate() {
         return new Candidate("cand", "mut", "candidate/mut", Path.of(".worktrees/cand"), "abc1234");
     }
+
+    /**
+     * Found by an independent review: the first fix keyed on whether a budget was <em>declared</em>,
+     * which left the defect alive in a narrower shape. {@code budgetScore} starts at {@code 1.0} and
+     * only moves when a benchmark actually ran and matched a budget, so declaring a budget and
+     * running no benchmark still scored full marks for measuring nothing.
+     *
+     * <p>Driven through the bridge rather than the scorer, because the bridge is what decides which
+     * objectives had an evidence source.
+     */
+    @Test
+    void aDeclaredBudgetWithNoBenchmarkThatRanIsStillUnmeasured() {
+        var bridge = new PhenotypeBridgeScorer(
+                ignored -> new RealizationSummary(1, 80),
+                new ScoringConfig(Set.of("gating"), 80, Map.of("publish-latency", 50.0)));
+
+        var result = bridge.score(candidate(), new EvaluationEvidence(
+                List.of(CheckEvidence.passed("gating", "ok")), List.of(), Instant.EPOCH));
+
+        // Nothing ran against the budget and the diff exhausts the line budget, so the measured
+        // objectives are task_success, reliability and parsimony: 0.60 over a divisor of 0.70.
+        // Counting the unmeasured budget would add 0.20 to both, giving 0.80 over 0.90 - a higher
+        // score for having measured strictly less.
+        assertThat(result.fitnessScore().rawMagnitude())
+                .as("a budget nothing was measured against must not inflate the score")
+                .isLessThan(new java.math.BigDecimal("0.87"));
+    }
 }

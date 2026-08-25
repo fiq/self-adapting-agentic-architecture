@@ -1,6 +1,6 @@
 session:
   updated: 2026-08-25
-  status: chg_024_complete_pending_ready_for_review
+  status: chg_024_complete_glm_review_applied_pending_ready_for_review
   branch: feat/chg-024-held-out-task-success
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
   head: feat/chg-024-held-out-task-success at 3f82e98 (pushed); PR #42 still draft
@@ -51,6 +51,8 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-25 CHG-024 renormalisation mutation evidence: making unmeasured objectives contribute their full weight again failed two of three UnmeasuredObjectiveTest assertions; returning the decision to a separately accumulated double failed the promote-at-exact-promotion-threshold corpus entry and only that one; keying the budget objective on declaration rather than on a benchmark having actually matched a budget failed aDeclaredBudgetWithNoBenchmarkThatRanIsStillUnmeasured. Each implementation mutation was restored immediately and the restore verified with diff.
+  - 2026-08-25 all eight suites (:domain :deterministic :adapters :cli test, :adapters :benchmarks integrationTest, :deterministic :cli acceptanceTest) run with --rerun-tasks and observed to execute on the JDK 25 / Gradle 9 toolchain; project check 7/7
   - 2026-08-24 CHG-024 review-fix validation: full unit, acceptance, integration and benchmark-integration suites rerun with --rerun-tasks, BUILD SUCCESSFUL; project check 7/7; check-changes OK
   - 2026-08-24 CHG-024 review-fix mutation evidence: mutating schemaDefaultsTheFingerprint to false failed aStaleDefaultedSchemaIsRebuildOnOpenRatherThanTrusted; removing the CHECK fails aBlankFingerprintIsRejectedByTheLedgerSchema; writing the decision name in place of the fingerprint fails theScoringFingerprintIsPersistedBesideTheRawMagnitude. Each restored immediately.
   - 2026-08-24 CHG-024 purge validation: full unit, acceptance and integration suites rerun with --rerun-tasks and observed to execute (ScoringFingerprintRoundTripIntegrationTest: 6 tests, 0 skipped, 0 failures); project check 7/7; check-changes OK

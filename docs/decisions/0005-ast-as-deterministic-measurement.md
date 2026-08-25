@@ -393,11 +393,9 @@ facts that make that wrong for the base case.
 
 **1. The official Java binding needs a JDK this project does not run.**
 `io.github.tree-sitter:jtreesitter` 0.26.1 requires **JDK 23+** and uses the FFM
-(Panama) API. This project pins **JDK 21** in `build.gradle.kts` and
-`jdk21_headless` in `flake.nix`. Adopting it means a toolchain bump with its own
-blast radius, or a community binding on an older JDK, which trades the official
-maintenance path for a third-party one. Community bindings for JDK 17+/11+/8+
-exist and would need their own evaluation.
+(Panama) API. This was written while the project pinned JDK 21 and is **no longer a blocker**:
+the toolchain moved to JDK 25 with Gradle 9. The remaining two objections below
+stand on their own and are what actually decide the base case.
 
 **2. It needs native grammar libraries.** tree-sitter and each grammar are
 `.so`/`.dylib` artifacts present at build and run time. That is a real change to

@@ -46,9 +46,24 @@ behaviour cases rather than another entry in `nonGatingCheckNames`.
 ## Non-goals
 
 - population evaluation or ranking, which is `CHG-025`;
-- renormalising the weighted sum over measured objectives only;
 - changing the promotion threshold, the weights, or which cases gate;
 - migrating local experiment data — it is derived and is rebuilt.
+
+## Scope change: renormalisation was a non-goal and is no longer
+
+This change originally excluded renormalising the weighted sum, on the grounds
+that it changes the meaning of every recorded score and therefore needed its own
+change.
+
+`ScoringContext`, added here, is what removed that objection. It fingerprints the
+probe set and the budget map, so scores produced under different measurement
+configurations are already refused for comparison rather than silently mixed —
+the precise reason the work was deferred. Deferring it further would have meant
+leaving a live defect, one this change's own documents kept citing as a
+cautionary example, while shipping the mechanism that made it safe to fix.
+
+It is folded in rather than split out because it shares this change's subject:
+an objective's contribution must reflect what was measured.
 
 ## Related knowledge
 
