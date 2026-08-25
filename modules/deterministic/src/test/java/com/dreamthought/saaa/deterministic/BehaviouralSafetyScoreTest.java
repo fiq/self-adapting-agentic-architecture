@@ -50,12 +50,16 @@ final class BehaviouralSafetyScoreTest {
     }
 
     @Test
-    void staysAtOneWhenNoProbesAreDeclared() {
+    void isNotRecordedAtAllWhenNoProbesAreDeclared() {
         var result = score(Set.of(), passed("unrelated", "fine"));
 
+        // Inverted by CHG-024. This asserted the objective stayed at 1.0 so existing callers kept
+        // their score, which is precisely the defect: a run that declared no probes banked the full
+        // 0.10 for measuring nothing. The objective is now excluded from the weighted sum and from
+        // the audit record, so absence is the evidence rather than a fabricated full mark.
         assertThat(result.objectives())
-                .as("a run declaring no probes is unchanged, so existing callers keep their score")
-                .containsEntry("subject.objective.behavioral_safety", 1.0);
+                .as("an objective with no evidence source must not appear in the audit record")
+                .doesNotContainKey("subject.objective.behavioral_safety");
     }
 
     @Test
