@@ -444,9 +444,74 @@ behaviour on incomplete or non-compiling sources, which matters directly to the
 `RECOVERED_WITH_ERRORS` completeness state. tree-sitter's error recovery is one of
 its genuine strengths, so this is the axis on which the choice could flip back.
 
+## The target language is the user's, not ours
+
+A framing error ran through the first version of this ADR and needs correcting
+before any of it is built.
+
+SAAA is pointed at **whatever project a user wants to evolve**, and at their
+agentic workflow alongside it — the whole development lifecycle, not only the
+workflow files this repository happens to own. So "which parser" was never a
+single choice. The target language is unknown at design time, and there is no
+version of this where one parser is the answer.
+
+That has three consequences.
+
+**JavaParser is not "the base-case parser". It is the parser for Java targets.**
+It earns its place in the first slice only because SAAA evolving SAAA is a Java
+target, which makes it the cheapest honest end-to-end proof. Nothing about the
+decision depends on Java, and the contracts must not either.
+
+**Capabilities have different parser requirements, and this is the useful
+distinction the first draft missed:**
+
+| Capability | Needs | Off-the-shelf coverage |
+|---|---|---|
+| Duplicate detection | a tree | broad — tree-sitter has grammars for ~200 languages |
+| Structural distance | a tree | broad |
+| Complexity | a tree | broad |
+| Declared-locus gate | **symbol resolution** | narrow — needs a language-specific tool |
+
+Three of the four capabilities need only structure. One needs semantics. So the
+honest architecture is not "one parser, chosen now" but **structure everywhere,
+semantics where a language tool exists** — with the port shaped so the difference
+is visible rather than hidden.
+
+**Do not build parsers.** This project is not a compiler project and has no
+business writing grammars. The rule is off-the-shelf first, and the port exists
+to make wrapping something else easy. A thin port is not a stylistic preference
+here; it is what determines whether adding a language is an afternoon or a
+quarter.
+
+## Adding a language should be work SAAA hands out, not work it absorbs
+
+This is where the earlier "unsupported is a work item" section gets sharper. The
+work item is **not** "implement a parser". It is:
+
+```
+   unsupported language L
+          |
+          v
+   1. is there an existing parser for L?      ← almost always yes
+   2. wrap it to SourceStructureInspector      ← the actual work
+   3. declare which capabilities it supports   ← structure only, or symbols too
+   4. pass the acceptance tests the port names
+```
+
+Step 1 is the one that keeps this tractable, and it is the step an agent is
+genuinely good at: finding an existing library, reading its API, writing an
+adapter against a contract that already has tests. Step 2 is bounded. Nobody
+writes a grammar.
+
+A wrapped parser that supplies structure but not symbols is a **first-class
+outcome, not a degraded one**. It unlocks three of four capabilities for that
+language. The declared-locus gate reports `UNSUPPORTED` for that language and
+says so, rather than the language being refused outright.
+
 ## First task: spike JavaParser before committing to it
 
-The base case names JavaParser, and two things about it are unverified. Both are
+The base case names JavaParser for its Java target, and two things about it are
+unverified. Both are
 cheap to settle and both could change the answer, so they are settled first —
 the same discipline that spiked Neo4j before any code was written against it,
 and found the container ran its tests for real rather than skipping them.
