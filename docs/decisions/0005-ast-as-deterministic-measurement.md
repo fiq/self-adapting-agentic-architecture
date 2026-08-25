@@ -4,7 +4,23 @@ Date: 2026-08-23
 
 ## Status
 
-Proposed.
+Accepted, 2026-08-26.
+
+Accepted after three independent review passes, each of which changed it:
+
+- a research pass found `C1` **unimplementable** — it specified a lossy summary
+  and then asked `C3` to compute tree edit distance from it, which needs the tree;
+- a second pass found the base case **contradictory** (it parsed only the changed
+  symbol while promising to detect edits outside it) and **aimed at the wrong
+  consumer**, since the declared-locus gate has a live consumer today in
+  `MutationContract.loci` and duplicate detection does not;
+- a validation pass found two claims in the supporting prose that were simply
+  false, including one asserting a safety net the realization gate does not
+  provide.
+
+The core decision — the AST measures, and never mutates — survived all three
+unchanged. What changed was every contract around it, which is the reason to
+trust the decision rather than a reason to doubt it.
 
 ## Context
 
@@ -427,6 +443,26 @@ technology name.
 behaviour on incomplete or non-compiling sources, which matters directly to the
 `RECOVERED_WITH_ERRORS` completeness state. tree-sitter's error recovery is one of
 its genuine strengths, so this is the axis on which the choice could flip back.
+
+## First task: spike JavaParser before committing to it
+
+The base case names JavaParser, and two things about it are unverified. Both are
+cheap to settle and both could change the answer, so they are settled first —
+the same discipline that spiked Neo4j before any code was written against it,
+and found the container ran its tests for real rather than skipping them.
+
+- **Does it work on JDK 25?** The toolchain moved during this ADR's own review.
+- **What does it do with source that does not compile?** This decides the
+  `RECOVERED_WITH_ERRORS` state. Error recovery is one of tree-sitter's genuine
+  strengths, so a poor answer here is the axis on which the parser choice flips
+  back — at which point the JDK objection is already gone and only native
+  artifacts and absent symbol resolution remain against it.
+- **Licensing.** Apache-2.0 / LGPL-3.0 needs checking against this repository's
+  constraints.
+
+A spike that answers those three is the first deliverable. If it flips the
+choice, the rest of this decision is unaffected: the AST still measures and
+still never mutates, and `C1` through `C5` are parser-agnostic by construction.
 
 ## The base case
 

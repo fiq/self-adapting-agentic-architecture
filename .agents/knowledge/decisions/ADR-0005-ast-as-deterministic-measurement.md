@@ -2,8 +2,8 @@
 id: ADR-0005
 type: decision
 title: AST as deterministic measurement, never as a mutation operator
-status: proposed
-reviewed_at: 2026-08-23
+status: canonical
+reviewed_at: 2026-08-26
 summary: Adopt the abstract syntax tree as a deterministic measurement surface for structural distance, convergence detection, blast-radius checking and complexity, all inside the deterministic layer with the parser behind an adapter port. Random or model-directed AST mutation stays forbidden, and AST-aware realization remains out of scope pending its own decision.
 owners:
   - architect
@@ -22,6 +22,9 @@ review_after: 2027-02-28
 ---
 
 # ADR-0005: AST as Deterministic Measurement
+
+Accepted 2026-08-26 after three independent review passes. The core decision was
+unchanged by all three; every contract around it was rewritten by them.
 
 Details live in `docs/decisions/0005-ast-as-deterministic-measurement.md`. This
 node exists so specs, wiki pages and other knowledge entries can link the
