@@ -78,13 +78,16 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
         RealizationSummary realization = Objects.requireNonNull(
                 inspector.inspect(candidate), "realization summary");
 
+        var unmeasured = unmeasuredObjectiveIds(evidence);
         Map<String, Double> objectives = new LinkedHashMap<>();
         objectives.put(FitnessSignalId.objective("task_success").canonical(), passedFraction(behaviorCases));
         objectives.put(FitnessSignalId.objective("reliability").canonical(), reliabilityScore(evidence));
-        objectives.put(
-                FitnessSignalId.objective("cost_latency_budget").canonical(), budgetScore(evidence.benchmarks()));
-        objectives.put(FitnessSignalId.objective("behavioral_safety").canonical(),
-                safetyScore(evidence));
+        // Written only when something measured it. Recording 1.0 for an objective with no evidence
+        // source would put a full mark in the audit trail for work nobody did; the magnitude already
+        // excludes it, so the number would contradict the score it does not appear in.
+        putIfMeasured(objectives, unmeasured, "behavioral_safety", () -> safetyScore(evidence));
+        putIfMeasured(objectives, unmeasured, "cost_latency_budget",
+                () -> budgetScore(evidence.benchmarks()));
         objectives.put(FitnessSignalId.objective("parsimony").canonical(), parsimony(realization));
 
         // A safety probe is a check, and every failing check fails the deterministic-checks gate, so
@@ -97,7 +100,7 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
                 evidence, behaviorCases, objectives, realization, nonGatingCheckNames(),
                 config.heldOutCaseNames(),
                 config.behaviorCaseNames(), config.maxLinesChanged(), config.benchmarkBudgets(),
-                unmeasuredObjectiveIds(evidence));
+                unmeasured);
         // A declared required_evidence id names a check that must exist and pass, so the declaration
         // is enforced against evidence this run already collected rather than a separate pipeline.
         return contract
@@ -128,6 +131,14 @@ public final class PhenotypeBridgeScorer implements FitnessScorer {
             unmeasured.add(FitnessSignalId.objective("cost_latency_budget").canonical());
         }
         return Set.copyOf(unmeasured);
+    }
+
+    private static void putIfMeasured(Map<String, Double> objectives, Set<String> unmeasured,
+            String objective, java.util.function.DoubleSupplier score) {
+        String id = FitnessSignalId.objective(objective).canonical();
+        if (!unmeasured.contains(id)) {
+            objectives.put(id, score.getAsDouble());
+        }
     }
 
     /** Whether any benchmark that ran was actually compared against a declared budget. */

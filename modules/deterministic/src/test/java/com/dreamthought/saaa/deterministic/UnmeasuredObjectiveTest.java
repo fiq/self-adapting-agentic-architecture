@@ -107,4 +107,34 @@ final class UnmeasuredObjectiveTest {
                 .as("a budget nothing was measured against must not inflate the score")
                 .isLessThan(new java.math.BigDecimal("0.87"));
     }
+
+    /**
+     * The audit record must not carry a number nobody measured.
+     *
+     * <p>Excluding an objective from the magnitude while still writing {@code 1.0} into
+     * {@code FitnessResult.objectives} leaves a reader of the audit trail looking at a full mark for
+     * something that was never measured. The fingerprint distinguishes such runs, so nothing is
+     * mis-ranked, but the recorded evidence says the opposite of what happened. Absence is the
+     * honest record, and it is the same rule applied everywhere else here: absent evidence is not
+     * passing evidence.
+     */
+    @Test
+    void theAuditRecordOmitsObjectivesNothingMeasuredRatherThanRecordingFullMarks() {
+        var bridge = new PhenotypeBridgeScorer(
+                ignored -> new RealizationSummary(1, 8),
+                new ScoringConfig(Set.of("gating"), 80, Map.of()));
+
+        var result = bridge.score(candidate(), new EvaluationEvidence(
+                List.of(CheckEvidence.passed("gating", "ok")), List.of(), Instant.EPOCH));
+
+        assertThat(result.objectives())
+                .as("no probes and no budgets were declared, so neither objective was measured")
+                .doesNotContainKeys(
+                        "subject.objective.behavioral_safety",
+                        "subject.objective.cost_latency_budget")
+                .containsKeys(
+                        "subject.objective.task_success",
+                        "subject.objective.reliability",
+                        "subject.objective.parsimony");
+    }
 }

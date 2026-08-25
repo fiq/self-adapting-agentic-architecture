@@ -107,7 +107,11 @@ public final class PhenotypeFitnessScorer {
                 : contract.objectives();
         // An objective nothing measured is legitimately absent, not missing by error, so the
         // presence gate asks only about the ones a source existed for.
-        boolean objectiveScoresPresent = hasEveryObjectiveScore(phenotype, measured(phenotype, objectiveSet));
+        // Computed once. The gate, the decision and the recorded magnitude must all be taken from
+        // the same set; deriving it three times invited them to drift apart, which is the shape of
+        // the defect where the decision and the magnitude disagreed at the threshold.
+        List<FitnessObjective> measuredObjectives = measured(phenotype, objectiveSet);
+        boolean objectiveScoresPresent = hasEveryObjectiveScore(phenotype, measuredObjectives);
         // A candidate that changed no file has no behavioral variation to evaluate: its passing
         // checks are evidence about the baseline, and parsimony rewards the empty diff with 1.0.
         // Measured in files rather than lines, so a mode-only change still counts as a realization.
@@ -146,7 +150,8 @@ public final class PhenotypeFitnessScorer {
         // and a candidate landing exactly on the threshold came out at 0.7999999999999999 and was
         // discarded. Promotion must not depend on the summation order of the weight constants, and
         // the decision must agree with the magnitude that gets stored, ranked and reported.
-        double rawScore = weightedMagnitude(phenotype, measured(phenotype, objectiveSet)).doubleValue();
+        BigDecimal magnitude = weightedMagnitude(phenotype, measuredObjectives);
+        double rawScore = magnitude.doubleValue();
         FitnessDecision decision = gatesPassed && rawScore >= PROMOTION_THRESHOLD
                 ? FitnessDecision.PROMOTE
                 : FitnessDecision.DISCARD;
@@ -182,7 +187,7 @@ public final class PhenotypeFitnessScorer {
                 phenotype.benchmarkBudgets());
 
         return new FitnessResult(candidate, phenotype.evidence(), objectives,
-                new FitnessScore(weightedMagnitude(phenotype, measured(phenotype, objectiveSet)), decision),
+                new FitnessScore(magnitude, decision),
                 scoringContext);
     }
 
