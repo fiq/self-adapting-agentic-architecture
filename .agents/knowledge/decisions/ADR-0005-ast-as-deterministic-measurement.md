@@ -83,6 +83,28 @@ Generalises past parsers to any missing measurement capability: a benchmark
 harness, a check runner for an unfamiliar build system, an adapter for an
 unmet architecture.
 
+## Conformance tests are the contract
+
+Find-a-parser-and-wrap-it is only safe if wrapped correctly is decidable. The port
+therefore ships a language-agnostic conformance suite, and passing it is what
+supported means. The suite is written once against the port; a frontend supplies
+fixtures in its own language and declares which layers it fills, and is tested on
+exactly that declaration. It is also what the unsupported-language work item
+points at: not implement the port, but make this suite pass with your language's
+fixtures - finishable, checkable, and verifiable by a human who cannot read the
+adapter's language. That is what keeps ARCH-001 honest for code nobody here wrote.
+
+## Spike result, 2026-08-26
+
+JavaParser runs on JDK 25 and resolves symbols - name.trim() to
+java.lang.String.trim() with only a ReflectionTypeSolver - which is what the
+declared-locus gate needs and what tree-sitter cannot supply at any grammar count.
+Its error recovery is weak: on broken source it returns a partial result whose
+tree contained no types and no methods. The Java frontend must therefore report
+UNPARSEABLE rather than RECOVERED_WITH_ERRORS when a partial tree yields no
+declarations, because partial success over an empty tree is absence dressed as
+evidence. Licensing is still unchecked.
+
 ## One abstraction, filled to different depths
 
 The first draft had two - a StructuralEvidence record now and a code property
