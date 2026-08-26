@@ -569,26 +569,107 @@ outcome, not a degraded one**. It unlocks three of four capabilities for that
 language. The declared-locus gate reports `UNSUPPORTED` for that language and
 says so, rather than the language being refused outright.
 
-## First task: spike JavaParser before committing to it
+## Spike result: JavaParser answers two of three well, and one badly
 
-The base case names JavaParser for its Java target, and two things about it are
-unverified. Both are
-cheap to settle and both could change the answer, so they are settled first —
-the same discipline that spiked Neo4j before any code was written against it,
-and found the container ran its tests for real rather than skipping them.
+Run 2026-08-26 as a throwaway project, not in this repository. Verbatim output:
 
-- **Does it work on JDK 25?** The toolchain moved during this ADR's own review.
-- **What does it do with source that does not compile?** This decides the
-  `RECOVERED_WITH_ERRORS` state. Error recovery is one of tree-sitter's genuine
-  strengths, so a poor answer here is the axis on which the parser choice flips
-  back — at which point the JDK objection is already gone and only native
-  artifacts and absent symbol resolution remain against it.
-- **Licensing.** Apache-2.0 / LGPL-3.0 needs checking against this repository's
-  constraints.
+```
+JVM              : 25.0.4+1
+Q1 valid parse   : successful=true
+Q2 broken parse  : successful=false problems=3 partialResultPresent=true
+Q2 partial tree  : types=0 methods=0
+Q3 resolved call : name.trim()  ->  java.lang.String.trim()
+```
 
-A spike that answers those three is the first deliverable. If it flips the
-choice, the rest of this decision is unaffected: the AST still measures and
-still never mutates, and `C1` through `C5` are parser-agnostic by construction.
+**JDK 25: fine.** Parses and resolves on the current toolchain.
+
+**Symbol resolution: works, and that is the decisive one.** `name.trim()`
+resolved to `java.lang.String.trim()` through `JavaSymbolSolver` with only a
+`ReflectionTypeSolver`. That is what the declared-locus gate needs, and it is
+what tree-sitter cannot supply at any grammar count.
+
+**Error recovery: weak, and this is the honest limitation.** On deliberately
+broken source JavaParser does return a partial result, so
+`partialResultPresent=true` — but that partial tree contained **no types and no
+methods**. It recovers a shell, not usable structure.
+
+The consequence for `C5`: a `RECOVERED_WITH_ERRORS` result from this frontend may
+carry nothing worth measuring. The state stays, because a frontend with real
+recovery may fill it usefully, but the Java frontend must report `UNPARSEABLE`
+rather than `RECOVERED_WITH_ERRORS` when the partial tree yields no declarations.
+Reporting partial success over an empty tree would be absence dressed as evidence
+— the same defect as an unmeasured objective scoring full marks.
+
+This does not flip the base case. Java targets are usually parseable, and the
+capability that needs this frontend needs symbols, which only it provides. It does
+mean tree-sitter's recovery remains a genuine advantage for the syntax layer, and
+the layered model lets both be true at once: two frontends for one language is
+allowed, filling different layers.
+
+Licensing remains unchecked: Apache-2.0 / LGPL-3.0 against this repository's
+constraints.
+
+## The contract needs executable conformance tests, not prose
+
+"Find a parser and wrap it to the port" is only safe if *wrapped correctly* is
+decidable. Otherwise every new language is a new opportunity to be subtly wrong,
+and the failure mode is a frontend that returns plausible structure which no
+capability can trust.
+
+So the port ships with a **language-agnostic conformance suite**, and passing it
+is what "supported" means. Not documentation of the contract — the contract
+itself, executable.
+
+```
+   conformance suite (language-agnostic)
+          │  parameterised over: a frontend + its fixture set
+          ▼
+   ┌────────────────────────────────────────────────┐
+   │ syntax layer  · same source parses twice alike │
+   │               · formatting-only edit is equal  │
+   │               · a changed statement is not     │
+   │ symbol layer  · a declared symbol is found     │
+   │               · an edit outside it is detected │
+   │ completeness  · unparseable reports UNPARSEABLE│
+   │               · declares only layers it fills  │
+   └────────────────────────────────────────────────┘
+```
+
+Three properties make this work, and each is a rule rather than a nicety.
+
+- **The suite is written once, against the port, and every frontend runs it.**
+  A frontend supplies fixtures in its own language; the assertions are shared. A
+  language-specific test proves a language-specific thing, which is what nobody
+  needs.
+- **A frontend declares the layers it fills, and is tested only on those.** A
+  syntax-only frontend passing the symbol-layer tests would be lying; skipping
+  them silently would be worse. It declares, and the suite holds it to exactly
+  the declaration.
+- **The suite is what the unsupported-language work item points at.** The
+  instruction is not "implement the port" but "make this suite pass with your
+  language's fixtures", which is a finishable, checkable task an agent can be
+  handed and a human can verify without reading the adapter.
+
+This is also what keeps the promise in `ARCH-001` honest across languages. A
+contributed frontend is code nobody on this project wrote, for a language nobody
+here may know. Reviewing it by reading is not a control. Running the same
+conformance suite that every other frontend passes is.
+
+## First task, now that the spike has run
+
+The spike is done and its findings are above. What replaces it as the first
+deliverable:
+
+1. **The port and its conformance suite**, before any frontend. The suite is the
+   contract, so writing it first is what makes the frontend checkable rather than
+   merely present.
+2. **The Java frontend**, passing that suite, declaring the syntax and symbol
+   layers, and reporting `UNPARSEABLE` where its partial tree yields nothing.
+3. **The declared-locus gate** consuming the symbol layer — the live consumer
+   that justified this ordering in the first place.
+
+Still unchecked: JavaParser's Apache-2.0 / LGPL-3.0 licensing against this
+repository's constraints. That is a decision for a human, not a spike.
 
 ## The base case
 
