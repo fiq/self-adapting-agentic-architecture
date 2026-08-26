@@ -26,4 +26,6 @@ dependencies {
         }
     }
     testImplementation(libs.wiremock)
+    // A source-structure frontend lives here and is judged by the shared conformance suite.
+    testImplementation(testFixtures(project(":deterministic")))
 }

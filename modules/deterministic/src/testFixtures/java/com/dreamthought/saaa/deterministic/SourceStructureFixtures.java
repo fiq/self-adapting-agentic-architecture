@@ -18,7 +18,8 @@ import java.util.Objects;
  * @param declaredSymbolName  a symbol declared in {@code original}, as its frontend identifies it
  * @param lineInsideSymbol    a one-based line falling inside that declaration
  * @param lineOutsideSymbol   a one-based line falling outside every declaration, such as an import
- * @param unreadable          source this frontend cannot read into usable structure
+ * @param unreadable          source this frontend cannot read into usable structure, and which
+ *                            therefore must not be any of the readable sources above
  */
 public record SourceStructureFixtures(
         String languageId,
@@ -51,11 +52,28 @@ public record SourceStructureFixtures(
                     "formattingOnlyEdit and statementEdit must be different edits, or the suite "
                             + "cannot tell a formatting change from a real one");
         }
+        // The mirror of the rule above, and the more dangerous half. A set reusing a source proves
+        // nothing; a set demanding one source be read two ways is impossible, and a fixture author
+        // would meet it as an unexplained failure of their frontend rather than of their fixtures.
+        if (unreadable.equals(original) || unreadable.equals(formattingOnlyEdit)
+                || unreadable.equals(statementEdit)) {
+            throw new IllegalArgumentException(
+                    "unreadable must differ from every readable fixture: no frontend can read one "
+                            + "source as both usable structure and UNPARSEABLE");
+        }
         if (lineInsideSymbol < 1 || lineOutsideSymbol < 1) {
             throw new IllegalArgumentException("fixture lines are one-based");
         }
         if (lineInsideSymbol == lineOutsideSymbol) {
             throw new IllegalArgumentException("inside and outside lines must differ");
+        }
+        // A line past the end of the source cannot be inside a declaration or outside one; it is
+        // not in the file. A frontend faithful to its language would fail such a fixture, and one
+        // that invented a declaration to cover it would pass, which inverts what the suite is for.
+        long lineCount = original.lines().count();
+        if (lineInsideSymbol > lineCount || lineOutsideSymbol > lineCount) {
+            throw new IllegalArgumentException(
+                    "fixture lines must fall within original, which has " + lineCount + " lines");
         }
     }
 

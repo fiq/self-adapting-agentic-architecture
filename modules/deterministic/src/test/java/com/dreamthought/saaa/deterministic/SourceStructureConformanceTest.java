@@ -48,14 +48,40 @@ final class SourceStructureConformanceTest {
     }
 
     @Test
-    @DisplayName("a frontend whose digest is unstable fails: nothing downstream could rank on it")
-    void anUnstableDigestFailsEvenThoughEverySourceLooksDifferent() {
+    @DisplayName("a frontend that calls every source different fails: it cannot see formatting")
+    void aFrontendThatFindsEverySourceDifferentFailsTheFormattingHalf() {
         var counter = new int[] {0};
-        var unstable = new ToyFrontend(structure ->
+        var everythingDiffers = new ToyFrontend(structure ->
                 withDigest(structure, "call-" + counter[0]++));
 
+        assertThatThrownBy(() -> SourceStructureConformance.verify(everythingDiffers, fixtures()))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("formatting and comments are erased");
+    }
+
+    /**
+     * The instability assertion needs a frontend that is right about every source it is shown and
+     * wrong only when shown one twice. A frontend whose digest simply drifts fails the formatting
+     * assertion first and never reaches this one, which is how the stability assertion sat inert:
+     * deleting it broke no test.
+     */
+    @Test
+    @DisplayName("a frontend that answers differently on a re-read fails, though each source looks right")
+    void aDigestThatChangesOnRereadFails() {
+        var seen = new java.util.HashSet<String>();
+        var unstable = new ToyFrontend() {
+            @Override
+            public SourceStructure inspect(String languageId, String source) {
+                var structure = super.inspect(languageId, source);
+                return seen.add(source)
+                        ? structure
+                        : withDigest(structure, structure.normalizedDigest().orElseThrow() + "-again");
+            }
+        };
+
         assertThatThrownBy(() -> SourceStructureConformance.verify(unstable, fixtures()))
-                .isInstanceOf(AssertionError.class);
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("same source twice");
     }
 
     @Test
@@ -93,9 +119,14 @@ final class SourceStructureConformanceTest {
             @Override
             public SourceStructure inspect(String languageId, String source) {
                 if (!readable(source)) {
-                    // The JavaParser shape: a result exists, but there is nothing in it.
-                    return SourceStructure.unreadable(
-                            TOY, frontendId(), StructureCompleteness.RECOVERED_WITH_ERRORS);
+                    // The JavaParser shape: a result exists and there is next to nothing in it.
+                    // Claiming it with no layer at all is no longer representable — the model
+                    // rejects it — so this is the strongest overclaim still possible: a digest
+                    // over a shell, offered as recovery.
+                    return new SourceStructure(
+                            TOY, frontendId(), Set.of(StructureLayer.SYNTAX),
+                            StructureCompleteness.RECOVERED_WITH_ERRORS,
+                            Optional.of("shell"), List.of());
                 }
                 return super.inspect(languageId, source);
             }
@@ -123,12 +154,47 @@ final class SourceStructureConformanceTest {
     }
 
     @Test
+    @DisplayName("a frontend that attributes a line to the wrong declaration fails")
+    void aLineInsideOneDeclarationMustNotResolveToAnother() {
+        var misattributes = new ToyFrontend(structure -> structure.symbols().isEmpty()
+                ? structure
+                : new SourceStructure(
+                        structure.languageId(), structure.frontendId(), structure.filledLayers(),
+                        structure.completeness(), structure.normalizedDigest(),
+                        List.of(structure.symbols().get(0), new SourceSymbol("other", 3, 3))));
+
+        assertThatThrownBy(() -> SourceStructureConformance.verify(misattributes, fixtures()))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("not to some other one that also covers it");
+    }
+
+    @Test
     @DisplayName("a fixture set that reuses one source for two roles is rejected")
     void fixturesThatCannotDistinguishTheCasesAreRefused() {
         assertThatThrownBy(() -> new SourceStructureFixtures(
                 TOY, "sym a {\n x\n}\n", "sym a {\n x\n}\n", "sym a {\n y\n}\n", "a", 2, 1, "sym"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must differ textually");
+    }
+
+    @Test
+    @DisplayName("a fixture set demanding one source be read two ways is rejected")
+    void fixturesWhoseUnreadableSourceIsAlsoReadableAreRefused() {
+        assertThatThrownBy(() -> new SourceStructureFixtures(
+                TOY, "sym a {\n x\n}\n", "sym a {\n  x\n}\n", "sym a {\n y\n}\n", "a", 2, 1,
+                "sym a {\n x\n}\n"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must differ from every readable fixture");
+    }
+
+    @Test
+    @DisplayName("a fixture line past the end of the source is rejected")
+    void fixtureLinesOutsideTheSourceAreRefused() {
+        assertThatThrownBy(() -> new SourceStructureFixtures(
+                TOY, "sym a {\n x\n}\n", "sym a {\n  x\n}\n", "sym a {\n y\n}\n", "a", 999, 1,
+                "sym"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must fall within original");
     }
 
     private static SourceStructureFixtures fixtures() {

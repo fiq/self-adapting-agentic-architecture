@@ -3,6 +3,7 @@ package com.dreamthought.saaa.deterministic;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dreamthought.saaa.domain.SourceStructure;
+import com.dreamthought.saaa.domain.SourceSymbol;
 import com.dreamthought.saaa.domain.StructureCompleteness;
 import com.dreamthought.saaa.domain.StructureLayer;
 import java.util.Set;
@@ -20,12 +21,17 @@ import java.util.Set;
  *
  * <p>Not a test class itself: a frontend's own test invokes {@link #verify} so the failure is
  * attributed to that frontend.
+ *
+ * <p>It lives in {@code testFixtures} rather than {@code test} because every real frontend lives in
+ * {@code adapters}, and a contract the module it binds cannot compile against is not a contract. A
+ * frontend's module declares {@code testImplementation(testFixtures(project(":deterministic")))} and
+ * calls {@link #verify} from its own test.
  */
-final class SourceStructureConformance {
+public final class SourceStructureConformance {
     private SourceStructureConformance() {
     }
 
-    static void verify(SourceStructureInspector frontend, SourceStructureFixtures fixtures) {
+    public static void verify(SourceStructureInspector frontend, SourceStructureFixtures fixtures) {
         assertThat(frontend.languageId())
                 .as("a frontend must be tested with fixtures in the language it reads")
                 .isEqualTo(fixtures.languageId());
@@ -79,12 +85,16 @@ final class SourceStructureConformance {
         assertThat(original.symbols())
                 .as("the symbol layer was declared filled, so declarations must be located")
                 .isNotEmpty()
-                .extracting(com.dreamthought.saaa.domain.SourceSymbol::identifier)
+                .extracting(SourceSymbol::identifier)
                 .contains(fixtures.declaredSymbolName());
 
-        assertThat(original.symbolContaining(fixtures.lineInsideSymbol()))
-                .as("a line inside a declaration must resolve to it")
-                .isPresent();
+        // Which declaration, not merely that there was one. Declarations nest, so a frontend can
+        // locate the right symbol and still attribute the line to a different one, and the gate
+        // would then read an edit as inside a locus it never entered.
+        assertThat(original.symbolContaining(fixtures.lineInsideSymbol()).map(SourceSymbol::identifier))
+                .as("a line inside a declaration must resolve to that declaration, not to some "
+                        + "other one that also covers it")
+                .contains(fixtures.declaredSymbolName());
         assertThat(original.symbolContaining(fixtures.lineOutsideSymbol()))
                 .as("a line outside every declaration must resolve to none, or the gate cannot "
                         + "distinguish an edit that left its locus")

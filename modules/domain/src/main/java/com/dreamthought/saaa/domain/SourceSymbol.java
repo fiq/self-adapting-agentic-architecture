@@ -26,6 +26,11 @@ public record SourceSymbol(String identifier, int firstLine, int lastLine) {
         }
     }
 
+    /** How many lines this declaration occupies, which is how the innermost of two is chosen. */
+    public int lineSpan() {
+        return lastLine - firstLine + 1;
+    }
+
     /** Whether a changed line falls inside this declaration. */
     public boolean contains(int line) {
         return line >= firstLine && line <= lastLine;

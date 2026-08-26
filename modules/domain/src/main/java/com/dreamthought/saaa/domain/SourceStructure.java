@@ -1,5 +1,6 @@
 package com.dreamthought.saaa.domain;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,6 +51,14 @@ public record SourceStructure(
         if (!filledLayers.contains(StructureLayer.SYMBOL) && !symbols.isEmpty()) {
             throw new IllegalArgumentException("symbols were produced but SYMBOL is not declared filled");
         }
+        // FLOW is named in the enum so a frontend able to fill it has somewhere to declare that,
+        // but this model carries no field a flow claim could be corroborated against. Until it
+        // does, declaring FLOW filled is a claim nothing can check, and an unfalsifiable claim is
+        // the failure the two rules above exist to prevent.
+        if (filledLayers.contains(StructureLayer.FLOW)) {
+            throw new IllegalArgumentException(
+                    "FLOW cannot be declared filled: this model carries no flow evidence yet");
+        }
         // Nothing was read, so nothing may be claimed. Without this a frontend could report
         // UNPARSEABLE while handing over structure a capability would then use.
         boolean readable = completeness == StructureCompleteness.COMPLETE
@@ -58,9 +67,22 @@ public record SourceStructure(
             throw new IllegalArgumentException(
                     completeness + " cannot fill any layer, but declared " + filledLayers);
         }
+        // And the inverse, which is the shape the JavaParser spike actually returned: a result
+        // claiming the source was read while carrying nothing. RECOVERED_WITH_ERRORS means usable
+        // declarations were recovered, so recovering none of them is UNPARSEABLE. Without this the
+        // spike's own finding is representable in the model built to record it.
+        if (readable && filledLayers.isEmpty()) {
+            throw new IllegalArgumentException(
+                    completeness + " claims the source was read but filled no layer; recovering "
+                            + "nothing is UNPARSEABLE, not partial success");
+        }
     }
 
-    /** Nothing was readable. The layer set is necessarily empty. */
+    /**
+     * Nothing was readable. The layer set is necessarily empty, so the completeness passed must be
+     * one that admits an empty one — {@code COMPLETE} and {@code RECOVERED_WITH_ERRORS} are
+     * rejected by the constructor rather than quietly producing an empty success.
+     */
     public static SourceStructure unreadable(
             String languageId, String frontendId, StructureCompleteness completeness) {
         return new SourceStructure(
@@ -72,8 +94,20 @@ public record SourceStructure(
         return filledLayers.containsAll(required);
     }
 
-    /** The declaration containing a changed line, if the symbol layer was filled and one matches. */
+    /**
+     * The declaration containing a changed line, if the symbol layer was filled and one matches.
+     *
+     * <p>Declarations nest — a method sits inside a class — so more than one can contain a line and
+     * the gate needs the innermost, which is the one an edit is actually inside. Taking whichever
+     * the frontend happened to list first would make the answer depend on a parser's traversal
+     * order, and two frontends for one language could then disagree about the same edit. Ties are
+     * broken on position and then identifier so the answer is total and order-independent.
+     */
     public Optional<SourceSymbol> symbolContaining(int line) {
-        return symbols.stream().filter(symbol -> symbol.contains(line)).findFirst();
+        return symbols.stream()
+                .filter(symbol -> symbol.contains(line))
+                .min(Comparator.comparingInt(SourceSymbol::lineSpan)
+                        .thenComparingInt(SourceSymbol::firstLine)
+                        .thenComparing(SourceSymbol::identifier));
     }
 }
