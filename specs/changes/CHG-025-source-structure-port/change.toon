@@ -1,0 +1,82 @@
+change:
+  id: CHG-025
+  title: The source-structure port and its language-agnostic conformance suite
+  status: accepted
+  intent: Make ADR-0005's layered model real and conformance to it decidable, so a frontend for any language can be contributed and checked without reading its adapter.
+  audience_level: developer
+  relates_to:
+    - ADR-0005
+    - ARCH-001
+    - CON-002
+    - PAT-004
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: Source structure is one layered model that frontends fill to different depths, and a frontend is supported exactly when it passes the shared conformance suite for the layers it declares.
+    scenarios:
+      - id: S1
+        when: a frontend declares the syntax layer and is run against the shared conformance suite
+        then: it is held to the syntax assertions and not to the symbol ones
+        and:
+          - passing assertions for a layer it does not fill would be a lie, and skipping them silently would be worse, so the declaration is what the suite tests against
+      - id: S2
+        when: two sources differ only in formatting or comments
+        then: the syntax layer reports them identical, and a changed statement is not
+        and:
+          - this is the property duplicate detection rests on, and it is asserted in both directions so a frontend that reported everything identical could not pass
+      - id: S3
+        when: a frontend declares the symbol layer and is asked where a declaration lives
+        then: it locates the declaration, and an edit outside it is distinguishable from an edit inside it
+        and:
+          - this is what the declared-locus gate consumes, and no capability may ask which frontend answered
+      - id: S4
+        when: a frontend cannot produce usable structure for a source
+        then: it reports UNPARSEABLE rather than a partial result carrying no declarations
+        and:
+          - the JavaParser spike returned a partial tree with no types and no methods, so partial success over an empty tree is absence dressed as evidence
+      - id: S5
+        when: a capability requires a layer a frontend does not fill
+        then: the capability reports UNSUPPORTED for that language rather than degrading silently
+        and:
+          - a frontend supplying structure but not symbols is a first-class outcome that unlocks three of the four capabilities
+
+acceptance:
+  - scenario: S1
+    test_id: deterministic/SourceStructureConformanceTest.aFrontendMustFillTheLayersItDeclares
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/SourceStructureConformanceTest.formattingOnlyDifferencesAreIdenticalAndRealOnesAreNot
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/SourceStructureConformanceTest.aDeclaredSymbolIsLocatedAndEditsOutsideItAreDistinguishable
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/SourceStructureConformanceTest.unusableStructureIsReportedUnparseableRatherThanPartial
+    layer: unit
+  - scenario: S5
+    test_id: deterministic/SourceStructureConformanceTest.aCapabilityNeedingAnUnfilledLayerIsUnsupported
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: the layered model in domain, dependency-free and parser-agnostic
+    status: completed
+  - id: T2
+    slice: the SourceStructureInspector port in deterministic, returning the model and declaring filled layers
+    status: completed
+  - id: T3
+    slice: the language-agnostic conformance suite, parameterised over a frontend and its fixtures
+    status: completed
+  - id: T4
+    slice: a deliberately wrong in-memory frontend proving each conformance assertion can fail
+    status: completed
+
+non_goals:
+  - any frontend, including Java
+  - the declared-locus gate, structural distance, complexity and convergence
+  - the flow layer, which no planned capability needs yet
+
+risks:
+  - The suite is written before any real frontend, so it can only assert what the contract requires rather than what a parser happens to do. That is the intent, and the risk is the mirror image: an assertion nobody can satisfy would not be discovered until the first frontend. T4 exists to catch that by making a deliberately wrong frontend fail each assertion, but a suite that is impossible rather than merely strict would pass T4 and fail the Java frontend.
+  - Nothing observable changes for a user in this change. That cost is accepted because the suite is what a contributed frontend is judged by, and a contract written after its first implementation describes that implementation.
