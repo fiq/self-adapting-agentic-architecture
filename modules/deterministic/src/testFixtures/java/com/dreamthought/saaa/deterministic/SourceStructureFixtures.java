@@ -16,7 +16,11 @@ import java.util.Objects;
  * @param statementEdit       the same source with a statement genuinely changed — must not be
  *                            identical, or a frontend returning a constant would pass
  * @param declaredSymbolName  a symbol declared in {@code original}, as its frontend identifies it
- * @param lineInsideSymbol    a one-based line falling inside that declaration
+ * @param lineInsideSymbol    a one-based line falling inside that declaration and inside no
+ *                            declaration nested within it, because the suite asserts the line
+ *                            resolves to {@code declaredSymbolName} and a frontend that also
+ *                            locates the lambda or local class around it would answer with that
+ *                            instead — correctly
  * @param lineOutsideSymbol   a one-based line falling outside every declaration, such as an import
  * @param unreadable          source this frontend cannot read into usable structure, and which
  *                            therefore must not be any of the readable sources above

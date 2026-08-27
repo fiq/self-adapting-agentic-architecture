@@ -29,6 +29,11 @@ public enum StructureLayer {
      * Control flow and data dependence. No planned capability needs it yet; it is named so that a
      * frontend able to fill it has somewhere to declare that, rather than the enum being widened
      * later under pressure.
+     *
+     * <p>Declaring it filled is <em>rejected</em> until the model carries a field a flow claim can
+     * be checked against. The name is a place to put the layer, not permission to claim it: an
+     * unfalsifiable declaration is the failure {@link SourceStructure}'s layer rules exist to
+     * prevent, and the conformance suite would pass it vacuously.
      */
     FLOW
 }

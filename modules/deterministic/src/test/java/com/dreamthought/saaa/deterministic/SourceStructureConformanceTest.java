@@ -8,6 +8,7 @@ import com.dreamthought.saaa.domain.SourceSymbol;
 import com.dreamthought.saaa.domain.StructureCompleteness;
 import com.dreamthought.saaa.domain.StructureLayer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -68,7 +69,7 @@ final class SourceStructureConformanceTest {
     @Test
     @DisplayName("a frontend that answers differently on a re-read fails, though each source looks right")
     void aDigestThatChangesOnRereadFails() {
-        var seen = new java.util.HashSet<String>();
+        var seen = new HashSet<String>();
         var unstable = new ToyFrontend() {
             @Override
             public SourceStructure inspect(String languageId, String source) {
@@ -161,7 +162,8 @@ final class SourceStructureConformanceTest {
                 : new SourceStructure(
                         structure.languageId(), structure.frontendId(), structure.filledLayers(),
                         structure.completeness(), structure.normalizedDigest(),
-                        List.of(structure.symbols().get(0), new SourceSymbol("other", 3, 3))));
+                        List.of(structure.symbols().get(0), new SourceSymbol(
+                                "other", fixtures().lineInsideSymbol(), fixtures().lineInsideSymbol()))));
 
         assertThatThrownBy(() -> SourceStructureConformance.verify(misattributes, fixtures()))
                 .isInstanceOf(AssertionError.class)

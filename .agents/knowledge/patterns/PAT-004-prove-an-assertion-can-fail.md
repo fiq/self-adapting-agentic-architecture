@@ -42,6 +42,7 @@ and merged before anyone checked it.
 | CHG-014 fail-wins on duplicate ids | listed the failing result last, so last-write-wins returned the same answer |
 | CHG-016 CLI benchmark test | could fail if the wiring were absent, but its budget of `1e-7` drove the ratio to zero whichever direction the quantity pointed, so it proved a discard happened and nothing about why. Insufficient rather than incapable |
 | CHG-019 inverted `S9` | asserted `containsKey` when the scorer writes that key whatever the outcome |
+| CHG-025 digest stability | unreachable: an earlier assertion in the same shared suite failed first for every input that could have reached it |
 
 Two more were found the same way in a subagent's work and in a reviewer's
 suggestion, and one reviewer suggestion would have codified the opposite of the
@@ -61,6 +62,36 @@ the mechanism and not only the assertion: if breaking the code under test change
 nothing, the test is not weak, it is disconnected, and the two need different
 fixes.
 
+## An assertion can be unreachable rather than weak
+
+CHG-025 added an eighth case with a mechanism none of the others share. A shared
+conformance suite asserted three things about a digest in sequence: that a
+formatting-only edit is identical, that a changed statement is not, and that
+reading the same source twice gives the same answer. The third could not fail.
+Every frontend built to violate it — one whose digest drifted per call — violated
+the *first* assertion too, and AssertJ stops at the first failure. The negative
+test written for stability was passing on the formatting assertion, and it pinned
+only `AssertionError` with no message, so nothing revealed the substitution.
+
+What makes this worth its own section is that the change's own evidence strategy
+could not have caught it. That change proved strictness with six deliberately
+wrong implementations, each failing a named assertion. A wrong implementation
+fails an unreachable assertion exactly as readily as a reachable one, because
+something else fails first and the suite is red either way. Six negative tests
+passing says the suite rejects those six frontends. It says nothing about which
+assertion did the rejecting.
+
+Deleting the assertion is what found it: the suite stayed green. The fix needs an
+input that satisfies every earlier assertion and violates only this one — here, a
+frontend that answers correctly for every distinct source and differently only on
+a re-read — and the negative test must pin the assertion's own message, or it can
+silently start passing on a different failure again.
+
+Two rules follow. Pin the message, not just the exception type, in any test that
+asserts a specific assertion fires. And when assertions are ordered in a shared
+routine, deleting each one and observing which test goes red is the only cheap
+way to learn that each is reachable.
+
 ## The shapes that recur
 
 - checking a key is present when the key is written regardless of outcome;
@@ -68,7 +99,9 @@ fixes.
 - a fixture that already satisfies the assertion before the code runs;
 - ordering that lets a last-write-wins bug produce the expected answer;
 - a magnitude so extreme it passes for a direction-agnostic reason;
-- a test whose subject never runs, so the assertion is satisfied by absence.
+- a test whose subject never runs, so the assertion is satisfied by absence;
+- an assertion later in a sequence that nothing can reach, because an earlier one
+  in the same routine fails first for every input that would have violated it.
 
 ## What this does not mean
 

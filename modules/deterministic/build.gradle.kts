@@ -11,7 +11,7 @@ dependencies {
     // The conformance suite asserts, so AssertJ is part of what a consuming frontend module gets:
     // `api`, not `implementation`, because the frontend's own test compiles against these calls.
     testFixturesApi(project(":domain"))
-    testFixturesApi("org.assertj:assertj-core:3.27.7")
+    testFixturesApi(libs.assertj.core)
 }
 
 val acceptanceTest by sourceSets.creating {
