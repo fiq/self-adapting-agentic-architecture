@@ -1,0 +1,128 @@
+change:
+  id: CHG-026
+  title: A population of candidates, ranked on identical evidence
+  status: proposed
+  intent: Evaluate several candidates against one baseline in a single generation and rank them deterministically, so selection becomes a fact fixed code establishes rather than an opinion, which ADR-0002 names as the missing Layer-1 foundation.
+  audience_level: developer
+  relates_to:
+    - ADR-0002
+    - ARCH-001
+    - CON-002
+    - SYS-001
+    - RISK-003
+    - PAT-004
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: A generation evaluates several candidates against one baseline, each isolated from the others, and ranks them by FitnessScore on identical evidence. Ranking selects among candidates the gates promoted and never overrides them.
+    scenarios:
+      - id: S1
+        when: a generation of N candidates is evaluated against one baseline
+        then: each candidate is realised in its own worktree and no candidate's evaluation can observe another's
+        and:
+          - the naming mechanism exists already. GitCandidateWorkspace folds a candidateNamespace into the candidate id, the branch and the worktree path, and only BenchmarkCommand ever supplies one
+          - so the evolve path derives a name from workflow id and mutation id alone, two candidates collide, and the second fails with "candidate worktree already exists". That is RISK-003, and this change closes it on the path that has it
+      - id: S2
+        when: a generation finishes and its candidates are ranked
+        then: the order is the same for the same evidence regardless of the order the candidates were evaluated in, and equal scores are separated by a declared tie-break rather than by list position
+        and:
+          - ordering that depends on input order has produced two real defects here already, one from Set.copyOf iteration order varying per JVM run and one from archive-input-order dependence in ancestor selection
+          - a total order is what makes the ranking reproducible from the record, which is the only way a later reader can check the selection rather than trust it
+      - id: S3
+        when: the highest raw magnitude in a generation belongs to a candidate its gates discarded
+        then: the winner is a promoted candidate, and the discarded one keeps its magnitude and its place among the discards
+        and:
+          - a discarded candidate keeps its score so a near miss stays distinguishable from a total miss, which is what lets a later generation choose which failure to mutate from
+          - FitnessScore already orders decision-first for exactly this. This is its first consumer, so it is the first time the property is load-bearing rather than latent
+      - id: S4
+        when: no candidate in a generation cleared its gates
+        then: the generation records no winner rather than promoting the least bad candidate
+        and:
+          - ranking selects among promotable candidates and is not a second opinion on the gates. A population that promotes the best of a bad generation has moved the deciding step back out of fixed code
+      - id: S5
+        when: two candidates in a generation were scored under different scoring contexts
+        then: the generation refuses to rank them and names the fingerprints that differed
+        and:
+          - CHG-024 stamped the fingerprint so scores produced under different objective sets, weights, probe sets or budgets are never silently compared. In a single-candidate run nothing compares, so the guard protects a future; a population is that future and is the first place two scores meet
+      - id: S6
+        when: one candidate in a generation produces no evidence, because its realisation or its checks failed outright
+        then: it is recorded as a failure with its reason, takes no place in the ranking, and the generation reports how many of N produced evidence
+        and:
+          - absent evidence counts as failure everywhere in this loop, so an unevaluatable candidate is a recorded failure rather than a candidate quietly dropped
+          - a generation that ranks two of three without saying so hides a systematic failure behind a plausible-looking winner
+      - id: S7
+        when: a generation completes
+        then: the journal and the experiment ledger carry the ranked order, the winner, the shared scoring fingerprint, the count that produced evidence and the spread of scores
+        and:
+          - ADR-0002 names "population ships but ranking is not measurably useful" as a revisit trigger, and the spread is what makes that answerable later rather than a matter of impression
+          - a slice that cannot tell you whether it helped is the thing this project exists to argue against
+      - id: S8
+        when: the default fixture proposer is asked to fill a generation of N
+        then: it yields N distinct mutations with distinct ids, or the run fails rather than evaluating one candidate N times
+        and:
+          - FixtureMutationProposer returns MUT-<baseline>-fixture on every call, so N calls today produce one candidate N times, which then collide on the worktree path
+          - a canned population proves the mechanism rather than that a model has good ideas, which is the same honesty the canned single-candidate proposer already carries
+
+acceptance:
+  - scenario: S1
+    test_id: adapters/GitCandidateWorkspaceIntegrationTest.eachCandidateInAGenerationGetsItsOwnWorktree
+    layer: integration
+  - scenario: S2
+    test_id: deterministic/PopulationRankingPolicyTest.rankingIsTotalAndIndependentOfEvaluationOrder
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/PopulationRankingPolicyTest.aDiscardedCandidateNeverOutranksAPromotedOne
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/PopulationRankingPolicyTest.aGenerationWithNoPromotionRecordsNoWinner
+    layer: unit
+  - scenario: S5
+    test_id: deterministic/PopulationRankingPolicyTest.candidatesScoredUnderDifferentFingerprintsAreNotRanked
+    layer: unit
+  - scenario: S6
+    test_id: deterministic/GenerationEvaluationLoopTest.aCandidateThatProducedNoEvidenceIsRecordedAndNotRanked
+    layer: unit
+  - scenario: S7
+    test_id: cli/EvolveGenerationAcceptanceTest.aGenerationRecordsItsRankingWinnerFingerprintAndSpread
+    layer: acceptance
+  - scenario: S8
+    test_id: adapters/FixtureMutationProposerTest.aGenerationRequestYieldsDistinctMutations
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: domain value types for a ranked generation - the ranked order, the winner, the count that produced evidence and the spread - dependency-free and holding no policy
+    status: pending
+  - id: T2
+    slice: PopulationRankingPolicy in deterministic - a total order over FitnessScore with a declared tie-break, decision-first so a discard cannot outrank a promotion, and refusal to rank across differing scoring fingerprints
+    status: pending
+  - id: T3
+    slice: GenerationEvaluationLoop in deterministic, composing the existing MutationEvaluationLoop N times sequentially, leaving the single-candidate path byte-identical for a caller that asks for one
+    status: pending
+  - id: T4
+    slice: a per-candidate namespace on the evolve path so N worktrees coexist, closing RISK-003 where it is live, plus the CLI option that asks for a generation
+    status: pending
+  - id: T5
+    slice: variant production - a proposer entry point for N variants whose default is N calls, and a fixture proposer that varies deliberately so the slice is exercisable without a live model
+    status: pending
+  - id: T6
+    slice: the generation record in the journal and the experiment ledger, carrying ranking, winner, fingerprint, evidence count and spread
+    status: pending
+  - id: T7
+    slice: README capability table, architecture wiki and handoff updated in the same change as the behaviour
+    status: pending
+
+non_goals:
+  - conceptual crossover, which ADR-0002 sequences after population and which ConceptualCrossoverPolicy already has tests for and no wiring
+  - iterated generations, elitism and an archive of best-so-far, which need their own decision about what survives
+  - the live model proposer, kept separate so a ranking defect and a proposer defect cannot arrive together and be mistaken for each other
+  - parallel candidate evaluation
+  - automatic worktree cleanup, which interacts with the rule that a dirty worktree is never removed
+  - AST-aware realisation and the declared-locus gate, which are the other track
+
+risks:
+  - Ranking may not discriminate. If every candidate in a generation lands at the same score, that is ADR-0002's revisit trigger firing rather than a defect in this change, and it means the direction is wrong before more is built on it. The generation record must therefore carry the spread, so the answer is in the evidence rather than in an impression.
+  - A varying fixture proposer produces the variety it was written to produce. It can demonstrate that ranking works on candidates that differ; it cannot show that a real proposer's candidates differ in ways the scorer can see. Only the live proposer answers that, and it is deliberately not in this change.
+  - N sequential evaluations cost N times the wall clock and N worktrees of disk. That is accepted here because determinism matters more than throughput at this size, but it is the pressure that will make parallelism look attractive, and parallelism is what would put the ordering property at risk.
+  - Closing RISK-003 changes candidate ids and worktree paths on the evolve path. Existing local experiment data keyed by the old names is not migrated; it is derived and is rebuilt.
