@@ -58,9 +58,27 @@ MutationEvaluationLoop  (deterministic)
         |-- FitnessScorer             -> deterministic/PhenotypeBridgeScorer
         |-- ExperimentMetadataStore   -> adapters/sqlite
         |-- CandidateDecisionSink     -> adapters/journal
+        |-- SourceStructureInspector  -> adapters/parser (no frontend written yet)
 ```
 
 Notes on the ports above:
+
+- `SourceStructureInspector` is the newest port and the only one nothing fills
+  yet. It reads a source file into `SourceStructure`, the one layered model
+  every structural capability consumes. A frontend fills the layers it can:
+  `SYNTAX` needs only a grammar, `SYMBOL` needs a language tool, and which of
+  them a frontend filled is data on the result rather than a different type, so
+  a capability asks "was the symbol layer filled" instead of "which parser
+  answered". A capability needing a layer nobody filled is unsupported for that
+  language rather than quietly given less than it asked for.
+
+  What makes it unusual is that the contract is executable. A frontend is
+  supported exactly when it passes `SourceStructureConformance`, the shared
+  suite in the deterministic module's test fixtures, against fixtures in its own
+  language. That is deliberate: reviewing an adapter for a language you do not
+  read is not a control, so the suite is what a contributed frontend is judged
+  by. A contributor supplies six strings and inherits every assertion. See
+  `ADR-0005` and `CHG-025`.
 
 - `PhenotypeFitnessScorer` also exposes a contract-aware entry point that takes
   a `MutationContract` and a typed required-evidence channel. The bridge above

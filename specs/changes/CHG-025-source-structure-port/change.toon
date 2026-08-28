@@ -1,0 +1,122 @@
+change:
+  id: CHG-025
+  title: The source-structure port and its language-agnostic conformance suite
+  status: accepted
+  intent: Make ADR-0005's layered model real and conformance to it decidable, so a frontend for any language can be contributed and checked without reading its adapter.
+  audience_level: developer
+  relates_to:
+    - ADR-0005
+    - ARCH-001
+    - CON-002
+    - PAT-004
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: Source structure is one layered model that frontends fill to different depths, and a frontend is supported exactly when it passes the shared conformance suite for the layers it declares.
+    scenarios:
+      - id: S1
+        when: a frontend declares the syntax layer and is run against the shared conformance suite
+        then: it is held to the syntax assertions and not to the symbol ones
+        and:
+          - passing assertions for a layer it does not fill would be a lie, and skipping them silently would be worse, so the declaration is what the suite tests against
+      - id: S2
+        when: two sources differ only in formatting or comments
+        then: the syntax layer reports them identical, and a changed statement is not
+        and:
+          - this is the property duplicate detection rests on, and it is asserted in both directions so a frontend that reported everything identical could not pass
+      - id: S3
+        when: a frontend declares the symbol layer and is asked where a declaration lives
+        then: it locates that declaration, an edit outside it is distinguishable from an edit inside it, and a line covered by two nested declarations resolves to the inner one
+        and:
+          - this is what the declared-locus gate consumes, and no capability may ask which frontend answered
+          - which declaration, not merely that there was one. Declarations nest, so locating the right symbol and attributing the line to a different one are separate failures, and the second would let the gate read an edit as inside a locus it never entered
+          - the innermost rule is decided in the model rather than left to the frontend, because taking whichever declaration a parser listed first makes the answer depend on traversal order and two frontends for one language could then disagree about the same edit
+      - id: S4
+        when: a frontend cannot produce usable structure for a source
+        then: it reports UNPARSEABLE rather than a partial result carrying no declarations, and the model refuses to represent the alternative
+        and:
+          - the JavaParser spike returned a partial tree with no types and no methods, so partial success over an empty tree is absence dressed as evidence
+          - the suite can only assert this for the source a fixture names. The model asserts it for every source, by rejecting a result that claims the source was read while filling no layer, so a frontend cannot return that shape for an unfixtured input
+      - id: S5
+        when: a capability requires a layer a frontend does not fill
+        then: the capability reports UNSUPPORTED for that language rather than degrading silently
+        and:
+          - a frontend supplying structure but not symbols is a first-class outcome that unlocks three of the four capabilities
+          - what this change delivers is the layer declaration a capability reads and the refusal to declare a layer nothing corroborates. StructureCompleteness.UNSUPPORTED is the value a registry will return for a language with no frontend at all; no registry exists yet, so nothing produces it and no test asserts it
+      - id: S6
+        when: a frontend declares a layer the model carries no evidence field for
+        then: construction fails rather than the claim being accepted unchecked
+        and:
+          - FLOW is named in the enum so a frontend able to fill it has somewhere to declare that, but nothing in the model could corroborate a flow claim today. An unfalsifiable declaration is the failure the layer-honesty rules exist to prevent, and the conformance suite would bless it vacuously because its loop only asserts that undeclared layers are unsupported
+      - id: S7
+        when: a fixture set names a source as both readable and unreadable, or a line that is not in the source
+        then: the fixture record refuses it at construction
+        and:
+          - a set that reuses one source for two roles proves nothing, and a set demanding one source be read two ways is impossible. The second is the more dangerous half, because a fixture author meets it as an unexplained failure of their frontend rather than of their fixtures
+          - a line past the end of the source is neither inside a declaration nor outside one. A frontend faithful to its language would fail such a fixture and one that invented a declaration to cover it would pass, which inverts what the suite is for
+
+acceptance:
+  - scenario: S1
+    test_id: deterministic/SourceStructureConformanceTest.aFrontendMustFillTheLayersItDeclares
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/SourceStructureConformanceTest.formattingOnlyDifferencesAreIdenticalAndRealOnesAreNot
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/SourceStructureConformanceTest.aDeclaredSymbolIsLocatedAndEditsOutsideItAreDistinguishable
+    layer: unit
+  - scenario: S3
+    test_id: deterministic/SourceStructureConformanceTest.aLineInsideOneDeclarationMustNotResolveToAnother
+    layer: unit
+  - scenario: S3
+    test_id: domain/SourceStructureTest.theInnermostDeclarationContainingALineIsTheOneReturned
+    layer: unit
+  - scenario: S4
+    test_id: deterministic/SourceStructureConformanceTest.unusableStructureIsReportedUnparseableRatherThanPartial
+    layer: unit
+  - scenario: S4
+    test_id: domain/SourceStructureTest.readingSomethingAndFillingNothingIsRejected
+    layer: unit
+  - scenario: S5
+    test_id: deterministic/SourceStructureConformanceTest.aCapabilityNeedingAnUnfilledLayerIsUnsupported
+    layer: unit
+  - scenario: S6
+    test_id: domain/SourceStructureTest.declaringFlowFilledIsRejected
+    layer: unit
+  - scenario: S7
+    test_id: deterministic/SourceStructureConformanceTest.fixturesWhoseUnreadableSourceIsAlsoReadableAreRefused
+    layer: unit
+  - scenario: S7
+    test_id: deterministic/SourceStructureConformanceTest.fixtureLinesOutsideTheSourceAreRefused
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: the layered model in domain, dependency-free and parser-agnostic
+    status: completed
+  - id: T2
+    slice: the SourceStructureInspector port in deterministic, returning the model and declaring filled layers
+    status: completed
+  - id: T3
+    slice: the language-agnostic conformance suite, parameterised over a frontend and its fixtures
+    status: completed
+  - id: T4
+    slice: a deliberately wrong in-memory frontend proving each conformance assertion can fail
+    status: completed
+  - id: T5
+    slice: two independent reviews of the change and their consolidated fixes - the model invariants the reviews found only half-encoded, the fixture rules that let an impossible set through, and the stability assertion that was inert
+    status: completed
+  - id: T6
+    slice: publish the conformance suite as test fixtures so a frontend in adapters can compile against it, which the module boundary previously made impossible
+    status: completed
+
+non_goals:
+  - any frontend, including Java
+  - the declared-locus gate, structural distance, complexity and convergence
+  - the flow layer, which no planned capability needs yet
+
+risks:
+  - The reachability fix is enabling, not exercised. modules/adapters can now compile a call to the suite, which was verified with a throwaway file and no frontend, and nothing guards it until the first real frontend's test does. A later build change could break the fixtures dependency and no suite would notice.
+  - The suite is written before any real frontend, so it can only assert what the contract requires rather than what a parser happens to do. That is the intent, and the risk is the mirror image: an assertion nobody can satisfy would not be discovered until the first frontend. T4 exists to catch that by making a deliberately wrong frontend fail each assertion, but a suite that is impossible rather than merely strict would pass T4 and fail the Java frontend.
+  - Nothing observable changes for a user in this change. That cost is accepted because the suite is what a contributed frontend is judged by, and a contract written after its first implementation describes that implementation.
