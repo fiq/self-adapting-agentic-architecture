@@ -95,6 +95,9 @@ acceptance:
   - scenario: S6
     test_id: domain/RankedGenerationTest.anEmptyGenerationClaimsNothing
     layer: unit
+  - scenario: S6
+    test_id: deterministic/GenerationEvaluationLoopTest.aGenerationThatEvaluatedNothingHasNoWinner
+    layer: unit
   - scenario: S7
     test_id: cli/EvolveGenerationAcceptanceTest.aGenerationRecordsItsRankingWinnerFingerprintAndSpread
     layer: acceptance
@@ -114,7 +117,7 @@ tasks:
     status: completed
   - id: T3
     slice: GenerationEvaluationLoop in deterministic, composing the existing MutationEvaluationLoop N times sequentially, leaving the single-candidate path byte-identical for a caller that asks for one
-    status: pending
+    status: completed
   - id: T4
     slice: a per-candidate namespace on the evolve path so N worktrees coexist, closing RISK-003 where it is live, plus the CLI option that asks for a generation
     status: pending

@@ -1,21 +1,13 @@
 package com.dreamthought.saaa.deterministic;
 
+import static com.dreamthought.saaa.deterministic.FitnessResultFixtures.context;
+import static com.dreamthought.saaa.deterministic.FitnessResultFixtures.result;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.dreamthought.saaa.domain.Candidate;
-import com.dreamthought.saaa.domain.CheckEvidence;
-import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessDecision;
-import com.dreamthought.saaa.domain.FitnessObjective;
 import com.dreamthought.saaa.domain.FitnessResult;
-import com.dreamthought.saaa.domain.FitnessScore;
-import com.dreamthought.saaa.domain.ScoringContext;
-import java.nio.file.Path;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -25,9 +17,6 @@ import org.junit.jupiter.api.Test;
  * <p>These are assertions about a decision, so each one is proved able to fail before it is cited.
  */
 final class PopulationRankingPolicyTest {
-    private static final List<FitnessObjective> OBJECTIVES =
-            List.of(new FitnessObjective("subject.objective.task_success", 1.00));
-
     private final PopulationRankingPolicy policy = new PopulationRankingPolicy();
 
     @Test
@@ -93,26 +82,5 @@ final class PopulationRankingPolicyTest {
 
     private static List<String> ids(List<FitnessResult> results) {
         return results.stream().map(result -> result.candidate().id()).toList();
-    }
-
-    private static FitnessResult result(String candidateId, double magnitude, FitnessDecision decision) {
-        return result(candidateId, magnitude, decision, context(0.80));
-    }
-
-    private static FitnessResult result(
-            String candidateId, double magnitude, FitnessDecision decision, ScoringContext context) {
-        return new FitnessResult(
-                new Candidate(candidateId, "MUT-" + candidateId, "candidate/" + candidateId,
-                        Path.of(".worktrees", candidateId), "0".repeat(40)),
-                new EvaluationEvidence(List.<CheckEvidence>of(), List.of(), Instant.EPOCH),
-                Map.of("subject.objective.task_success", magnitude),
-                FitnessScore.of(magnitude, decision),
-                context);
-    }
-
-    private static ScoringContext context(double promotionThreshold) {
-        return new ScoringContext(
-                OBJECTIVES, Set.of(), Set.of(), promotionThreshold, Set.of("case_a"), 80,
-                Map.<String, Double>of());
     }
 }
