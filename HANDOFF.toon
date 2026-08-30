@@ -1,22 +1,23 @@
 session:
-  updated: 2026-08-29
-  status: chg_025_merged_chg_026_population_proposed_awaiting_push
+  updated: 2026-08-30
+  status: chg_026_t1_t2_t3_delivered_pr_52_draft_open_t4_next
   branch: feat/chg-026-population-slice
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
-  head: feat/chg-026-population-slice at 39535ca, two commits, still NOT pushed - the ssh agent refuses to sign for /home/raf/.ssh/fiq_github_062019, so no fetch, no push and no draft PR yet
-  head_note: CHG-025 merged as PR #51 on 2026-08-28 at 3bfa7c7, with fast and full-readiness green at the exact head. It carried the port, the conformance suite and everything two independent reviews plus a lead pass turned up. This branch opens CHG-026, the population slice, which ADR-0002 names as the missing Layer-1 foundation and which the drift check on 2026-08-27 recommended over continuing the AST track. T1 and T2 are done: RankedGeneration and UnevaluatedCandidate in domain, PopulationRankingPolicy in deterministic, written test-first against stubs so the first red was an assertion failure rather than a compile error. T3 through T7 remain.
-  base_note: local main is stale at 3aed101 because fetch needs the same ssh key. This branch was cut from 0209c79, the pre-merge tip of feat/chg-025-structure-port, whose tree is identical to the merge commit's, so a rebase onto main after fetching should be clean and content-neutral. Rebase before recording anything that references a sha on main.
+  head: feat/chg-026-population-slice at 6cd08f2, four commits, pushed and in sync with origin. Draft PR #52 is open. Rebased onto the merged main (3bfa7c7) cleanly on 2026-08-30, so this branch is not behind.
+  head_note: CHG-025 merged as PR #51 at 3bfa7c7. CHG-026, the population slice, is specified and half built. T1 the domain value types, T2 the ranking policy and T3 the generation loop are done, each written test-first against stubs so the first red was an assertion failure rather than a compile error, and each new assertion proved able to fail before it was cited. T4 through T7 remain, and until T4 and T5 land nothing exercises the loop end to end - it is correct and unreachable.
+  transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening or merging a pull request, and only when the user says so. PR #52 was created with gh at the user's explicit instruction.
   dirty: false
-  pushed: false
+  pushed: true
 
 goal:
   current: land CHG-026, the population slice - several candidates per generation ranked deterministically on identical evidence - which is what ADR-0002 calls the point at which SAAA starts to differ from an agent with tests
-  phase: implementing_t3_next
+  phase: implementing_t4_next
 
 next_actions:
-  - START HERE, and it needs the user. `ssh-add /home/raf/.ssh/fiq_github_062019`, then fetch, rebase this branch onto the merged main, push, and open PR #52 as a draft. The repository contract wants the draft open as soon as the branch has something on it, and it has the spec.
-  - then implement CHG-026 in task order. T2 and T3 are the substance: the ranking policy is pure and testable without any of the rest, and it is where the interesting assertions live, so write it first and prove each assertion can fail before citing it.
-  - T4 closes RISK-003 on the evolve path as a by-product. GitCandidateWorkspace already folds a candidateNamespace into the candidate id, branch and worktree path, and only BenchmarkCommand supplies one, so this is a value to pass rather than a mechanism to build. Check that claim in the code before relying on it.
+  - START HERE. T4, the per-candidate worktree namespace. This is the task that closes RISK-003 on the evolve path and it is a value to pass rather than a mechanism to build. GitCandidateWorkspace already folds a candidateNamespace into the candidate id, branch and worktree path (GitCandidateWorkspace.java around line 105), and only BenchmarkCommand supplies one, so the evolve path leaves it empty. Verified in the code on 2026-08-30, but check it again rather than trusting this line.
+  - then T5, a fixture proposer that varies. Until T4 and T5 are both in, nothing exercises the generation loop end to end: FixtureMutationProposer returns MUT-<baseline>-fixture on every call, so a generation of N from today's default is one candidate N times and a worktree collision. T4 without T5 gives distinct paths for identical candidates, which is not a population.
+  - then T6, the generation record in journal and ledger, and T7, docs. S7's acceptance test (cli/EvolveGenerationAcceptanceTest) and S1's integration test (adapters/GitCandidateWorkspaceIntegrationTest) are both still unwritten and are mapped in change.toon already.
+  - two mutation traps hit in this session, both worth remembering because each looked like evidence and was not. A mutation aimed at the deterministic suite fell at the domain suite first, so the assertion it targeted never ran; re-run alone it failed the right test. And a mutation that broke compilation proved nothing at all and had to be redone as a change that builds. Neither would have been caught by reading the output carelessly, because both printed a red build.
   - watch S5 and S8 in particular. S5 is the first time the CHG-024 scoring fingerprint is load-bearing rather than latent, and S8 exists because FixtureMutationProposer returns MUT-<baseline>-fixture on every call, so a generation of N from today's default proposer is one candidate N times and a worktree collision.
   - the honest question this slice must answer, not assume: does ranking discriminate at all? If every candidate lands at the same score that is ADR-0002's revisit trigger firing. The generation record carries the spread for exactly this reason, so do not drop it as an extra.
   - stale-claim cleanup done in this change: CHG-024's proposal named the population slice as CHG-025, which went to the source-structure port instead.
