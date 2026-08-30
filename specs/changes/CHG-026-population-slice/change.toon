@@ -71,6 +71,12 @@ acceptance:
   - scenario: S2
     test_id: deterministic/PopulationRankingPolicyTest.rankingIsTotalAndIndependentOfEvaluationOrder
     layer: unit
+  - scenario: S2
+    test_id: domain/RankedGenerationTest.twoCandidatesSharingAnIdAreRejected
+    layer: unit
+  - scenario: S2
+    test_id: domain/RankedGenerationTest.anUnorderedRankingIsRejected
+    layer: unit
   - scenario: S3
     test_id: deterministic/PopulationRankingPolicyTest.aDiscardedCandidateNeverOutranksAPromotedOne
     layer: unit
@@ -80,12 +86,21 @@ acceptance:
   - scenario: S5
     test_id: deterministic/PopulationRankingPolicyTest.candidatesScoredUnderDifferentFingerprintsAreNotRanked
     layer: unit
+  - scenario: S5
+    test_id: domain/RankedGenerationTest.aGenerationCannotMixScoringFingerprints
+    layer: unit
   - scenario: S6
     test_id: deterministic/GenerationEvaluationLoopTest.aCandidateThatProducedNoEvidenceIsRecordedAndNotRanked
+    layer: unit
+  - scenario: S6
+    test_id: domain/RankedGenerationTest.anEmptyGenerationClaimsNothing
     layer: unit
   - scenario: S7
     test_id: cli/EvolveGenerationAcceptanceTest.aGenerationRecordsItsRankingWinnerFingerprintAndSpread
     layer: acceptance
+  - scenario: S7
+    test_id: domain/RankedGenerationTest.theSpreadIsMeasuredAcrossAllCandidates
+    layer: unit
   - scenario: S8
     test_id: adapters/FixtureMutationProposerTest.aGenerationRequestYieldsDistinctMutations
     layer: unit
@@ -93,10 +108,10 @@ acceptance:
 tasks:
   - id: T1
     slice: domain value types for a ranked generation - the ranked order, the winner, the count that produced evidence and the spread - dependency-free and holding no policy
-    status: pending
+    status: completed
   - id: T2
     slice: PopulationRankingPolicy in deterministic - a total order over FitnessScore with a declared tie-break, decision-first so a discard cannot outrank a promotion, and refusal to rank across differing scoring fingerprints
-    status: pending
+    status: completed
   - id: T3
     slice: GenerationEvaluationLoop in deterministic, composing the existing MutationEvaluationLoop N times sequentially, leaving the single-candidate path byte-identical for a caller that asks for one
     status: pending
