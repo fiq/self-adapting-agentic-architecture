@@ -3,15 +3,15 @@ session:
   status: chg_025_merged_chg_026_population_proposed_awaiting_push
   branch: feat/chg-026-population-slice
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
-  head: feat/chg-026-population-slice, one commit, NOT pushed - the ssh agent refuses to sign for /home/raf/.ssh/fiq_github_062019, so no fetch, no push and no draft PR yet
-  head_note: CHG-025 merged as PR #51 on 2026-08-28 at 3bfa7c7, with fast and full-readiness green at the exact head. It carried the port, the conformance suite and everything two independent reviews plus a lead pass turned up. This branch opens CHG-026, the population slice, which ADR-0002 names as the missing Layer-1 foundation and which the drift check on 2026-08-27 recommended over continuing the AST track. Specification only so far - proposal.md and change.toon, validated with check-changes. No code.
+  head: feat/chg-026-population-slice at 39535ca, two commits, still NOT pushed - the ssh agent refuses to sign for /home/raf/.ssh/fiq_github_062019, so no fetch, no push and no draft PR yet
+  head_note: CHG-025 merged as PR #51 on 2026-08-28 at 3bfa7c7, with fast and full-readiness green at the exact head. It carried the port, the conformance suite and everything two independent reviews plus a lead pass turned up. This branch opens CHG-026, the population slice, which ADR-0002 names as the missing Layer-1 foundation and which the drift check on 2026-08-27 recommended over continuing the AST track. T1 and T2 are done: RankedGeneration and UnevaluatedCandidate in domain, PopulationRankingPolicy in deterministic, written test-first against stubs so the first red was an assertion failure rather than a compile error. T3 through T7 remain.
   base_note: local main is stale at 3aed101 because fetch needs the same ssh key. This branch was cut from 0209c79, the pre-merge tip of feat/chg-025-structure-port, whose tree is identical to the merge commit's, so a rebase onto main after fetching should be clean and content-neutral. Rebase before recording anything that references a sha on main.
   dirty: false
   pushed: false
 
 goal:
   current: land CHG-026, the population slice - several candidates per generation ranked deterministically on identical evidence - which is what ADR-0002 calls the point at which SAAA starts to differ from an agent with tests
-  phase: specified_not_implemented
+  phase: implementing_t3_next
 
 next_actions:
   - START HERE, and it needs the user. `ssh-add /home/raf/.ssh/fiq_github_062019`, then fetch, rebase this branch onto the merged main, push, and open PR #52 as a draft. The repository contract wants the draft open as soon as the branch has something on it, and it has the spec.
@@ -61,6 +61,9 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-08-30 CHG-026 T1/T2 validation: :domain :deterministic :adapters :cli test plus :deterministic :cli acceptanceTest with --rerun-tasks, BUILD SUCCESSFUL; project check 7/7; check-changes OK
+  - 2026-08-30 CHG-026 T1/T2 mutation evidence: dropping the id-uniqueness rule fails twoCandidatesSharingAnIdAreRejected; dropping the fingerprint rule fails aGenerationCannotMixScoringFingerprints; dropping the best-first order rule fails anUnorderedRankingIsRejected; removing winner()'s PROMOTE filter fails aGenerationWithNoPromotionRecordsNoWinner; dropping the candidate-id tie-break fails rankingIsTotalAndIndependentOfEvaluationOrder; measuring spread over promotions only fails theSpreadIsMeasuredAcrossAllCandidates. Each restored and verified byte-identical against a backup taken first.
+  - 2026-08-30 CHG-026 mutation caveat worth keeping: ordering on magnitude alone, which ignores the gate decision, first appeared to fail the spread test rather than aDiscardedCandidateNeverOutranksAPromotedOne. The domain suite runs before the deterministic one and failed first, so S3's assertion never ran. Re-run against :deterministic:test alone it fails exactly that test. A mutation that stops at an earlier suite has not been proved against the assertion it was aimed at.
   - 2026-08-27 CHG-025 review-fix validation: :domain :deterministic :adapters :cli test, :deterministic :cli acceptanceTest, :adapters :benchmarks integrationTest all run with --rerun-tasks and observed to execute, BUILD SUCCESSFUL; project check 7/7; check-changes OK
   - 2026-08-27 CHG-025 mutation evidence, the inert assertion: deleting the "reading the same source twice" assertion from SourceStructureConformance broke NO test, which is how it was found - the test named for it fails at the formatting assertion first and pinned only AssertionError with no message. After adding a frontend that answers correctly for every source and differently on a re-read, the same deletion fails exactly that one test and no other. This is the PAT-004 shape: reading the suite would not have caught it.
   - 2026-08-27 CHG-025 mutation evidence, the new rules: removing the readable-but-filled-no-layer invariant fails readingSomethingAndFillingNothingIsRejected and theUnreadableFactoryRefusesAReadableCompleteness; removing the FLOW rule fails declaringFlowFilledIsRejected; reverting symbolContaining to findFirst fails theInnermostDeclarationContainingALineIsTheOneReturned; removing the unreadable-must-differ fixture rule fails fixturesWhoseUnreadableSourceIsAlsoReadableAreRefused; removing the line-bounds rule fails fixtureLinesOutsideTheSourceAreRefused. Each file was restored from a backup taken first and every restore verified byte-identical with diff.
