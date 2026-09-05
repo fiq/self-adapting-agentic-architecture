@@ -99,6 +99,14 @@ public final class EvolveCommand implements Callable<Integer> {
                     + "the objective at its previous value.")
     private int reliabilityRuns = 1;
 
+    @Option(names = "--run-id",
+            description = "Name this run, which is what keeps one run's candidate worktrees, "
+                    + "branches and ids apart from another's. Defaults to a timestamp, so repeat "
+                    + "runs on the same folder no longer collide. Give one when you want the "
+                    + "worktree paths to be predictable, and expect a rerun with the same id to "
+                    + "fail on the worktree its first run left behind.")
+    private String runId;
+
     @Spec
     private CommandSpec spec;
 
@@ -160,7 +168,7 @@ public final class EvolveCommand implements Callable<Integer> {
         var result = new EvolveRunner(benchmarkRunner).run(
                 new EvolveRunRequest(
                         targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task,
-                        Optional.empty(), benchmarkBudgets, contract, List.copyOf(safetyProbes),
+                        Optional.ofNullable(runId), benchmarkBudgets, contract, List.copyOf(safetyProbes),
                         reliabilityRuns, List.copyOf(heldOutCases)),
                 new ConsoleReporter(out));
         out.printf("  journal    %s%n", result.journalPath());

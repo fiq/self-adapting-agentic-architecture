@@ -13,6 +13,7 @@ import com.dreamthought.saaa.adapters.retrieval.LocalRetrievalFactory;
 import com.dreamthought.saaa.adapters.retrieval.LocalEvolutionaryMemoryFactory;
 import com.dreamthought.saaa.adapters.sqlite.SqliteExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.BenchmarkRunner;
+import com.dreamthought.saaa.deterministic.CandidateNamespace;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryProjector;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore;
 import com.dreamthought.saaa.deterministic.BoundedMutationValidator;
@@ -40,6 +41,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -152,6 +154,13 @@ public final class EvolveRunner {
         String repositoryRevision = GitRepositoryRevision.workingTree(gitRoot);
         var evolutionContext = LocalEvolutionContext.resolve(gitRoot, repositoryRevision);
         var baseline = new WorkflowGraph(folder.getFileName().toString(), repositoryRevision, readString(workflowPath));
+        // Every run gets a namespace, whether or not the caller named one. Without it, candidate
+        // names come from the workflow and mutation id alone, so a second run of a deterministic
+        // proposer lands on the first run's worktree and fails outright. That is RISK-003, and it
+        // is the reason `saaa evolve` could not be run twice on one folder.
+        var namespace = request.runId()
+                .map(CandidateNamespace::forRunId)
+                .orElseGet(() -> CandidateNamespace.forRun(Instant.now(clock)));
         MutationProposer proposer = profileRegistry.resolve(request.profile(), folder);
         var timedRetriever = new TimedRetriever(retrievalResolver.apply(request.retrievalMode(), gitRoot));
         var retrievalCapture = new RetrievalCapture();
@@ -167,7 +176,7 @@ public final class EvolveRunner {
                         gitRoot.resolve(".worktrees"),
                         new TextMutationRealizer(relativeWorkflow),
                         proposer::proposerEvidence,
-                        request.runId()),
+                        Optional.of(namespace.forCandidate(1))),
                 new CommandCheckRunner(checks),
                 benchmarkRunner,
                 new PhenotypeBridgeScorer(

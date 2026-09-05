@@ -4,10 +4,12 @@ import static com.dreamthought.saaa.domain.MutationScope.WORKFLOW_DEFINITION;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
+import com.dreamthought.saaa.deterministic.CandidateNamespace;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.io.IOException;
+import java.time.Instant;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -55,6 +58,43 @@ final class GitCandidateWorkspaceIntegrationTest {
         assertThat(runOutput(candidate.worktreePath(), "rev-parse", "HEAD")).isEqualTo(candidate.commitSha());
         assertThat(runOutput(candidate.worktreePath(), "log", "-1", "--pretty=%s"))
                 .isEqualTo("Create candidate candidate-mut-001");
+    }
+
+    @Test
+    @DisplayName("each candidate in a generation gets its own worktree, branch and id")
+    void eachCandidateInAGenerationGetsItsOwnWorktree() throws IOException {
+        Path repository = initRepositoryWithWorkflowFile();
+        Path worktrees = tempDir.resolve("worktrees");
+        var namespace = CandidateNamespace.forRun(Instant.parse("2026-09-05T14:32:01.123Z"));
+        var baseline = new WorkflowGraph("toy", "v1", "old content");
+        // The same mutation twice, which is what the default fixture proposer actually produces and
+        // is therefore the case that must work. Before RISK-003 was closed the second call failed
+        // outright, because nothing in the name distinguished one evaluation from another.
+        var mutation = new Mutation("MUT-1", "tighten guard", WORKFLOW_DEFINITION, "new content");
+
+        var first = workspaceFor(repository, worktrees, namespace.forCandidate(1))
+                .createCommittedCandidate(baseline, mutation);
+        var second = workspaceFor(repository, worktrees, namespace.forCandidate(2))
+                .createCommittedCandidate(baseline, mutation);
+
+        assertThat(second.worktreePath()).isNotEqualTo(first.worktreePath());
+        assertThat(second.id()).isNotEqualTo(first.id());
+        assertThat(second.branchName()).isNotEqualTo(first.branchName());
+        assertThat(first.worktreePath()).exists();
+        assertThat(second.worktreePath())
+                .as("both candidates are live at once, which is what a generation needs")
+                .exists();
+        assertThat(runOutput(first.worktreePath(), "rev-parse", "HEAD")).isEqualTo(first.commitSha());
+        assertThat(runOutput(second.worktreePath(), "rev-parse", "HEAD")).isEqualTo(second.commitSha());
+    }
+
+    private static GitCandidateWorkspace workspaceFor(Path repository, Path worktrees, String namespace) {
+        return new GitCandidateWorkspace(
+                repository,
+                worktrees,
+                new TextMutationRealizer("workflow.txt"),
+                Optional::empty,
+                Optional.of(namespace));
     }
 
     @Test
