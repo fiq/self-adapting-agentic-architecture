@@ -85,6 +85,13 @@ A generated project AGENTS.md must include:
     verify every finding against the code before acting on it, and apply fixes
     serially. A single clean review is not strong evidence, and passing checks
     are not a review.
+18b. **Assessment lenses** — every assessment applies correctness, architecture,
+    quality and debt, user experience and infrastructure quality, and each lens is
+    either applied or declared not applicable rather than silently skipped. The
+    user-experience lens covers whatever a person operates or reads — commands,
+    flags, output, error messages, docs — and asks what they see when it fails.
+    The infrastructure lens applies wherever infrastructure exists in the
+    repository, and says so plainly when none does.
 19. **Communication rules** — conclusion first; alternatives and per-persona
     stance (discourages / accepts / encourages) at hard choices; ASCII and
     bullets as complexity rises.
