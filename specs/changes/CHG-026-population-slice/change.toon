@@ -68,6 +68,12 @@ acceptance:
   - scenario: S1
     test_id: adapters/GitCandidateWorkspaceIntegrationTest.eachCandidateInAGenerationGetsItsOwnWorktree
     layer: integration
+  - scenario: S1
+    test_id: cli/EvolveCommandAcceptanceTest.aSecondRunOnTheSameFolderEvaluatesRatherThanFailingOnTheFirstRunsWorktree
+    layer: acceptance
+  - scenario: S1
+    test_id: deterministic/CandidateNamespaceTest.everyCandidateInAGenerationGetsItsOwnNamespace
+    layer: unit
   - scenario: S2
     test_id: deterministic/PopulationRankingPolicyTest.rankingIsTotalAndIndependentOfEvaluationOrder
     layer: unit
@@ -119,7 +125,10 @@ tasks:
     slice: GenerationEvaluationLoop in deterministic, composing the existing MutationEvaluationLoop N times sequentially, leaving the single-candidate path byte-identical for a caller that asks for one
     status: completed
   - id: T4
-    slice: a per-candidate namespace on the evolve path so N worktrees coexist, closing RISK-003 where it is live, plus the CLI option that asks for a generation
+    slice: a per-candidate namespace on the evolve path so N worktrees coexist, closing RISK-003 where it is live, plus --run-id for when predictable worktree paths are wanted
+    status: completed
+  - id: T4b
+    slice: the CLI option that asks for a generation of N, and EvolveRunner building a per-candidate evaluator so the generation loop is reachable from the command line
     status: pending
   - id: T5
     slice: variant production - a proposer entry point for N variants whose default is N calls, and a fixture proposer that varies deliberately so the slice is exercisable without a live model
