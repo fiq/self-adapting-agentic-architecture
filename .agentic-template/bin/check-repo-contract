@@ -344,6 +344,26 @@ REVIEW_CONSOLIDATION_CONTROLS = [
         ],
     ),
     (
+        "agents-assessment-lens-controls",
+        "AGENTS.md",
+        "Assessment lenses",
+        # Presence of the rule only. Nothing here can observe that a lens was
+        # actually applied to a change, in the same way the mutation controls
+        # above cannot observe that a mutation was run. What it does prevent is a
+        # lens being dropped from the contract without anyone noticing.
+        [
+            "either applied or declared not applicable",
+            "Silently skipping a lens",
+            "Architecture",
+            "check-architecture-boundaries",
+            "User experience",
+            "what to do next",
+            "Infrastructure quality and practice",
+            "wherever infrastructure exists",
+            "The relevance condition is real, not an escape hatch",
+        ],
+    ),
+    (
         "agents-template-required-sections",
         ".agentic-template/templates/AGENTS_TEMPLATE.md",
         "Required sections",
