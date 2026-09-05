@@ -1,0 +1,76 @@
+change:
+  id: CHG-027
+  title: Assessment lenses, including user experience and infrastructure quality
+  status: proposed
+  intent: Record the standing assessment lenses and require each to be applied or declared not applicable, so a dimension cannot go unexamined while the write-up still reads as thorough.
+  audience_level: developer
+  relates_to:
+    - ARCH-001
+    - PAT-003
+    - PAT-004
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: Every assessment applies the recorded lenses - correctness, architecture, quality and debt, user experience and infrastructure quality - and each lens is either applied or declared not applicable. The lens list is guarded by a repository-contract control.
+    scenarios:
+      - id: S1
+        when: the assessment-lens section is removed from AGENTS.md, or a lens is dropped from it
+        then: check-repo-contract fails and names the missing controls
+        and:
+          - this is presence of the rule only. Nothing here can observe that a lens was applied to a change, exactly as the mutation-evidence controls cannot observe that a mutation was run, and CHG-020 records that limit
+          - the control is what stops a lens being deleted in a tidy-up and nobody noticing, which is the failure mode a written-down-only rule has
+      - id: S2
+        when: a change touches something a person operates or reads
+        then: the user-experience lens applies, and asks what a person sees when the thing fails rather than when it works
+        and:
+          - S2, S3 and S4 map to the same presence control as S1, and that mapping is weaker than it looks. The check establishes that these rules are recorded, never that a reviewer applied them. There is no acceptance layer for a rule an agent follows, and inventing a passing test for one would be the reward hacking this repository exists to argue against
+          - the surface here is concrete: saaa commands, flags and help text, ConsoleReporter output, error messages, the journal a run appends to, and the README
+          - CHG-026 T4 adds a flag for a generation of N candidates, so this is live rather than theoretical
+      - id: S3
+        when: a change has no user surface at all, such as one confined to a domain record
+        then: the lens is declared not applicable, and that is the honest outcome
+        and:
+          - the relevance condition is not an escape hatch. Declaring it forces the question to be asked once, where silence never does
+      - id: S4
+        when: the infrastructure lens is applied in this repository as it stands
+        then: it reaches CI workflows and the Nix and Gradle build, and says plainly that there is no deployment target, container image or IaC to review
+        and:
+          - the contract already records containers, Compose services and infrastructure as code as not applicable until distribution or remote execution is chosen, so a lens implying otherwise would invite a review of something that does not exist
+
+acceptance:
+  - scenario: S1
+    test_id: tooling/check-repo-contract.agents-assessment-lens-controls
+    layer: unit
+  - scenario: S2
+    test_id: tooling/check-repo-contract.agents-assessment-lens-controls
+    layer: unit
+  - scenario: S3
+    test_id: tooling/check-repo-contract.agents-assessment-lens-controls
+    layer: unit
+  - scenario: S4
+    test_id: tooling/check-repo-contract.agents-assessment-lens-controls
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: the assessment-lens section in AGENTS.md, naming the five lenses and the applied-or-declared rule
+    status: completed
+  - id: T2
+    slice: the agents-assessment-lens-controls entry in check-repo-contract, so a dropped lens fails a check
+    status: completed
+  - id: T3
+    slice: the review-loop skill gains a user-surface row and an infrastructure row, since that skill is where a lens is applied in practice
+    status: completed
+  - id: T4
+    slice: the AGENTS template carries the lenses, because other projects inherit this contract
+    status: completed
+
+non_goals:
+  - any check claiming to observe that a lens was applied to a change rather than that the rule exists
+  - a user-experience review of the existing CLI surface, which is its own change
+  - adding infrastructure so the infrastructure lens has more to look at
+
+risks:
+  - A written-down lens is not an applied lens. The control proves the rule exists and cannot prove it was used, which is the same honest limit CHG-020 recorded for mutation evidence. The mitigation is the applied-or-declared rule: a review that names a lens and says why it does not apply leaves a trace, where silence leaves none.
+  - Five lenses on every assessment risks ceremony on changes too small to need it. The relevance condition is what keeps that in check, and it is worth watching whether declarations of non-applicability become a ritual rather than a judgement.
