@@ -35,12 +35,19 @@ proposer suggests a bounded change; SAAA realizes it in a Git worktree, runs the
 scripts, scores deterministically, decides `PROMOTE` or `DISCARD`, and appends
 to a journal.
 
-*What's shipped:* the whole loop end-to-end for one candidate per run, with a
-canned fixture proposer.
+*What's shipped:* the whole loop end-to-end, with a canned fixture proposer, for
+one candidate per run or for a generation of N ranked on identical evidence
+(`--candidates`, `CHG-026`). The generation's order, winner, shared scoring
+fingerprint, evidence count and spread are recorded in the journal and the
+experiment ledger.
 
-*What's missing:* a live model proposer wired through the LangChain4j adapter,
-and several candidates per generation with ranking between them (**the
-population slice**).
+*What's missing:* a live model proposer filling a generation. The proposer
+adapter exists and is covered by a WireMock-backed acceptance test, but the
+variety a generation ranks today comes from the fixture proposer varying its own
+canned mutation. That proves ranking works on candidates that differ; it does not
+show that a model's candidates differ in ways the scorer can see, and only the
+live proposer answers that. Iterated generations, elitism and an archive of
+best-so-far are also missing and need their own decision about what survives.
 
 ### Layer 2 — SAAA as tooling for a custom agentic loop
 
@@ -57,8 +64,10 @@ grading the inner scores is the original problem in a bigger box.
 
 *What's shipped:* the CLI already qualifies as a tool surface. Nothing else.
 
-*What's missing:* the population slice (so there is something worth ranking),
-then MCP or SDK exposure, then a small set of adjacent tools (list runs, read
+*What's missing:* the ranked-survivors primitive as something an outer loop can
+call. The population slice landed, so there is now something worth ranking and
+`saaa-evolve --candidates N` returns a ranking, but the MCP tool still exposes a
+single-candidate run. After that, a small set of adjacent tools (list runs, read
 journal, propose a behaviour case from a diff, materialize a promoted
 candidate).
 

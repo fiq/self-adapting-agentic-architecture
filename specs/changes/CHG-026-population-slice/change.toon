@@ -1,7 +1,7 @@
 change:
   id: CHG-026
   title: A population of candidates, ranked on identical evidence
-  status: proposed
+  status: delivered
   intent: Evaluate several candidates against one baseline in a single generation and rank them deterministically, so selection becomes a fact fixed code establishes rather than an opinion, which ADR-0002 names as the missing Layer-1 foundation.
   audience_level: developer
   relates_to:
@@ -165,7 +165,7 @@ tasks:
     status: completed
   - id: T7
     slice: README capability table, architecture wiki and handoff updated in the same change as the behaviour
-    status: pending
+    status: completed
 
 non_goals:
   - conceptual crossover, which ADR-0002 sequences after population and which ConceptualCrossoverPolicy already has tests for and no wiring
