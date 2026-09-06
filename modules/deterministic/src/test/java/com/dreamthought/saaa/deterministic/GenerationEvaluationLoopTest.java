@@ -117,7 +117,12 @@ final class GenerationEvaluationLoopTest {
         assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator).evaluate(request(), 2))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("MUT-same")
-                .hasMessageContaining("one candidate evaluated more than once");
+                .hasMessageContaining("cannot be ranked")
+                // The diagnosis names both causes rather than only the fixture one. A live proposer
+                // chooses its own ids, so a repeat there may be a different mutation under a reused
+                // id, and a message asserting "produced no variant" would be half false.
+                .hasMessageContaining("produced no variant")
+                .hasMessageContaining("different mutation under an id it had already used");
     }
 
     @Test

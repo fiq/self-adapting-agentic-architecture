@@ -48,9 +48,7 @@ final class EvolveGenerationAcceptanceTest {
         String journal = Files.readString(target.resolve("journal.md"));
         assertThat(journal)
                 .as("the journal carries the generation, not only the three candidates it evaluated")
-                .contains("| evidence | 3 of 3 candidates |")
-                .contains("| winner | ")
-                .contains("1. candidate-recorded-run-c");
+                .contains("| evidence | 3 of 3 candidates |");
 
         try (var connection = DriverManager.getConnection(
                 "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
@@ -62,10 +60,17 @@ final class EvolveGenerationAcceptanceTest {
                     "select evaluated_count || ' of ' || requested_count from generations where run_id = ?",
                     "recorded-run"))
                     .isEqualTo("3 of 3");
+            String winner = singleText(connection,
+                    "select winner_candidate_id from generations where run_id = ?", "recorded-run");
             assertThat(singleText(connection,
-                    "select winner_candidate_id from generations where run_id = ?", "recorded-run"))
-                    .as("a promoted candidate won, and it is the first in the recorded order")
-                    .isEqualTo(rankedCandidateIds(connection, "recorded-run").get(0));
+                    "select decision from fitness_results where candidate_id = ?", winner))
+                    .as("the recorded winner is a candidate its own gates promoted")
+                    .isEqualTo("PROMOTE");
+            assertThat(journal)
+                    .as("the journal names the same winner the ledger does, rather than merely "
+                            + "having a winner row")
+                    .contains("| winner | " + winner + " |")
+                    .contains("1. " + rankedCandidateIds(connection, "recorded-run").get(0) + "  ");
             assertThat(singleText(connection,
                     "select scoring_fingerprint from generations where run_id = ?", "recorded-run"))
                     .as("every candidate was measured under one scoring context")
@@ -75,6 +80,55 @@ final class EvolveGenerationAcceptanceTest {
                     .as("ranking discriminated; an equal-score generation is ADR-0002's revisit trigger")
                     .isGreaterThan(0.0);
         }
+    }
+
+    /**
+     * S4 on the real command-line path, and the case that separates "the winner" from "the top of
+     * the ranking". Whenever anything promoted they are the same candidate, because FitnessScore
+     * orders decision-first — so every fixture with a promotion in it is blind to a store that
+     * records rank one regardless of the gate decision. Independent review found that the
+     * acceptance test above could not fail for exactly that defect; this one can.
+     *
+     * <p>Every candidate is discarded by making the declared behaviour case fail for all of them.
+     * The run still exits zero, because a discarded candidate is a successful run.
+     */
+    @Test
+    void aGenerationWhereNoCandidatePromotesRecordsNoWinner(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
+                "enforce the draft check\ndraft-check: enforce\n");
+        // Fails whatever the candidate did, so no candidate can clear its gates.
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                exit 1
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(),
+                "--behaviour-case", "workflow-check",
+                "--run-id", "no-winner-run",
+                "--candidates", "2");
+
+        assertThat(exitCode).as("a discarded candidate is a successful run").isZero();
+
+        try (var connection = DriverManager.getConnection(
+                "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
+            assertThat(rankedCandidateIds(connection, "no-winner-run"))
+                    .as("both candidates were still evaluated and still ranked")
+                    .hasSize(2);
+            assertThat(singleText(connection,
+                    "select coalesce(winner_candidate_id, 'none') from generations where run_id = ?",
+                    "no-winner-run"))
+                    .as("ranking selects among promotions; promoting the best of a bad generation "
+                            + "would move the deciding step out of fixed code")
+                    .isEqualTo("none");
+        }
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .contains("| winner | none promoted |");
     }
 
     private static List<String> rankedCandidateIds(java.sql.Connection connection, String runId)

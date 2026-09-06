@@ -88,15 +88,26 @@ public final class GenerationEvaluationLoop {
      * that failed. It is the proposer failing to vary, which makes the whole generation meaningless,
      * and a generation that quietly returned a tie would answer ADR-0002's "is ranking measurably
      * useful" question with an artefact of its own wiring.
+     *
+     * <p>The comparison is on the mutation id alone, which is exact for the fixture proposer and
+     * blunt for a live one. A model chooses its own ids as free text, so it can legitimately return
+     * one id twice over genuinely different patches, and this would fail that run with a diagnosis
+     * that is only half true. The message says so. Comparing bodies instead needs the mutation to
+     * reach here, and a scored result carries its candidate rather than the mutation that produced
+     * it; that is recorded as a follow-up rather than fixed inside this change, because a live
+     * proposer filling a generation is deliberately not part of it. Found in independent review.
      */
     private static void requireMutationNotAlreadySeen(
             Set<String> seen, FitnessResult result, int attempt, int candidates) {
         String mutationId = result.candidate().mutationId();
         if (!seen.add(mutationId)) {
             throw new IllegalStateException(
-                    "candidate " + attempt + " of " + candidates + " repeats mutation " + mutationId
-                            + ", so this generation is one candidate evaluated more than once rather "
-                            + "than a population; the proposer produced no variant for it");
+                    "candidate " + attempt + " of " + candidates + " repeats mutation id "
+                            + mutationId + ", so this generation cannot be ranked: either the "
+                            + "proposer produced no variant for it, or it produced a different "
+                            + "mutation under an id it had already used. Only the id is compared "
+                            + "here, because a scored result carries its candidate and not the "
+                            + "mutation body");
         }
     }
 

@@ -91,9 +91,16 @@ public record RankedGeneration(List<FitnessResult> ranked, List<UnevaluatedCandi
      * <p>This is what answers whether ranking discriminated at all. ADR-0002 names "population
      * ships but ranking is not measurably useful" as a revisit trigger, and a generation whose
      * candidates all land at the same score is that trigger firing rather than a detail.
+     *
+     * <p>Empty when fewer than two candidates produced evidence, because there was then nothing to
+     * compare. See the comment in the body for why that is not zero.
      */
     public Optional<BigDecimal> spread() {
-        if (ranked.isEmpty()) {
+        // Fewer than two candidates is an absence, not a zero. Zero means "every candidate scored the
+        // same", which is a finding and ADR-0002's revisit trigger firing; one candidate means there
+        // was no pair to compare. Recording the first for the second would answer the question this
+        // slice exists to ask with a value nothing measured.
+        if (ranked.size() < 2) {
             return Optional.empty();
         }
         var magnitudes = ranked.stream().map(result -> result.fitnessScore().rawMagnitude()).toList();

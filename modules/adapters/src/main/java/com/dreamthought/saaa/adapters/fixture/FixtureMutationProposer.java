@@ -83,9 +83,13 @@ public final class FixtureMutationProposer implements MutationProposer {
             patch.append('\n');
         }
         // One extra line per variant, appended rather than woven in, because a fixture body is
-        // arbitrary file content and this proposer cannot know where a safe edit would be. Appending
-        // keeps every line the behaviour cases grade untouched and changes only the size, which is
-        // the axis parsimony reads.
+        // arbitrary file content and this proposer cannot know where a safe edit would be. For a
+        // format where a trailing `#` line is inert this leaves every line the behaviour cases grade
+        // untouched and changes only the size, which is the axis parsimony reads. For a format where
+        // it is not - JSON, or the Java target the README advertises - the padding breaks the parse
+        // and the candidate is discarded on failed checks. That failure is loud and recorded, but it
+        // wears the wrong clothes: it reads as a candidate failing rather than as this proposer being
+        // the wrong tool for that target.
         for (int line = 1; line < variant; line++) {
             patch.append("# fixture variant ").append(variant).append(" line ").append(line).append('\n');
         }

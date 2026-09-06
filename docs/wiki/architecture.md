@@ -88,7 +88,27 @@ it adds is a comparison.
 - **A repeated mutation does abort it.** Two candidates carrying the same
   mutation would still get distinct ids from the namespace, so nothing downstream
   would notice one candidate evaluated twice. That is the proposer failing to
-  vary rather than a candidate failing, so it fails the run.
+  vary rather than a candidate failing, so it fails the run. The comparison is on
+  the mutation id, which is exact for the fixture proposer and blunt for a live
+  one whose ids the model chooses; see `Q-013`.
+- **It retrieves once, for the whole generation.** This one is not an
+  optimisation, and it is the defect independent review found. Retrieval is not a
+  pure read: each candidate projects its outcome into durable evolutionary memory
+  when its evaluation finishes, and under `VECTOR`, `GRAPH` or `HYBRID` the next
+  retrieval reads that memory back — `HybridEvidenceRetriever` gives documents
+  with historical outcomes a ranking bonus. Retrieving per candidate therefore let
+  candidate one change the evidence candidate two was proposed from, which breaks
+  the isolation the generation claims and makes the ranking partly a measurement
+  of evaluation order. `RunScopedRetriever` answers each distinct query once and
+  hands every candidate the same bundle.
+
+```text
+  before                                  after
+  c1 retrieve ─┐                          c1 ─┐
+     project ──┼─> memory                 c2 ─┼─> one retrieval, one bundle
+  c2 retrieve ─┘  (sees c1's outcome)     c3 ─┘  (projection still happens,
+                                                  nothing reads it back mid-run)
+```
 
 `PopulationRankingPolicy` orders what produced evidence, using the total order on
 `RankedGeneration`: promotions ahead of discards, then larger magnitudes, then

@@ -271,7 +271,8 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                               run_id text primary key not null check (length(trim(run_id)) > 0),
                               requested_count integer not null,
                               evaluated_count integer not null,
-                              scoring_fingerprint text,
+                              scoring_fingerprint text
+                                check (scoring_fingerprint is null or length(trim(scoring_fingerprint)) > 0),
                               winner_candidate_id text,
                               spread real,
                               recorded_at text not null

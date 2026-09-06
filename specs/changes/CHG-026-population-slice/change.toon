@@ -80,6 +80,12 @@ acceptance:
   - scenario: S1
     test_id: adapters/EvolveRunnerTest.aFailedCandidateStillConsumesItsPositionSoTheNextOneGetsAFreshNamespace
     layer: unit
+  - scenario: S1
+    test_id: adapters/EvolveRunnerTest.aGenerationRetrievesOnceSoEveryCandidateIsProposedFromTheSameEvidence
+    layer: unit
+  - scenario: S5
+    test_id: adapters/EvolveRunnerTest.aGenerationRetrievesOnceSoEveryCandidateIsProposedFromTheSameEvidence
+    layer: unit
   - scenario: S2
     test_id: deterministic/PopulationRankingPolicyTest.rankingIsTotalAndIndependentOfEvaluationOrder
     layer: unit
@@ -124,6 +130,12 @@ acceptance:
     layer: unit
   - scenario: S4
     test_id: adapters/SqliteExperimentMetadataStoreIntegrationTest.aGenerationWhereEveryCandidateWasDiscardedRecordsNoWinner
+    layer: integration
+  - scenario: S4
+    test_id: cli/EvolveGenerationAcceptanceTest.aGenerationWhereNoCandidatePromotesRecordsNoWinner
+    layer: acceptance
+  - scenario: S6
+    test_id: adapters/SqliteExperimentMetadataStoreIntegrationTest.aGenerationThatProducedNoEvidenceRecordsNoFingerprintAndNoSpread
     layer: integration
   - scenario: S7
     test_id: domain/RankedGenerationTest.theSpreadIsMeasuredAcrossAllCandidates
@@ -180,3 +192,6 @@ risks:
   - A varying fixture proposer produces the variety it was written to produce. It can demonstrate that ranking works on candidates that differ; it cannot show that a real proposer's candidates differ in ways the scorer can see. Only the live proposer answers that, and it is deliberately not in this change.
   - N sequential evaluations cost N times the wall clock and N worktrees of disk. That is accepted here because determinism matters more than throughput at this size, but it is the pressure that will make parallelism look attractive, and parallelism is what would put the ordering property at risk.
   - Closing RISK-003 changes candidate ids and worktree paths on the evolve path. Existing local experiment data keyed by the old names is not migrated; it is derived and is rebuilt.
+  - Independent review found that retrieval was not a pure read inside a generation. Each candidate projects its outcome into durable evolutionary memory when its evaluation finishes, and under VECTOR, GRAPH or HYBRID the next candidate's retrieval read that memory back and ranked documents carrying historical outcomes higher, so candidate two was proposed from evidence candidate one had changed. Fixed by retrieving once per run and giving every candidate the same bundle, which is what S5's identical-evidence promise actually requires. No test caught it because every generation test runs with retrieval NONE, where the retriever is inert - the shape PAT-004 describes, a fixture that cannot express the defect.
+  - The repeated-mutation rule compares mutation ids alone. That is exact for the fixture proposer, whose ids it controls, and blunt for a live proposer, whose ids are model-chosen free text: one id over two genuinely different patches would fail a run with a half-true diagnosis. The message now names both causes and Q-013 records what would answer it. Not fixed here because a live proposer filling a generation is a non-goal of this change.
+  - The spread measures only how many padding lines the fixture proposer appended, because that is the single axis on which its variants differ and parsimony is the objective that reads it. The ranking mechanism is therefore shown to work; nothing is shown about candidate quality. Independent review confirmed the recorded claims are honest about this in all three places they appear.

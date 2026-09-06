@@ -202,6 +202,15 @@ public final class EvolveRunner {
         // holds the bundle the run is reported with. Rebuilding either per candidate would report
         // the last candidate's figures as the run's.
         var timedRetriever = new TimedRetriever(retrievalResolver.apply(request.retrievalMode(), gitRoot));
+        // Retrieve once for the whole run, then hand every candidate the same bundle. Without this a
+        // generation cannot keep the promise it is built on. Each candidate projects its outcome into
+        // durable evolutionary memory at the end of its evaluation, and under GRAPH, VECTOR or HYBRID
+        // the next candidate's retrieval reads that memory back and ranks documents carrying
+        // historical outcomes higher. Candidate two would then be proposed from evidence candidate one
+        // changed, so the two would not be comparable and the ranking would be measuring the
+        // evaluation order. Found in independent review; no test caught it because every generation
+        // test runs with retrieval NONE, where the retriever is inert.
+        var runRetriever = new RunScopedRetriever(timedRetriever);
         var retrievalCapture = new RetrievalCapture();
         Path journalPath = folder.resolve("journal.md");
         // The ledger and the reporters are run-scoped for the same reason the retriever is. The
@@ -236,7 +245,7 @@ public final class EvolveRunner {
                 new JournalDecisionSink(),
                 reporters,
                 clock,
-                timedRetriever,
+                runRetriever,
                 new EvolutionaryMemoryProjector(
                         memoryResolver.apply(request.retrievalMode(), gitRoot),
                         LocalEvolutionaryMemoryFactory.policy().id(),
@@ -330,6 +339,37 @@ public final class EvolveRunner {
             return Files.readString(path);
         } catch (IOException exception) {
             throw new UncheckedIOException("failed to read " + path, exception);
+        }
+    }
+
+    /**
+     * Retrieves once per run and gives every candidate the same evidence.
+     *
+     * <p>This is what makes "ranked on identical evidence" true rather than intended. Retrieval is
+     * not a pure read: each candidate's outcome is projected into durable evolutionary memory when
+     * its evaluation finishes, and for every retrieval mode except {@code NONE} the next retrieval
+     * reads that memory back — {@code HybridEvidenceRetriever} gives documents with historical
+     * outcomes a ranking bonus. Retrieving per candidate therefore lets candidate one change what
+     * candidate two is proposed from, which breaks the isolation S1 promises and makes the ranking
+     * partly a measurement of evaluation order.
+     *
+     * <p>Keyed on the query rather than unconditional, so a caller that legitimately asks a different
+     * question still gets a fresh answer. A generation asks the same question N times, which is
+     * exactly the case being collapsed.
+     *
+     * <p>The single-candidate path is unaffected: one call, one retrieval, one bundle.
+     */
+    private static final class RunScopedRetriever implements EvidenceRetriever {
+        private final EvidenceRetriever delegate;
+        private final Map<RetrievalQuery, RetrievalBundle> answered = new java.util.HashMap<>();
+
+        private RunScopedRetriever(EvidenceRetriever delegate) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+        }
+
+        @Override
+        public RetrievalBundle retrieve(RetrievalQuery query) {
+            return answered.computeIfAbsent(query, delegate::retrieve);
         }
     }
 
