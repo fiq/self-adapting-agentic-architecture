@@ -3,18 +3,19 @@ session:
   status: chg_026_delivered_and_independently_reviewed_awaiting_rebase_push_and_human_merge
   branch: feat/chg-026-population-slice
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
-  head: feat/chg-026-population-slice at 57c50ec, the review-fix commit. Ten commits on the branch. NOT pushed - see transport_note; `git fetch origin main` failed with "Please make sure you have the correct access rights", which is the SSH key not being in the agent after a reboot, not the repository. Run `ssh-add` and push before anything else.
+  head: feat/chg-026-population-slice at c667009, pushed and in sync with origin. Eleven commits on the branch. Fetch verified against the real origin on 2026-09-06: main is still 3bfa7c7 and this branch is not behind it, so no rebase is outstanding. Draft PR #52 is open and now carries the whole slice including the review fixes.
   head_note: CHG-026 is functionally complete. T1 the domain value types, T2 the ranking policy, T3 the generation loop, T4 the per-candidate namespace, T4b the CLI option and per-candidate evaluator, T5 variant production, T6 the journal and ledger record and T7 the documentation are all delivered. The last verified base was main at 3bfa7c7; that was checked against a stale origin/main because the fetch failed, so re-fetch and rebase before merging.
   transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening or merging a pull request, and only when the user says so. PR #52 was created with gh at the user's explicit instruction.
   dirty: false
-  pushed: false
+  pushed: true
 
 goal:
   current: land CHG-026, the population slice - several candidates per generation ranked deterministically on identical evidence - which is what ADR-0002 calls the point at which SAAA starts to differ from an agent with tests
   phase: reviewed_pending_rebase_push_and_human_merge
 
 next_actions:
-  - START HERE. `ssh-add` the key, then fetch, rebase onto whatever main is now, revalidate and push. The branch has eight commits and none of them are on origin. The recorded base (3bfa7c7) was confirmed against a stale origin/main because the fetch failed, so do not trust it until the fetch succeeds.
+  - START HERE. A human needs to read this branch. Everything else is done: eleven commits pushed, three independent review passes with their findings fixed and verified, all eight suites green, project check 7/7. AGENTS.md reserves merge authorisation to the user and no human has read it.
+  - watch CI on PR #52. It has not run against the review-fix commits yet.
   - independent review is DONE and its findings are fixed in 57c50ec. See review_record below for routing, actors, verdicts and what was lost. What remains before merge is a human reading it: AGENTS.md reserves merge authorisation to the user and no human has read this branch.
   - the one region nothing has reviewed on its own ground is T1-T3, the domain value types and the ranking policy from the previous session. Passes A and B read them incidentally. If another pass is wanted, aim it there rather than at the generation wiring, which three passes have now covered.
   - the honest answer to the question this slice existed to ask: ranking does discriminate, and it is measured rather than asserted. EvolveRunnerTest.aGenerationFromTheFixtureProposerRanksCandidatesThatActuallyDiffer runs three candidates end to end through the real proposer, the real Git workspace and the real scorer and asserts a spread above zero. The spread comes from parsimony reading the size of the realised diff.
