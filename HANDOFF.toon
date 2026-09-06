@@ -1,21 +1,23 @@
 session:
   updated: 2026-09-06
-  status: chg_026_delivered_and_independently_reviewed_awaiting_rebase_push_and_human_merge
-  branch: feat/chg-026-population-slice
+  status: chg_026_merged_to_main_as_pr_52_next_slice_undecided
+  branch: main
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
-  head: feat/chg-026-population-slice at c667009, pushed and in sync with origin. Eleven commits on the branch. Fetch verified against the real origin on 2026-09-06: main is still 3bfa7c7 and this branch is not behind it, so no rebase is outstanding. Draft PR #52 is open and now carries the whole slice including the review fixes.
+  head: main at 03ca6f5, the merge of PR #52. CHG-026 is IN. CI passed against the exact head 884d9d2 - both fast and full-readiness, the latter genuinely running rather than skipping - and the user authorised the merge on that condition. The feature branch feat/chg-026-population-slice is merged and can be deleted whenever convenient.
   head_note: CHG-026 is functionally complete. T1 the domain value types, T2 the ranking policy, T3 the generation loop, T4 the per-candidate namespace, T4b the CLI option and per-candidate evaluator, T5 variant production, T6 the journal and ledger record and T7 the documentation are all delivered. The last verified base was main at 3bfa7c7; that was checked against a stale origin/main because the fetch failed, so re-fetch and rebase before merging.
   transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening or merging a pull request, and only when the user says so. PR #52 was created with gh at the user's explicit instruction.
   dirty: false
   pushed: true
 
 goal:
-  current: land CHG-026, the population slice - several candidates per generation ranked deterministically on identical evidence - which is what ADR-0002 calls the point at which SAAA starts to differ from an agent with tests
-  phase: reviewed_pending_rebase_push_and_human_merge
+  current: CHG-026 is landed. ADR-0002's named Layer-1 gap is closed: several candidates per generation, ranked deterministically on identical evidence. The next slice is undecided and the two candidates are recorded in next_actions.
+  phase: between_slices_next_one_undecided
 
 next_actions:
-  - START HERE. A human needs to read this branch. Everything else is done: eleven commits pushed, three independent review passes with their findings fixed and verified, all eight suites green, project check 7/7. AGENTS.md reserves merge authorisation to the user and no human has read it.
-  - watch CI on PR #52. It has not run against the review-fix commits yet.
+  - START HERE: decide the next slice. CHG-026 merged, so the two tracks that were waiting on it are both open and they are genuinely different bets.
+  - CANDIDATE ONE, and the stronger one: the live model proposer filling a generation. This is what turns the population from a proven mechanism into a measured one. Today the variety is the fixture proposer appending padding lines, so the spread measures padding volume and nothing about candidate quality - the change says so in three places and independent review confirmed the claim is honest. Only a live proposer answers whether a model's candidates differ in ways the scorer can see, which is ADR-0002's revisit question. Q-013 must be settled as part of it, because a live proposer chooses its own mutation ids and the duplicate rule compares ids alone.
+  - CANDIDATE TWO: the AST track, ADR-0005. Unchanged from before and the case against going first is unchanged: its base case is the declared-locus gate, whose live consumer is opt-in, so it is two more changes before anything is observable.
+  - the deferred items below survive the merge and are still true.
   - independent review is DONE and its findings are fixed in 57c50ec. See review_record below for routing, actors, verdicts and what was lost. What remains before merge is a human reading it: AGENTS.md reserves merge authorisation to the user and no human has read this branch.
   - the one region nothing has reviewed on its own ground is T1-T3, the domain value types and the ranking policy from the previous session. Passes A and B read them incidentally. If another pass is wanted, aim it there rather than at the generation wiring, which three passes have now covered.
   - the honest answer to the question this slice existed to ask: ranking does discriminate, and it is measured rather than asserted. EvolveRunnerTest.aGenerationFromTheFixtureProposerRanksCandidatesThatActuallyDiffer runs three candidates end to end through the real proposer, the real Git workspace and the real scorer and asserts a spread above zero. The spread comes from parsimony reading the size of the realised diff.
