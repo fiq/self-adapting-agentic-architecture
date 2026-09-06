@@ -13,6 +13,7 @@ import com.dreamthought.saaa.adapters.retrieval.LocalRetrievalFactory;
 import com.dreamthought.saaa.adapters.retrieval.LocalEvolutionaryMemoryFactory;
 import com.dreamthought.saaa.adapters.sqlite.SqliteExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.BenchmarkRunner;
+import com.dreamthought.saaa.deterministic.CandidateEvaluator;
 import com.dreamthought.saaa.deterministic.CandidateNamespace;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryProjector;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore;
@@ -20,6 +21,7 @@ import com.dreamthought.saaa.deterministic.BoundedMutationValidator;
 import com.dreamthought.saaa.deterministic.CompositeMutationValidator;
 import com.dreamthought.saaa.deterministic.EvolutionReporter;
 import com.dreamthought.saaa.deterministic.EvidenceRetriever;
+import com.dreamthought.saaa.deterministic.GenerationEvaluationLoop;
 import com.dreamthought.saaa.deterministic.ExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.deterministic.MutationEvaluationLoop;
@@ -50,6 +52,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.IntFunction;
 
 public final class EvolveRunner {
     private final ProposerProfileRegistry profileRegistry;
@@ -112,6 +115,22 @@ public final class EvolveRunner {
     }
 
     public EvolveRunResult run(EvolveRunRequest request, EvolutionReporter reporter) {
+        var prepared = prepare(request, reporter);
+        var result = prepared.evaluator.evaluate(prepared.proposal);
+        return new EvolveRunResult(result, prepared.journalPath, prepared.retrievalCapture.required(),
+                prepared.proposer.proposerEvidence(), prepared.wallMillis(),
+                prepared.timedRetriever.elapsedMillis());
+    }
+
+    public EvolveGenerationResult runGeneration(
+            EvolveRunRequest request, EvolutionReporter reporter, int candidates) {
+        var prepared = prepare(request, reporter);
+        var generation = new GenerationEvaluationLoop(prepared.evaluator)
+                .evaluate(prepared.proposal, candidates);
+        return new EvolveGenerationResult(generation, prepared.journalPath, prepared.wallMillis());
+    }
+
+    private PreparedRun prepare(EvolveRunRequest request, EvolutionReporter reporter) {
         Objects.requireNonNull(request, "request");
         Objects.requireNonNull(reporter, "reporter");
         long runStarted = System.nanoTime();
@@ -162,10 +181,16 @@ public final class EvolveRunner {
                 .map(CandidateNamespace::forRunId)
                 .orElseGet(() -> CandidateNamespace.forRun(Instant.now(clock)));
         MutationProposer proposer = profileRegistry.resolve(request.profile(), folder);
+        // Hoisted out of the per-candidate loop deliberately, because both accumulate across the
+        // whole run: the retriever totals the time every candidate spent retrieving, and the capture
+        // holds the bundle the run is reported with. Rebuilding either per candidate would report
+        // the last candidate's figures as the run's.
         var timedRetriever = new TimedRetriever(retrievalResolver.apply(request.retrievalMode(), gitRoot));
         var retrievalCapture = new RetrievalCapture();
         Path journalPath = folder.resolve("journal.md");
-        var loop = new MutationEvaluationLoop(
+        // Everything else is built per candidate, exactly as a single-candidate run built it, so the
+        // one-candidate path is unchanged and no state can leak from one candidate into the next.
+        IntFunction<MutationEvaluationLoop> loopForCandidate = position -> new MutationEvaluationLoop(
                 proposer,
                 new CompositeMutationValidator(List.of(
                         new BoundedMutationValidator(),
@@ -176,7 +201,7 @@ public final class EvolveRunner {
                         gitRoot.resolve(".worktrees"),
                         new TextMutationRealizer(relativeWorkflow),
                         proposer::proposerEvidence,
-                        Optional.of(namespace.forCandidate(1))),
+                        Optional.of(namespace.forCandidate(position))),
                 new CommandCheckRunner(checks),
                 benchmarkRunner,
                 new PhenotypeBridgeScorer(
@@ -203,10 +228,10 @@ public final class EvolveRunner {
                 repositoryRevision,
                 List.of(relativeWorkflow, baseline.id()),
                 Optional.empty());
-        var result = loop.evaluate(new MutationProposalRequest(baseline, query));
-        long wallMillis = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - runStarted);
-        return new EvolveRunResult(result, journalPath, retrievalCapture.required(), proposer.proposerEvidence(),
-                wallMillis, timedRetriever.elapsedMillis());
+        return new PreparedRun(
+                new MutationProposalRequest(baseline, query),
+                new PerCandidateEvaluator(loopForCandidate),
+                journalPath, proposer, retrievalCapture, timedRetriever, runStarted);
     }
 
     /**
@@ -282,6 +307,67 @@ public final class EvolveRunner {
             return Files.readString(path);
         } catch (IOException exception) {
             throw new UncheckedIOException("failed to read " + path, exception);
+        }
+    }
+
+    /**
+     * Everything one run needs that does not depend on which candidate is being evaluated.
+     *
+     * <p>Exists so a single-candidate run and a generation share one preparation rather than two
+     * that can drift apart. The retriever and the capture are held here rather than rebuilt per
+     * candidate because both accumulate over the whole run.
+     */
+    private static final class PreparedRun {
+        private final MutationProposalRequest proposal;
+        private final PerCandidateEvaluator evaluator;
+        private final Path journalPath;
+        private final MutationProposer proposer;
+        private final RetrievalCapture retrievalCapture;
+        private final TimedRetriever timedRetriever;
+        private final long startedNanos;
+
+        private PreparedRun(
+                MutationProposalRequest proposal,
+                PerCandidateEvaluator evaluator,
+                Path journalPath,
+                MutationProposer proposer,
+                RetrievalCapture retrievalCapture,
+                TimedRetriever timedRetriever,
+                long startedNanos) {
+            this.proposal = proposal;
+            this.evaluator = evaluator;
+            this.journalPath = journalPath;
+            this.proposer = proposer;
+            this.retrievalCapture = retrievalCapture;
+            this.timedRetriever = timedRetriever;
+            this.startedNanos = startedNanos;
+        }
+
+        private long wallMillis() {
+            return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos);
+        }
+    }
+
+    /**
+     * Builds one evaluation loop per candidate, each in its own namespace, which is what lets N
+     * candidates of a generation hold N worktrees at once instead of colliding on one.
+     *
+     * <p>The position advances before the evaluation runs, not after it. A candidate that throws has
+     * often already created its worktree, so handing the same position to the next candidate would
+     * send it at a directory that already exists and the generation would lose a second candidate to
+     * the first one's failure.
+     */
+    private static final class PerCandidateEvaluator implements CandidateEvaluator {
+        private final IntFunction<MutationEvaluationLoop> loopForCandidate;
+        private int position;
+
+        private PerCandidateEvaluator(IntFunction<MutationEvaluationLoop> loopForCandidate) {
+            this.loopForCandidate = Objects.requireNonNull(loopForCandidate, "loopForCandidate");
+        }
+
+        @Override
+        public FitnessResult evaluate(MutationProposalRequest request) {
+            return loopForCandidate.apply(++position).evaluate(request);
         }
     }
 

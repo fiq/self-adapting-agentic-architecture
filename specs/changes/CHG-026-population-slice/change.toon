@@ -74,6 +74,12 @@ acceptance:
   - scenario: S1
     test_id: deterministic/CandidateNamespaceTest.everyCandidateInAGenerationGetsItsOwnNamespace
     layer: unit
+  - scenario: S1
+    test_id: cli/EvolveCommandAcceptanceTest.aGenerationOfThreeEvaluatesEveryCandidateInItsOwnWorktree
+    layer: acceptance
+  - scenario: S1
+    test_id: adapters/EvolveRunnerTest.aFailedCandidateStillConsumesItsPositionSoTheNextOneGetsAFreshNamespace
+    layer: unit
   - scenario: S2
     test_id: deterministic/PopulationRankingPolicyTest.rankingIsTotalAndIndependentOfEvaluationOrder
     layer: unit
@@ -88,6 +94,9 @@ acceptance:
     layer: unit
   - scenario: S4
     test_id: deterministic/PopulationRankingPolicyTest.aGenerationWithNoPromotionRecordsNoWinner
+    layer: unit
+  - scenario: S4
+    test_id: cli/ConsoleReporterTest.namesNoWinnerWhenNothingInTheGenerationPromoted
     layer: unit
   - scenario: S5
     test_id: deterministic/PopulationRankingPolicyTest.candidatesScoredUnderDifferentFingerprintsAreNotRanked
@@ -110,6 +119,9 @@ acceptance:
   - scenario: S7
     test_id: domain/RankedGenerationTest.theSpreadIsMeasuredAcrossAllCandidates
     layer: unit
+  - scenario: S7
+    test_id: cli/ConsoleReporterTest.reportsTheGenerationOrderWinnerEvidenceCountAndSpread
+    layer: unit
   - scenario: S8
     test_id: adapters/FixtureMutationProposerTest.aGenerationRequestYieldsDistinctMutations
     layer: unit
@@ -129,7 +141,7 @@ tasks:
     status: completed
   - id: T4b
     slice: the CLI option that asks for a generation of N, and EvolveRunner building a per-candidate evaluator so the generation loop is reachable from the command line
-    status: pending
+    status: completed
   - id: T5
     slice: variant production - a proposer entry point for N variants whose default is N calls, and a fixture proposer that varies deliberately so the slice is exercisable without a live model
     status: pending

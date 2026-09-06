@@ -99,6 +99,15 @@ public final class EvolveCommand implements Callable<Integer> {
                     + "the objective at its previous value.")
     private int reliabilityRuns = 1;
 
+    @Option(names = "--candidates", defaultValue = "1",
+            description = "How many candidates to evaluate in this generation. They are proposed "
+                    + "from one baseline, evaluated one at a time against identical evidence and "
+                    + "ranked, and the ranking selects among the candidates the gates promoted "
+                    + "rather than overriding them. Sequential, so N candidates cost N times the "
+                    + "wall clock and leave N candidate worktrees behind. Default 1, which is the "
+                    + "single-candidate run unchanged.")
+    private int candidates;
+
     @Option(names = "--run-id",
             description = "Name this run, which is what keeps one run's candidate worktrees, "
                     + "branches and ids apart from another's. Defaults to a timestamp, so repeat "
@@ -165,13 +174,29 @@ public final class EvolveCommand implements Callable<Integer> {
         contract.ifPresent(declared -> out.printf("  contract   %s requires %s%n",
                 declared.operator().wireName(), String.join(", ", declared.requiredEvidence())));
 
-        var result = new EvolveRunner(benchmarkRunner).run(
-                new EvolveRunRequest(
-                        targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task,
-                        Optional.ofNullable(runId), benchmarkBudgets, contract, List.copyOf(safetyProbes),
-                        reliabilityRuns, List.copyOf(heldOutCases)),
-                new ConsoleReporter(out));
-        out.printf("  journal    %s%n", result.journalPath());
+        if (candidates < 1) {
+            throw new IllegalArgumentException(
+                    "--candidates must be at least 1, got " + candidates);
+        }
+        var runner = new EvolveRunner(benchmarkRunner);
+        var request = new EvolveRunRequest(
+                targetFolder, profile, workflowFile, behaviourCases, maxLines, retrievalMode, task,
+                Optional.ofNullable(runId), benchmarkBudgets, contract, List.copyOf(safetyProbes),
+                reliabilityRuns, List.copyOf(heldOutCases));
+        var reporter = new ConsoleReporter(out);
+        // One candidate keeps the single-candidate entry point rather than a generation of one. The
+        // difference is not cosmetic: a generation records a candidate that produced no evidence and
+        // carries on, where a single-candidate run lets the failure out, and a caller asking for one
+        // candidate should get the behaviour it always got.
+        Path journalPath;
+        if (candidates == 1) {
+            journalPath = runner.run(request, reporter).journalPath();
+        } else {
+            var result = runner.runGeneration(request, reporter, candidates);
+            reporter.generationRanked(result.generation());
+            journalPath = result.journalPath();
+        }
+        out.printf("  journal    %s%n", journalPath);
         out.flush();
         return 0;
     }

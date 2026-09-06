@@ -126,6 +126,70 @@ final class EvolveRunnerTest {
                 .isLessThan(withinBudget.fitnessResult().fitnessScore().rawMagnitude());
     }
 
+    /**
+     * S1 and S6 together, at the seam that produces both. A generation gives each candidate its own
+     * namespace by position, and the position has to advance past a candidate that failed: the
+     * failing candidate has usually already created its worktree, so handing its position to the
+     * next one would send that one at a directory that exists and lose a second candidate to the
+     * first one's failure.
+     *
+     * <p>The first candidate is made to fail at the proposer, which is the cheapest failure that is
+     * still real, and the assertion is on the surviving candidates' names rather than on a count,
+     * because a count cannot tell the difference between "positions advanced" and "the same position
+     * happened to work twice".
+     */
+    @Test
+    void aFailedCandidateStillConsumesItsPositionSoTheNextOneGetsAFreshNamespace(@TempDir Path dir)
+            throws Exception {
+        Path repo = dir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve("workflow-check.sh"),
+                "#!/usr/bin/env bash\ngrep -q 'enforce' \"$(dirname \"$0\")/workflow.txt\"\n");
+        target.resolve("workflow-check.sh").toFile().setExecutable(true);
+        git(repo, "init", "-b", "main");
+        git(repo, "add", ".");
+        git(repo, "-c", "user.name=test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture");
+
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        var registry = new ProposerProfileRegistry(ignored -> baseline -> {
+            if (calls.incrementAndGet() == 1) {
+                throw new IllegalStateException("the first candidate could not be proposed");
+            }
+            return new Mutation("enforce-check", "enforce the draft check",
+                    MutationScope.WORKFLOW_DEFINITION, "draft-check: enforce\n");
+        });
+
+        var generation = new EvolveRunner(
+                registry,
+                java.time.Clock.systemUTC(),
+                (mode, root) -> com.dreamthought.saaa.deterministic.EvidenceRetriever.none("test-retrieval"),
+                (mode, root) -> com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore.disabled())
+                .runGeneration(
+                        new EvolveRunRequest(target, "openai-compatible", "workflow.txt",
+                                List.of("workflow-check"), 20, RetrievalMode.NONE, "vary the check",
+                                Optional.of("fixed-run")),
+                        EvolutionReporter.NO_OP, 3)
+                .generation();
+
+        assertThat(generation.requestedCount()).isEqualTo(3);
+        assertThat(generation.evaluatedCount())
+                .as("the generation lost only the candidate that failed")
+                .isEqualTo(2);
+        assertThat(generation.unevaluated())
+                .singleElement()
+                .satisfies(candidate -> {
+                    assertThat(candidate.reference()).isEqualTo("attempt-1-of-3");
+                    assertThat(candidate.reason()).contains("the first candidate could not be proposed");
+                });
+        assertThat(generation.ranked().stream().map(result -> result.candidate().id()).toList())
+                .as("positions two and three were used, and the failed candidate's was not reused")
+                .allSatisfy(id -> assertThat(id).doesNotContain("fixed-run-c1"))
+                .anySatisfy(id -> assertThat(id).contains("fixed-run-c2"))
+                .anySatisfy(id -> assertThat(id).contains("fixed-run-c3"));
+    }
+
     private static com.dreamthought.saaa.deterministic.MutationProposer ignoredBaselineProposer() {
         return baseline -> new Mutation("unused", "unused", MutationScope.WORKFLOW_DEFINITION, baseline.definition());
     }
