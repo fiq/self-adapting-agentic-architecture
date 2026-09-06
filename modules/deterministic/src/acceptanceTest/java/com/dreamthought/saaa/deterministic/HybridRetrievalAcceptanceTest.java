@@ -225,6 +225,11 @@ final class HybridRetrievalAcceptanceTest {
     private static final class NoOpMetadata implements ExperimentMetadataStore {
         @Override public void recordCandidate(Candidate candidate) { }
         @Override public void recordFitness(FitnessResult result) { }
+
+        @Override
+        public void recordGeneration(com.dreamthought.saaa.domain.GenerationRecord record) {
+            throw new AssertionError("a single-candidate run has no generation to record");
+        }
     }
 
     private static final class NoOpDecisionSink implements CandidateDecisionSink {

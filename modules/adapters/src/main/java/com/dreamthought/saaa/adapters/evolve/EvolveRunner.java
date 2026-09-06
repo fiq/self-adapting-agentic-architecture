@@ -31,6 +31,7 @@ import com.dreamthought.saaa.deterministic.PhenotypeBridgeScorer;
 import com.dreamthought.saaa.deterministic.ScoringConfig;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.GenerationRecord;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import com.dreamthought.saaa.domain.Mutation;
@@ -125,11 +126,23 @@ public final class EvolveRunner {
                 prepared.timedRetriever.elapsedMillis());
     }
 
+    /**
+     * Evaluates a generation of {@code candidates} candidates against one baseline, ranks them and
+     * records the result.
+     *
+     * <p>The record is written here rather than left to the caller. A generation that reported a
+     * winner to a terminal and left nothing behind would make the selection unreproducible, which is
+     * the thing ranking exists to avoid: the point of a total order is that a later reader can check
+     * it rather than trust it.
+     */
     public EvolveGenerationResult runGeneration(
             EvolveRunRequest request, EvolutionReporter reporter, int candidates) {
         var prepared = prepare(request, reporter);
         var generation = new GenerationEvaluationLoop(prepared.evaluator)
                 .evaluate(prepared.proposal, candidates);
+        prepared.metadataStore.recordGeneration(
+                new GenerationRecord(prepared.runId, generation, Instant.now(clock)));
+        prepared.reporters.generationRanked(generation);
         return new EvolveGenerationResult(generation, prepared.journalPath, prepared.wallMillis());
     }
 
@@ -191,6 +204,12 @@ public final class EvolveRunner {
         var timedRetriever = new TimedRetriever(retrievalResolver.apply(request.retrievalMode(), gitRoot));
         var retrievalCapture = new RetrievalCapture();
         Path journalPath = folder.resolve("journal.md");
+        // The ledger and the reporters are run-scoped for the same reason the retriever is. The
+        // generation's own record is written once, after every candidate has been evaluated, so both
+        // have to outlive the per-candidate loop.
+        var metadataStore = new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite"));
+        var reporters = new CompositeReporter(
+                List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture));
         // Everything else is built per candidate, exactly as a single-candidate run built it, so the
         // one-candidate path is unchanged and no state can leak from one candidate into the next.
         IntFunction<MutationEvaluationLoop> loopForCandidate = position -> new MutationEvaluationLoop(
@@ -213,9 +232,9 @@ public final class EvolveRunner {
                                 Set.copyOf(request.behaviourCases()), request.maxLines(),
                                 request.benchmarkBudgets(), Set.copyOf(request.safetyProbes()),
                                 request.reliabilityRuns(), Set.copyOf(request.heldOutCases()))),
-                new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite")),
+                metadataStore,
                 new JournalDecisionSink(),
-                new CompositeReporter(List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture)),
+                reporters,
                 clock,
                 timedRetriever,
                 new EvolutionaryMemoryProjector(
@@ -234,7 +253,8 @@ public final class EvolveRunner {
         return new PreparedRun(
                 new MutationProposalRequest(baseline, query),
                 new PerCandidateEvaluator(loopForCandidate),
-                journalPath, proposer, retrievalCapture, timedRetriever, runStarted);
+                journalPath, proposer, retrievalCapture, timedRetriever, runStarted,
+                namespace.runId(), metadataStore, reporters);
     }
 
     /**
@@ -362,6 +382,9 @@ public final class EvolveRunner {
         private final RetrievalCapture retrievalCapture;
         private final TimedRetriever timedRetriever;
         private final long startedNanos;
+        private final String runId;
+        private final ExperimentMetadataStore metadataStore;
+        private final CompositeReporter reporters;
 
         private PreparedRun(
                 MutationProposalRequest proposal,
@@ -370,7 +393,10 @@ public final class EvolveRunner {
                 MutationProposer proposer,
                 RetrievalCapture retrievalCapture,
                 TimedRetriever timedRetriever,
-                long startedNanos) {
+                long startedNanos,
+                String runId,
+                ExperimentMetadataStore metadataStore,
+                CompositeReporter reporters) {
             this.proposal = proposal;
             this.evaluator = evaluator;
             this.journalPath = journalPath;
@@ -378,6 +404,9 @@ public final class EvolveRunner {
             this.retrievalCapture = retrievalCapture;
             this.timedRetriever = timedRetriever;
             this.startedNanos = startedNanos;
+            this.runId = runId;
+            this.metadataStore = metadataStore;
+            this.reporters = reporters;
         }
 
         private long wallMillis() {

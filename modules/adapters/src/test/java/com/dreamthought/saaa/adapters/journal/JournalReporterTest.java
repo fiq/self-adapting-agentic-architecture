@@ -78,4 +78,60 @@ final class JournalReporterTest {
         return new EvaluationEvidence(
                 List.of(passed("publish-guard", "ok")), List.of(), Instant.parse("2026-07-28T09:14:00Z"));
     }
+    /**
+     * S7 in the narrative surface. The journal is not the audit record — the ledger and the Git
+     * commits are — but it is what a person actually reads after a run, and a generation that told
+     * them a winner without telling them the order, the spread or how many candidates produced
+     * evidence would be reporting a conclusion with none of what supports it.
+     */
+    @Test
+    void aGenerationEntryCarriesTheOrderWinnerFingerprintEvidenceCountAndSpread(@TempDir Path dir)
+            throws IOException {
+        Path journal = dir.resolve("journal.md");
+        var reporter = new JournalReporter(journal, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+        var promoted = scored("cand-1", 0.90, FitnessDecision.PROMOTE);
+        var discarded = scored("cand-2", 0.95, FitnessDecision.DISCARD);
+
+        reporter.generationRanked(new com.dreamthought.saaa.domain.RankedGeneration(
+                List.of(promoted, discarded),
+                List.of(new com.dreamthought.saaa.domain.UnevaluatedCandidate(
+                        "attempt-3-of-3", "IllegalStateException: worktree already exists"))));
+
+        String written = Files.readString(journal);
+        assertThat(written)
+                .contains("| evidence | 2 of 3 candidates |")
+                .contains("| fingerprint | " + promoted.scoringFingerprint() + " |")
+                .contains("| spread | 0.05 |")
+                .contains("| winner | cand-1 |")
+                // Raw, not rounded. CHG-023 left rendering to the console alone, so the journal
+                // carries the magnitude the ranking actually used.
+                .contains("1. cand-1  0.9  PROMOTE")
+                .contains("2. cand-2  0.95  DISCARD")
+                .contains("- no evidence: attempt-3-of-3");
+    }
+
+    /**
+     * A generation that promoted nothing says so. Naming its best discard as a winner would move the
+     * deciding step out of fixed code and into whoever reads the journal.
+     */
+    @Test
+    void aGenerationThatPromotedNothingRecordsNoWinner(@TempDir Path dir) throws IOException {
+        Path journal = dir.resolve("journal.md");
+        var reporter = new JournalReporter(journal, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+
+        reporter.generationRanked(new com.dreamthought.saaa.domain.RankedGeneration(
+                List.of(scored("cand-1", 0.79, FitnessDecision.DISCARD)), List.of()));
+
+        assertThat(Files.readString(journal)).contains("| winner | none promoted |");
+    }
+
+    private static FitnessResult scored(String candidateId, double magnitude, FitnessDecision decision) {
+        return new FitnessResult(
+                new Candidate(candidateId, "MUT-" + candidateId, "candidate/" + candidateId,
+                        Path.of("/tmp", candidateId), "abc1234"),
+                new EvaluationEvidence(List.of(), List.of(), Instant.EPOCH),
+                Map.of(),
+                FitnessScore.of(magnitude, decision),
+                TEST_SCORING_CONTEXT);
+    }
 }

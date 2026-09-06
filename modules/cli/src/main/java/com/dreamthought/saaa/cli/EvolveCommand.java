@@ -192,9 +192,9 @@ public final class EvolveCommand implements Callable<Integer> {
         if (candidates == 1) {
             journalPath = runner.run(request, reporter).journalPath();
         } else {
-            var result = runner.runGeneration(request, reporter, candidates);
-            reporter.generationRanked(result.generation());
-            journalPath = result.journalPath();
+            // The runner fans the ranking out to every reporter, this console one included, so
+            // there is nothing to print here that it has not already printed.
+            journalPath = runner.runGeneration(request, reporter, candidates).journalPath();
         }
         out.printf("  journal    %s%n", journalPath);
         out.flush();

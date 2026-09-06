@@ -57,6 +57,7 @@ public final class ConsoleReporter implements EvolutionReporter {
      * and the winner, which is empty when nothing promoted because ranking selects among promotions
      * and is not a second opinion on the gates.
      */
+    @Override
     public void generationRanked(RankedGeneration generation) {
         Objects.requireNonNull(generation, "generation");
         out.printf("  generation %d of %d candidates produced evidence%n",

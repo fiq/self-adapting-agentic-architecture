@@ -4,6 +4,7 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.RankedGeneration;
 import com.dreamthought.saaa.domain.RetrievalBundle;
 
 /**
@@ -22,4 +23,10 @@ public interface EvolutionReporter {
     default void evidenceCollected(EvaluationEvidence evidence) { }
 
     default void scored(FitnessResult result) { }
+
+    /**
+     * One generation finished and was ranked. Never fired by a single-candidate run, which has
+     * nothing to rank.
+     */
+    default void generationRanked(RankedGeneration generation) { }
 }
