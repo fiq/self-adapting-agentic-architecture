@@ -501,9 +501,11 @@ final class EvolveCommandAcceptanceTest {
      * its own worktree at once, which is what {@code --run-id fixed-run} makes checkable: the names
      * are {@code -c1}, {@code -c2} and {@code -c3} of one run, not three runs of one candidate.
      *
-     * <p>The fixture proposer still returns the same mutation every time, so these three candidates
-     * differ only in their namespace and will score identically. That is T5's job to fix and is why
-     * this test asserts isolation rather than a spread.
+     * <p>The three candidates carry three different mutations, because the fixture proposer varies
+     * for a generation. Whether that variety produces a spread the scorer can see is asserted where
+     * the scores are, in
+     * {@code EvolveRunnerTest.aGenerationFromTheFixtureProposerRanksCandidatesThatActuallyDiffer};
+     * this test is about isolation.
      */
     @Test
     void aGenerationOfThreeEvaluatesEveryCandidateInItsOwnWorktree(@TempDir Path tempDir) throws Exception {

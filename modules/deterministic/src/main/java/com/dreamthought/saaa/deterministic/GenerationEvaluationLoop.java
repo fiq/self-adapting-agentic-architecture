@@ -5,7 +5,9 @@ import com.dreamthought.saaa.domain.MutationProposalRequest;
 import com.dreamthought.saaa.domain.RankedGeneration;
 import com.dreamthought.saaa.domain.UnevaluatedCandidate;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Evaluates a generation of candidates against one baseline and ranks what it got.
@@ -54,19 +56,48 @@ public final class GenerationEvaluationLoop {
 
         var evaluated = new ArrayList<FitnessResult>();
         var unevaluated = new ArrayList<UnevaluatedCandidate>();
+        var mutations = new LinkedHashSet<String>();
         for (int attempt = 1; attempt <= candidates; attempt++) {
+            FitnessResult result;
             try {
-                evaluated.add(Objects.requireNonNull(
-                        evaluator.evaluate(request), "a candidate evaluation returned no result"));
+                result = Objects.requireNonNull(
+                        evaluator.evaluate(request), "a candidate evaluation returned no result");
             } catch (RuntimeException failure) {
                 // Named by attempt rather than by candidate id, because a realisation that failed
                 // before a candidate existed has no id to record and inventing one would imply a
                 // candidate that was never created.
                 unevaluated.add(new UnevaluatedCandidate(
                         "attempt-" + attempt + "-of-" + candidates, describe(failure)));
+                continue;
             }
+            requireMutationNotAlreadySeen(mutations, result, attempt, candidates);
+            evaluated.add(result);
         }
         return ranking.rank(evaluated, unevaluated);
+    }
+
+    /**
+     * Fails the run when two candidates carry the same mutation.
+     *
+     * <p>Candidate ids are kept apart by the run's namespace, so one candidate evaluated N times
+     * still produces N distinct ids, N worktrees and N rows. It reads exactly like a population and
+     * is not one: the ranking would be a tie broken by candidate id, and the spread would be zero
+     * for a reason that has nothing to do with the candidates.
+     *
+     * <p>Thrown rather than recorded as an unevaluated candidate, because this is not a candidate
+     * that failed. It is the proposer failing to vary, which makes the whole generation meaningless,
+     * and a generation that quietly returned a tie would answer ADR-0002's "is ranking measurably
+     * useful" question with an artefact of its own wiring.
+     */
+    private static void requireMutationNotAlreadySeen(
+            Set<String> seen, FitnessResult result, int attempt, int candidates) {
+        String mutationId = result.candidate().mutationId();
+        if (!seen.add(mutationId)) {
+            throw new IllegalStateException(
+                    "candidate " + attempt + " of " + candidates + " repeats mutation " + mutationId
+                            + ", so this generation is one candidate evaluated more than once rather "
+                            + "than a population; the proposer produced no variant for it");
+        }
     }
 
     private static String describe(RuntimeException failure) {

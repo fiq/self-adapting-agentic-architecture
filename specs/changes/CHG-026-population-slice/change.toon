@@ -125,6 +125,12 @@ acceptance:
   - scenario: S8
     test_id: adapters/FixtureMutationProposerTest.aGenerationRequestYieldsDistinctMutations
     layer: unit
+  - scenario: S8
+    test_id: deterministic/GenerationEvaluationLoopTest.aRepeatedMutationFailsTheGenerationRatherThanRankingOneCandidateTwice
+    layer: unit
+  - scenario: S7
+    test_id: adapters/EvolveRunnerTest.aGenerationFromTheFixtureProposerRanksCandidatesThatActuallyDiffer
+    layer: unit
 
 tasks:
   - id: T1
@@ -144,7 +150,7 @@ tasks:
     status: completed
   - id: T5
     slice: variant production - a proposer entry point for N variants whose default is N calls, and a fixture proposer that varies deliberately so the slice is exercisable without a live model
-    status: pending
+    status: completed
   - id: T6
     slice: the generation record in the journal and the experiment ledger, carrying ranking, winner, fingerprint, evidence count and spread
     status: pending

@@ -152,13 +152,17 @@ final class EvolveRunnerTest {
         git(repo, "add", ".");
         git(repo, "-c", "user.name=test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture");
 
+        // Varies per call, because a generation refuses to rank one mutation against itself. The
+        // variance is incidental here; what this test is about is which namespace each surviving
+        // candidate got.
         var calls = new java.util.concurrent.atomic.AtomicInteger();
         var registry = new ProposerProfileRegistry(ignored -> baseline -> {
-            if (calls.incrementAndGet() == 1) {
+            int call = calls.incrementAndGet();
+            if (call == 1) {
                 throw new IllegalStateException("the first candidate could not be proposed");
             }
-            return new Mutation("enforce-check", "enforce the draft check",
-                    MutationScope.WORKFLOW_DEFINITION, "draft-check: enforce\n");
+            return new Mutation("enforce-check-" + call, "enforce the draft check",
+                    MutationScope.WORKFLOW_DEFINITION, "draft-check: enforce\n" + "# call " + call + "\n");
         });
 
         var generation = new EvolveRunner(
@@ -188,6 +192,63 @@ final class EvolveRunnerTest {
                 .allSatisfy(id -> assertThat(id).doesNotContain("fixed-run-c1"))
                 .anySatisfy(id -> assertThat(id).contains("fixed-run-c2"))
                 .anySatisfy(id -> assertThat(id).contains("fixed-run-c3"));
+    }
+
+    /**
+     * The question this slice exists to answer rather than assume: does ranking discriminate at all?
+     * ADR-0002 names "population ships but ranking is not measurably useful" as a revisit trigger,
+     * and a generation whose candidates all land on the same score is that trigger firing.
+     *
+     * <p>Run end to end through the real fixture proposer, the real Git workspace and the real
+     * scorer, three candidates of one generation produce three distinct mutations and a spread above
+     * zero. The spread comes from parsimony, which reads the size of the realised diff, so it is a
+     * real objective discriminating on real evidence rather than a number the test arranged.
+     *
+     * <p>What it does not show: that a live model's candidates differ in ways the scorer can see. A
+     * fixture proposer produces the variety it was written to produce, which is why the live
+     * proposer is deliberately a separate change.
+     */
+    @Test
+    void aGenerationFromTheFixtureProposerRanksCandidatesThatActuallyDiffer(@TempDir Path dir)
+            throws Exception {
+        Path repo = dir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
+                "enforce the draft check\ndraft-check: enforce\n");
+        Files.writeString(target.resolve("workflow-check.sh"),
+                "#!/usr/bin/env bash\ngrep -q 'enforce' \"$(dirname \"$0\")/workflow.txt\"\n");
+        target.resolve("workflow-check.sh").toFile().setExecutable(true);
+        git(repo, "init", "-b", "main");
+        git(repo, "add", ".");
+        git(repo, "-c", "user.name=test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture");
+
+        var generation = new EvolveRunner(
+                new ProposerProfileRegistry(),
+                java.time.Clock.systemUTC(),
+                (mode, root) -> com.dreamthought.saaa.deterministic.EvidenceRetriever.none("test-retrieval"),
+                (mode, root) -> com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore.disabled())
+                .runGeneration(
+                        new EvolveRunRequest(target, "fixture", "workflow.txt", List.of("workflow-check"),
+                                80, RetrievalMode.NONE, "vary the check", Optional.of("spread-run")),
+                        EvolutionReporter.NO_OP, 3)
+                .generation();
+
+        assertThat(generation.evaluatedCount())
+                .as("three distinct mutations, so none was refused as a repeat")
+                .isEqualTo(3);
+        assertThat(generation.ranked())
+                .extracting(result -> result.candidate().mutationId())
+                .doesNotHaveDuplicates();
+        assertThat(generation.spread())
+                .as("ranking discriminated; an equal-score generation is ADR-0002's revisit trigger")
+                .get(org.assertj.core.api.InstanceOfAssertFactories.BIG_DECIMAL)
+                .isGreaterThan(java.math.BigDecimal.ZERO);
+        assertThat(generation.scoringFingerprint())
+                .as("every candidate was measured under one scoring context, which is what makes "
+                        + "them comparable at all")
+                .isPresent();
     }
 
     private static com.dreamthought.saaa.deterministic.MutationProposer ignoredBaselineProposer() {

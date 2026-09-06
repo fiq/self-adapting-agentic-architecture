@@ -33,7 +33,10 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.WorkflowGraph;
+import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationProposalRequest;
+import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
+import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.RetrievalBundle;
 import com.dreamthought.saaa.domain.RetrievalMode;
 import com.dreamthought.saaa.domain.RetrievalQuery;
@@ -191,7 +194,7 @@ public final class EvolveRunner {
         // Everything else is built per candidate, exactly as a single-candidate run built it, so the
         // one-candidate path is unchanged and no state can leak from one candidate into the next.
         IntFunction<MutationEvaluationLoop> loopForCandidate = position -> new MutationEvaluationLoop(
-                proposer,
+                new VariantProposer(proposer, position),
                 new CompositeMutationValidator(List.of(
                         new BoundedMutationValidator(),
                         new MutationScopeValidator(Set.of(MutationScope.WORKFLOW_DEFINITION)),
@@ -307,6 +310,40 @@ public final class EvolveRunner {
             return Files.readString(path);
         } catch (IOException exception) {
             throw new UncheckedIOException("failed to read " + path, exception);
+        }
+    }
+
+    /**
+     * Asks the proposer for one particular variant of a generation, so the loop can go on proposing
+     * once without knowing that a population exists.
+     *
+     * <p>This is the whole of the wiring that turns N evaluations into N different candidates. A
+     * proposer that ignores the variant still returns the same mutation every time, and
+     * {@code GenerationEvaluationLoop} fails the run for it rather than ranking one candidate against
+     * itself.
+     */
+    private static final class VariantProposer implements MutationProposer {
+        private final MutationProposer delegate;
+        private final int variant;
+
+        private VariantProposer(MutationProposer delegate, int variant) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+            this.variant = variant;
+        }
+
+        @Override
+        public Mutation proposeFor(WorkflowGraph baseline) {
+            return delegate.proposeFor(baseline);
+        }
+
+        @Override
+        public Mutation proposeFor(PreparedMutationProposalRequest request) {
+            return delegate.proposeFor(request, variant);
+        }
+
+        @Override
+        public Optional<ProposerEvidence> proposerEvidence() {
+            return delegate.proposerEvidence();
         }
     }
 

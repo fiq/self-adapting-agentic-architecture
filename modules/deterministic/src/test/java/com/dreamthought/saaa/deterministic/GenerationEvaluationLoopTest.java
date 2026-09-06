@@ -4,6 +4,7 @@ import static com.dreamthought.saaa.deterministic.FitnessResultFixtures.result;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.MutationProposalRequest;
@@ -93,6 +94,51 @@ final class GenerationEvaluationLoopTest {
         assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator).evaluate(request(), 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("at least one candidate");
+    }
+
+    /**
+     * S8, at the level that can enforce it. A proposer that returns the same mutation every time
+     * still produces distinct candidate ids, because the run's namespace keeps them apart, so
+     * nothing downstream notices: N worktrees, N rows, a ranking that is a tie broken by candidate
+     * id and a spread of zero that says nothing about the candidates.
+     *
+     * <p>The run fails rather than recording the repeat as an unevaluated candidate. This is not a
+     * candidate that failed, it is the proposer failing to vary, and a generation that returned the
+     * tie quietly would answer ADR-0002's "is ranking measurably useful" question with an artefact
+     * of its own wiring.
+     */
+    @Test
+    @DisplayName("a generation that evaluated one mutation more than once fails rather than ranking it against itself")
+    void aRepeatedMutationFailsTheGenerationRatherThanRankingOneCandidateTwice() {
+        var evaluator = evaluatorReturning(
+                () -> resultForMutation("candidate-a", "MUT-same", 0.90),
+                () -> resultForMutation("candidate-b", "MUT-same", 0.90));
+
+        assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator).evaluate(request(), 2))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("MUT-same")
+                .hasMessageContaining("one candidate evaluated more than once");
+    }
+
+    @Test
+    @DisplayName("candidates carrying different mutations are ranked as the population they are")
+    void distinctMutationsAreRankedNormally() {
+        var evaluator = evaluatorReturning(
+                () -> resultForMutation("candidate-a", "MUT-one", 0.90),
+                () -> resultForMutation("candidate-b", "MUT-two", 0.85));
+
+        var generation = new GenerationEvaluationLoop(evaluator).evaluate(request(), 2);
+
+        assertThat(generation.evaluatedCount()).isEqualTo(2);
+        assertThat(generation.spread()).isPresent();
+    }
+
+    private static FitnessResult resultForMutation(String candidateId, String mutationId, double magnitude) {
+        var scored = result(candidateId, magnitude, FitnessDecision.PROMOTE);
+        return new FitnessResult(
+                new Candidate(candidateId, mutationId, scored.candidate().branchName(),
+                        scored.candidate().worktreePath(), scored.candidate().commitSha()),
+                scored.evidence(), scored.objectives(), scored.fitnessScore(), scored.scoringContext());
     }
 
     @SafeVarargs
