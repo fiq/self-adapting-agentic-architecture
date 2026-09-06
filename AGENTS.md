@@ -338,6 +338,10 @@ Treat them as worked examples, and check `--help` before assuming a flag.
     codex exec --sandbox read-only --ephemeral --skip-git-repo-check \
         -o REVIEW.out "$(cat BRIEF.md)"
 
+    # the same for opencode: --agent plan is its read-only agent. Without it,
+    # `opencode run` uses the build agent, which has write tools.
+    opencode run --agent plan --model <provider>/<model> "$(cat BRIEF.md)"
+
     # bounded implementation in its own worktree
     codex exec --sandbox workspace-write --skip-git-repo-check "$(cat BRIEF.md)"
 
@@ -358,6 +362,14 @@ Practical constraints learned the hard way:
 - `--dangerously-bypass-approvals-and-sandbox` may be refused by the harness. Do
   not reach for it; `workspace-write` is enough.
 - An `opencode` session binds to the directory it was created in.
+- `opencode run` defaults to the **build** agent, which can write. Pass
+  `--agent plan` for a review. A reviewer that is merely *asked* not to write can
+  still try, get refused mid-flight, and stop without ever reaching a verdict —
+  which is how a review pass is lost. Read-only is an invariant to enforce, not
+  one to request in a brief.
+- `opencode run` does not print its session id, but `opencode session list`
+  recovers it afterwards. A pass that died is therefore resumable even when the
+  launch captured nothing.
 - **Verify the brief reached the agent.** An empty or missing prompt file makes
   the agent read the startup contract, answer "what would you like to work on",
   and exit zero. That looks like a hijacked agent and is actually a shell bug in
@@ -395,6 +407,17 @@ it yourself with `--rerun-tasks`, because a cached no-op prints BUILD SUCCESSFUL
 in under a second and looks identical to a real run. When an agent reports a
 blocker instead of working around it, that is the behaviour you want; say so and
 finish the job it could not.
+
+**No verdict is not a pass.** A reviewer that exits zero having concluded nothing
+has told you nothing, and reading that as "no findings" is the same error as
+merging on green CI. Require a fixed, greppable verdict line in every brief, offer
+"insufficient evidence" as a third answer so the reviewer need not pad rather than
+admit what it could not check, and count verdicts against passes launched before
+consolidating. When one is missing, recover it rather than proceeding a pass
+short: resume the session for the verdict alone, relaunch clean if whatever
+blocked the pass was load-bearing for its conclusion, then try another provider,
+and only then record the lost challenge. The ladder and the evidence behind it are
+in the `review-routing` skill.
 
 **Several at once.** Reviews are read-only, so they compose: run them in parallel
 and consolidate. Give each a different brief aimed at ground the previous passes
