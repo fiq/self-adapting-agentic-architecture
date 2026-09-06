@@ -5,6 +5,7 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.RankedGeneration;
 import com.dreamthought.saaa.domain.RetrievalBundle;
 import java.io.PrintWriter;
 import java.util.Objects;
@@ -43,6 +44,34 @@ public final class ConsoleReporter implements EvolutionReporter {
     public void scored(FitnessResult result) {
         out.printf("  score      %.2f%n", result.fitnessScore().rawMagnitude());
         out.printf("  %s%n", result.decision());
+        out.flush();
+    }
+
+    /**
+     * The generation's ranking, printed once every candidate has been evaluated and reported.
+     *
+     * <p>Four things, because each answers a question the transcript otherwise leaves open: the
+     * order, so the selection can be checked rather than trusted; how many of N produced evidence,
+     * so a generation that ranked two of three cannot hide a systematic failure behind a
+     * plausible-looking winner; the spread, which is what says whether ranking discriminated at all;
+     * and the winner, which is empty when nothing promoted because ranking selects among promotions
+     * and is not a second opinion on the gates.
+     */
+    @Override
+    public void generationRanked(RankedGeneration generation) {
+        Objects.requireNonNull(generation, "generation");
+        out.printf("  generation %d of %d candidates produced evidence%n",
+                generation.evaluatedCount(), generation.requestedCount());
+        int position = 1;
+        for (FitnessResult result : generation.ranked()) {
+            out.printf("  rank %-5d %-40s %.2f  %s%n", position++, result.candidate().id(),
+                    result.fitnessScore().rawMagnitude(), result.decision());
+        }
+        generation.unevaluated().forEach(candidate ->
+                out.printf("  no evidence %s  %s%n", candidate.reference(), candidate.reason()));
+        generation.spread().ifPresent(spread -> out.printf("  spread     %.2f%n", spread));
+        out.printf("  winner     %s%n",
+                generation.winner().map(result -> result.candidate().id()).orElse("none promoted"));
         out.flush();
     }
 }

@@ -44,6 +44,10 @@ grade its own candidate.
 CLI (picocli) / MCP stdio server
   |
   v
+GenerationEvaluationLoop  (deterministic, only when --candidates > 1)
+  |
+  |  runs the loop below once per candidate, in sequence, then ranks
+  v
 MutationEvaluationLoop  (deterministic)
   |
   +--> domain records and deterministic policies
@@ -60,6 +64,59 @@ MutationEvaluationLoop  (deterministic)
         |-- CandidateDecisionSink     -> adapters/journal
         |-- SourceStructureInspector  -> adapters/parser (no frontend written yet)
 ```
+
+## A generation
+
+With `--candidates N` above one, `GenerationEvaluationLoop` sits above the
+evaluation loop and composes it N times. It adds no evaluation of its own; what
+it adds is a comparison.
+
+- **It is sequential.** Evaluating candidates in parallel would buy wall-clock
+  time at the cost of the property the ranking rests on, and ordering that
+  depends on scheduling has produced two defects in this repository already.
+- **Each candidate gets its own namespace.** `CandidateNamespace` supplies a run
+  id and a position, which `GitCandidateWorkspace` folds into the candidate id,
+  the branch and the worktree path. That is what lets N candidates hold N
+  worktrees at once, and it is what closed `RISK-003`.
+- **Each candidate gets its own variant.** The adapter binds the candidate's
+  position to the proposer, so the loop goes on proposing once and does not learn
+  that a population exists.
+- **A candidate that fails does not abort the generation.** It is recorded with
+  its reason and the rest continue, and the record says how many of N produced
+  evidence, so a generation that ranked two of three cannot hide a systematic
+  failure behind a plausible-looking winner.
+- **A repeated mutation does abort it.** Two candidates carrying the same
+  mutation would still get distinct ids from the namespace, so nothing downstream
+  would notice one candidate evaluated twice. That is the proposer failing to
+  vary rather than a candidate failing, so it fails the run. The comparison is on
+  the mutation id, which is exact for the fixture proposer and blunt for a live
+  one whose ids the model chooses; see `Q-013`.
+- **It retrieves once, for the whole generation.** This one is not an
+  optimisation, and it is the defect independent review found. Retrieval is not a
+  pure read: each candidate projects its outcome into durable evolutionary memory
+  when its evaluation finishes, and under `VECTOR`, `GRAPH` or `HYBRID` the next
+  retrieval reads that memory back — `HybridEvidenceRetriever` gives documents
+  with historical outcomes a ranking bonus. Retrieving per candidate therefore let
+  candidate one change the evidence candidate two was proposed from, which breaks
+  the isolation the generation claims and makes the ranking partly a measurement
+  of evaluation order. `RunScopedRetriever` answers each distinct query once and
+  hands every candidate the same bundle.
+
+```text
+  before                                  after
+  c1 retrieve ─┐                          c1 ─┐
+     project ──┼─> memory                 c2 ─┼─> one retrieval, one bundle
+  c2 retrieve ─┘  (sees c1's outcome)     c3 ─┘  (projection still happens,
+                                                  nothing reads it back mid-run)
+```
+
+`PopulationRankingPolicy` orders what produced evidence, using the total order on
+`RankedGeneration`: promotions ahead of discards, then larger magnitudes, then
+candidate id. The id tie-break is what makes the order reproducible from the
+record rather than dependent on the order the candidates happened to run in.
+
+Ranking selects among the candidates the gates promoted. It is not a second
+opinion on them, so a generation where nothing promoted records no winner.
 
 Notes on the ports above:
 

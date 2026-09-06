@@ -4,7 +4,9 @@ import com.dreamthought.saaa.deterministic.EvolutionReporter;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.RankedGeneration;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -54,6 +56,58 @@ public final class JournalReporter implements EvolutionReporter {
     public void scored(FitnessResult result) {
         Objects.requireNonNull(result, "result");
         append(entry(result));
+    }
+
+    /**
+     * Appends the generation's own entry, after the per-candidate entries its evaluations already
+     * wrote.
+     *
+     * <p>Five things, and the spread is the one that is easy to read as an extra and is not.
+     * ADR-0002 names "population ships but ranking is not measurably useful" as a revisit trigger,
+     * and a generation whose candidates all landed on the same score is that trigger firing. Without
+     * the spread in the record, the only way to answer it later is impression.
+     */
+    @Override
+    public void generationRanked(RankedGeneration generation) {
+        Objects.requireNonNull(generation, "generation");
+        append(generationEntry(generation));
+    }
+
+    private String generationEntry(RankedGeneration generation) {
+        var ranking = new StringBuilder();
+        int position = 1;
+        for (FitnessResult ranked : generation.ranked()) {
+            ranking.append(position++).append(". ")
+                    .append(ranked.candidate().id()).append("  ")
+                    .append(ranked.fitnessScore().rawMagnitude()).append("  ")
+                    .append(ranked.decision()).append('\n');
+        }
+        var lost = new StringBuilder();
+        generation.unevaluated().forEach(candidate -> lost
+                .append("- no evidence: ").append(candidate.reference())
+                .append(" — ").append(candidate.reason()).append('\n'));
+
+        return """
+
+                ## %s  generation
+
+                | | |
+                |---|---|
+                | evidence | %d of %d candidates |
+                | fingerprint | %s |
+                | spread | %s |
+                | winner | %s |
+
+                %s%s""".formatted(
+                        Instant.now(clock),
+                        generation.evaluatedCount(),
+                        generation.requestedCount(),
+                        generation.scoringFingerprint().orElse("none"),
+                        generation.spread().map(Object::toString).orElse("none"),
+                        generation.winner().map(result -> result.candidate().id())
+                                .orElse("none promoted"),
+                        ranking.isEmpty() ? "No candidate produced evidence.\n" : ranking.toString(),
+                        lost.toString());
     }
 
     private String entry(FitnessResult result) {

@@ -45,7 +45,8 @@ behaviour cases rather than another entry in `nonGatingCheckNames`.
 
 ## Non-goals
 
-- population evaluation or ranking, which is `CHG-025`;
+- population evaluation or ranking, which is `CHG-026` (this said `CHG-025` when
+  it was written; that id went to the source-structure port instead);
 - changing the promotion threshold, the weights, or which cases gate;
 - migrating local experiment data — it is derived and is rebuilt.
 

@@ -5,6 +5,7 @@ import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.RankedGeneration;
 import com.dreamthought.saaa.domain.RetrievalBundle;
 import java.util.List;
 import java.util.Objects;
@@ -40,5 +41,10 @@ public final class CompositeReporter implements EvolutionReporter {
     @Override
     public void scored(FitnessResult result) {
         reporters.forEach(reporter -> reporter.scored(result));
+    }
+
+    @Override
+    public void generationRanked(RankedGeneration generation) {
+        reporters.forEach(reporter -> reporter.generationRanked(generation));
     }
 }

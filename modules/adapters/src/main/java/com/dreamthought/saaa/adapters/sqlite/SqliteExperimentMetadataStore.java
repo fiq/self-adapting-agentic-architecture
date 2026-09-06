@@ -5,6 +5,7 @@ import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.GenerationRecord;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -66,6 +67,112 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to record fitness metadata", exception);
+        }
+    }
+
+    @Override
+    public void recordGeneration(GenerationRecord record) {
+        Objects.requireNonNull(record, "record");
+        var generation = record.generation();
+        try (Connection connection = connect()) {
+            connection.setAutoCommit(false);
+            try {
+                // Written in one transaction with the ranking rows. A generation header without its
+                // order would claim a winner nothing supports, which is worse than no record.
+                deleteGenerationChildren(connection, record.runId());
+                writeGeneration(connection, record);
+                int position = 1;
+                for (var ranked : generation.ranked()) {
+                    writeGenerationRanking(connection, record.runId(), position++, ranked.candidate().id());
+                }
+                position = 1;
+                for (var lost : generation.unevaluated()) {
+                    writeGenerationUnevaluated(connection, record.runId(), position++, lost);
+                }
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to record generation metadata", exception);
+        }
+    }
+
+    private static void deleteGenerationChildren(Connection connection, String runId) throws SQLException {
+        for (String table : java.util.List.of("generation_rankings", "generation_unevaluated")) {
+            try (PreparedStatement statement =
+                         connection.prepareStatement("delete from " + table + " where run_id = ?")) {
+                statement.setString(1, runId);
+                statement.executeUpdate();
+            }
+        }
+    }
+
+    private static void writeGeneration(Connection connection, GenerationRecord record) throws SQLException {
+        var generation = record.generation();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                insert into generations(
+                  run_id, requested_count, evaluated_count, scoring_fingerprint,
+                  winner_candidate_id, spread, recorded_at)
+                values (?, ?, ?, ?, ?, ?, ?)
+                on conflict(run_id) do update set
+                  requested_count = excluded.requested_count,
+                  evaluated_count = excluded.evaluated_count,
+                  scoring_fingerprint = excluded.scoring_fingerprint,
+                  winner_candidate_id = excluded.winner_candidate_id,
+                  spread = excluded.spread,
+                  recorded_at = excluded.recorded_at
+                """)) {
+            statement.setString(1, record.runId());
+            statement.setInt(2, generation.requestedCount());
+            statement.setInt(3, generation.evaluatedCount());
+            setNullableString(statement, 4, generation.scoringFingerprint().orElse(null));
+            setNullableString(statement, 5,
+                    generation.winner().map(result -> result.candidate().id()).orElse(null));
+            var spread = generation.spread().orElse(null);
+            if (spread == null) {
+                statement.setNull(6, java.sql.Types.REAL);
+            } else {
+                statement.setDouble(6, spread.doubleValue());
+            }
+            statement.setString(7, record.recordedAt().toString());
+            statement.executeUpdate();
+        }
+    }
+
+    private static void writeGenerationRanking(
+            Connection connection, String runId, int position, String candidateId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "insert into generation_rankings(run_id, position, candidate_id) values (?, ?, ?)")) {
+            statement.setString(1, runId);
+            statement.setInt(2, position);
+            statement.setString(3, candidateId);
+            statement.executeUpdate();
+        }
+    }
+
+    private static void writeGenerationUnevaluated(
+            Connection connection, String runId, int position,
+            com.dreamthought.saaa.domain.UnevaluatedCandidate candidate) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                insert into generation_unevaluated(run_id, position, candidate_reference, reason)
+                values (?, ?, ?, ?)
+                """)) {
+            statement.setString(1, runId);
+            statement.setInt(2, position);
+            statement.setString(3, candidate.reference());
+            statement.setString(4, candidate.reason());
+            statement.executeUpdate();
+        }
+    }
+
+    private static void setNullableString(PreparedStatement statement, int index, String value)
+            throws SQLException {
+        if (value == null) {
+            statement.setNull(index, java.sql.Types.VARCHAR);
+        } else {
+            statement.setString(index, value);
         }
     }
 
@@ -150,6 +257,48 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                             "insert into schema_migrations(version) values (?)"
                     )) {
                         statement.setInt(1, 2);
+                        statement.executeUpdate();
+                    }
+                }
+                if (!migrationApplied(connection, 3)) {
+                    // CHG-026: a generation is a comparison, so it is recorded as one thing rather
+                    // than inferred by grouping candidate rows after the fact. The fingerprint and
+                    // the spread are nullable because a generation where nothing produced evidence
+                    // has neither, and inventing a zero there would read as "every candidate scored
+                    // the same" — which is a finding, not an absence.
+                    execute(connection, """
+                            create table if not exists generations (
+                              run_id text primary key not null check (length(trim(run_id)) > 0),
+                              requested_count integer not null,
+                              evaluated_count integer not null,
+                              scoring_fingerprint text
+                                check (scoring_fingerprint is null or length(trim(scoring_fingerprint)) > 0),
+                              winner_candidate_id text,
+                              spread real,
+                              recorded_at text not null
+                            )
+                            """);
+                    execute(connection, """
+                            create table if not exists generation_rankings (
+                              run_id text not null references generations(run_id) on delete cascade,
+                              position integer not null,
+                              candidate_id text not null references candidates(id) on delete cascade,
+                              primary key (run_id, position)
+                            )
+                            """);
+                    execute(connection, """
+                            create table if not exists generation_unevaluated (
+                              run_id text not null references generations(run_id) on delete cascade,
+                              position integer not null,
+                              candidate_reference text not null,
+                              reason text not null,
+                              primary key (run_id, position)
+                            )
+                            """);
+                    try (PreparedStatement statement = connection.prepareStatement(
+                            "insert into schema_migrations(version) values (?)"
+                    )) {
+                        statement.setInt(1, 3);
                         statement.executeUpdate();
                     }
                 }

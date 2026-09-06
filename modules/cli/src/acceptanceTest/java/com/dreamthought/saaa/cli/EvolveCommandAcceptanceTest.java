@@ -330,11 +330,15 @@ final class EvolveCommandAcceptanceTest {
                     "saaa-evolve", target.toString(),
                     "--profile", "openai-compatible",
                     "--behaviour-case", "workflow-check",
+                    "--run-id", "fixed-run",
                     "--max-lines", "8");
 
             assertThat(exitCode).isZero();
+            // Named explicitly so the path is predictable. Without --run-id the namespace comes from
+            // the clock, which is what stops a second run colliding with the first (RISK-003).
             Path candidateFile = repo.resolve(
-                    ".worktrees/candidate-toy-mut-live-001/.saaa/candidates/candidate-mut-live-001.toon");
+                    ".worktrees/candidate-toy-fixed-run-c1-mut-live-001"
+                            + "/.saaa/candidates/candidate-fixed-run-c1-mut-live-001.toon");
             assertThat(candidateFile).isRegularFile();
             assertThat(Files.readString(candidateFile))
                     .contains(
@@ -389,6 +393,37 @@ final class EvolveCommandAcceptanceTest {
     }
 
     @Test
+    void aSecondRunOnTheSameFolderEvaluatesRatherThanFailingOnTheFirstRunsWorktree(@TempDir Path tempDir)
+            throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        // RISK-003. The fixture proposer is deterministic and emits the same mutation id every
+        // time, so before candidate names carried a run this second invocation died with
+        // "candidate worktree already exists" and evaluated nothing.
+        int first = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(), "--behaviour-case", "workflow-check");
+        int second = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(), "--behaviour-case", "workflow-check");
+
+        assertThat(first).isZero();
+        assertThat(second)
+                .as("a second run of the same mutation is a new evaluation, not a collision")
+                .isZero();
+        assertThat(gitOutput(repo, "for-each-ref", "--format=%(refname)", "refs/heads/candidate")
+                .lines().filter(line -> !line.isBlank()).count())
+                .as("each run left its own candidate branch, so neither overwrote the other")
+                .isEqualTo(2);
+    }
+
+    @Test
     void promotedCandidateLandsAsABranchPointerAndNotAMerge(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
         Path target = repo.resolve("toy");
@@ -403,11 +438,14 @@ final class EvolveCommandAcceptanceTest {
 
         int exitCode = new CommandLine(new MutationLoopCli()).execute(
                 "saaa-evolve", target.toString(),
+                "--run-id", "fixed-run",
                 "--behaviour-case", "workflow-check");
 
         assertThat(exitCode).isZero();
-        assertThat(gitOutput(repo, "show-ref", "--verify", "refs/heads/candidate/toy-mut-toy-fixture"))
-                .contains("refs/heads/candidate/toy-mut-toy-fixture");
+        // The run id is part of the branch name because it is part of the candidate name: that is
+        // what lets two runs of the same mutation coexist rather than the second failing (RISK-003).
+        assertThat(gitOutput(repo, "show-ref", "--verify", "refs/heads/candidate/toy-fixed-run-c1-mut-toy-fixture"))
+                .contains("refs/heads/candidate/toy-fixed-run-c1-mut-toy-fixture");
         assertThat(gitOutput(repo, "rev-parse", "main").strip()).isEqualTo(mainBefore);
     }
 
@@ -451,6 +489,73 @@ final class EvolveCommandAcceptanceTest {
 
         assertThat(exitCode).isZero();
         assertThat(gitOutput(repo, "status", "--short")).doesNotContain("journal.md");
+    }
+
+    /**
+     * T4b, and the first time the generation loop is reachable from the command line at all. Until
+     * this option existed {@code GenerationEvaluationLoop} was correct and unreachable: nothing
+     * built a per-candidate evaluator, so a population could not be asked for.
+     *
+     * <p>The assertion is on the branch names rather than on a count, because a count cannot tell a
+     * generation of three apart from one candidate evaluated three times. Each candidate has to hold
+     * its own worktree at once, which is what {@code --run-id fixed-run} makes checkable: the names
+     * are {@code -c1}, {@code -c2} and {@code -c3} of one run, not three runs of one candidate.
+     *
+     * <p>The three candidates carry three different mutations, because the fixture proposer varies
+     * for a generation. Whether that variety produces a spread the scorer can see is asserted where
+     * the scores are, in
+     * {@code EvolveRunnerTest.aGenerationFromTheFixtureProposerRanksCandidatesThatActuallyDiffer};
+     * this test is about isolation.
+     */
+    @Test
+    void aGenerationOfThreeEvaluatesEveryCandidateInItsOwnWorktree(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(),
+                "--behaviour-case", "workflow-check",
+                "--run-id", "fixed-run",
+                "--candidates", "3");
+
+        assertThat(exitCode).isZero();
+        assertThat(gitOutput(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads/candidate")
+                .lines().filter(line -> !line.isBlank()).toList())
+                .as("three candidates of one generation, each with its own branch and worktree")
+                .hasSize(3)
+                .anySatisfy(branch -> assertThat(branch).contains("fixed-run-c1"))
+                .anySatisfy(branch -> assertThat(branch).contains("fixed-run-c2"))
+                .anySatisfy(branch -> assertThat(branch).contains("fixed-run-c3"));
+        assertThat(repo.resolve(".worktrees").toFile().list())
+                .as("each candidate kept its own worktree rather than colliding on one")
+                .hasSize(3);
+    }
+
+    /** A generation of nothing is a configuration error, not a run that evaluates nothing. */
+    @Test
+    void refusesAGenerationOfFewerThanOneCandidate(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                exit 0
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(),
+                "--behaviour-case", "workflow-check",
+                "--candidates", "0");
+
+        assertThat(exitCode).isNotZero();
     }
 
     private static void writeFixture(Path target) throws Exception {

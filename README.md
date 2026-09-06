@@ -89,7 +89,7 @@ implemented** means no code.
 
 | Capability | Status | Detail |
 |---|---|---|
-| Propose, isolate, commit, check, score, decide, journal | Working | one candidate per `saaa-evolve` run |
+| Propose, isolate, commit, check, score, decide, journal | Working | one candidate per `saaa-evolve` run, or several with `--candidates` |
 | Canned proposer | Working | `--profile fixture` reads `<target>/.saaa/fixture-mutation.txt` |
 | Live model proposer | Partial | `--profile openai-compatible` via LangChain4j, covered by a WireMock-backed acceptance test, not exercised by the shipped fixture |
 | ACP agent proposer | Partial | `--profile acp` invokes a configured local ACP-over-stdio agent; wiring and fake-harness coverage are complete, while installed-agent interoperability remains opt-in |
@@ -98,7 +98,7 @@ implemented** means no code.
 | Benchmark-backed objectives | Partial | `--benchmark`/`--benchmark-budget` wire a real `JmhBenchmarkRunner` from `:cli` into `EvolveRunner`; with neither flag given the run still measures nothing, and only one static JMH benchmark class ships, and it runs with no warmup, one iteration and no forks, so a single measurement is dominated by noise rather than by the candidate |
 | Behavioural-safety evidence | Partial | `--safety-probe` names checks whose pass fraction becomes the objective; a probe that did not run counts as failed. Probes grade rather than gate, so a failing probe lowers the score and does not discard. With no probes declared the objective stays at `1.0` |
 | Retrieval treatments | Partial | `NONE` needs nothing; `VECTOR`, `GRAPH` and `HYBRID` need Neo4j and an embedding endpoint |
-| Population, ranking, selection | Not implemented | |
+| Population, ranking, selection | Partial | `--candidates N` evaluates N candidates against one baseline, one at a time, each in its own worktree, and ranks them on identical evidence. Ranking selects among the candidates the gates promoted and never overrides them, so a generation where nothing promoted records no winner. The journal and the experiment ledger carry the order, the winner, the shared scoring fingerprint, how many of N produced evidence and the spread of scores. Partial because the variety comes from the fixture proposer, which varies by appending to its own canned mutation; a live model proposer filling a generation is a separate change, and generations do not yet iterate |
 | Recombination | Not implemented | `ConceptualCrossoverPolicy` exists with unit tests and is wired into no command |
 | Evolving product code | Partial | `--workflow-file` accepts any regular file and an acceptance test targets a Java file; realisation is whole-file replacement, not an AST edit |
 
@@ -119,6 +119,8 @@ the deliberate exception: it is the interactive session client invoked as
 | `--max-lines` | `80` | change budget; both a pre-realisation validator and the parsimony denominator |
 | `--retrieval` | `NONE` | `NONE`, `VECTOR`, `GRAPH` or `HYBRID` |
 | `--task` | a bounded default goal | intent passed to retrieval and to the model prompt |
+| `--candidates` | `1` | how many candidates to evaluate in this generation and rank; sequential, so N costs N times the wall clock and leaves N worktrees |
+| `--run-id` | a timestamp | names the run, which is what keeps one run's candidate worktrees, branches and ids apart from another's |
 
 Each `--behaviour-case <name>` runs `<name>.sh` in the target folder with a
 one-minute timeout, and every declared case must pass, so the gate cannot be
@@ -128,6 +130,34 @@ evidence about the mutation. Checks run in a worktree created from `HEAD`, so a
 new or edited check script must be committed before it can gate a run.
 The mutation target must also be different from every declared check script, so
 a candidate cannot rewrite the file that grades it.
+
+With `--candidates` above one the run becomes a generation: N candidates
+proposed from the same baseline, evaluated one at a time against identical
+evidence, then ranked. Three things are worth knowing before using it.
+
+- **Ranking is selection, not a second opinion on the gates.** Each candidate's
+  PROMOTE or DISCARD was already decided by its own checks. The ranking only says
+  which of the promoted ones is best, so a generation where nothing promoted
+  records no winner rather than promoting the least bad candidate.
+- **The spread is the point, not a detail.** It is the distance between the best
+  and worst magnitudes in the generation. If it is zero, ranking discriminated
+  between nothing and the population bought you nothing, which is a finding worth
+  having rather than one worth hiding.
+- **A generation refuses to rank one candidate against itself.** If two
+  candidates carry the same mutation the run fails, because the run's namespace
+  would otherwise give them distinct ids, distinct worktrees and a ranking that
+  looks like a population and is not one.
+
+```
+  saaa-evolve --candidates 3
+        |
+        +-- candidate 1 --> own worktree --> checks --> score  \
+        +-- candidate 2 --> own worktree --> checks --> score   >-- rank --> winner
+        +-- candidate 3 --> own worktree --> checks --> score  /
+                                                                    |
+                                       journal + experiment ledger <-+
+                            order, winner, fingerprint, 3 of 3, spread
+```
 
 The target folder must sit inside a Git repository, because isolation uses
 `git worktree`. A discarded candidate is a successful run and exits 0; a

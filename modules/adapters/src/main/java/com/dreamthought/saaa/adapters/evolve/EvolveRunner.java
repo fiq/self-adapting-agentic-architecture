@@ -13,12 +13,15 @@ import com.dreamthought.saaa.adapters.retrieval.LocalRetrievalFactory;
 import com.dreamthought.saaa.adapters.retrieval.LocalEvolutionaryMemoryFactory;
 import com.dreamthought.saaa.adapters.sqlite.SqliteExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.BenchmarkRunner;
+import com.dreamthought.saaa.deterministic.CandidateEvaluator;
+import com.dreamthought.saaa.deterministic.CandidateNamespace;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryProjector;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore;
 import com.dreamthought.saaa.deterministic.BoundedMutationValidator;
 import com.dreamthought.saaa.deterministic.CompositeMutationValidator;
 import com.dreamthought.saaa.deterministic.EvolutionReporter;
 import com.dreamthought.saaa.deterministic.EvidenceRetriever;
+import com.dreamthought.saaa.deterministic.GenerationEvaluationLoop;
 import com.dreamthought.saaa.deterministic.ExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.deterministic.MutationEvaluationLoop;
@@ -28,9 +31,13 @@ import com.dreamthought.saaa.deterministic.PhenotypeBridgeScorer;
 import com.dreamthought.saaa.deterministic.ScoringConfig;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.FitnessResult;
+import com.dreamthought.saaa.domain.GenerationRecord;
 import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.WorkflowGraph;
+import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationProposalRequest;
+import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
+import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.RetrievalBundle;
 import com.dreamthought.saaa.domain.RetrievalMode;
 import com.dreamthought.saaa.domain.RetrievalQuery;
@@ -40,6 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -48,6 +56,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.IntFunction;
 
 public final class EvolveRunner {
     private final ProposerProfileRegistry profileRegistry;
@@ -110,6 +119,34 @@ public final class EvolveRunner {
     }
 
     public EvolveRunResult run(EvolveRunRequest request, EvolutionReporter reporter) {
+        var prepared = prepare(request, reporter);
+        var result = prepared.evaluator.evaluate(prepared.proposal);
+        return new EvolveRunResult(result, prepared.journalPath, prepared.retrievalCapture.required(),
+                prepared.proposer.proposerEvidence(), prepared.wallMillis(),
+                prepared.timedRetriever.elapsedMillis());
+    }
+
+    /**
+     * Evaluates a generation of {@code candidates} candidates against one baseline, ranks them and
+     * records the result.
+     *
+     * <p>The record is written here rather than left to the caller. A generation that reported a
+     * winner to a terminal and left nothing behind would make the selection unreproducible, which is
+     * the thing ranking exists to avoid: the point of a total order is that a later reader can check
+     * it rather than trust it.
+     */
+    public EvolveGenerationResult runGeneration(
+            EvolveRunRequest request, EvolutionReporter reporter, int candidates) {
+        var prepared = prepare(request, reporter);
+        var generation = new GenerationEvaluationLoop(prepared.evaluator)
+                .evaluate(prepared.proposal, candidates);
+        prepared.metadataStore.recordGeneration(
+                new GenerationRecord(prepared.runId, generation, Instant.now(clock)));
+        prepared.reporters.generationRanked(generation);
+        return new EvolveGenerationResult(generation, prepared.journalPath, prepared.wallMillis());
+    }
+
+    private PreparedRun prepare(EvolveRunRequest request, EvolutionReporter reporter) {
         Objects.requireNonNull(request, "request");
         Objects.requireNonNull(reporter, "reporter");
         long runStarted = System.nanoTime();
@@ -152,12 +189,40 @@ public final class EvolveRunner {
         String repositoryRevision = GitRepositoryRevision.workingTree(gitRoot);
         var evolutionContext = LocalEvolutionContext.resolve(gitRoot, repositoryRevision);
         var baseline = new WorkflowGraph(folder.getFileName().toString(), repositoryRevision, readString(workflowPath));
+        // Every run gets a namespace, whether or not the caller named one. Without it, candidate
+        // names come from the workflow and mutation id alone, so a second run of a deterministic
+        // proposer lands on the first run's worktree and fails outright. That is RISK-003, and it
+        // is the reason `saaa evolve` could not be run twice on one folder.
+        var namespace = request.runId()
+                .map(CandidateNamespace::forRunId)
+                .orElseGet(() -> CandidateNamespace.forRun(Instant.now(clock)));
         MutationProposer proposer = profileRegistry.resolve(request.profile(), folder);
+        // Hoisted out of the per-candidate loop deliberately, because both accumulate across the
+        // whole run: the retriever totals the time every candidate spent retrieving, and the capture
+        // holds the bundle the run is reported with. Rebuilding either per candidate would report
+        // the last candidate's figures as the run's.
         var timedRetriever = new TimedRetriever(retrievalResolver.apply(request.retrievalMode(), gitRoot));
+        // Retrieve once for the whole run, then hand every candidate the same bundle. Without this a
+        // generation cannot keep the promise it is built on. Each candidate projects its outcome into
+        // durable evolutionary memory at the end of its evaluation, and under GRAPH, VECTOR or HYBRID
+        // the next candidate's retrieval reads that memory back and ranks documents carrying
+        // historical outcomes higher. Candidate two would then be proposed from evidence candidate one
+        // changed, so the two would not be comparable and the ranking would be measuring the
+        // evaluation order. Found in independent review; no test caught it because every generation
+        // test runs with retrieval NONE, where the retriever is inert.
+        var runRetriever = new RunScopedRetriever(timedRetriever);
         var retrievalCapture = new RetrievalCapture();
         Path journalPath = folder.resolve("journal.md");
-        var loop = new MutationEvaluationLoop(
-                proposer,
+        // The ledger and the reporters are run-scoped for the same reason the retriever is. The
+        // generation's own record is written once, after every candidate has been evaluated, so both
+        // have to outlive the per-candidate loop.
+        var metadataStore = new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite"));
+        var reporters = new CompositeReporter(
+                List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture));
+        // Everything else is built per candidate, exactly as a single-candidate run built it, so the
+        // one-candidate path is unchanged and no state can leak from one candidate into the next.
+        IntFunction<MutationEvaluationLoop> loopForCandidate = position -> new MutationEvaluationLoop(
+                new VariantProposer(proposer, position),
                 new CompositeMutationValidator(List.of(
                         new BoundedMutationValidator(),
                         new MutationScopeValidator(Set.of(MutationScope.WORKFLOW_DEFINITION)),
@@ -167,7 +232,7 @@ public final class EvolveRunner {
                         gitRoot.resolve(".worktrees"),
                         new TextMutationRealizer(relativeWorkflow),
                         proposer::proposerEvidence,
-                        request.runId()),
+                        Optional.of(namespace.forCandidate(position))),
                 new CommandCheckRunner(checks),
                 benchmarkRunner,
                 new PhenotypeBridgeScorer(
@@ -176,11 +241,11 @@ public final class EvolveRunner {
                                 Set.copyOf(request.behaviourCases()), request.maxLines(),
                                 request.benchmarkBudgets(), Set.copyOf(request.safetyProbes()),
                                 request.reliabilityRuns(), Set.copyOf(request.heldOutCases()))),
-                new SqliteExperimentMetadataStore(gitRoot.resolve(".saaa/experiments.sqlite")),
+                metadataStore,
                 new JournalDecisionSink(),
-                new CompositeReporter(List.of(reporter, new JournalReporter(journalPath, clock), retrievalCapture)),
+                reporters,
                 clock,
-                timedRetriever,
+                runRetriever,
                 new EvolutionaryMemoryProjector(
                         memoryResolver.apply(request.retrievalMode(), gitRoot),
                         LocalEvolutionaryMemoryFactory.policy().id(),
@@ -194,10 +259,11 @@ public final class EvolveRunner {
                 repositoryRevision,
                 List.of(relativeWorkflow, baseline.id()),
                 Optional.empty());
-        var result = loop.evaluate(new MutationProposalRequest(baseline, query));
-        long wallMillis = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - runStarted);
-        return new EvolveRunResult(result, journalPath, retrievalCapture.required(), proposer.proposerEvidence(),
-                wallMillis, timedRetriever.elapsedMillis());
+        return new PreparedRun(
+                new MutationProposalRequest(baseline, query),
+                new PerCandidateEvaluator(loopForCandidate),
+                journalPath, proposer, retrievalCapture, timedRetriever, runStarted,
+                namespace.runId(), metadataStore, reporters);
     }
 
     /**
@@ -273,6 +339,141 @@ public final class EvolveRunner {
             return Files.readString(path);
         } catch (IOException exception) {
             throw new UncheckedIOException("failed to read " + path, exception);
+        }
+    }
+
+    /**
+     * Retrieves once per run and gives every candidate the same evidence.
+     *
+     * <p>This is what makes "ranked on identical evidence" true rather than intended. Retrieval is
+     * not a pure read: each candidate's outcome is projected into durable evolutionary memory when
+     * its evaluation finishes, and for every retrieval mode except {@code NONE} the next retrieval
+     * reads that memory back — {@code HybridEvidenceRetriever} gives documents with historical
+     * outcomes a ranking bonus. Retrieving per candidate therefore lets candidate one change what
+     * candidate two is proposed from, which breaks the isolation S1 promises and makes the ranking
+     * partly a measurement of evaluation order.
+     *
+     * <p>Keyed on the query rather than unconditional, so a caller that legitimately asks a different
+     * question still gets a fresh answer. A generation asks the same question N times, which is
+     * exactly the case being collapsed.
+     *
+     * <p>The single-candidate path is unaffected: one call, one retrieval, one bundle.
+     */
+    private static final class RunScopedRetriever implements EvidenceRetriever {
+        private final EvidenceRetriever delegate;
+        private final Map<RetrievalQuery, RetrievalBundle> answered = new java.util.HashMap<>();
+
+        private RunScopedRetriever(EvidenceRetriever delegate) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+        }
+
+        @Override
+        public RetrievalBundle retrieve(RetrievalQuery query) {
+            return answered.computeIfAbsent(query, delegate::retrieve);
+        }
+    }
+
+    /**
+     * Asks the proposer for one particular variant of a generation, so the loop can go on proposing
+     * once without knowing that a population exists.
+     *
+     * <p>This is the whole of the wiring that turns N evaluations into N different candidates. A
+     * proposer that ignores the variant still returns the same mutation every time, and
+     * {@code GenerationEvaluationLoop} fails the run for it rather than ranking one candidate against
+     * itself.
+     */
+    private static final class VariantProposer implements MutationProposer {
+        private final MutationProposer delegate;
+        private final int variant;
+
+        private VariantProposer(MutationProposer delegate, int variant) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+            this.variant = variant;
+        }
+
+        @Override
+        public Mutation proposeFor(WorkflowGraph baseline) {
+            return delegate.proposeFor(baseline);
+        }
+
+        @Override
+        public Mutation proposeFor(PreparedMutationProposalRequest request) {
+            return delegate.proposeFor(request, variant);
+        }
+
+        @Override
+        public Optional<ProposerEvidence> proposerEvidence() {
+            return delegate.proposerEvidence();
+        }
+    }
+
+    /**
+     * Everything one run needs that does not depend on which candidate is being evaluated.
+     *
+     * <p>Exists so a single-candidate run and a generation share one preparation rather than two
+     * that can drift apart. The retriever and the capture are held here rather than rebuilt per
+     * candidate because both accumulate over the whole run.
+     */
+    private static final class PreparedRun {
+        private final MutationProposalRequest proposal;
+        private final PerCandidateEvaluator evaluator;
+        private final Path journalPath;
+        private final MutationProposer proposer;
+        private final RetrievalCapture retrievalCapture;
+        private final TimedRetriever timedRetriever;
+        private final long startedNanos;
+        private final String runId;
+        private final ExperimentMetadataStore metadataStore;
+        private final CompositeReporter reporters;
+
+        private PreparedRun(
+                MutationProposalRequest proposal,
+                PerCandidateEvaluator evaluator,
+                Path journalPath,
+                MutationProposer proposer,
+                RetrievalCapture retrievalCapture,
+                TimedRetriever timedRetriever,
+                long startedNanos,
+                String runId,
+                ExperimentMetadataStore metadataStore,
+                CompositeReporter reporters) {
+            this.proposal = proposal;
+            this.evaluator = evaluator;
+            this.journalPath = journalPath;
+            this.proposer = proposer;
+            this.retrievalCapture = retrievalCapture;
+            this.timedRetriever = timedRetriever;
+            this.startedNanos = startedNanos;
+            this.runId = runId;
+            this.metadataStore = metadataStore;
+            this.reporters = reporters;
+        }
+
+        private long wallMillis() {
+            return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos);
+        }
+    }
+
+    /**
+     * Builds one evaluation loop per candidate, each in its own namespace, which is what lets N
+     * candidates of a generation hold N worktrees at once instead of colliding on one.
+     *
+     * <p>The position advances before the evaluation runs, not after it. A candidate that throws has
+     * often already created its worktree, so handing the same position to the next candidate would
+     * send it at a directory that already exists and the generation would lose a second candidate to
+     * the first one's failure.
+     */
+    private static final class PerCandidateEvaluator implements CandidateEvaluator {
+        private final IntFunction<MutationEvaluationLoop> loopForCandidate;
+        private int position;
+
+        private PerCandidateEvaluator(IntFunction<MutationEvaluationLoop> loopForCandidate) {
+            this.loopForCandidate = Objects.requireNonNull(loopForCandidate, "loopForCandidate");
+        }
+
+        @Override
+        public FitnessResult evaluate(MutationProposalRequest request) {
+            return loopForCandidate.apply(++position).evaluate(request);
         }
     }
 

@@ -213,6 +213,11 @@ final class MutationEvaluationLoopAcceptanceTest {
             recordedFitness = result;
         }
 
+        @Override
+        public void recordGeneration(com.dreamthought.saaa.domain.GenerationRecord record) {
+            throw new AssertionError("a single-candidate run has no generation to record");
+        }
+
         Optional<FitnessResult> recordedFitness() {
             return Optional.ofNullable(recordedFitness);
         }

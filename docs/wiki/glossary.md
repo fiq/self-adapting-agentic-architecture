@@ -71,6 +71,13 @@ Candidate Fitness Function; the `saaa-ablate retrieval` TSV is a corpus of task
 rows. The genetic-programming literature would call these benchmarks; see
 Benchmark for why SAAA does not.
 
+## Generation
+
+A set of candidates proposed from one baseline, evaluated one at a time against
+identical evidence, and ranked. Asked for with `--candidates N`. A generation
+adds no evaluation of its own; what it adds is a comparison, which is why every
+candidate in one must share a scoring fingerprint.
+
 ## Invariant
 
 A property a candidate must satisfy. Binary for the promote-or-discard decision
@@ -114,6 +121,28 @@ keep documentation traversable. The current ontology is the taxonomy in
 `.agents/knowledge/TAXONOMY.md`; `Q-008` tracks whether it needs to become more
 formal as Markdown volume grows.
 
+## Population
+
+The candidates in a generation, considered together. `ADR-0002` names a
+population with ranking as the point at which SAAA starts to differ from an
+agent with tests, because selection becomes a fact fixed code establishes rather
+than an opinion.
+
+## Ranking
+
+The order of a generation's candidates, best first: promotions ahead of
+discards, then larger magnitudes, then candidate id. The id tie-break is what
+makes the order total, so it is reproducible from the record rather than
+dependent on the order the candidates happened to run in. Ranking selects among
+the candidates the gates promoted; it is never a second opinion on them.
+
+## Run Id
+
+What separates one run's candidate worktrees, branches and ids from another's.
+Defaults to a timestamp and can be named with `--run-id`. Together with the
+candidate's position in its generation it forms the candidate namespace, which
+is what lets several candidates hold worktrees at the same time.
+
 ## Severity Class
 
 The partition that orders invariant violations and decides who may set a
@@ -146,6 +175,14 @@ repair, but SAAA still validates and scores.
 
 An adapter SAAA uses to call an underlying model, datastore or tool.
 `CHG-004`'s OpenAI-compatible LangChain4j wiring is southbound.
+
+## Spread
+
+The distance between the best and worst raw magnitudes in a generation,
+discards included. It is what answers whether ranking discriminated at all:
+`ADR-0002` names "population ships but ranking is not measurably useful" as a
+revisit trigger, and a spread of zero is that trigger firing rather than a
+detail.
 
 ## Wiki Page
 
