@@ -45,7 +45,7 @@ The canonical command surface is `.agentic-template/bin/project`.
 | `project run` | Run the picocli CLI skeleton |
 | `project image` | Not applicable for the local CLI slice |
 | `project image-test` | Not applicable for the local CLI slice |
-| `project compose-config` | Validate empty Compose topology |
+| `project compose-config` | Validate the local Compose topology, which runs Neo4j for GraphRAG retrieval |
 | `project compose-test` | Not applicable while Compose has no services |
 | `project infra-check` | Not applicable while no deployment target exists |
 | `project check-changes` | Validate structured specs |
@@ -490,8 +490,9 @@ applies these lenses, and each one is either applied or declared not applicable.
 Silently skipping a lens is what lets a whole dimension of a change go unexamined
 while the write-up still reads as thorough.
 
-- **Correctness.** Does it do what it claims, and has each new assertion about a
-  gate, a decision, an audit record or a promotion been seen to fail?
+- **Correctness.** Does it do what it claims, and has each new or changed
+  assertion about a gate, a decision, an audit record or a promotion been seen to
+  fail, in each suite the claim is made about?
 - **Architecture.** Boundaries, dependency direction, coupling, reversibility.
   This one is not advisory: `check-architecture-boundaries` runs it as a fitness
   function, so a layering violation is a failed check rather than an opinion.
@@ -509,9 +510,13 @@ while the write-up still reads as thorough.
   or `infra-*` skill rather than reviewing from memory.
 
 The relevance condition is real, not an escape hatch. This repository currently
-has no deployment target and an empty Compose topology, so the infrastructure
-lens reaches CI and the Nix and Gradle build and nothing else; say that rather
-than reporting an infrastructure review that had nothing to look at. Equally, a
+has no deployment target, so the infrastructure lens does not reach deployment
+automation. It does reach CI, the Nix and Gradle build, and the local Compose
+topology, which is not empty: `compose.yaml` runs a digest-pinned Neo4j service
+with a healthcheck and a named volume, used by the GraphRAG integration test and
+carrying its own recorded supply-chain risk in `RISK-005`. Say which parts the
+lens reached and which had nothing to look at, rather than reporting an
+infrastructure review that examined neither. Equally, a
 change confined to `modules/domain` has no user surface, and saying so is the
 honest outcome — but a change that adds a CLI flag does, and "no UX impact" would
 be false.
