@@ -162,6 +162,15 @@ Record the mutation alongside the test run in `HANDOFF.toon`: what was broken,
 that the suite failed, and that the file was restored. A claim that a suite
 passes carries no weight without it.
 
+Record **which suites the mutation was run against**, because that is the limit
+of what it proves. A mutation that fails in one suite says nothing about an
+equivalent assertion in another that was never executed with it. This is not
+hypothetical: an assertion covered by a recorded, correctly-failing mutation in
+the integration suite had a counterpart in the acceptance suite that the same
+mutation left green, and the acceptance assertion turned out to be a tautology.
+When hunting weak assertions, re-aim an existing mutation at a layer it has not
+been run against before inventing a new one.
+
 Watch for the assertions that most often cannot fail: one that checks a key is
 present when the key is written whatever the outcome, one that pins a decision
 without pinning why, one whose fixture already satisfies it, and one whose

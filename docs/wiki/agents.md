@@ -42,6 +42,23 @@ Lifecycle skills (lazy-loaded via `.agents/skills/CATALOG.toon`):
 - `review-loop` — boy-scout clean-up, smells and coupling;
 - `wiki-tidy` — keep the wiki current against the graph.
 
+Coordination skills, for work that involves more than one agent:
+
+- `team-selection` — choose the smallest useful set of perspectives;
+- `review-routing` — how many independent passes, aimed at what, and whether what
+  came back makes the change mergeable;
+- `dispatching-review-passes` — how to actually run several passes at once
+  without them interfering, and how to get a verdict back from each;
+- `context-packet` — what to send a delegated agent, and what to leave out;
+- `agent-team-fallback` — what to preserve when the preferred topology is not
+  available, and what to record as lost.
+
+The persona files are lenses as well as roles. `.agents/team/` holds continuing
+responsibilities and `.agents/subagents/` bounded reviewer roles, and naming one
+or two in a delegated brief produces sharper review than asking for "a review".
+Pair each with a **region** of the change, so several passes stay additive
+instead of converging on the same surface.
+
 At hard choices, attribute each persona's stance as discourages / accepts /
 encourages; the lead synthesises without forcing consensus.
 

@@ -43,6 +43,7 @@ and merged before anyone checked it.
 | CHG-016 CLI benchmark test | could fail if the wiring were absent, but its budget of `1e-7` drove the ratio to zero whichever direction the quantity pointed, so it proved a discard happened and nothing about why. Insufficient rather than incapable |
 | CHG-019 inverted `S9` | asserted `containsKey` when the scorer writes that key whatever the outcome |
 | CHG-025 digest stability | unreachable: an earlier assertion in the same shared suite failed first for every input that could have reached it |
+| CHG-026 acceptance winner | asserted the recorded winner equals the top of the recorded order, which is what the defect it named makes true by construction. The mutation had already been run against the integration suite and recorded as proof; against the acceptance suite it passed |
 
 Two more were found the same way in a subagent's work and in a reviewer's
 suggestion, and one reviewer suggestion would have codified the opposite of the
@@ -114,3 +115,30 @@ will be cited as evidence, especially one guarding a gate, a decision or an audi
 record. Nor does it replace review: reviewers found defects mutation missed, and
 mutation found defects three independent reviewers missed. They fail differently,
 which is why both are worth the cost.
+
+
+## A mutation is only evidence about the suites you ran it against
+
+The CHG-026 row above is a different failure from the others, and the difference
+matters. That assertion was not written carelessly and it was not unreachable. It
+was covered by a recorded mutation — run against the integration suite, where it
+failed correctly, and written into the handoff as proof. Nobody had run the same
+mutation against the acceptance suite, where the equivalent assertion passed.
+
+So the mutation record was true and the conclusion drawn from it was not. "This
+mutation fails" means *this mutation fails in the suites I ran*. It says nothing
+about a suite that was never executed with it.
+
+Two consequences:
+
+- **Record which suites a mutation was run against, not just that it failed.** A
+  bare "mutation X fails test Y" invites the reader to assume coverage that was
+  never demonstrated.
+- **Re-aim an existing mutation at a layer it has not been run against**, rather
+  than only inventing new ones. Two findings in the CHG-026 review came from
+  re-aiming a mutation already recorded as proof, and neither needed a new idea.
+
+The related trap is the CHG-025 row: a mutation that stops at an earlier suite
+has not been proved against the assertion it was aimed at. Both are the same
+underlying error — treating a red build as evidence about a specific assertion
+without checking that the assertion ran.

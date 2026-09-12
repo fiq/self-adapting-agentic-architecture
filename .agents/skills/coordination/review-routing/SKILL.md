@@ -45,6 +45,14 @@ Prefer **the same change with different briefs** over more reviewers sharing one
 brief. Repeated passes over one surface converge; a pass aimed somewhere new
 does not.
 
+This is measured here, not assumed. Three passes over one change, three regions,
+two providers: every finding came from exactly one pass and no two passes
+overlapped on any finding. One returned a blocker the other two did not see, on
+ground only its brief covered.
+
+Once the passes are decided, `dispatching-review-passes` is how to run them
+without them interfering.
+
 ## Routing by model
 
 Route by what the task needs, not by which model is best.

@@ -9,6 +9,11 @@ skills:
     trigger: change_touches_gate_decision_audit_or_promotion_or_pr_about_to_be_marked_ready
     purpose: decide how many independent review passes a change needs, route each to a model and a region, and judge merge readiness from what returns
 
+  dispatching_review_passes:
+    path: coordination/dispatching-review-passes/SKILL.md
+    trigger: about_to_launch_more_than_one_independent_review_pass
+    purpose: run several review passes at once without them interfering, and get a usable verdict back from each
+
   detect_project_shape:
     path: discovery/detect-project-shape/SKILL.md
     trigger: repository_shape_unknown
