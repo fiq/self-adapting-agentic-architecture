@@ -30,7 +30,19 @@ architectural    dependency cycles, layering violations, god modules,
                  leaky abstractions (architect persona)
 coupling         inappropriate coupling; wrong dependency direction; a change
                  that ripples across many modules
+user surface     where the change touches something a person operates or reads:
+                 CLI commands, flags, help text, console and reporter output,
+                 error messages, journal content, README and docs. Ask what a
+                 person sees when it fails, not when it works
+infrastructure   where infrastructure exists in the repo: CI workflows, build,
+                 container image, compose topology, IaC. Load the matching
+                 specialise/ci, container-build or infra-* section lazily
 ```
+
+Each lens is applied or declared not applicable. A change confined to a domain
+record has no user surface and saying so is the honest outcome; a change adding a
+CLI flag has one, and silence there is a missed review rather than a clean one.
+See the assessment lenses in `AGENTS.md`.
 
 ## Rules
 
