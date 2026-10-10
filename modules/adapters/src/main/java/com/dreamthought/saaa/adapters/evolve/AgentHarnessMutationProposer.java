@@ -4,6 +4,7 @@ import com.dreamthought.saaa.deterministic.AgentHarness;
 import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.domain.AgentRequest;
 import com.dreamthought.saaa.domain.AgentRunStatus;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.AgentRoute;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
@@ -24,6 +25,7 @@ public final class AgentHarnessMutationProposer implements MutationProposer {
     private final AgentHarness harness;
     private final AgentRoute route;
     private final ResourceBudget budget;
+    private AgentUsage lastUsage = AgentUsage.none();
 
     public AgentHarnessMutationProposer(AgentHarness harness, AgentRoute route, ResourceBudget budget) {
         this.harness = Objects.requireNonNull(harness, "harness");
@@ -59,9 +61,15 @@ public final class AgentHarnessMutationProposer implements MutationProposer {
                 "tier", route.tier())));
     }
 
+    @Override
+    public AgentUsage usage() {
+        return lastUsage;
+    }
+
     private Mutation invoke(
             com.dreamthought.saaa.domain.MutationProposalRequest proposal,
             Optional<com.dreamthought.saaa.domain.RetrievalBundle> retrieval) {
+        lastUsage = AgentUsage.none();
         Path workspace = createIsolatedWorkspace(proposal.baseline());
         try {
             AgentRequest request = new AgentRequest(
@@ -78,6 +86,7 @@ public final class AgentHarnessMutationProposer implements MutationProposer {
             } catch (RuntimeException exception) {
                 throw new IllegalStateException("agent invocation failed: " + safeFailure(exception), exception);
             }
+            lastUsage = result.usage();
             if (result.status() != AgentRunStatus.COMPLETED || result.mutation().isEmpty()) {
                 throw new IllegalStateException("agent invocation did not complete: "
                         + result.status() + ": " + result.failureReason().orElse("no mutation returned"));

@@ -161,7 +161,7 @@ tasks:
     status: completed
   - id: T3
     slice: the adapters populate the channel - LangChain4jMutationProposalAdapter reports tokens when the provider returns them, wall clock measured around the call, credits and retries unavailable, and a price identity whose model is the one the provider's response declares (NULL when it declares none). The configured model is threaded from ModelEndpointConfig (ModelEndpointConfig.java:3, OpenAiCompatibleChatModelFactory.java:21-27) through OpenAiCompatibleMutationProposerFactory (OpenAiCompatibleMutationProposerFactory.java:17-23) only so a requested/reported mismatch is visible in the journal; it is never written as the price identity. AuditingChatModel clears its captured state at the start of every invocation, closing the stale-token leak (S6). AgentHarnessMutationProposer forwards AgentRunResult.usage unchanged, availability now explicit at the source (S8), with no price identity, because its route is intent rather than observation
-    status: pending
+    status: completed
   - id: T4
     slice: the ledger record, standalone - migration 4 adding candidate_usage (provider, model, per-field NULL for unavailable, credits as exact decimal text), an abstract recordUsage on the ExperimentMetadataStore port following the recordGeneration precedent (ExperimentMetadataStore.java:12-18), the SQLite implementation, and direct integration tests writing and reading rows (S5 integration). Nothing consumes it yet, which is what makes it independently green
     status: pending

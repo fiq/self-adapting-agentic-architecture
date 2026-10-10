@@ -9,6 +9,8 @@ import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationLimits;
 import com.dreamthought.saaa.domain.MutationScope;
+import com.dreamthought.saaa.domain.AgentUsage;
+import com.dreamthought.saaa.domain.PriceIdentity;
 import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
 import com.dreamthought.saaa.domain.RetrievalBundle;
@@ -28,12 +30,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.HexFormat;
 
 public final class LangChain4jMutationProposalAdapter implements MutationProposer {
     private final WorkflowMutationAiService service;
     private final String proposerId;
+    private final String requestedModel;
     private final AuditingChatModel auditingChatModel;
     private RetrievalBundle lastRetrieval;
 
@@ -42,25 +48,33 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
     }
 
     public static LangChain4jMutationProposalAdapter from(ChatModel chatModel, String proposerId) {
+        return from(chatModel, proposerId, null);
+    }
+
+    public static LangChain4jMutationProposalAdapter from(
+            ChatModel chatModel, String proposerId, String requestedModel) {
         Objects.requireNonNull(chatModel, "chatModel");
         var auditingChatModel = new AuditingChatModel(chatModel);
         return new LangChain4jMutationProposalAdapter(
                 AiServices.create(WorkflowMutationAiService.class, auditingChatModel),
                 proposerId,
+                requestedModel,
                 auditingChatModel);
     }
 
     LangChain4jMutationProposalAdapter(WorkflowMutationAiService service) {
-        this(service, "langchain4j", null);
+        this(service, "langchain4j", null, null);
     }
 
     private LangChain4jMutationProposalAdapter(
             WorkflowMutationAiService service,
             String proposerId,
+            String requestedModel,
             AuditingChatModel auditingChatModel
     ) {
         this.service = Objects.requireNonNull(service, "service");
         this.proposerId = Objects.requireNonNull(proposerId, "proposerId");
+        this.requestedModel = requestedModel;
         this.auditingChatModel = auditingChatModel;
     }
 
@@ -79,6 +93,12 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
     }
 
     private Mutation propose(WorkflowGraph baseline, String mutationIntent, String retrievalContext) {
+        // Usage belongs to a proposal, not to one model call. Clearing here, rather than per call,
+        // stops one candidate inheriting the last candidate's tokens while still adding up every
+        // call a single proposal makes, should one ever make more than one.
+        if (auditingChatModel != null) {
+            auditingChatModel.clearCapturedState();
+        }
         MutationProposal proposal = Objects.requireNonNull(
                 service.proposeMutation(
                         baseline.id(),
@@ -110,11 +130,50 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
         if (auditingChatModel.outputTokens != null) {
             attributes.put("model_output_tokens", auditingChatModel.outputTokens.toString());
         }
+        if (requestedModel != null) {
+            attributes.put("requested_model", requestedModel);
+        }
+        if (hasText(auditingChatModel.reportedModel)) {
+            attributes.put("reported_model", auditingChatModel.reportedModel);
+        }
         ProposerEvidence evidence = ProposerEvidence.of(proposerId, attributes);
         if (lastRetrieval != null) {
             evidence = evidence.withRetrieval(RetrievalProvenance.from(lastRetrieval));
         }
         return Optional.of(evidence);
+    }
+
+    @Override
+    public AgentUsage usage() {
+        if (auditingChatModel == null) {
+            return AgentUsage.none();
+        }
+        return new AgentUsage(
+                optionalLong(auditingChatModel.inputTokens),
+                optionalLong(auditingChatModel.outputTokens),
+                Optional.empty(),
+                optionalLong(auditingChatModel.wallClockMillis),
+                OptionalInt.empty(),
+                observedPriceIdentity());
+    }
+
+    private Optional<PriceIdentity> observedPriceIdentity() {
+        if (!"openai-compatible".equals(proposerId) || !hasText(auditingChatModel.reportedModel)) {
+            return Optional.empty();
+        }
+        return Optional.of(new PriceIdentity("openai-compatible", auditingChatModel.reportedModel));
+    }
+
+    private static OptionalLong optionalLong(Integer value) {
+        return value == null ? OptionalLong.empty() : OptionalLong.of(value.longValue());
+    }
+
+    private static OptionalLong optionalLong(Long value) {
+        return value == null ? OptionalLong.empty() : OptionalLong.of(value);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private static List<String> allowedScopes() {
@@ -211,6 +270,8 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
         private String lastResponse;
         private Integer inputTokens;
         private Integer outputTokens;
+        private String reportedModel;
+        private Long wallClockMillis;
 
         private AuditingChatModel(ChatModel delegate) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
@@ -219,13 +280,36 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
         @Override
         public ChatResponse doChat(ChatRequest chatRequest) {
             lastPrompt = chatRequest.messages().toString();
-            ChatResponse response = delegate.doChat(chatRequest);
-            lastResponse = response.aiMessage().text();
-            if (response.tokenUsage() != null) {
-                inputTokens = response.tokenUsage().inputTokenCount();
-                outputTokens = response.tokenUsage().outputTokenCount();
+            long startedAt = System.nanoTime();
+            try {
+                ChatResponse response = delegate.doChat(chatRequest);
+                lastResponse = response.aiMessage().text();
+                if (response.tokenUsage() != null) {
+                    inputTokens = sum(inputTokens, response.tokenUsage().inputTokenCount());
+                    outputTokens = sum(outputTokens, response.tokenUsage().outputTokenCount());
+                }
+                reportedModel = response.modelName();
+                return response;
+            } finally {
+                long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+                wallClockMillis = wallClockMillis == null ? elapsed : wallClockMillis + elapsed;
             }
-            return response;
+        }
+
+        private static Integer sum(Integer soFar, Integer reported) {
+            if (reported == null) {
+                return soFar;
+            }
+            return soFar == null ? reported : soFar + reported;
+        }
+
+        private void clearCapturedState() {
+            lastPrompt = null;
+            lastResponse = null;
+            inputTokens = null;
+            outputTokens = null;
+            reportedModel = null;
+            wallClockMillis = null;
         }
 
         // AiServices asks the ChatModel for provider-specific request metadata. This wrapper only

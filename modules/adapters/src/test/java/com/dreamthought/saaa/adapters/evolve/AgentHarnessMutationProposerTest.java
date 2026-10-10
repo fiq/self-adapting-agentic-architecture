@@ -15,6 +15,9 @@ import com.dreamthought.saaa.domain.ResourceBudget;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 final class AgentHarnessMutationProposerTest {
@@ -54,5 +57,33 @@ final class AgentHarnessMutationProposerTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("TIMED_OUT")
                 .hasMessageContaining("agent deadline exceeded");
+    }
+
+    @Test
+    void equalRawValuesWithDifferentAvailabilityAreRecordedDifferently() {
+        var measuredZero = new AgentUsage(
+                OptionalLong.of(0), OptionalLong.empty(), Optional.empty(),
+                OptionalLong.empty(), OptionalInt.empty(), Optional.empty());
+        var unobserved = AgentUsage.none();
+        var invocation = new AtomicInteger();
+        var mutation = new Mutation("m-usage", "bounded", MutationScope.WORKFLOW_DEFINITION, "changed");
+        AgentHarness harness = request -> new AgentRunResult(
+                AgentRunStatus.COMPLETED, request.route(), Optional.of(mutation), Optional.empty(),
+                Optional.empty(), invocation.getAndIncrement() == 0 ? measuredZero : unobserved, Optional.empty());
+        var proposer = new AgentHarnessMutationProposer(
+                harness, new AgentRoute("acp", "configured", "small", "test"),
+                new ResourceBudget(100, 100, BigDecimal.ONE, 1000, 0));
+        var baseline = new WorkflowGraph("workflow", "rev", "definition");
+
+        proposer.proposeFor(baseline);
+        var firstUsage = proposer.usage();
+        proposer.proposeFor(baseline);
+        var secondUsage = proposer.usage();
+
+        assertThat(firstUsage).isEqualTo(measuredZero);
+        assertThat(secondUsage).isEqualTo(unobserved);
+        assertThat(firstUsage).isNotEqualTo(secondUsage);
+        assertThat(firstUsage.priceIdentity()).isEmpty();
+        assertThat(secondUsage.priceIdentity()).isEmpty();
     }
 }

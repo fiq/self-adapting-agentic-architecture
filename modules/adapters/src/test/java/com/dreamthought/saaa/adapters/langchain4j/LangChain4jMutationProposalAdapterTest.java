@@ -8,11 +8,16 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.TokenUsage;
 import com.dreamthought.saaa.domain.MutationLimits;
 import com.dreamthought.saaa.domain.MutationScope;
+import com.dreamthought.saaa.domain.PriceIdentity;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 
 final class LangChain4jMutationProposalAdapterTest {
@@ -83,6 +88,51 @@ final class LangChain4jMutationProposalAdapterTest {
         assertThat(evidence.attributes().get("prompt_digest")).startsWith("sha256:");
         assertThat(evidence.attributes().get("prompt")).contains("baseline", "agent -> tool -> answer");
         assertThat(evidence.attributes().get("raw_response")).contains("mut-003");
+    }
+
+    @Test
+    void reportsProviderUsageWithTheModelDeclaredByTheResponse() {
+        var chatModel = new StaticJsonChatModel(response(
+                "mut-usage", new TokenUsage(101, 202), "reported-model"));
+        var adapter = LangChain4jMutationProposalAdapter.from(
+                chatModel, "openai-compatible", "configured-model");
+
+        adapter.proposeFor(new WorkflowGraph("baseline", "v1", "agent -> tool -> answer"));
+
+        assertThat(adapter.usage()).isEqualTo(new com.dreamthought.saaa.domain.AgentUsage(
+                OptionalLong.of(101),
+                OptionalLong.of(202),
+                Optional.empty(),
+                adapter.usage().wallClockMillis(),
+                OptionalInt.empty(),
+                Optional.of(new PriceIdentity("openai-compatible", "reported-model"))));
+        assertThat(adapter.usage().wallClockMillis()).isPresent();
+        assertThat(adapter.proposerEvidence().orElseThrow().attributes())
+                .containsEntry("requested_model", "configured-model")
+                .containsEntry("reported_model", "reported-model");
+    }
+
+    @Test
+    void aResponseWithoutUsageDoesNotInheritThePreviousCallsTokens() {
+        var chatModel = new StaticJsonChatModel(
+                response("mut-first", new TokenUsage(17, 29), "reported-model"),
+                response("mut-second", null, null));
+        var adapter = LangChain4jMutationProposalAdapter.from(
+                chatModel, "openai-compatible", "configured-model");
+        var baseline = new WorkflowGraph("baseline", "v1", "agent -> tool -> answer");
+
+        adapter.proposeFor(baseline);
+        var firstUsage = adapter.usage();
+        adapter.proposeFor(baseline);
+
+        assertThat(firstUsage.inputTokens()).hasValue(17L);
+        assertThat(firstUsage.outputTokens()).hasValue(29L);
+        assertThat(adapter.usage().inputTokens()).isEmpty();
+        assertThat(adapter.usage().outputTokens()).isEmpty();
+        assertThat(adapter.usage().creditsConsumed()).isEmpty();
+        assertThat(adapter.usage().retries()).isEmpty();
+        assertThat(adapter.usage().priceIdentity()).isEmpty();
+        assertThat(adapter.usage().wallClockMillis()).isPresent();
     }
 
     @Test
@@ -173,19 +223,37 @@ final class LangChain4jMutationProposalAdapterTest {
     }
 
     private static final class StaticJsonChatModel implements ChatModel {
-        private final String response;
+        private final ChatResponse[] responses;
+        private int responseIndex;
         private ChatRequest lastRequest;
 
         private StaticJsonChatModel(String response) {
-            this.response = response;
+            this(ChatResponse.builder().aiMessage(AiMessage.from(response)).build());
+        }
+
+        private StaticJsonChatModel(ChatResponse... responses) {
+            this.responses = responses;
         }
 
         @Override
         public ChatResponse doChat(ChatRequest chatRequest) {
             lastRequest = chatRequest;
-            return ChatResponse.builder()
-                    .aiMessage(AiMessage.from(response))
-                    .build();
+            return responses[responseIndex++];
         }
+    }
+
+    private static ChatResponse response(String id, TokenUsage tokenUsage, String modelName) {
+        return ChatResponse.builder()
+                .aiMessage(AiMessage.from("""
+                        {
+                          "id": "%s",
+                          "summary": "bounded proposal",
+                          "scope": "WORKFLOW_DEFINITION",
+                          "patch": "replace tool policy"
+                        }
+                        """.formatted(id)))
+                .tokenUsage(tokenUsage)
+                .modelName(modelName)
+                .build();
     }
 }

@@ -15,7 +15,11 @@ public final class OpenAiCompatibleChatModelFactory {
     }
 
     public ChatModel fromApplicationConfig() {
-        return fromConfig(configSource.load());
+        return fromConfig(applicationConfig());
+    }
+
+    ModelEndpointConfig applicationConfig() {
+        return configSource.load();
     }
 
     public ChatModel fromConfig(ModelEndpointConfig config) {
