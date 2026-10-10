@@ -29,6 +29,7 @@ import com.dreamthought.saaa.deterministic.MutationScopeValidator;
 import com.dreamthought.saaa.deterministic.DiffLineBudgetMutationValidator;
 import com.dreamthought.saaa.deterministic.PhenotypeBridgeScorer;
 import com.dreamthought.saaa.deterministic.ScoringConfig;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.GenerationRecord;
@@ -387,11 +388,11 @@ public final class EvolveRunner {
      * {@code GenerationEvaluationLoop} fails the run for it rather than ranking one candidate against
      * itself.
      */
-    private static final class VariantProposer implements MutationProposer {
+    static final class VariantProposer implements MutationProposer {
         private final MutationProposer delegate;
         private final int variant;
 
-        private VariantProposer(MutationProposer delegate, int variant) {
+        VariantProposer(MutationProposer delegate, int variant) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
             this.variant = variant;
         }
@@ -409,6 +410,11 @@ public final class EvolveRunner {
         @Override
         public Optional<ProposerEvidence> proposerEvidence() {
             return delegate.proposerEvidence();
+        }
+
+        @Override
+        public AgentUsage usage() {
+            return delegate.usage();
         }
     }
 

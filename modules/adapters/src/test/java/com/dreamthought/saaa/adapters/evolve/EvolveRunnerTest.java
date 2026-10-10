@@ -11,12 +11,16 @@ import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationScope;
+import com.dreamthought.saaa.domain.PriceIdentity;
 import com.dreamthought.saaa.domain.RetrievalMode;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -366,6 +370,32 @@ final class EvolveRunnerTest {
                 .as("every candidate was proposed from the same evidence, which is what makes their "
                         + "scores comparable at all")
                 .hasSize(1);
+    }
+
+    @Test
+    void thePerCandidateWrapperForwardsTheProposersUsageChannel() {
+        var distinctiveUsage = new AgentUsage(
+                OptionalLong.of(101),
+                OptionalLong.of(202),
+                Optional.of(new BigDecimal("3.03")),
+                OptionalLong.of(404),
+                OptionalInt.of(5),
+                Optional.of(new PriceIdentity("observed-provider", "observed-model")));
+        var fixtureProposer = new com.dreamthought.saaa.deterministic.MutationProposer() {
+            @Override
+            public Mutation proposeFor(com.dreamthought.saaa.domain.WorkflowGraph baseline) {
+                throw new AssertionError("usage delegation does not propose a mutation");
+            }
+
+            @Override
+            public AgentUsage usage() {
+                return distinctiveUsage;
+            }
+        };
+
+        var wrapper = new EvolveRunner.VariantProposer(fixtureProposer, 2);
+
+        assertThat(wrapper.usage()).isEqualTo(distinctiveUsage);
     }
 
     private static com.dreamthought.saaa.deterministic.MutationProposer ignoredBaselineProposer() {
