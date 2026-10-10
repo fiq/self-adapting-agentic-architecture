@@ -480,6 +480,222 @@ final class EvolveCommandAcceptanceTest {
         }
     }
 
+    /**
+     * CHG-029 S1. A generation asks the model for each variant explicitly, and the ask is
+     * observable in the request: each stub answers only the request whose body carries that
+     * variant's marker, so a proposer that never sends it - or sends a constant one - gets no
+     * answer and its candidate fails rather than passing on a canned response. The verifies pin one
+     * ask per variant; the fitness rows pin that both asks were answered.
+     */
+    @Test
+    void aLiveProposerIsAskedForEachVariantExplicitly(@TempDir Path tempDir) throws Exception {
+        var server = startOpenAiStub();
+        try {
+            stubOpenAiVariantResponses(server,
+                    openAiVariantResponse("mut-live-v1", "draft-check: enforce\n",
+                            "declared-model", usageJson(10, 5)),
+                    openAiVariantResponse("mut-live-v2", "draft-check: enforce\n# variant two\n",
+                            "declared-model", usageJson(10, 5)));
+            configureOpenAiCompatibleProfile(server);
+            Path repo = initLiveRepo(tempDir);
+            Path target = repo.resolve("toy");
+
+            int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                    "saaa-evolve", target.toString(),
+                    "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check",
+                    "--run-id", "s1-run",
+                    "--candidates", "2",
+                    "--max-lines", "8");
+
+            assertThat(exitCode).isZero();
+            server.verify(postRequestedFor(urlEqualTo("/v1/chat/completions"))
+                    .withRequestBody(matchingJsonPath("$.messages[1].content",
+                            containing("variant 1 of a generation"))));
+            server.verify(postRequestedFor(urlEqualTo("/v1/chat/completions"))
+                    .withRequestBody(matchingJsonPath("$.messages[1].content",
+                            containing("variant 2 of a generation"))));
+            try (var connection = DriverManager.getConnection(
+                    "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
+                assertThat(countRows(connection,
+                        "select count(*) from fitness_results "
+                                + "where candidate_id like 'candidate-s1-run-c%'"))
+                        .as("both asks were answered, so both candidates were evaluated")
+                        .isEqualTo(2);
+            }
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
+    }
+
+    /**
+     * CHG-029 S2. The live proposer fills the whole generation and the run evaluates, ranks and
+     * records all three candidates exactly as the fixture-filled path does: three ranking rows, one
+     * generation row at 3 of 3, and a spread above zero because the variants differ in substance.
+     */
+    @Test
+    void aLiveProposerFillsAGenerationAndTheRankingIsRecorded(@TempDir Path tempDir) throws Exception {
+        var server = startOpenAiStub();
+        try {
+            stubOpenAiVariantResponses(server,
+                    openAiVariantResponse("mut-gen-v1", "draft-check: enforce\n",
+                            "declared-model", usageJson(10, 5)),
+                    openAiVariantResponse("mut-gen-v2", "draft-check: enforce\n# variant two\n",
+                            "declared-model", usageJson(10, 5)),
+                    openAiVariantResponse("mut-gen-v3",
+                            "draft-check: enforce\n# variant three\n# variant three\n",
+                            "declared-model", usageJson(10, 5)));
+            configureOpenAiCompatibleProfile(server);
+            Path repo = initLiveRepo(tempDir);
+            Path target = repo.resolve("toy");
+
+            int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                    "saaa-evolve", target.toString(),
+                    "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check",
+                    "--run-id", "s2-run",
+                    "--candidates", "3",
+                    "--max-lines", "12");
+
+            assertThat(exitCode).isZero();
+            assertThat(Files.readString(target.resolve("journal.md")))
+                    .contains("| evidence | 3 of 3 candidates |");
+            try (var connection = DriverManager.getConnection(
+                    "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
+                assertThat(rankedCandidateIds(connection, "s2-run"))
+                        .as("all three candidates were evaluated and ranked, not one dropped")
+                        .hasSize(3)
+                        .anySatisfy(id -> assertThat(id).contains("s2-run-c1"))
+                        .anySatisfy(id -> assertThat(id).contains("s2-run-c2"))
+                        .anySatisfy(id -> assertThat(id).contains("s2-run-c3"));
+                assertThat(singleText(connection,
+                        "select evaluated_count || ' of ' || requested_count from generations "
+                                + "where run_id = ?", "s2-run"))
+                        .isEqualTo("3 of 3");
+                assertThat(Double.parseDouble(singleText(connection,
+                        "select cast(spread as text) from generations where run_id = ?", "s2-run")))
+                        .as("the variants differ in substance, so the ranking discriminates")
+                        .isGreaterThan(0.0);
+            }
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
+    }
+
+    /**
+     * CHG-029 S5. Each candidate's usage row carries its own variant's observed values. The stubs
+     * declare a different model per variant, and neither is the configured local-test-model, so a
+     * write that copied the request, recorded a constant, kept the first candidate's values or
+     * wrote zeros fails rather than passing on row presence.
+     */
+    @Test
+    void aLiveGenerationRecordsEachCandidatesObservedUsage(@TempDir Path tempDir) throws Exception {
+        var server = startOpenAiStub();
+        try {
+            stubOpenAiVariantResponses(server,
+                    openAiVariantResponse("mut-use-v1", "draft-check: enforce\n",
+                            "declared-model-one", usageJson(101, 11)),
+                    openAiVariantResponse("mut-use-v2", "draft-check: enforce\n# variant two\n",
+                            "declared-model-two", usageJson(202, 22)));
+            configureOpenAiCompatibleProfile(server);
+            Path repo = initLiveRepo(tempDir);
+            Path target = repo.resolve("toy");
+
+            int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                    "saaa-evolve", target.toString(),
+                    "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check",
+                    "--run-id", "s5-run",
+                    "--candidates", "2",
+                    "--max-lines", "8");
+
+            assertThat(exitCode).isZero();
+            try (var connection = DriverManager.getConnection(
+                    "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
+                var rows = candidateUsageRows(connection, "s5-run");
+                assertThat(rows).hasSize(2);
+                var first = rows.get(0);
+                assertThat(first.get("candidate_id").toString()).contains("s5-run-c1");
+                assertThat(first)
+                        .containsEntry("provider", "openai-compatible")
+                        .containsEntry("model", "declared-model-one");
+                assertThat(((Number) first.get("input_tokens")).longValue()).isEqualTo(101);
+                assertThat(((Number) first.get("output_tokens")).longValue()).isEqualTo(11);
+                assertThat(first.get("credits_consumed"))
+                        .as("no chat-completions response reports credits")
+                        .isNull();
+                assertThat(first.get("retries")).isNull();
+                assertThat(first.get("wall_clock_millis")).isNotNull();
+                var second = rows.get(1);
+                assertThat(second.get("candidate_id").toString()).contains("s5-run-c2");
+                assertThat(second)
+                        .containsEntry("provider", "openai-compatible")
+                        .containsEntry("model", "declared-model-two");
+                assertThat(((Number) second.get("input_tokens")).longValue()).isEqualTo(202);
+                assertThat(((Number) second.get("output_tokens")).longValue()).isEqualTo(22);
+                assertThat(second.get("credits_consumed")).isNull();
+            }
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
+    }
+
+    /**
+     * CHG-029 S6, end to end. Variant one's response carries distinctive usage and variant two's
+     * omits it; the second candidate's row must exist with the token fields NULL rather than
+     * inheriting the first candidate's counts. Variant one's row is asserted too, so the bleed has
+     * something to be caught against.
+     */
+    @Test
+    void aNoUsageResponseDoesNotInheritThePreviousCandidatesTokens(@TempDir Path tempDir) throws Exception {
+        var server = startOpenAiStub();
+        try {
+            stubOpenAiVariantResponses(server,
+                    openAiVariantResponse("mut-stale-v1", "draft-check: enforce\n",
+                            "declared-model", usageJson(313, 37)),
+                    openAiVariantResponse("mut-stale-v2", "draft-check: enforce\n# variant two\n",
+                            "declared-model", null));
+            configureOpenAiCompatibleProfile(server);
+            Path repo = initLiveRepo(tempDir);
+            Path target = repo.resolve("toy");
+
+            int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                    "saaa-evolve", target.toString(),
+                    "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check",
+                    "--run-id", "s6-run",
+                    "--candidates", "2",
+                    "--max-lines", "8");
+
+            assertThat(exitCode).isZero();
+            try (var connection = DriverManager.getConnection(
+                    "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
+                var rows = candidateUsageRows(connection, "s6-run");
+                assertThat(rows).hasSize(2);
+                var first = rows.get(0);
+                assertThat(first.get("candidate_id").toString()).contains("s6-run-c1");
+                assertThat(((Number) first.get("input_tokens")).longValue()).isEqualTo(313);
+                assertThat(((Number) first.get("output_tokens")).longValue()).isEqualTo(37);
+                var second = rows.get(1);
+                assertThat(second.get("candidate_id").toString()).contains("s6-run-c2");
+                assertThat(second.get("input_tokens"))
+                        .as("unobserved is recorded as NULL, never inherited from the previous candidate")
+                        .isNull();
+                assertThat(second.get("output_tokens")).isNull();
+                assertThat(second.get("credits_consumed")).isNull();
+                assertThat(second.get("model"))
+                        .as("the response still declared its model; only the tokens were unobserved")
+                        .isEqualTo("declared-model");
+            }
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
+    }
+
     @Test
     void candidateThatAttemptsToReadTheApiKeyObservesTheEmptyString(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
@@ -866,6 +1082,122 @@ final class EvolveCommandAcceptanceTest {
         try (var statement = connection.prepareStatement(sql); var rows = statement.executeQuery()) {
             rows.next();
             return rows.getInt(1);
+        }
+    }
+
+    /**
+     * Answers each variant ask of a generation with its own stubbed response, in order. Beyond the
+     * scenario state, each stub answers only the request whose body carries that variant's marker,
+     * so a proposer that never sends the marker - or sends the same one for every ask - gets no
+     * answer and the candidate fails rather than passing on a canned response.
+     */
+    private static void stubOpenAiVariantResponses(WireMockServer server, String... responses) {
+        for (int index = 0; index < responses.length; index++) {
+            int variant = index + 1;
+            var stub = post(urlEqualTo("/v1/chat/completions"))
+                    .inScenario("live-generation")
+                    .whenScenarioStateIs(index == 0 ? Scenario.STARTED : "answered-" + index)
+                    .withHeader("Authorization", equalTo("Bearer local-test-key"))
+                    .withRequestBody(matchingJsonPath("$.model", equalTo("local-test-model")))
+                    .withRequestBody(matchingJsonPath("$.messages[0].content",
+                            containing("bounded workflow mutations")))
+                    .withRequestBody(matchingJsonPath("$.messages[1].content",
+                            containing("draft-check: skip")))
+                    .withRequestBody(matchingJsonPath("$.messages[1].content",
+                            containing("variant " + variant + " of a generation")))
+                    .willReturn(okJson(responses[index]));
+            if (index < responses.length - 1) {
+                stub.willSetStateTo("answered-" + (index + 1));
+            }
+            server.stubFor(stub);
+        }
+    }
+
+    /**
+     * A stubbed chat-completions response whose assistant message declares the mutation, whose
+     * top-level model is what the provider - not the request - declares, and whose usage block is
+     * present only when usageJson is given, which is what the no-usage case needs.
+     */
+    private static String openAiVariantResponse(
+            String mutationId, String patch, String declaredModel, String usageJson) {
+        String mutationJson = "{\"id\":\"" + mutationId
+                + "\",\"summary\":\"enforce the draft check\",\"scope\":\"WORKFLOW_DEFINITION\","
+                + "\"patch\":\"" + escapeJson(patch) + "\"}";
+        return """
+                {
+                  "id": "chatcmpl-local",
+                  "object": "chat.completion",
+                  "created": 1,
+                  "model": "%s",
+                  "choices": [
+                    {
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": %s
+                      },
+                      "finish_reason": "stop"
+                    }
+                  ]%s
+                }
+                """.formatted(declaredModel, quoteJson(mutationJson),
+                        usageJson == null ? "" : ",\n  \"usage\": " + usageJson);
+    }
+
+    private static String usageJson(long promptTokens, long completionTokens) {
+        return "{\"prompt_tokens\": " + promptTokens + ", \"completion_tokens\": " + completionTokens
+                + ", \"total_tokens\": " + (promptTokens + completionTokens) + "}";
+    }
+
+    /** A workflow target and its one behaviour case, in a fresh repository, for the live profile. */
+    private static Path initLiveRepo(Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target);
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+        return repo;
+    }
+
+    private static List<Map<String, Object>> candidateUsageRows(
+            java.sql.Connection connection, String runId) throws java.sql.SQLException {
+        var result = new ArrayList<Map<String, Object>>();
+        try (var statement = connection.prepareStatement("""
+                select candidate_id, provider, model, input_tokens, output_tokens, credits_consumed,
+                       wall_clock_millis, retries
+                from candidate_usage
+                where candidate_id like ?
+                order by candidate_id
+                """)) {
+            statement.setString(1, "candidate-" + runId + "-c%");
+            try (var rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    var row = new java.util.LinkedHashMap<String, Object>();
+                    for (int column = 1; column <= 8; column++) {
+                        row.put(rows.getMetaData().getColumnName(column), rows.getObject(column));
+                    }
+                    result.add(row);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static String singleText(java.sql.Connection connection, String sql, String... values)
+            throws java.sql.SQLException {
+        try (var statement = connection.prepareStatement(sql)) {
+            for (int index = 0; index < values.length; index++) {
+                statement.setString(index + 1, values[index]);
+            }
+            try (var rows = statement.executeQuery()) {
+                assertThat(rows.next()).as(sql).isTrue();
+                return rows.getString(1);
+            }
         }
     }
 

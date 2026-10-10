@@ -82,32 +82,63 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
     public Mutation proposeFor(WorkflowGraph baseline) {
         Objects.requireNonNull(baseline, "baseline");
         lastRetrieval = null;
-        return propose(baseline, "Improve the target while preserving declared behavior", "No retrieval evidence selected.");
+        return propose(baseline, "Improve the target while preserving declared behavior",
+                "No retrieval evidence selected.", null);
     }
 
     @Override
     public Mutation proposeFor(PreparedMutationProposalRequest request) {
         Objects.requireNonNull(request, "request");
         lastRetrieval = request.retrieval();
-        return propose(request.baseline(), request.retrievalQuery().semanticText(), request.retrieval().flattenedContext());
+        return propose(request.baseline(), request.retrievalQuery().semanticText(),
+                request.retrieval().flattenedContext(), null);
     }
 
-    private Mutation propose(WorkflowGraph baseline, String mutationIntent, String retrievalContext) {
+    /**
+     * The {@code variant}-th ask of a generation, one-based. The variant reaches the model prompt
+     * so the model can vary; whether it did is not trusted but checked, by the sameness rule in
+     * {@code GenerationEvaluationLoop} - the same division of labour {@code MutationProposer}
+     * documents for this default.
+     */
+    @Override
+    public Mutation proposeFor(PreparedMutationProposalRequest request, int variant) {
+        Objects.requireNonNull(request, "request");
+        if (variant < 1) {
+            throw new IllegalArgumentException("variant is one-based, got " + variant);
+        }
+        lastRetrieval = request.retrieval();
+        return propose(request.baseline(), request.retrievalQuery().semanticText(),
+                request.retrieval().flattenedContext(), variant);
+    }
+
+    private Mutation propose(
+            WorkflowGraph baseline, String mutationIntent, String retrievalContext, Integer variant) {
         // Usage belongs to a proposal, not to one model call. Clearing here, rather than per call,
         // stops one candidate inheriting the last candidate's tokens while still adding up every
         // call a single proposal makes, should one ever make more than one.
         if (auditingChatModel != null) {
             auditingChatModel.clearCapturedState();
         }
+        String context = retrievalContext.isBlank() ? "No retrieval evidence selected." : retrievalContext;
         MutationProposal proposal = Objects.requireNonNull(
-                service.proposeMutation(
-                        baseline.id(),
-                        baseline.version(),
-                        baseline.definition(),
-                        allowedScopes(),
-                        mutationIntent,
-                        retrievalContext.isBlank() ? "No retrieval evidence selected." : retrievalContext
-                ),
+                variant == null
+                        ? service.proposeMutation(
+                                baseline.id(),
+                                baseline.version(),
+                                baseline.definition(),
+                                allowedScopes(),
+                                mutationIntent,
+                                context
+                        )
+                        : service.proposeGenerationVariant(
+                                baseline.id(),
+                                baseline.version(),
+                                baseline.definition(),
+                                allowedScopes(),
+                                mutationIntent,
+                                context,
+                                variant
+                        ),
                 "mutation proposal"
         );
         return proposal.toMutation();
@@ -183,12 +214,13 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
     }
 
     public interface WorkflowMutationAiService {
-        @SystemMessage("""
+        String PROPOSER_SYSTEM_PROMPT = """
                 You propose bounded workflow mutations for an experimental agentic workflow evaluator.
                 Return exactly one mutation proposal. Do not approve, score, promote or discard candidates.
                 Validation, fitness scoring, promotion and rollback are deterministic system responsibilities.
-                """)
-        @UserMessage("""
+                """;
+
+        String PROPOSAL_ASK = """
                 Baseline workflow:
                 id: {{workflowId}}
                 version: {{workflowVersion}}
@@ -213,7 +245,22 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
                 - summary: concise human-readable change summary
                 - scope: one of the allowed scopes
                 - patch: bounded workflow-definition patch text
-                """)
+                """;
+
+        /**
+         * The generation ask adds one paragraph naming the variant, so the N asks of a generation
+         * are distinguishable to the model. Everything else is {@link #PROPOSAL_ASK} unchanged: the
+         * ask is what lets the model vary, not what checks that it did.
+         */
+        String VARIANT_ASK = """
+                You are proposing variant {{variant}} of a generation of candidate mutations for one \
+                baseline; the other variants are being asked for separately. Make this proposal differ \
+                from them in substance, not only in its id.
+
+                """;
+
+        @SystemMessage(PROPOSER_SYSTEM_PROMPT)
+        @UserMessage(PROPOSAL_ASK)
         MutationProposal proposeMutation(
                 @V("workflowId") String workflowId,
                 @V("workflowVersion") String workflowVersion,
@@ -221,6 +268,18 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
                 @V("allowedScopes") List<String> allowedScopes,
                 @V("mutationIntent") String mutationIntent,
                 @V("retrievalContext") String retrievalContext
+        );
+
+        @SystemMessage(PROPOSER_SYSTEM_PROMPT)
+        @UserMessage(VARIANT_ASK + PROPOSAL_ASK)
+        MutationProposal proposeGenerationVariant(
+                @V("workflowId") String workflowId,
+                @V("workflowVersion") String workflowVersion,
+                @V("workflowDefinition") String workflowDefinition,
+                @V("allowedScopes") List<String> allowedScopes,
+                @V("mutationIntent") String mutationIntent,
+                @V("retrievalContext") String retrievalContext,
+                @V("variant") int variant
         );
     }
 

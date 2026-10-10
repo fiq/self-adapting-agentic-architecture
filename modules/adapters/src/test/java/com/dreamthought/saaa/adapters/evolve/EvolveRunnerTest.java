@@ -398,6 +398,40 @@ final class EvolveRunnerTest {
         assertThat(wrapper.usage()).isEqualTo(distinctiveUsage);
     }
 
+    @Test
+    void theVariantReachesTheProposerThroughThePerCandidateWiring() {
+        var baseline = new com.dreamthought.saaa.domain.WorkflowGraph("toy", "v1", "draft-check: skip\n");
+        var request = new com.dreamthought.saaa.domain.PreparedMutationProposalRequest(
+                baseline,
+                new com.dreamthought.saaa.domain.RetrievalQuery(RetrievalMode.NONE, "vary", baseline, "v1",
+                        List.of("workflow.txt"), Optional.empty()),
+                new com.dreamthought.saaa.domain.RetrievalBundle(RetrievalMode.NONE, "test-retrieval", "v1",
+                        "none", "none", "none", "none", "none", List.of(),
+                        com.dreamthought.saaa.domain.RetrievalDiagnostics.empty(), ""));
+        var askedFor = new java.util.ArrayList<Integer>();
+        var recordingProposer = new com.dreamthought.saaa.deterministic.MutationProposer() {
+            @Override
+            public Mutation proposeFor(com.dreamthought.saaa.domain.WorkflowGraph ignored) {
+                throw new AssertionError("a generation candidate must be asked through the variant entry point");
+            }
+
+            @Override
+            public Mutation proposeFor(
+                    com.dreamthought.saaa.domain.PreparedMutationProposalRequest prepared, int variant) {
+                askedFor.add(variant);
+                return new Mutation("MUT-" + variant, "variant " + variant,
+                        MutationScope.WORKFLOW_DEFINITION, prepared.baseline().definition());
+            }
+        };
+
+        // Positions 2 and 3, not 1: the variant entry point's default delegates to the plain one,
+        // and a wrapper that forgot its position would most plausibly fall back to the first.
+        new EvolveRunner.VariantProposer(recordingProposer, 2).proposeFor(request);
+        new EvolveRunner.VariantProposer(recordingProposer, 3).proposeFor(request);
+
+        assertThat(askedFor).containsExactly(2, 3);
+    }
+
     private static com.dreamthought.saaa.deterministic.MutationProposer ignoredBaselineProposer() {
         return baseline -> new Mutation("unused", "unused", MutationScope.WORKFLOW_DEFINITION, baseline.definition());
     }
