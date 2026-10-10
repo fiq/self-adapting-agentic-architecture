@@ -31,27 +31,36 @@ public final class MutationLoopCli implements Callable<Integer> {
         var commandLine = new CommandLine(new MutationLoopCli());
         commandLine.setExecutionExceptionHandler((exception, command, parseResult) -> {
             PrintWriter err = command.getErr();
-            err.printf("error: %s%n", messageOf(rootCause(exception)));
+            err.printf("error: %s%n", describe(exception));
             err.flush();
             return 1;
         });
         return commandLine;
     }
 
-    private static Throwable rootCause(Throwable failure) {
-        Throwable cause = failure;
-        while (cause.getCause() != null && cause.getCause() != cause) {
-            cause = cause.getCause();
+    /**
+     * The outer message says what failed and the inner one says why, so both are kept, outermost
+     * first: "failed to read ablation corpus: /missing.tsv" rather than only the path. A message
+     * that repeats the one before it, as a wrapper copying its cause's message does, is dropped.
+     * Stripped because messages relayed from a subprocess, such as Git's, end in a newline that
+     * would otherwise print as a stray blank line. The walk is bounded, so a cause cycle of any
+     * length cannot hang the error path.
+     */
+    static String describe(Throwable failure) {
+        var parts = new java.util.ArrayList<String>();
+        var seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Throwable, Boolean>());
+        for (Throwable cause = failure; cause != null && seen.add(cause) && seen.size() <= 16;
+                cause = cause.getCause()) {
+            String message = cause.getMessage();
+            if (message == null || message.isBlank()) {
+                continue;
+            }
+            message = message.strip();
+            if (parts.isEmpty() || !parts.get(parts.size() - 1).contains(message)) {
+                parts.add(message);
+            }
         }
-        return cause;
-    }
-
-    private static String messageOf(Throwable failure) {
-        // Stripped because messages relayed from a subprocess, such as Git's, end in a newline
-        // that would otherwise print as a stray blank line after the one error line.
-        return failure.getMessage() == null || failure.getMessage().isBlank()
-                ? failure.getClass().getSimpleName()
-                : failure.getMessage().strip();
+        return parts.isEmpty() ? failure.getClass().getSimpleName() : String.join(": ", parts);
     }
 
     @Override

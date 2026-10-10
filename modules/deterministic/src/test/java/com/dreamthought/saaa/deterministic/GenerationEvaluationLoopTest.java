@@ -126,6 +126,26 @@ final class GenerationEvaluationLoopTest {
     }
 
     @Test
+    @DisplayName("a reporter that fails while recording an abort never replaces the abort's own cause")
+    void aFailingAbortReporterDoesNotReplaceTheAbortCause() {
+        var evaluator = evaluatorReturning(
+                () -> resultForMutation("candidate-a", "MUT-same", 0.90),
+                () -> resultForMutation("candidate-b", "MUT-same", 0.90));
+        var reporter = new EvolutionReporter() {
+            @Override
+            public void generationAborted(int requestedCount, int evaluatedCount, String reason) {
+                throw new IllegalStateException("journal unwritable");
+            }
+        };
+
+        assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator).evaluate(request(), 2, reporter))
+                .hasMessageContaining("MUT-same")
+                .satisfies(thrown -> assertThat(thrown.getSuppressed())
+                        .extracting(Throwable::getMessage)
+                        .containsExactly("journal unwritable"));
+    }
+
+    @Test
     @DisplayName("candidates carrying different mutations are ranked as the population they are")
     void distinctMutationsAreRankedNormally() {
         var evaluator = evaluatorReturning(

@@ -26,6 +26,8 @@ deltas:
         and:
           - the split is by exception type at the point of throw, not by root cause. An earlier draft classified any IllegalArgumentException root cause as a usage error, which would have shown usage for a domain validation failure deep inside a run, as though the user had mistyped a flag
           - a message relayed from Git ends in a newline; the handler strips it, which the runtime-failure test found by asserting one line rather than a prefix
+          - the error line keeps every distinct message in the cause chain, outermost first, so "failed to read ablation corpus: /missing.tsv" says what failed as well as why. The first version printed only the root cause, which reduced that to the bare path
+          - an unknown --operator is a bad option value and renders as one, closing the same two-presentations split RISK-009 named for --candidates
       - id: S4
         when: ranked candidates have ids longer than forty characters and different lengths
         then: score and decision columns align to the longest id in that generation
@@ -43,6 +45,15 @@ acceptance:
   - scenario: S3
     test_id: cli/EvolveCommandAcceptanceTest.rendersARuntimeFailureAsOneErrorLineWithoutUsageOrStackTrace
     layer: acceptance
+  - scenario: S3
+    test_id: cli/MutationLoopCliTest.aMissingAblationCorpusSaysWhatFailedNotOnlyThePath
+    layer: unit
+  - scenario: S3
+    test_id: cli/MutationLoopCliTest.anUnknownOperatorIsABadOptionValueAndRendersAsOne
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/GenerationEvaluationLoopTest.aFailingAbortReporterDoesNotReplaceTheAbortCause
+    layer: unit
   - scenario: S4
     test_id: cli/ConsoleReporterTest.reportsTheGenerationOrderWinnerEvidenceCountAndSpread
     layer: unit

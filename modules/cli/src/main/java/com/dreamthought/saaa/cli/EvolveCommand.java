@@ -157,6 +157,15 @@ public final class EvolveCommand implements Callable<Integer> {
         });
     }
 
+    /** An unknown --operator is a bad option value, so it renders as one: message, usage, exit 2. */
+    private MutationContract declaredContract() {
+        try {
+            return OperatorContracts.declare(operator, requiredEvidence, workflowFile);
+        } catch (IllegalArgumentException rejected) {
+            throw new ParameterException(spec.commandLine(), rejected.getMessage(), rejected, null, operator);
+        }
+    }
+
     @Override
     public Integer call() {
         PrintWriter out = spec.commandLine().getOut();
@@ -173,7 +182,7 @@ public final class EvolveCommand implements Callable<Integer> {
         }
         var contract = operator == null
                 ? Optional.<MutationContract>empty()
-                : Optional.of(OperatorContracts.declare(operator, requiredEvidence, workflowFile));
+                : Optional.of(declaredContract());
         contract.ifPresent(declared -> out.printf("  contract   %s requires %s%n",
                 declared.operator().wireName(), String.join(", ", declared.requiredEvidence())));
 

@@ -85,7 +85,14 @@ public final class GenerationEvaluationLoop {
             }
             return ranking.rank(evaluated, unevaluated);
         } catch (RuntimeException failure) {
-            reporter.generationAborted(candidates, evaluated.size(), describe(failure));
+            // Reporting the abort is presentation. If it fails too, the abort is still the thing
+            // the caller must see, so the reporter's failure rides along as suppressed rather than
+            // replacing it.
+            try {
+                reporter.generationAborted(candidates, evaluated.size(), describe(failure));
+            } catch (RuntimeException reportFailure) {
+                failure.addSuppressed(reportFailure);
+            }
             throw failure;
         }
     }
