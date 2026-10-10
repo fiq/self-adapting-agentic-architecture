@@ -62,9 +62,13 @@ public final class ConsoleReporter implements EvolutionReporter {
         Objects.requireNonNull(generation, "generation");
         out.printf("  generation %d of %d candidates produced evidence%n",
                 generation.evaluatedCount(), generation.requestedCount());
+        int candidateWidth = generation.ranked().stream()
+                .mapToInt(result -> result.candidate().id().length())
+                .max()
+                .orElse(0);
         int position = 1;
         for (FitnessResult result : generation.ranked()) {
-            out.printf("  rank %-5d %-40s %.2f  %s%n", position++, result.candidate().id(),
+            out.printf("  rank %-5d %-" + candidateWidth + "s %.2f  %s%n", position++, result.candidate().id(),
                     result.fitnessScore().rawMagnitude(), result.decision());
         }
         generation.unevaluated().forEach(candidate ->

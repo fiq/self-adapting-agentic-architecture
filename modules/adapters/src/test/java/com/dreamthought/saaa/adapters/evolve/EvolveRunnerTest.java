@@ -194,6 +194,43 @@ final class EvolveRunnerTest {
                 .anySatisfy(id -> assertThat(id).contains("fixed-run-c3"));
     }
 
+    @Test
+    void aGenerationThatAbortsRecordsItsEvaluatedCountAndReasonBeforePropagating(@TempDir Path dir)
+            throws Exception {
+        Path repo = dir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve("workflow-check.sh"),
+                "#!/usr/bin/env bash\ngrep -q 'enforce' \"$(dirname \"$0\")/workflow.txt\"\n");
+        target.resolve("workflow-check.sh").toFile().setExecutable(true);
+        git(repo, "init", "-b", "main");
+        git(repo, "add", ".");
+        git(repo, "-c", "user.name=test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture");
+
+        var registry = new ProposerProfileRegistry(ignored -> baseline -> new Mutation(
+                "MUT-repeated", "enforce the draft check", MutationScope.WORKFLOW_DEFINITION,
+                "draft-check: enforce\n"));
+
+        assertThatThrownBy(() -> new EvolveRunner(
+                registry,
+                java.time.Clock.systemUTC(),
+                (mode, root) -> com.dreamthought.saaa.deterministic.EvidenceRetriever.none("test-retrieval"),
+                (mode, root) -> com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore.disabled())
+                .runGeneration(
+                        new EvolveRunRequest(target, "openai-compatible", "workflow.txt",
+                                List.of("workflow-check"), 20, RetrievalMode.NONE, "vary the check",
+                                Optional.of("aborted-run")),
+                        EvolutionReporter.NO_OP, 2))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("repeats mutation id MUT-repeated");
+
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .contains("generation aborted")
+                .contains("| evidence | 1 of 2 candidates |")
+                .contains("repeats mutation id MUT-repeated");
+    }
+
     /**
      * The question this slice exists to answer rather than assume: does ranking discriminate at all?
      * ADR-0002 names "population ships but ranking is not measurably useful" as a revisit trigger,

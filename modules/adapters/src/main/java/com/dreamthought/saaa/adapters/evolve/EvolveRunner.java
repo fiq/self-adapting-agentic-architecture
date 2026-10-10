@@ -138,8 +138,13 @@ public final class EvolveRunner {
     public EvolveGenerationResult runGeneration(
             EvolveRunRequest request, EvolutionReporter reporter, int candidates) {
         var prepared = prepare(request, reporter);
-        var generation = new GenerationEvaluationLoop(prepared.evaluator)
-                .evaluate(prepared.proposal, candidates);
+        final com.dreamthought.saaa.domain.RankedGeneration generation;
+        try {
+            generation = new GenerationEvaluationLoop(prepared.evaluator)
+                    .evaluate(prepared.proposal, candidates, prepared.reporters);
+        } catch (RuntimeException failure) {
+            throw new EvolveGenerationAbortedException(prepared.journalPath, failure);
+        }
         prepared.metadataStore.recordGeneration(
                 new GenerationRecord(prepared.runId, generation, Instant.now(clock)));
         prepared.reporters.generationRanked(generation);

@@ -303,7 +303,8 @@ evidence, then ranked. Three things are worth knowing before using it.
 
 The target folder must sit inside a Git repository, because isolation uses
 `git worktree`. A discarded candidate is a successful run and exits 0; a
-non-zero exit means the run itself failed. For a live proposal, set the three
+non-zero exit means the run itself failed, including a generation where no
+candidate produced evidence. For a live proposal, set the three
 model variables in [configuration](#configuration-and-environment-variables) and
 pass `--profile openai-compatible`. For an ACP-compatible local agent such as
 OpenCode, Goose, Codex or Claude, set `SAAA_ACP_COMMAND` and optionally

@@ -2,6 +2,7 @@ package com.dreamthought.saaa.cli;
 
 import com.dreamthought.saaa.adapters.evolve.EvolveRunRequest;
 import com.dreamthought.saaa.adapters.evolve.EvolveRunner;
+import com.dreamthought.saaa.adapters.evolve.EvolveGenerationAbortedException;
 import com.dreamthought.saaa.benchmarks.JmhBenchmarkRunner;
 import com.dreamthought.saaa.deterministic.BenchmarkRunner;
 import java.io.PrintWriter;
@@ -20,6 +21,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.Spec;
 
 @Command(
@@ -112,8 +114,9 @@ public final class EvolveCommand implements Callable<Integer> {
             description = "Name this run, which is what keeps one run's candidate worktrees, "
                     + "branches and ids apart from another's. Defaults to a timestamp, so repeat "
                     + "runs on the same folder no longer collide. Give one when you want the "
-                    + "worktree paths to be predictable, and expect a rerun with the same id to "
-                    + "fail on the worktree its first run left behind.")
+                    + "worktree paths to be predictable. A single-candidate rerun with the same id "
+                    + "fails on the worktree its first run left behind; a generation records every "
+                    + "such failed attempt and exits 1 when none produced evidence.")
     private String runId;
 
     @Spec
@@ -128,27 +131,27 @@ public final class EvolveCommand implements Callable<Integer> {
      */
     private void requireCoherentBenchmarkConfiguration() {
         if (benchmarks.isEmpty() && !benchmarkBudgets.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new ParameterException(spec.commandLine(),
                     "--benchmark-budget given without --benchmark, so nothing would be measured: "
                             + String.join(", ", benchmarkBudgets.keySet()));
         }
         var unmatched = new java.util.LinkedHashSet<>(benchmarkBudgets.keySet());
         unmatched.removeAll(benchmarks.keySet());
         if (!unmatched.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new ParameterException(spec.commandLine(),
                     "--benchmark-budget names benchmarks that were not requested with --benchmark: "
                             + String.join(", ", unmatched));
         }
         var unbudgeted = new java.util.LinkedHashSet<>(benchmarks.keySet());
         unbudgeted.removeAll(benchmarkBudgets.keySet());
         if (!unbudgeted.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new ParameterException(spec.commandLine(),
                     "--benchmark given without a matching --benchmark-budget, so it would be measured "
                             + "and then ignored by scoring: " + String.join(", ", unbudgeted));
         }
         benchmarkBudgets.forEach((name, budget) -> {
             if (budget == null || budget.isNaN() || budget.isInfinite() || budget <= 0.0) {
-                throw new IllegalArgumentException(
+                throw new ParameterException(spec.commandLine(),
                         "--benchmark-budget for " + name + " must be a positive finite number, got " + budget);
             }
         });
@@ -164,7 +167,7 @@ public final class EvolveCommand implements Callable<Integer> {
                         .map(entry -> new JmhBenchmarkRunner.BenchmarkDefinition(entry.getKey(), entry.getValue()))
                         .toList());
         if (operator == null && !requiredEvidence.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new ParameterException(spec.commandLine(),
                     "--required-evidence given without --operator, so nothing would declare it and "
                             + "nothing would gate on it: " + String.join(", ", requiredEvidence));
         }
@@ -175,7 +178,7 @@ public final class EvolveCommand implements Callable<Integer> {
                 declared.operator().wireName(), String.join(", ", declared.requiredEvidence())));
 
         if (candidates < 1) {
-            throw new IllegalArgumentException(
+            throw new ParameterException(spec.commandLine(),
                     "--candidates must be at least 1, got " + candidates);
         }
         var runner = new EvolveRunner(benchmarkRunner);
@@ -194,7 +197,21 @@ public final class EvolveCommand implements Callable<Integer> {
         } else {
             // The runner fans the ranking out to every reporter, this console one included, so
             // there is nothing to print here that it has not already printed.
-            journalPath = runner.runGeneration(request, reporter, candidates).journalPath();
+            try {
+                var result = runner.runGeneration(request, reporter, candidates);
+                journalPath = result.journalPath();
+                if (result.generation().evaluatedCount() == 0) {
+                    out.printf("  no candidate produced evidence; first failure: %s%n",
+                            result.generation().unevaluated().get(0).reason());
+                    out.printf("  journal    %s%n", journalPath);
+                    out.flush();
+                    return 1;
+                }
+            } catch (EvolveGenerationAbortedException failure) {
+                out.printf("  journal    %s%n", failure.journalPath());
+                out.flush();
+                throw failure;
+            }
         }
         out.printf("  journal    %s%n", journalPath);
         out.flush();

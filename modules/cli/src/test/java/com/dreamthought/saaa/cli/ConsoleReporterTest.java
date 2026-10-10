@@ -55,7 +55,8 @@ final class ConsoleReporterTest {
     void reportsTheGenerationOrderWinnerEvidenceCountAndSpread() {
         var output = new StringWriter();
         var reporter = new ConsoleReporter(new PrintWriter(output));
-        var promoted = result("candidate-run-c1", "0.81", FitnessDecision.PROMOTE);
+        var promoted = result("candidate-20261011T103000.123-utc-run-identifier-c1", "0.81",
+                FitnessDecision.PROMOTE);
         var discarded = result("candidate-run-c2", "0.95", FitnessDecision.DISCARD);
         var generation = new RankedGeneration(
                 List.of(promoted, discarded),
@@ -63,13 +64,16 @@ final class ConsoleReporterTest {
 
         reporter.generationRanked(generation);
 
-        assertThat(output.toString().lines().toList()).containsExactly(
+        var lines = output.toString().lines().toList();
+        assertThat(lines).containsExactly(
                 "  generation 2 of 3 candidates produced evidence",
-                "  rank 1     candidate-run-c1                         0.81  PROMOTE",
-                "  rank 2     candidate-run-c2                         0.95  DISCARD",
+                "  rank 1     candidate-20261011T103000.123-utc-run-identifier-c1 0.81  PROMOTE",
+                "  rank 2     candidate-run-c2                                    0.95  DISCARD",
                 "  no evidence attempt-3-of-3  IllegalStateException: no worktree",
                 "  spread     0.14",
-                "  winner     candidate-run-c1");
+                "  winner     candidate-20261011T103000.123-utc-run-identifier-c1");
+        assertThat(lines.get(1).indexOf("0.81"))
+                .isEqualTo(lines.get(2).indexOf("0.95"));
     }
 
     /**
