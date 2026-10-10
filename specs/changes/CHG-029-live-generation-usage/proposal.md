@@ -63,10 +63,16 @@ through `VariantProposer` (`EvolveRunner.java:224-235` and
 `EvolveRunner.java:385-408`); `--candidates N` and `--profile` already coexist
 on the command line (`EvolveCommandAcceptanceTest.java:329-334` and
 `EvolveCommandAcceptanceTest.java:522-526`). Nothing between the CLI and the
-adapter knows which proposer was resolved.
+adapter knows which proposer was resolved. One caveat, found in independent
+review: `VariantProposer` forwards `proposerEvidence()` to its delegate
+(`EvolveRunner.java:404-407`) but would not forward a *new* accessor unless
+made to — a default-empty usage accessor plus a non-delegating wrapper would
+silently record unavailable for every live candidate. T2 names the delegation
+an explicit requirement and pins it with a test (S5).
 
 **Usage is produced and dropped.** `AgentUsage` is a domain record of input
-tokens, output tokens, credits, wall clock and retries
+tokens, output tokens, credits, wall clock and retries, all primitive and all
+mandatory
 (`modules/domain/src/main/java/com/dreamthought/saaa/domain/AgentUsage.java:7-26`),
 carried by `AgentRunResult.usage`
 (`modules/domain/src/main/java/com/dreamthought/saaa/domain/AgentRunResult.java:13`).
@@ -86,6 +92,49 @@ journal's per-candidate entry carries commit, checks, score and decision, no
 usage (`modules/adapters/src/main/java/com/dreamthought/saaa/adapters/journal/JournalReporter.java:113-146`),
 and the ledger's migrations 1 to 3 define no usage table or column
 (`modules/adapters/src/main/java/com/dreamthought/saaa/adapters/sqlite/SqliteExperimentMetadataStore.java:179-313`).
+
+**Two defects found in independent review, both verified against the code and
+both closed by this change:**
+
+- **A measured zero and a placeholder zero are indistinguishable.** Because
+  `AgentUsage`'s fields are primitive (`AgentUsage.java:7-13`),
+  `AcpAgentHarness`'s placeholder zeros (`AcpAgentHarness.java:72,83`) are
+  numerically identical to an honestly measured zero, and no downstream
+  translation can recover which was meant. Availability must be declared per
+  field at the harness boundary — see "AgentUsage declares availability" below
+  and S8.
+- **The auditing model leaks tokens across invocations.** `AuditingChatModel`
+  sets `inputTokens`/`outputTokens` only when `tokenUsage()` is non-null and
+  never clears them (`LangChain4jMutationProposalAdapter.java:220-228`), while
+  `proposerEvidence()` reads whatever was last captured
+  (`LangChain4jMutationProposalAdapter.java:97-118`). So a response without a
+  usage block inherits the *previous* call's counts — in a generation,
+  candidate two would be recorded with candidate one's tokens. Today the leak
+  reaches only the candidate bookkeeping file; once this slice persists usage,
+  it would become durable audit data. The channel clears captured state at the
+  start of every invocation (T3), and S6's two-variant test is the standing
+  guard.
+
+**The price identity has no path today.** `S5` records provider and model
+beside usage because cost is comparable only between attempts whose price
+identity is known (ADR-0006 slice 0). But the openai-compatible path carries no
+route: `OpenAiCompatibleMutationProposerFactory` passes only the literal
+`"openai-compatible"` as the proposer id
+(`OpenAiCompatibleMutationProposerFactory.java:17-23`), and
+`LangChain4jMutationProposalAdapter` holds no route or model. The identity is
+available one step earlier: `ModelEndpointConfig` already carries `modelName`
+(`modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/ModelEndpointConfig.java:3`),
+which `OpenAiCompatibleChatModelFactory` passes into the model builder
+(`OpenAiCompatibleChatModelFactory.java:21-27`). The fix threads that config's
+model name through the mutation-proposer factory into the adapter, which stamps
+it on the observation (T3). The harness path needs nothing new: the invocation
+was made under an `AgentRoute` (`AgentRunResult.java:9`), which
+`AgentHarnessMutationProposer` already holds
+(`AgentHarnessMutationProposer.java:67-74`), and the registry constructs that
+route for the ACP profile today
+(`ProposerProfileRegistry.java:40-43`). A fixture candidate has neither, so its
+price identity is NULL — recorded as unavailable, never defaulted to a
+placeholder name.
 
 ## Q-013, settled
 
@@ -115,7 +164,7 @@ slice.** Comparing the realised tree rather than the proposal is the same
 instinct as the declared-locus gate — check the realisation, not the
 declaration — and it is the only answer that survives a proposer that varies
 its ids over identical patches. Q-013 is updated to answered with this
-recommendation and that residue (T6).
+recommendation and that residue (T8).
 
 **The mechanism constraint is real and named in Q-013:** the rule lives in
 `GenerationEvaluationLoop`, which sees only `FitnessResult`
@@ -123,11 +172,41 @@ recommendation and that residue (T6).
 `Candidate`, not the `Mutation`
 (`modules/domain/src/main/java/com/dreamthought/saaa/domain/FitnessResult.java:6-16`).
 So the per-candidate evaluation return widens to carry the `Mutation`
-alongside the result (T4). The single-candidate
+alongside the result (T6). The single-candidate
 `MutationEvaluationLoop.evaluate` signature is preserved for its current
 callers; `CandidateEvaluator` is shared by the single-candidate and generation
 paths (`EvolveRunner.java:121-147`), so the existing single-candidate tests and
 the CHG-026 acceptance suite are the regression net for the widening.
+
+## AgentUsage declares availability at the boundary
+
+The central domain decision, forced by the first review blocker: rather than
+adding a second usage type and translating between it and `AgentUsage`,
+**`AgentUsage` itself is redefined with per-field availability** (T1):
+
+- each consumption field — input tokens, output tokens, credits, wall clock,
+  retries — is optional; empty means *unobserved*, a present zero means a
+  *measured zero* (a fully cached call that billed nothing is a real
+  measurement), and present values reject negatives exactly as today
+  (`AgentUsage.java:14-22`);
+- it also carries an optional price identity — provider and model — for the
+  reason S5 records;
+- `AgentRunResult` keeps carrying it (`AgentRunResult.java:13`), so a harness
+  declares availability when it constructs the result: `AcpAgentHarness`
+  declares wall clock measured and the rest unavailable;
+  `MutationProposerAgentHarness` declares everything unavailable, because it
+  wraps a local proposer and nothing is invoked
+  (`MutationProposerAgentHarness.java:16-18`);
+- the placeholder-zero defect class is closed at construction, not by a
+  translator downstream: there is no longer a shape in which "0" can mean "I
+  didn't look".
+
+The blast radius is contained and compile-checked: `AgentUsage` is constructed
+only by the two harness adapters and tests (the grep-visible consumers are
+`AgentRunResult`, `AcpAgentHarness`, `MutationProposerAgentHarness` and their
+tests), and a record's components are checked everywhere at compile time, so
+T1 cannot half-land. `AgentUsage.none()` survives as the
+all-fields-unavailable spelling.
 
 ## Scenarios and acceptance mapping
 
@@ -173,38 +252,52 @@ model-chosen id is a hint and the patch is the substance.
 
 **S5.** *Given* a generation filled by the live proposer, *when* a candidate
 finishes its evaluation, *then* the ledger holds a usage row keyed to that
-candidate carrying the token counts the provider returned and the wall clock
-the adapter measured, with credits NULL, and the journal entry for the
-candidate shows the same.
+candidate carrying the provider and model it was proposed under, the token
+counts the provider returned and the wall clock the adapter measured, with
+credits NULL — and the model column equals the configured model name, which
+reached the observation through the factory threading described above.
 
 - `cli/EvolveCommandAcceptanceTest.aLiveGenerationRecordsEachCandidatesObservedUsage`
   — acceptance
 - `deterministic/MutationEvaluationLoopReportingTest.aCandidatesObservedUsageReachesTheStoreAndTheReporters`
   — unit
-- `adapters/SqliteExperimentMetadataStoreIntegrationTest.aCandidatesUsageIsRecordedWithUnobservedFieldsNull`
+- `adapters/SqliteExperimentMetadataStoreIntegrationTest.aCandidatesUsageIsRecordedWithPriceIdentityAndUnobservedFieldsNull`
   — integration
+- `adapters/EvolveRunnerTest.thePerCandidateWrapperForwardsTheProposersUsageChannel`
+  — unit (the wrapper-delegation pin: the fixture proposer reports a
+  distinctive usage, and a `VariantProposer` that drops the accessor records
+  unavailable and fails the test)
 
-**S6.** *Given* the provider's response carries no usage block for a candidate,
-*when* the candidate is evaluated, *then* its usage row records every
-unobserved field as unavailable and the run still completes — missing
-telemetry is not a candidate failure.
+**S6.** *Given* a generation of two from the live proposer, *when* variant
+one's response carries a distinctive usage block and variant two's response
+omits it, *then* variant two's usage row exists with its token fields NULL,
+variant one's row carries its own counts, and the run completes — an absent
+observation is recorded, never inherited and never zero.
 
-- `cli/EvolveCommandAcceptanceTest.aLiveCandidateWhoseProviderOmitsUsageIsRecordedAsUnavailableRatherThanZero`
+- `cli/EvolveCommandAcceptanceTest.aNoUsageResponseDoesNotInheritThePreviousCandidatesTokens`
+  — acceptance
+- `adapters/LangChain4jMutationProposalAdapterTest.aResponseWithoutUsageDoesNotInheritThePreviousCallsTokens`
+  — unit
+
+**S7.** *Given* a generation run with `--profile fixture`, *when* the
+candidates are evaluated, *then* one `candidate_usage` row exists per candidate
+with every field NULL — usage and price identity alike — because the fixture
+profile constructs `FixtureMutationProposer` directly
+(`ProposerProfileRegistry.java:37-38`), no model is ever invoked, and the
+default-empty channel accessor is the only honest report.
+
+- `cli/EvolveGenerationAcceptanceTest.aFixtureGenerationRecordsEveryCandidatesUsageAsUnavailable`
   — acceptance
 
-**S7.** *Given* a generation filled by the fixture proposer, which makes no
-model invocation at all, *when* a candidate is evaluated, *then* its usage row
-records every field as unavailable rather than as zeros.
+**S8.** *Given* the harness path, *when* two invocations report equal raw
+numbers with different availability — a measured zero against an unobserved
+field — *then* the recorded observations differ: the measured zero persists as
+zero and the unobserved field as unavailable. With primitive fields both would
+record identically, which is the shape the domain redefinition removes.
 
-- `adapters/SqliteExperimentMetadataStoreIntegrationTest.aFixtureCandidatesUsageIsRecordedAsUnavailableInEveryField`
-  — integration
-
-**S8.** *Given* a candidate proposed through the harness path, *when* the
-harness reports an `AgentUsage`, *then* the fields the harness actually
-measured survive into the candidate's usage row and its placeholder zeros are
-recorded as unavailable.
-
-- `adapters/AgentHarnessMutationProposerTest.measuredUsageSurvivesAndPlaceholderZerosBecomeUnavailable`
+- `adapters/AgentHarnessMutationProposerTest.equalRawValuesWithDifferentAvailabilityAreRecordedDifferently`
+  — unit
+- `domain/AgentUsageTest.aMeasuredZeroAndAnUnobservedFieldAreDifferentValues`
   — unit
 
 **S9.** *Given* a candidate's journal entry is written, *when* a person reads
@@ -216,35 +309,66 @@ as unavailable.
 
 ## Tasks
 
-Thin, independently green, one reviewable idea each.
+Thin, independently green, one reviewable idea each. Independent review found
+the first draft's T3 and T5 too broad; both split cleanly, and the split is
+recorded with each. T1 to T3 are the channel, T4 and T5 are the record, T6 is
+Q-013, T7 is the live fill, T8 is knowledge.
 
-- **T1** — domain value for observed agent usage with per-field availability:
-  each of input tokens, output tokens, credits, wall clock and retries is
-  optional; empty means unobserved; present zero means measured zero; present
-  values reject negatives exactly as `AgentUsage` does
-  (`AgentUsage.java:14-22`). Dependency-free, holding no policy.
-- **T2** — the proposer usage channel: a default-empty accessor on
-  `MutationProposer` following the `proposerEvidence` precedent
-  (`MutationProposer.java:36-38`), populated by
-  `LangChain4jMutationProposalAdapter` from its auditing model (tokens when the
-  provider reports them, wall clock measured around the call, credits and
-  retries unavailable) and by `AgentHarnessMutationProposer` translating
-  `AgentRunResult.usage` so measured fields survive and placeholder zeros
-  become unavailable.
-- **T3** — the usage record: ledger migration 4, an abstract `recordUsage` on
-  the `ExperimentMetadataStore` port following the `recordGeneration` precedent
-  that an abstract method cannot be silently no-opped
+- **T1** — `AgentUsage` redefined with per-field availability plus an optional
+  price identity, as specified above; `AgentRunResult` keeps carrying it; both
+  harness adapters declare availability at construction. Includes the
+  equal-raw-values-different-availability domain test (S8, domain half).
+  Compile-checked blast radius; lands green because every constructor is
+  updated in the same commit.
+- **T2** — the usage channel: a default-empty accessor on `MutationProposer`
+  following the `proposerEvidence` precedent (`MutationProposer.java:36-38`),
+  **and an explicit requirement that `EvolveRunner.VariantProposer` forwards
+  it** exactly as it forwards `proposerEvidence()`
+  (`EvolveRunner.java:404-407`), pinned by the wrapper-delegation test (S5)
+  whose fixture reports a distinctive usage and fails if the wrapper drops the
+  accessor. Green alone: the port and the wrapper change compile with the
+  default, and the test pins the delegation before any adapter populates it.
+- **T3** — the adapters populate the channel: `LangChain4jMutationProposalAdapter`
+  reports tokens when the provider returns them, wall clock measured around
+  the call, credits and retries unavailable, and the price identity whose model
+  is threaded from `ModelEndpointConfig` (`ModelEndpointConfig.java:3`,
+  `OpenAiCompatibleChatModelFactory.java:21-27`) through
+  `OpenAiCompatibleMutationProposerFactory` in place of only the literal
+  profile id (`OpenAiCompatibleMutationProposerFactory.java:17-23`).
+  `AuditingChatModel` clears captured state at the start of every invocation,
+  closing the stale-token leak (S6 unit). `AgentHarnessMutationProposer`
+  forwards `AgentRunResult.usage` unchanged — availability is explicit at the
+  source since T1, so there is no translation to get wrong (S8 adapter half).
+- **T4** — the ledger record, standalone: migration 4 adding `candidate_usage`
+  (provider, model, per-field NULL for unavailable, credits as exact decimal
+  text), an abstract `recordUsage` on the `ExperimentMetadataStore` port
+  following the `recordGeneration` precedent
   (`modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/ExperimentMetadataStore.java:12-18`),
-  `MutationEvaluationLoop` writing usage beside the fitness row
-  (`MutationEvaluationLoop.java:237`), and the journal's per-candidate usage
-  line.
-- **T4** — Q-013 settled in code: the per-candidate evaluation return carries
-  the `Mutation`, and `GenerationEvaluationLoop` compares `(id, patch)`.
-- **T5** — the live fill: the adapter overrides the variant entry point and
-  puts the variant into the prompt; WireMock acceptance tests for the filled
-  generation, same-id-different-patch ranking, the non-variation failure, and
-  usage recorded from per-variant stubs.
-- **T6** — knowledge and documentation in the same change: `Q-013` answered
+  the SQLite implementation, and direct integration tests writing and reading
+  rows (S5 integration). This is the first half of the first draft's T3; it is
+  independently green precisely because nothing consumes the port yet — the
+  store is tested directly.
+- **T5** — the wiring: `MutationEvaluationLoop` reads the channel and writes
+  usage beside the fitness row (`MutationEvaluationLoop.java:237`), the
+  reporter callback, the journal's per-candidate usage line (S9), the
+  loop-level store-and-reporter unit test (S5 unit) and the actual
+  `--profile fixture` generation acceptance that pins one all-NULL row per
+  candidate (S7). This is the second half of the first draft's T3; it is green
+  on top of T1 to T4 and is the commit that makes the channel observable.
+- **T6** — Q-013 settled in code: the per-candidate evaluation return carries
+  the `Mutation`, `GenerationEvaluationLoop` compares `(id, patch)` (S3, S4,
+  unit and WireMock acceptance). Independent of T2 to T5 — the rule change
+  touches neither the channel nor the ledger — and may land before or after
+  them.
+- **T7** — the live fill: the adapter overrides the variant entry point and
+  puts the variant into the model prompt (S1, S2), with WireMock acceptance for
+  a filled generation, for usage recorded from per-variant stubs (S5
+  acceptance) and for the two-variant stale-state guard (S6 acceptance). This
+  was the first draft's T5; the Q-013 acceptance tests moved to T6 because they
+  belong to the rule change, not the prompt change — a stub can return
+  identical or same-id responses without the variant marker, so T6 needs
+  nothing from T7 and the two halves stay independently green.
+- **T8** — knowledge and documentation in the same change: `Q-013` answered
   with the recommendation and the surviving alternative, ADR-0006 slice 0 noted
   as delivered, HANDOFF, README and wiki updated where they name this gap.
 
@@ -269,13 +393,13 @@ create table if not exists candidate_usage (
 
 The rules that make this honest rather than merely present:
 
-- **Price identity is recorded beside the usage.** `provider` and `model` come
-  from the `AgentRoute` the request was made under, so a later cost comparison
-  can tell whether two candidates' usage was incurred at the same price. ADR-0006
-  slice 0 requires it: cost is only comparable between attempts whose price
-  identity is known. They are NULL for a fixture candidate, which had no route,
-  and never defaulted to a placeholder name.
-
+- **Price identity is recorded beside the usage.** `provider` and `model` are
+  the observation's price identity: `openai-compatible` and the configured
+  model name on the live path (threaded per T3), the `AgentRoute`'s provider
+  and model on the harness path, and NULL for a fixture candidate, which had
+  no route. They are never defaulted to a placeholder name. ADR-0006 slice 0
+  requires it: cost is only comparable between attempts whose price identity is
+  known.
 - **Every field is nullable, and NULL means unavailable — never zero.** A zero
   is a measurement claim: zero tokens billed, zero credits spent. A field the
   proposer did not observe is recorded as unavailable, per AGENTS.md ("say
@@ -283,7 +407,9 @@ The rules that make this honest rather than merely present:
   decision 4 ("Missing usage or price evidence is recorded as unavailable
   rather than invented"). The precedent is migration 3's nullable spread:
   inventing a zero would read as a finding rather than an absence
-  (`SqliteExperimentMetadataStore.java:263-268`).
+  (`SqliteExperimentMetadataStore.java:263-268`). The domain value makes the
+  distinction before the schema is asked to: a present zero in `AgentUsage`
+  persists as zero and an empty field as NULL, which is what S8 pins.
 - **`credits_consumed` is exact decimal text**, not a SQLite real. Credits are
   money, and `RISK-007` is the recorded cost of letting a rounded
   representation become the value of record. For every proposer in this slice
@@ -303,17 +429,18 @@ The rules that make this honest rather than merely present:
 
 ## How determinism is kept
 
-- **Nothing provider-aware enters `modules/deterministic`.** The new domain
-  value is a plain record of optionals. The port additions —
-  `MutationProposer.proposalUsage()` and `ExperimentMetadataStore.recordUsage`
+- **Nothing provider-aware enters `modules/deterministic`.** The redefined
+  `AgentUsage` is a plain domain record of optionals. The port additions —
+  `MutationProposer`'s usage accessor and `ExperimentMetadataStore.recordUsage`
   — carry that domain value and nothing else. The LangChain4j boundary fitness
   function continues to scan `modules/domain` and `modules/deterministic` for
   provider imports.
 - **All measurement happens in adapters.** Token counts come from the provider
   response inside `AuditingChatModel`; wall clock is measured around the call
-  in the adapter; the ACP translation keeps only fields the harness measured.
-  The deterministic layer transports and persists values it did not produce,
-  exactly as it persists `BenchmarkEvidence` it did not measure.
+  in the adapter; availability is declared by the harness that did or did not
+  observe each field. The deterministic layer transports and persists values it
+  did not produce, exactly as it persists `BenchmarkEvidence` it did not
+  measure.
 - **The live proposer stays in adapters.** Profile resolution stays in
   `ProposerProfileRegistry` (`modules/adapters/.../evolve/ProposerProfileRegistry.java:21-60`),
   and LangChain4j stays inside `adapters/langchain4j`.
@@ -336,7 +463,7 @@ The rules that make this honest rather than merely present:
 - cost per successful task, Pareto comparison and any cross-candidate cost
   aggregation — ADR-0006 slice F;
 - credit or price estimation of any kind;
-- variant-aware prompting for the ACP harness proposer. Its usage translation
+- variant-aware prompting for the ACP harness proposer. Its usage forwarding
   lands here (S8); its generation-filling does not. `openai-compatible` is the
   one live proposer this slice fills;
 - parallel candidate evaluation. The usage channel shares the
@@ -358,10 +485,10 @@ disarms each:
 | S2 | A generation could look filled while the variant never reached the proposer | The stub's per-variant answers are reachable only through the marker, so N distinct candidates exist only if the marker did |
 | S3 | Any non-zero exit — unmatched stub, validation rejection — would satisfy a bare "run fails" assertion | The assertion pins the reason: the message must name the repeated id and that the patch matched, not only that the run failed |
 | S4 | Exit zero would pass even if the second candidate had been quietly dropped | The test asserts two ranking rows exist in the ledger for the two distinct candidates, not only that the run succeeded |
-| S5 | A key written whatever the outcome: asserting a usage row exists, or any token count, passes against a constant or zero write | Per-variant stubs return distinctive token counts; each candidate's row is asserted equal to its own variant's values; credits are asserted NULL, not merely unasserted |
-| S6 | A fixture that already satisfies it: if the stub carried usage, "unavailable" assertions would be vacuous | The stub omits the usage block entirely, so a store that wrote zeros is caught, and the completing run proves missing telemetry is not a failure |
-| S7 | `AgentUsage.none()` is all zeros, so a store persisting the placeholder would look exactly like a correct write to a zero-assertion | The test asserts every field NULL, which a persisted placeholder fails |
-| S8 | Forwarding `AgentUsage` raw would record ACP's placeholder zeros as measurements | The test supplies a result with measured wall clock and placeholder zeros, and asserts wall clock survives while tokens and credits are unavailable |
+| S5 | A key written whatever the outcome: asserting a usage row exists, or any token count, passes against a constant or zero write — and a usage accessor dropped by the per-candidate wrapper would record unavailable for every live candidate while every store-level test stays green | Per-variant stubs return distinctive token counts and each candidate's row is asserted equal to its own variant's values; the model column is asserted equal to the configured model name rather than non-null; the wrapper-delegation test pins the channel through `VariantProposer` with a fixture whose usage cannot be mistaken for the default |
+| S6 | A single-candidate "absent usage" test cannot fail for the stale-state defect, because an empty store has nothing to inherit from | Two variants: variant one carries distinctive usage, variant two none. Variant two's NULLs prove the absence was recorded; variant one's asserted values prove the bleed had something to be caught against |
+| S7 | A store persisting `AgentUsage.none()` zeros, or inventing a placeholder provider, looks identical to a correct write unless NULL is asserted — and the fixture profile never touches a harness adapter, so a harness-level test would not cover it | The test runs an actual `--profile fixture` generation (`ProposerProfileRegistry.java:37-38` constructs the proposer directly) and asserts one row per candidate with every field NULL |
+| S8 | With primitive fields, a measured zero and an unobserved field record identically; any test on that shape is vacuous for the distinction that matters | The test uses equal raw values with different availability and asserts the records differ; the domain redefinition makes the distinction expressible at construction |
 | S9 | A positive-wall-clock assertion would be flaky, not wrong: a fast stub can complete inside zero milliseconds | Wall clock is asserted present, never asserted positive |
 
 Further risks:
@@ -371,16 +498,21 @@ Further risks:
   case option 3 (realised-tree identity) closes, recorded as the destination in
   Q-013 rather than built here — the same scoping CHG-026 used to keep a
   ranking defect and a proposer defect from arriving together.
-- **The channel is order-dependent.** `proposalUsage()` is per-candidate
+- **The channel is order-dependent.** The usage accessor is per-candidate
   latest-proposal state, as `proposerEvidence()` already is. It is sound under
   sequential evaluation only; the parallelism non-goal exists so the assumption
   cannot erode unnoticed, and any future parallel slice must move usage onto
-  the returned value.
+  the returned value. The `AuditingChatModel` stale-state defect is what this
+  shape does when done carelessly; the per-invocation clearing in T3 and S6's
+  two-variant test are the standing guard.
 - **The widening touches a shared port.** `CandidateEvaluator` serves both the
   single-candidate and generation paths (`EvolveRunner.java:121-147`). The
   widening preserves the `MutationEvaluationLoop.evaluate` signature its
   current callers use, and the CHG-026 acceptance suite plus the existing
   single-candidate tests are the regression net.
+- **Redefining `AgentUsage` is a compile-checked blast radius.** Every harness
+  adapter construction updates in T1's commit; that is intended, and it is what
+  closes the placeholder-zero class rather than translating around it.
 - **Cost realism.** A live-filled generation costs real tokens per candidate in
   production use. In tests it costs none: no test may require a real provider.
 
@@ -388,7 +520,7 @@ Further risks:
 
 - **Retries visibility.** Whether the LangChain4j client retries internally is
   not determinable from this repository. `AuditingChatModel` sees one `doChat`
-  per proposal (`LangChain4jMutationProposalAdapter.java:220-229`), so the
+  per proposal (`LangChain4jMutationProposalAdapter.java:220-228`), so the
   adapter cannot claim zero retries happened inside the client. Until this is
   known, `retries` is recorded as unavailable from the openai-compatible
   adapter rather than as zero.
