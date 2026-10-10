@@ -61,7 +61,8 @@ boundary.
 ## Delivery
 
 The ADR names a prerequisite and six independently shippable slices. The
-prerequisite, slice 0, is a live proposer filling a generation with its
+prerequisite, slice 0 (delivered as a mechanism by CHG-029, not yet measured
+against a real provider), is a live proposer filling a generation with its
 `AgentUsage` recorded, because cost per successful task cannot be measured
 without it. Then: profile contract, deterministic selection, progressive
 escalation and cumulative usage, failure-directed adaptation, trace/eval corpus

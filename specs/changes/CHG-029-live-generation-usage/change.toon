@@ -179,7 +179,7 @@ tasks:
     status: completed
   - id: T8
     slice: knowledge and documentation in the same change - Q-013 marked answered with the recommendation and the surviving alternative, ADR-0006 slice 0 noted as delivered, and HANDOFF, README and wiki updated where they name this gap
-    status: pending
+    status: completed
 
 non_goals:
   - harness profiles, deterministic profile selection and progressive escalation, which are ADR-0006 slices A to C and each need their own change

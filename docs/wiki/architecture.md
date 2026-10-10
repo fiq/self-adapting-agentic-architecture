@@ -88,9 +88,15 @@ it adds is a comparison.
 - **A repeated mutation does abort it.** Two candidates carrying the same
   mutation would still get distinct ids from the namespace, so nothing downstream
   would notice one candidate evaluated twice. That is the proposer failing to
-  vary rather than a candidate failing, so it fails the run. The comparison is on
-  the mutation id, which is exact for the fixture proposer and blunt for a live
-  one whose ids the model chooses; see `Q-013`.
+  vary rather than a candidate failing, so it fails the run. Two candidates are
+  the same mutation only when their id and exact patch both match, so a live
+  model reusing an id over a genuinely different patch still ranks; see `Q-013`,
+  answered by `CHG-029`.
+- **Every candidate's usage is recorded.** The proposer reports the usage it
+  observed while proposing, and the loop writes it beside the fitness row in the
+  `candidate_usage` ledger table and the journal. A field nobody observed is
+  NULL, read as unavailable, never zero; the price identity is the model the
+  provider's response declared, never the one requested.
 - **It retrieves once, for the whole generation.** This one is not an
   optimisation, and it is the defect independent review found. Retrieval is not a
   pure read: each candidate projects its outcome into durable evolutionary memory
@@ -203,9 +209,10 @@ deterministic validation -> fitness -> promote/discard
 - The ACP adapter can reject a request whose configured token, credit or
   wall-clock allowance is already exhausted.
 - ACP 0.14.0 does not expose provider billing or token usage through this
-  adapter, so runtime usage is currently authoritative only for wall-clock
-  duration; token, credit and retry values are request policy and audit inputs
-  until a richer usage contract is added.
+  adapter, so the ACP harness reports only the wall clock it measured and records
+  every other usage field as unavailable (`CHG-029`), rather than the zeros it
+  used to report. Token, credit and retry values remain request policy and audit
+  inputs until a richer usage contract is added.
 - Goose, OpenCode, Codex, Claude and direct model APIs are intentionally
   adapters, not architectural authorities. This keeps the harness swappable and
   lets experiments compare agent engines under the same candidate, resource and
