@@ -125,16 +125,23 @@ route: `OpenAiCompatibleMutationProposerFactory` passes only the literal
 available one step earlier: `ModelEndpointConfig` already carries `modelName`
 (`modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/ModelEndpointConfig.java:3`),
 which `OpenAiCompatibleChatModelFactory` passes into the model builder
-(`OpenAiCompatibleChatModelFactory.java:21-27`). The fix threads that config's
-model name through the mutation-proposer factory into the adapter, which stamps
-it on the observation (T3). The harness path needs nothing new: the invocation
-was made under an `AgentRoute` (`AgentRunResult.java:9`), which
-`AgentHarnessMutationProposer` already holds
-(`AgentHarnessMutationProposer.java:67-74`), and the registry constructs that
-route for the ACP profile today
-(`ProposerProfileRegistry.java:40-43`). A fixture candidate has neither, so its
-price identity is NULL — recorded as unavailable, never defaulted to a
-placeholder name.
+(`OpenAiCompatibleChatModelFactory.java:21-27`). A requested model is
+not proof of the model that answered, so the price identity is taken from what
+the provider reports: LangChain4j's `ChatResponse` carries the model name the
+response declares, and the adapter stamps that on the observation (T3). Where
+the response declares none, the model is NULL. The configured model name is
+threaded through the factory (T3) only so the provider column can say
+`openai-compatible` and so a mismatch between requested and reported model is
+visible in the journal; it is never written as the price identity.
+
+The harness path does **not** get a price identity from its route. `AgentRoute`
+documents itself as recording "intent, not provider proof"
+(`AgentRoute.java:3`), and the ACP profile's route names its model as the literal
+`"configured"` (`ProposerProfileRegistry.java:40-43`). Writing that as a price
+identity would be exactly the placeholder this change exists to remove. Until an
+ACP agent reports the model it actually used, the harness path records provider
+and model as NULL, and the route stays where it already is, in the audit of what
+was intended. A fixture candidate has no identity either, and is NULL too.
 
 ## Q-013, settled
 
@@ -393,11 +400,12 @@ create table if not exists candidate_usage (
 
 The rules that make this honest rather than merely present:
 
-- **Price identity is recorded beside the usage.** `provider` and `model` are
-  the observation's price identity: `openai-compatible` and the configured
-  model name on the live path (threaded per T3), the `AgentRoute`'s provider
-  and model on the harness path, and NULL for a fixture candidate, which had
-  no route. They are never defaulted to a placeholder name. ADR-0006 slice 0
+- **Price identity is recorded beside the usage, and only when observed.**
+  `provider` and `model` are the observation's price identity: on the live path,
+  `openai-compatible` and the model name the provider's response declares; on the
+  harness path NULL, because an `AgentRoute` records intent and the ACP route's
+  model is the placeholder `"configured"`; NULL for a fixture candidate. They are
+  never defaulted to a placeholder or copied from a request. ADR-0006 slice 0
   requires it: cost is only comparable between attempts whose price identity is
   known.
 - **Every field is nullable, and NULL means unavailable — never zero.** A zero
