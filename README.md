@@ -1,12 +1,137 @@
 # SAAA — self-adapting-agentic-architecture
 
-SAAA takes one proposed change to one file, realises it in an isolated Git
-worktree, runs check scripts you wrote against that worktree, turns the results
-into a score with fixed code, and records promote or discard. Nothing merges.
+**Measuring whether a better harness lets a smaller model do the work.**
+
+SAAA is an experimental platform for measuring and improving the system around
+an AI agent: its context, tools, retrieval, workflow, verification and model
+route. That system is the agent's harness.
+
+The central question is simple:
+
+> Given this task, repository and budget, what is the cheapest harness that can
+> reliably do the work?
+
+Today teams mostly answer that by intuition: pick a capable model, add an
+`AGENTS.md`, bolt on tools and retrieval, perhaps add subagents, and keep tuning
+until the result feels better. SAAA treats that agentic development process as
+software that can be executed, measured, compared and evolved.
+
+```text
+          agentic harness
+  model + context + tools + workflow
+                 |
+                 v
+          isolated candidate
+                 |
+                 v
+       real checks + benchmarks
+                 |
+                 v
+        deterministic evidence
+                 |
+                 v
+        promote / discard
+```
+
+The model may propose or repair. It never gets to approve its own result.
+Validation, gates, scoring and promotion remain deterministic Java decisions.
+
+## Why this matters
+
+An agent is not just its model. The harness determines how much of the model's
+capability reaches the task — and how much is wasted rediscovering context,
+choosing among irrelevant tools, recovering from avoidable loops or repeating
+reasoning that could have been encoded once in the system around it.
+
+That makes harness engineering especially important for smaller, local and
+lower-cost models. Instead of asking a cheaper model to imitate a frontier
+model inside a harness designed for the frontier model, the harness itself can
+absorb repeated task difficulty:
+
+```text
+frontier model repeatedly has to:
+  inspect structure
+  find the right files
+  find tests
+  infer conventions
+  choose tools
+  plan recovery
+
+adapted harness can supply:
+  bounded repo map
+  relevant context
+  smaller typed tool set
+  explicit workflow
+  deterministic verifier
+  bounded retry/escalation
+```
+
+Recent results make this more than a theoretical optimisation:
+
+- **Better Harnesses, Smaller Models** (Yang et al., 2026) reports significant
+  gains from automatically adapted harnesses on 16 of 21 small-model/task
+  combinations; seven closed the small-model/frontier gap, and the best adapted
+  small-model agent recovered 89.7% of frontier-agent performance at 4% of the
+  cost.
+- **LangChain's model-router experiment** reported a 64% reduction in median
+  coding-agent thread cost versus always using its performance tier, with no
+  measurable quality change in the reported outcome signals. Their conclusion
+  is important for SAAA: routing belongs in the harness because the harness has
+  the task and domain context a generic gateway lacks.
+- **LangChain's Nemotron harness study** tuned the harness, not the model
+  weights, and took a cheaper model's best run on its Deep Agents suite to 0.86
+  against Opus 4.8's best of 0.87, at roughly a tenth of the cost. A typical
+  tuned run scored about 0.84.
+
+Sources:
+
+- https://arxiv.org/abs/2607.08938
+- https://www.langchain.com/blog/how-to-build-a-model-router-in-the-harness
+- https://www.langchain.com/blog/tuning-the-harness-not-the-model-a-nemotron-3-ultra-playbook
+
+Those results do **not** imply that scaffolding can replace missing model
+capability. They support a narrower and more useful proposition: many routine
+agent failures come from model-harness-task mismatch, and the harness is an
+optimisation surface worth measuring empirically.
+
+That is SAAA's job.
+
+## What SAAA does
+
+SAAA takes a proposed harness or workflow change, realises it in an isolated
+Git worktree, runs evidence you control against the real candidate, scores
+what was actually observed and records the result. Nothing merges.
 
 ```text
 proposal -> isolated Git candidate -> measured evidence -> fixed decision -> promote or discard
 ```
+
+Everything the loop believes should ultimately come from evidence. A fluent
+model statement is not evidence. A proposed workflow is executed rather than
+admired. A candidate that cannot satisfy declared checks cannot talk its way
+past them.
+
+The longer-term direction, proposed in
+[ADR-0006](docs/decisions/0006-budget-aware-harness-optimisation.md) and not yet
+built, is to use that same empirical loop to select and improve harness policy
+itself, first over a fixed evaluation corpus:
+
+```text
+new task
+   |
+   v
+cheapest known-good harness/profile
+   |
+   +-- verified success -> done
+   |
+   `-- failure -> spend the next unit of capability deliberately
+                    |
+                    v
+                 retry / richer harness / stronger model
+```
+
+The useful economic measure is therefore not simply tokens per call. It is
+**cost per successful task at the required quality**.
 
 Why this exists: two failure modes follow every model around. It can state,
 fluently, something that is not so — hallucination. And it learned from a
@@ -17,23 +142,39 @@ because the same model ends up grading its own homework.
 The counterweight is empiricism plus determinism. Everything the loop believes,
 it measured: a proposal is executed, not read, and its score comes from check
 scripts you wrote, run against an isolated worktree. Everything it decides,
-fixed code decides: validation, the pass-or-fail gates, the weighted objectives,
-the 0.80 promotion threshold and the promote-or-discard rule are plain Java
-that the model cannot talk its way past. A model may propose or repair a
-candidate, but it must never approve its own result.
+fixed code decides: validation, the pass-or-fail gates, the weighted
+objectives, the 0.80 promotion threshold and the promote-or-discard rule are
+plain Java that the model cannot talk its way past.
 
-The intended target is what an agent depends on rather than the agent itself: a
-workflow definition, a prompt policy, a tool-selection strategy, a set of
-guardrails. Anything that is a file and can be graded by a script exiting 0 or 1.
-The gates and the weighted sum are explained under
-[Fitness and the decision](#fitness-and-the-decision); you do not need them yet.
+The intended target is what an agent depends on rather than the agent itself:
+a workflow definition, a prompt policy, a tool-selection strategy, a set of
+guardrails. Anything that is a file and can be graded by a script exiting 0 or
+1. The gates and the weighted sum are explained under
+[Fitness and the decision](#fitness-and-the-decision); you do not need them
+yet.
 
 This is an experiment, and an early one. The loop runs end to end for one
-candidate per run. The default proposer is a canned file, so a stock run proves
-the pipe rather than that a model has good ideas, and no run measures a
-benchmark unless `--benchmark` says which one to run. [Why this
-shape](#why-this-shape) covers the genetic-programming lineage it is borrowing
-from and what the borrowing is for.
+candidate per run, or several as one generation with `--candidates`. The
+default proposer is a canned file, so a stock run proves the pipe rather than
+that a model has good ideas, and no run measures a benchmark unless
+`--benchmark` says which one to run. [Why this shape](#why-this-shape) covers
+the genetic-programming lineage it is borrowing from and what the borrowing is
+for.
+
+## What is runnable today
+
+The empirical spine is already real: SAAA can propose or receive a change,
+isolate it in a Git worktree, execute declared checks, record evidence, score
+and decide, and evaluate several candidates as one generation. It also has a
+provider-neutral `AgentHarness` boundary, resource-budget and usage types,
+retrieval treatments, an ACP (Agent Client Protocol) adapter, MCP (Model
+Context Protocol) exposure and a local experiment ledger.
+
+The project is deliberately staged. Current implementation status is
+documented below so shipped capability remains distinguishable from the
+direction being explored; the point of the project is not to pretend the
+research programme is finished, but to make each claim earn evidence before it
+becomes architecture.
 
 ```sh
 git clone https://github.com/fiq/self-adapting-agentic-architecture
@@ -59,7 +200,7 @@ No model credentials required. Real output:
 The fixture baseline deliberately fails `workflow-check.sh` and the canned
 proposal fixes it, so the run promotes.
 
-## What is real today
+## Current implementation
 
 ### Harness-agnostic execution boundary
 
@@ -716,6 +857,9 @@ tool-unavailable fallback is in `AGENTS.md`.
 - `PROJECT_PROFILE.toon` records current evidence-backed architecture state.
 - `docs/architecture/module-boundaries.md` records module boundaries.
 - `docs/context-store.md` records the repo-native context-store model.
+- `docs/decisions/0006-budget-aware-harness-optimisation.md` records the
+  proposed budget-aware harness-optimisation direction: SAAA as the harness
+  control plane rather than another agent runtime.
 - `specs/capabilities/CAP-001-mutation-fitness-loop.toon` records the first
   living capability.
 - `specs/changes/CHG-001-mutation-fitness-loop/` records the first accepted
