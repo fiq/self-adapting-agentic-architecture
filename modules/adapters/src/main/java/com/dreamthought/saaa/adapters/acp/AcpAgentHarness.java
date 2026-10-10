@@ -20,6 +20,8 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -69,7 +71,7 @@ public final class AcpAgentHarness implements AgentHarness {
                     Optional.of(mutation),
                     Optional.of(session.sessionId()),
                     Optional.of(digest(rawOutput)),
-                    new AgentUsage(0, 0, java.math.BigDecimal.ZERO, elapsedMillis(started), 0),
+                    usageWithMeasuredWallClock(started),
                     Optional.empty());
         } catch (RuntimeException exception) {
             AgentRunStatus status = isTimeout(exception)
@@ -80,7 +82,7 @@ public final class AcpAgentHarness implements AgentHarness {
                     Optional.empty(),
                     Optional.empty(),
                     rawOutput.isBlank() ? Optional.empty() : Optional.of(digest(rawOutput)),
-                    new AgentUsage(0, 0, java.math.BigDecimal.ZERO, elapsedMillis(started), 0),
+                    usageWithMeasuredWallClock(started),
                     Optional.of(safeFailure(exception)));
         } finally {
             if (client != null) {
@@ -157,6 +159,16 @@ public final class AcpAgentHarness implements AgentHarness {
     private static AgentRunResult rejected(AgentRequest request, String reason) {
         return new AgentRunResult(AgentRunStatus.REJECTED, request.route(), Optional.empty(), Optional.empty(),
                 Optional.empty(), AgentUsage.none(), Optional.of(reason));
+    }
+
+    private static AgentUsage usageWithMeasuredWallClock(long started) {
+        return new AgentUsage(
+                OptionalLong.empty(),
+                OptionalLong.empty(),
+                Optional.empty(),
+                OptionalLong.of(elapsedMillis(started)),
+                OptionalInt.empty(),
+                Optional.empty());
     }
 
     private static String digest(String value) {

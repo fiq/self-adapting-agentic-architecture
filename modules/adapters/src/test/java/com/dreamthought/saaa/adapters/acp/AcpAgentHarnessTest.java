@@ -54,6 +54,12 @@ final class AcpAgentHarnessTest {
         assertThat(result.status()).isIn(AgentRunStatus.FAILED, AgentRunStatus.TIMED_OUT);
         assertThat(result.mutation()).isEmpty();
         assertThat(result.failureReason()).isPresent();
+        assertThat(result.usage().inputTokens()).isEmpty();
+        assertThat(result.usage().outputTokens()).isEmpty();
+        assertThat(result.usage().creditsConsumed()).isEmpty();
+        assertThat(result.usage().wallClockMillis()).isPresent();
+        assertThat(result.usage().retries()).isEmpty();
+        assertThat(result.usage().priceIdentity()).isEmpty();
     }
 
     private static AgentRequest request(ResourceBudget budget) {

@@ -155,7 +155,7 @@ acceptance:
 tasks:
   - id: T1
     slice: AgentUsage redefined with per-field availability - each consumption field optional (empty means unobserved, present zero means measured zero, present values reject negatives exactly as AgentUsage does today at AgentUsage.java:14-22) plus an optional price identity of provider and model. AgentRunResult keeps carrying it (AgentRunResult.java:13), so availability is declared at the harness boundary and the placeholder-zero defect class is closed at construction. AcpAgentHarness declares wall clock measured and the rest unavailable; MutationProposerAgentHarness declares everything unavailable. Includes the equal-raw-values-different-availability domain test (S8)
-    status: pending
+    status: completed
   - id: T2
     slice: the usage channel - a default-empty accessor on MutationProposer following the proposerEvidence precedent (MutationProposer.java:36-38), and an explicit requirement that EvolveRunner.VariantProposer forwards it exactly as it forwards proposerEvidence() (EvolveRunner.java:404-407), pinned by a wrapper-delegation test whose fixture reports a distinctive usage and fails if the wrapper drops the accessor (S5)
     status: pending
