@@ -71,9 +71,11 @@ The application does not yet select models by task complexity.
 harness around existing agents, starting with deterministic cheap-first profiles
 and evidence-backed escalation rather than becoming another agent runtime.
 
-`Q-010` remains the evidence question. Remaining tokens, provider credits,
-wall-clock budget, rate limits and retry allowance are explicit strategy state,
-but no automatic selector should ship until real `AgentUsage`, price identity
+`Q-010` remains the evidence question. It proposes that remaining tokens,
+provider credits, wall-clock budget, rate limits and retry allowance become
+explicit strategy state. Today `ResourceBudget` carries the first four as limits
+on one invocation, nothing selects on them, and rate limits are not represented
+at all. No automatic selector should ship until real `AgentUsage`, price identity
 and representative task outcomes show that the policy lowers cost per successful
 task without hiding failures or degrading quality.
 

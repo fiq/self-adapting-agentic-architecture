@@ -122,10 +122,18 @@ HarnessProfile
 |- retrieval policy
 |- tool policy
 |- workflow policy
-|- verification policy
+|- self-check policy
 |- retry/escalation policy
 `- resource limits
 ```
+
+The self-check policy is what the agent does to test its own work inside an
+attempt, such as running the tests before it answers. It is not the acceptance
+check. The checks that decide whether an attempt succeeded, and every gate and
+fitness rule, are fixed for the task before any profile is selected. No profile
+may choose, remove, reorder or weaken them, and selecting a different profile
+never changes what counts as success. Otherwise selection could buy a pass by
+choosing an easier verifier, which is a gate change by another route.
 
 The first delivered type must be smaller than this list. Do not model every
 future harness dimension before one selection policy needs it. What matters now
@@ -169,6 +177,12 @@ whether an attempt succeeded. A task without one is not eligible. For such a
 task escalation has no trigger, and the policy fails closed rather than guessing
 whether the cheap attempt was good enough.
 
+A verifier is necessary but not sufficient. Each attempt must also start from
+the same clean state, in its own isolated worktree, with no external effects
+that outlive it. Otherwise a failed cheap attempt can leave behind changes that
+alter the next attempt's evidence, and the escalated result is no longer
+comparable with the one it replaced.
+
 ### 4. Treat resource state as routing input, not merely an invocation limit
 
 `ResourceBudget` already expresses the right dimensions. Selection and
@@ -178,13 +192,15 @@ escalation may consume:
 - remaining provider credits;
 - remaining wall-clock budget;
 - retry allowance;
-- declared provider or local-runtime availability.
+- declared provider or local-runtime availability, which is not a
+  `ResourceBudget` dimension and would be declared alongside it.
 
 Every decision is recorded before invocation. Missing usage or price evidence is
 recorded as unavailable rather than invented.
 
-`AgentUsage` is accumulated across attempts so the useful economic unit can
-become **cost per successful task**, not merely tokens per call.
+`AgentUsage` is to be accumulated across attempts, so that the useful economic
+unit becomes **cost per successful task**, not merely tokens per call. Nothing
+accumulates it today; slice 0 is where it starts being recorded.
 
 ### 5. Keep quality, cost and latency as separate evidence
 
@@ -283,7 +299,7 @@ selection and escalation contracts are proven.
 Do not implement this programme as one branch. Allocate `CHG-*` ids when each
 slice is actually proposed.
 
-### Slice 0 - the prerequisite: measured usage from a live proposer
+### Slice 0 - the prerequisite for real cost: measured usage from a live proposer
 
 Cost per successful task cannot be measured today, for two reasons:
 
@@ -294,11 +310,18 @@ Cost per successful task cannot be measured today, for two reasons:
 
 The first slice is therefore the one ADR-0002 already names as Layer 1's gap: a
 live proposer filling a generation, with each candidate's `AgentUsage`
-recorded beside its evidence. `Q-013`, which asks how variants in a generation
+recorded beside its evidence, together with the provider and model price
+identity it was incurred under. Where usage or a price is unavailable, it is
+recorded as unavailable, never as zero and never estimated; cost is only
+comparable between attempts whose price identity is known. `Q-013`, which asks how variants in a generation
 are identified when the proposer chooses its own mutation ids, has to be settled
 as part of it.
 
-Nothing in slices A to F can be evaluated until this exists.
+Slices A to C can be built and tested before this exists, using declared tiers,
+explicit task facts and controlled `AgentUsage` through the `AgentHarness` port.
+What cannot happen without it is any empirical claim about real cost: no slice
+may report cost per successful task, or compare profiles on cost, until slice 0
+supplies measured usage and price identity.
 
 ### Slice A - harness-profile contract
 
