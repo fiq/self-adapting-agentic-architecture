@@ -173,7 +173,7 @@ tasks:
     status: completed
   - id: T6
     slice: Q-013 settled in code - the per-candidate evaluation return carries the Mutation that produced it, and GenerationEvaluationLoop compares (id, patch): same id with same patch fails naming non-variation, same id with different patches ranks (S3, S4, unit and WireMock acceptance). The single-candidate MutationEvaluationLoop.evaluate signature is preserved for its current callers. Independent of T2 to T5 and may land before or after them
-    status: pending
+    status: completed
   - id: T7
     slice: the live fill - LangChain4jMutationProposalAdapter overrides the variant entry point and puts the variant into the model prompt (S1, S2), with the WireMock acceptance for a filled generation, for usage recorded from per-variant stubs (S5 acceptance) and for the two-variant stale-state guard (S6 acceptance)
     status: pending

@@ -190,6 +190,14 @@ public final class MutationEvaluationLoop {
     }
 
     public FitnessResult evaluate(MutationProposalRequest request) {
+        return evaluateCandidate(request).fitnessResult();
+    }
+
+    /**
+     * Evaluates one proposed candidate while retaining the mutation that produced its result for a
+     * generation-level identity check.
+     */
+    public CandidateEvaluation evaluateCandidate(MutationProposalRequest request) {
         Objects.requireNonNull(request, "request");
         var retrieval = Objects.requireNonNull(
                 evidenceRetriever.retrieve(request.retrievalQuery()), "retrieval bundle");
@@ -199,7 +207,8 @@ public final class MutationEvaluationLoop {
                         request.baseline(), request.retrievalQuery(), retrieval)),
                 "mutation");
         AgentUsage usage = Objects.requireNonNull(mutationProposer.usage(), "usage");
-        return evaluateProposed(request.baseline(), mutation, usage, retrieval);
+        return new CandidateEvaluation(
+                mutation, evaluateProposed(request.baseline(), mutation, usage, retrieval));
     }
 
     private FitnessResult evaluateProposed(WorkflowGraph baseline, Mutation mutation, AgentUsage usage) {

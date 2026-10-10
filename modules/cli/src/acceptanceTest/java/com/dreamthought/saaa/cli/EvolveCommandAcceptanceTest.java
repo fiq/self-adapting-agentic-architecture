@@ -11,9 +11,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -358,6 +361,125 @@ final class EvolveCommandAcceptanceTest {
         }
     }
 
+    /**
+     * CHG-029 S3. A live proposer asked for a generation can answer every variant ask with the same
+     * mutation: one id over one patch. The variant ask is what lets the model vary; this rule is
+     * what checks that it did. The run fails and the failure names non-variation - the id repeated
+     * and the patch matched - because any non-zero exit, an unmatched stub or a validation
+     * rejection, would otherwise satisfy the assertion. What was evaluated keeps its per-candidate
+     * fitness rows, and no generation row is written: a generation that cannot be ranked was never
+     * a comparison.
+     */
+    @Test
+    void aLiveGenerationWhoseProposerRepeatsIdAndPatchFailsNamingNonVariation(@TempDir Path tempDir)
+            throws Exception {
+        var server = startOpenAiStub();
+        try {
+            stubOpenAiMutationResponses(server,
+                    openAiMutationResponse("mut-live-repeat", "draft-check: enforce\n"),
+                    openAiMutationResponse("mut-live-repeat", "draft-check: enforce\n"));
+            configureOpenAiCompatibleProfile(server);
+            Path repo = tempDir.resolve("repo");
+            Path target = repo.resolve("toy");
+            Files.createDirectories(target);
+            Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+            writeCheck(target, "workflow-check", """
+                    #!/usr/bin/env bash
+                    set -euo pipefail
+                    grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                    """);
+            initRepo(repo);
+
+            var failure = new AtomicReference<Exception>();
+            var commandLine = new CommandLine(new MutationLoopCli());
+            commandLine.setExecutionExceptionHandler((exception, command, parseResult) -> {
+                failure.set(exception);
+                return 1;
+            });
+            int exitCode = commandLine.execute(
+                    "saaa-evolve", target.toString(),
+                    "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check",
+                    "--run-id", "s3-run",
+                    "--candidates", "2",
+                    "--max-lines", "8");
+
+            assertThat(exitCode).isNotZero();
+            assertThat(failure.get())
+                    .as("the failure pins the reason, not only the exit code")
+                    .hasMessageContaining("mut-live-repeat")
+                    .hasMessageContaining("same patch")
+                    .hasMessageContaining("produced no variant")
+                    .hasMessageContaining("cannot be ranked");
+            try (var connection = DriverManager.getConnection(
+                    "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
+                assertThat(countRows(connection,
+                        "select count(*) from fitness_results "
+                                + "where candidate_id like 'candidate-s3-run-c%'"))
+                        .as("both candidates were evaluated before the repeat was seen, and their "
+                                + "fitness rows stay")
+                        .isEqualTo(2);
+                assertThat(countRows(connection,
+                        "select count(*) from generations where run_id = 's3-run'"))
+                        .as("a generation that cannot be ranked was never a comparison")
+                        .isZero();
+            }
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
+    }
+
+    /**
+     * CHG-029 S4. The other case of a model-chosen id: one id over two genuinely different patches
+     * is two mutations, and the generation ranks them. Asserted on the ledger's ranking rows rather
+     * than on the exit code alone, because a generation that quietly dropped the second candidate
+     * would also exit zero.
+     */
+    @Test
+    void aLiveGenerationRanksCandidatesThatShareAnIdOverDifferentPatches(@TempDir Path tempDir)
+            throws Exception {
+        var server = startOpenAiStub();
+        try {
+            stubOpenAiMutationResponses(server,
+                    openAiMutationResponse("mut-live-shared", "draft-check: enforce\n"),
+                    openAiMutationResponse("mut-live-shared",
+                            "draft-check: enforce\n# second live variant\n"));
+            configureOpenAiCompatibleProfile(server);
+            Path repo = tempDir.resolve("repo");
+            Path target = repo.resolve("toy");
+            Files.createDirectories(target);
+            Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+            writeCheck(target, "workflow-check", """
+                    #!/usr/bin/env bash
+                    set -euo pipefail
+                    grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                    """);
+            initRepo(repo);
+
+            int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                    "saaa-evolve", target.toString(),
+                    "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check",
+                    "--run-id", "s4-run",
+                    "--candidates", "2",
+                    "--max-lines", "8");
+
+            assertThat(exitCode).isZero();
+            try (var connection = DriverManager.getConnection(
+                    "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
+                assertThat(rankedCandidateIds(connection, "s4-run"))
+                        .as("both candidates were evaluated and ranked rather than one refused as a repeat")
+                        .hasSize(2)
+                        .anySatisfy(id -> assertThat(id).contains("s4-run-c1"))
+                        .anySatisfy(id -> assertThat(id).contains("s4-run-c2"));
+            }
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
+    }
+
     @Test
     void candidateThatAttemptsToReadTheApiKeyObservesTheEmptyString(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
@@ -657,6 +779,94 @@ final class EvolveCommandAcceptanceTest {
                           }
                         }
                         """)));
+    }
+
+    /**
+     * Answers the N asks of a generation in order, one stubbed response per ask. The request
+     * matchers are the same ones {@link #stubOpenAiMutationResponse} uses, so a request that is not
+     * the expected proposal prompt gets no answer and fails the run rather than passing on a canned
+     * response.
+     */
+    private static void stubOpenAiMutationResponses(WireMockServer server, String... responses) {
+        for (int index = 0; index < responses.length; index++) {
+            var stub = post(urlEqualTo("/v1/chat/completions"))
+                    .inScenario("live-generation")
+                    .whenScenarioStateIs(index == 0 ? Scenario.STARTED : "answered-" + index)
+                    .withHeader("Authorization", equalTo("Bearer local-test-key"))
+                    .withRequestBody(matchingJsonPath("$.model", equalTo("local-test-model")))
+                    .withRequestBody(matchingJsonPath("$.messages[0].content",
+                            containing("bounded workflow mutations")))
+                    .withRequestBody(matchingJsonPath("$.messages[1].content",
+                            containing("draft-check: skip")))
+                    .willReturn(okJson(responses[index]));
+            if (index < responses.length - 1) {
+                stub.willSetStateTo("answered-" + (index + 1));
+            }
+            server.stubFor(stub);
+        }
+    }
+
+    /**
+     * The stub declares the mutation as JSON inside the assistant message, which is the shape the
+     * adapter parses. The patch is the workflow file's replacement text.
+     */
+    private static String openAiMutationResponse(String mutationId, String patch) {
+        String mutationJson = "{\"id\":\"" + mutationId
+                + "\",\"summary\":\"enforce the draft check\",\"scope\":\"WORKFLOW_DEFINITION\","
+                + "\"patch\":\"" + escapeJson(patch) + "\"}";
+        return """
+                {
+                  "id": "chatcmpl-local",
+                  "object": "chat.completion",
+                  "created": 1,
+                  "model": "local-test-model",
+                  "choices": [
+                    {
+                      "index": 0,
+                      "message": {
+                        "role": "assistant",
+                        "content": %s
+                      },
+                      "finish_reason": "stop"
+                    }
+                  ],
+                  "usage": {
+                    "prompt_tokens": 1,
+                    "completion_tokens": 1,
+                    "total_tokens": 2
+                  }
+                }
+                """.formatted(quoteJson(mutationJson));
+    }
+
+    private static String quoteJson(String raw) {
+        return "\"" + escapeJson(raw) + "\"";
+    }
+
+    private static String escapeJson(String raw) {
+        return raw.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+    }
+
+    private static List<String> rankedCandidateIds(java.sql.Connection connection, String runId)
+            throws java.sql.SQLException {
+        var ids = new ArrayList<String>();
+        try (var statement = connection.prepareStatement(
+                "select candidate_id from generation_rankings where run_id = ? order by position")) {
+            statement.setString(1, runId);
+            try (var rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    ids.add(rows.getString(1));
+                }
+            }
+        }
+        return ids;
+    }
+
+    private static int countRows(java.sql.Connection connection, String sql) throws java.sql.SQLException {
+        try (var statement = connection.prepareStatement(sql); var rows = statement.executeQuery()) {
+            rows.next();
+            return rows.getInt(1);
+        }
     }
 
     private static void configureOpenAiCompatibleProfile(WireMockServer server) {

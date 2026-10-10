@@ -13,6 +13,7 @@ import com.dreamthought.saaa.adapters.retrieval.LocalRetrievalFactory;
 import com.dreamthought.saaa.adapters.retrieval.LocalEvolutionaryMemoryFactory;
 import com.dreamthought.saaa.adapters.sqlite.SqliteExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.BenchmarkRunner;
+import com.dreamthought.saaa.deterministic.CandidateEvaluation;
 import com.dreamthought.saaa.deterministic.CandidateEvaluator;
 import com.dreamthought.saaa.deterministic.CandidateNamespace;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryProjector;
@@ -121,7 +122,9 @@ public final class EvolveRunner {
 
     public EvolveRunResult run(EvolveRunRequest request, EvolutionReporter reporter) {
         var prepared = prepare(request, reporter);
-        var result = prepared.evaluator.evaluate(prepared.proposal);
+        // The evaluator returns the mutation alongside the result for the generation identity
+        // check; a single-candidate run has no generation, so only the result travels on.
+        var result = prepared.evaluator.evaluate(prepared.proposal).fitnessResult();
         return new EvolveRunResult(result, prepared.journalPath, prepared.retrievalCapture.required(),
                 prepared.proposer.proposerEvidence(), prepared.wallMillis(),
                 prepared.timedRetriever.elapsedMillis());
@@ -483,8 +486,8 @@ public final class EvolveRunner {
         }
 
         @Override
-        public FitnessResult evaluate(MutationProposalRequest request) {
-            return loopForCandidate.apply(++position).evaluate(request);
+        public CandidateEvaluation evaluate(MutationProposalRequest request) {
+            return loopForCandidate.apply(++position).evaluateCandidate(request);
         }
     }
 
