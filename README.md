@@ -591,10 +591,10 @@ override a gate, request a merge or carry credentials. What does not: the check
 process is not sandboxed, so it keeps whatever filesystem and network access
 launched it. This narrows the obvious routes rather than solving anything.
 
-Ranking several candidates on identical evidence is implemented, but over
-fixture-proposed variants only, so it has not yet ranked genuinely different
-ideas. Recombining ideas from evaluated parents is not implemented. The current
-score should not be read as if either were.
+Ranking several candidates on identical evidence and selecting among the ones the
+gates promoted are implemented (`--candidates`). Iterating generations and
+recombining ideas from evaluated parents are not, and the current score should not
+be read as if they were.
 
 ## Why this shape
 
@@ -641,11 +641,11 @@ several candidate variants
         + retained experiment history
 ```
 
-All four exist, the first only in part. `--candidates` evaluates several
-variants as one generation and ranks them, but the variety comes from the fixture
-proposer, which varies by appending to its own canned mutation. The
-differentiator is therefore a working mechanism, not yet a demonstrated property:
-no generation has been filled by a model proposing genuinely different ideas.
+All four now exist as mechanism. A generation of `--candidates N` evaluates N
+variants against identical evidence and ranks them, and a live model can fill it.
+What is not yet shown is that the differentiator pays: no generation has been run
+against a real provider, so whether a model's variants differ in ways the scorer
+can see is still a design claim rather than a measured property.
 
 ## Architecture
 

@@ -259,10 +259,11 @@ model-chosen id is a hint and the patch is the substance.
 
 **S5.** *Given* a generation filled by the live proposer, *when* a candidate
 finishes its evaluation, *then* the ledger holds a usage row keyed to that
-candidate carrying the provider and model it was proposed under, the token
+candidate carrying the provider and the model the response declared, the token
 counts the provider returned and the wall clock the adapter measured, with
-credits NULL — and the model column equals the configured model name, which
-reached the observation through the factory threading described above.
+credits NULL — and the model column equals the response-declared model, which
+the stub makes different from the configured one so that copying the request
+instead fails.
 
 - `cli/EvolveCommandAcceptanceTest.aLiveGenerationRecordsEachCandidatesObservedUsage`
   — acceptance
