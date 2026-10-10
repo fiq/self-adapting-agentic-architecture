@@ -11,7 +11,7 @@ The central question is simple:
 > Given this task, repository and budget, what is the cheapest harness that can
 > reliably do the work?
 
-Today teams mostly answer that by intuition: pick a capable model, add an
+That is often answered by intuition: pick a capable model, add an
 `AGENTS.md`, bolt on tools and retrieval, perhaps add subagents, and keep tuning
 until the result feels better. SAAA treats that agentic development process as
 software that can be executed, measured, compared and evolved.
@@ -98,9 +98,10 @@ That is SAAA's job.
 
 ## What SAAA does
 
-SAAA takes a proposed harness or workflow change, realises it in an isolated
-Git worktree, runs evidence you control against the real candidate, scores
-what was actually observed and records the result. Nothing merges.
+SAAA takes a proposed change to one file the agent depends on, such as a
+workflow definition or prompt policy, realises it in an isolated Git worktree,
+runs evidence you control against the real candidate, scores what was actually
+observed and records the result. Nothing merges.
 
 ```text
 proposal -> isolated Git candidate -> measured evidence -> fixed decision -> promote or discard
@@ -614,7 +615,7 @@ evidence produces unreliable children.
 
 So SAAA moves the deciding step into fixed code, and the work becomes growing a
 fitness function that can carry it. The
-[audit above](#why-four-of-those-five-decide-nothing) is how far that has
+[audit above](#why-two-of-those-five-decide-nothing-unless-asked-and-how-the-largest-one-was-freed) is how far that has
 actually got: one measured objective out of five.
 
 The second input is
