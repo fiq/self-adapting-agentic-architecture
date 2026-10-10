@@ -4,6 +4,7 @@ import static com.dreamthought.saaa.domain.CheckEvidence.passed;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dreamthought.saaa.domain.Candidate;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessDecision;
 import com.dreamthought.saaa.domain.FitnessResult;
@@ -18,6 +19,9 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -72,6 +76,30 @@ final class JournalReporterTest {
         assertThat(Files.readString(journal))
                 .contains("## earlier run")
                 .contains("## 2026-07-28T09:14:02Z");
+    }
+
+    @Test
+    void aCandidateEntryCarriesItsObservedUsageAndRendersUnavailable(@TempDir Path dir) throws IOException {
+        Path journal = dir.resolve("journal.md");
+        var reporter = new JournalReporter(journal, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+        reporter.proposed(new Mutation("MUT-1", "tighten the publish guard",
+                MutationScope.WORKFLOW_DEFINITION, "new content"));
+        reporter.candidateCreated(CANDIDATE);
+        reporter.evidenceCollected(evidence());
+        reporter.usageObserved(CANDIDATE, new AgentUsage(
+                OptionalLong.of(17), OptionalLong.empty(), Optional.empty(), OptionalLong.of(0),
+                OptionalInt.empty(), Optional.of(new com.dreamthought.saaa.domain.PriceIdentity(
+                        "openai-compatible", "reported-model"))));
+        reporter.scored(new FitnessResult(CANDIDATE, evidence(), Map.of(),
+                FitnessScore.of(0.87, FitnessDecision.PROMOTE), TEST_SCORING_CONTEXT));
+
+        assertThat(Files.readString(journal))
+                .contains("input tokens: 17")
+                .contains("output tokens: unavailable")
+                .contains("credits: unavailable")
+                .contains("wall clock: 0 ms")
+                .contains("retries: unavailable")
+                .contains("price: openai-compatible / reported-model");
     }
 
     private static EvaluationEvidence evidence() {

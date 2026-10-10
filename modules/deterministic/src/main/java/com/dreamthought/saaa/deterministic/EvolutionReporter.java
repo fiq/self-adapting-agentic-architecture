@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.deterministic;
 
 import com.dreamthought.saaa.domain.Candidate;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
@@ -21,6 +22,9 @@ public interface EvolutionReporter {
     default void candidateCreated(Candidate candidate) { }
 
     default void evidenceCollected(EvaluationEvidence evidence) { }
+
+    /** Usage observed while proposing this candidate. */
+    default void usageObserved(Candidate candidate, AgentUsage usage) { }
 
     default void scored(FitnessResult result) { }
 

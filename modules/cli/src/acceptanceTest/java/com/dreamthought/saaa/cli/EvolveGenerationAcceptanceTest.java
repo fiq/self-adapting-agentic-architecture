@@ -23,6 +23,53 @@ import picocli.CommandLine;
  */
 final class EvolveGenerationAcceptanceTest {
     @Test
+    void aFixtureGenerationRecordsEveryCandidatesUsageAsUnavailable(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
+                "enforce the draft check\ndraft-check: enforce\n");
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                "saaa-evolve", target.toString(),
+                "--profile", "fixture",
+                "--behaviour-case", "workflow-check",
+                "--run-id", "fixture-usage-run",
+                "--candidates", "3");
+
+        assertThat(exitCode).isZero();
+        try (var connection = DriverManager.getConnection(
+                "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath());
+                var statement = connection.prepareStatement("""
+                        select candidate_id, provider, model, input_tokens, output_tokens, credits_consumed,
+                               wall_clock_millis, retries
+                        from candidate_usage
+                        where candidate_id like 'candidate-fixture-usage-run-c%'
+                        order by candidate_id
+                        """)) {
+            try (var rows = statement.executeQuery()) {
+                int count = 0;
+                while (rows.next()) {
+                    count++;
+                    for (int column = 2; column <= 8; column++) {
+                        assertThat(rows.getObject(column))
+                                .as("candidate %s column %s is unavailable", rows.getString(1), column)
+                                .isNull();
+                    }
+                }
+                assertThat(count).isEqualTo(3);
+            }
+        }
+    }
+
+    @Test
     void aGenerationRecordsItsRankingWinnerFingerprintAndSpread(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
         Path target = repo.resolve("toy");

@@ -170,7 +170,7 @@ tasks:
     status: completed
   - id: T5
     slice: the wiring - MutationEvaluationLoop reads the channel and writes usage beside the fitness row (MutationEvaluationLoop.java:237), the reporter callback, the journal's per-candidate usage line (S9), the loop-level store-and-reporter unit test (S5 unit) and the actual --profile fixture generation acceptance that pins one all-NULL row per candidate (S7)
-    status: pending
+    status: completed
   - id: T6
     slice: Q-013 settled in code - the per-candidate evaluation return carries the Mutation that produced it, and GenerationEvaluationLoop compares (id, patch): same id with same patch fails naming non-variation, same id with different patches ranks (S3, S4, unit and WireMock acceptance). The single-candidate MutationEvaluationLoop.evaluate signature is preserved for its current callers. Independent of T2 to T5 and may land before or after them
     status: pending

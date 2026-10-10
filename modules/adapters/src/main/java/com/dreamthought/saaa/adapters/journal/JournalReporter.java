@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.adapters.journal;
 
 import com.dreamthought.saaa.deterministic.EvolutionReporter;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
@@ -31,6 +32,7 @@ public final class JournalReporter implements EvolutionReporter {
     private Mutation mutation;
     private Candidate candidate;
     private EvaluationEvidence evidence;
+    private AgentUsage usage = AgentUsage.none();
 
     public JournalReporter(Path journalFile, Clock clock) {
         this.journalFile = Objects.requireNonNull(journalFile, "journalFile");
@@ -45,11 +47,17 @@ public final class JournalReporter implements EvolutionReporter {
     @Override
     public void candidateCreated(Candidate candidate) {
         this.candidate = candidate;
+        this.usage = AgentUsage.none();
     }
 
     @Override
     public void evidenceCollected(EvaluationEvidence evidence) {
         this.evidence = evidence;
+    }
+
+    @Override
+    public void usageObserved(Candidate candidate, AgentUsage usage) {
+        this.usage = Objects.requireNonNull(usage, "usage");
     }
 
     @Override
@@ -148,6 +156,7 @@ public final class JournalReporter implements EvolutionReporter {
                 |---|---|
                 | commit | %s |
                 | checks | %s |
+                | usage | input tokens: %s; output tokens: %s; credits: %s; wall clock: %s; retries: %s; price: %s |
                 | score | %s |
                 | decision | %s |
 
@@ -158,6 +167,14 @@ public final class JournalReporter implements EvolutionReporter {
                         hypothesis,
                         commit,
                         checks,
+                        usage.inputTokens().isPresent() ? Long.toString(usage.inputTokens().getAsLong()) : "unavailable",
+                        usage.outputTokens().isPresent() ? Long.toString(usage.outputTokens().getAsLong()) : "unavailable",
+                        usage.creditsConsumed().map(java.math.BigDecimal::toPlainString).orElse("unavailable"),
+                        usage.wallClockMillis().isPresent()
+                                ? usage.wallClockMillis().getAsLong() + " ms" : "unavailable",
+                        usage.retries().isPresent() ? Integer.toString(usage.retries().getAsInt()) : "unavailable",
+                        usage.priceIdentity().map(price -> price.provider() + " / " + price.model())
+                                .orElse("unavailable"),
                         result.fitnessScore().rawMagnitude(),
                         result.decision(),
                         result.fitnessScore().rawMagnitude());
