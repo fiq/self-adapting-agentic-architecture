@@ -45,7 +45,7 @@ The canonical command surface is `.agentic-template/bin/project`.
 | `project run` | Run the picocli CLI skeleton |
 | `project image` | Not applicable for the local CLI slice |
 | `project image-test` | Not applicable for the local CLI slice |
-| `project compose-config` | Validate empty Compose topology |
+| `project compose-config` | Validate the local Compose topology, which runs Neo4j for GraphRAG retrieval |
 | `project compose-test` | Not applicable while Compose has no services |
 | `project infra-check` | Not applicable while no deployment target exists |
 | `project check-changes` | Validate structured specs |
@@ -482,6 +482,44 @@ not inherit an implementer's unreviewed conclusion. Providers and models remain
 explicit adapter choices: no automatic provider selection, fallback or retry
 may weaken deterministic validation, fitness, promotion, audit or privacy
 constraints.
+
+## Assessment lenses
+
+Every assessment — a review pass, a self-review before a PR, a clean-up loop —
+applies these lenses, and each one is either applied or declared not applicable.
+Silently skipping a lens is what lets a whole dimension of a change go unexamined
+while the write-up still reads as thorough.
+
+- **Correctness.** Does it do what it claims, and has each new or changed
+  assertion about a gate, a decision, an audit record or a promotion been seen to
+  fail, in each suite the claim is made about?
+- **Architecture.** Boundaries, dependency direction, coupling, reversibility.
+  This one is not advisory: `check-architecture-boundaries` runs it as a fitness
+  function, so a layering violation is a failed check rather than an opinion.
+- **Quality and debt.** Boy-scout the path of the change; reuse at the second
+  occurrence; no silent TODOs or dead code.
+- **User experience**, wherever the change touches something a person operates
+  or reads: CLI commands, flags and help text, console and reporter output,
+  error messages, journal and report content, README and docs. The test is not
+  whether it looks tidy on the happy path. It is whether a person who hits the
+  failure can tell what happened and what to do next, whether the default is the
+  safe path, and whether a flag's name means what it does.
+- **Infrastructure quality and practice**, wherever infrastructure exists in the
+  repository: CI workflows, the build, container images, Compose topology and
+  infrastructure as code. Load the matching `specialise/ci`, `container-build`
+  or `infra-*` skill rather than reviewing from memory.
+
+The relevance condition is real, not an escape hatch. This repository currently
+has no deployment target, so the infrastructure lens does not reach deployment
+automation. It does reach CI, the Nix and Gradle build, and the local Compose
+topology, which is not empty: `compose.yaml` runs a digest-pinned Neo4j service
+with a healthcheck and a named volume, used by the GraphRAG integration test and
+carrying its own recorded supply-chain risk in `RISK-005`. Say which parts the
+lens reached and which had nothing to look at, rather than reporting an
+infrastructure review that examined neither. Equally, a
+change confined to `modules/domain` has no user surface, and saying so is the
+honest outcome — but a change that adds a CLI flag does, and "no UX impact" would
+be false.
 
 ## Independent review and consolidation
 
