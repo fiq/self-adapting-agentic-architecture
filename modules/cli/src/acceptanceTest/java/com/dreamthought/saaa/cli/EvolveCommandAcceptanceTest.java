@@ -637,6 +637,14 @@ final class EvolveCommandAcceptanceTest {
                 assertThat(((Number) second.get("output_tokens")).longValue()).isEqualTo(22);
                 assertThat(second.get("credits_consumed")).isNull();
             }
+            // The journal is the record a person reads, and it is only right if the loop reports
+            // usage before it reports the score that writes the entry. A fixture run cannot see
+            // that ordering, because its usage is unavailable either way; observed values can.
+            assertThat(Files.readString(target.resolve("journal.md")))
+                    .contains("input tokens: 101; output tokens: 11;")
+                    .contains("price: openai-compatible / declared-model-one")
+                    .contains("input tokens: 202; output tokens: 22;")
+                    .contains("price: openai-compatible / declared-model-two");
         } finally {
             clearOpenAiCompatibleProfileConfig();
             server.stop();

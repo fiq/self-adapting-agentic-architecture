@@ -545,6 +545,17 @@ Further risks:
   endpoint populates the usage block is not knowable from the stub; S6 exists
   so the absent case is the tested case rather than the surprising one.
 
+- **The provider half of the price identity is a profile constant.** The model
+  is what the response declared, but the provider is the profile name
+  `openai-compatible`, because the chat-completions wire format carries no
+  provider field. Two different openai-compatible endpoints reporting the same
+  model name are therefore indistinguishable in the ledger. Raised in independent
+  review; the endpoint's base URL would separate them, and is not recorded here.
+- **Usage is dropped on more paths than a never-created candidate.** A created
+  candidate whose evaluation throws between its candidate row and its usage row
+  also leaves a candidate with no usage row. That failure is loud, not silent,
+  but the gap is real and wider than the case named above.
+
 ## Related knowledge
 
 `ADR-0002` (the Layer-1 gap), `ADR-0006` (slice 0 and the unavailable-not-zero
