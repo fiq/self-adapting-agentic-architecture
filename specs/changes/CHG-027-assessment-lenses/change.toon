@@ -1,7 +1,7 @@
 change:
   id: CHG-027
   title: Assessment lenses, including user experience and infrastructure quality
-  status: proposed
+  status: delivered
   intent: Record the standing assessment lenses and require each to be applied or declared not applicable, so a dimension cannot go unexamined while the write-up still reads as thorough.
   audience_level: developer
   relates_to:

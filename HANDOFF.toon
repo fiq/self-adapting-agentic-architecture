@@ -1,19 +1,23 @@
 session:
-  updated: 2026-09-06
-  status: chg_026_merged_to_main_as_pr_52_next_slice_undecided
-  branch: main
+  updated: 2026-10-11
+  status: chg_027_ready_for_human_read_and_merge
+  branch: feat/chg-027-assessment-lenses
   worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
-  head: main at 03ca6f5, the merge of PR #52. CHG-026 is IN. CI passed against the exact head 884d9d2 - both fast and full-readiness, the latter genuinely running rather than skipping - and the user authorised the merge on that condition. The feature branch feat/chg-026-population-slice is merged and can be deleted whenever convenient.
-  head_note: CHG-026 is functionally complete. T1 the domain value types, T2 the ranking policy, T3 the generation loop, T4 the per-candidate namespace, T4b the CLI option and per-candidate evaluator, T5 variant production, T6 the journal and ledger record and T7 the documentation are all delivered. The last verified base was main at 3bfa7c7; that was checked against a stale origin/main because the fetch failed, so re-fetch and rebase before merging.
-  transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening or merging a pull request, and only when the user says so. PR #52 was created with gh at the user's explicit instruction.
+  head: feat/chg-027-assessment-lenses, two content commits plus this wrap-up commit on main at d0e9187, which is also origin/main as of 2026-10-11 (read through the GitHub API, because the SSH agent had no key loaded and git fetch was refused). No rebase needed. PR #53 is a draft; CI fast and full-readiness passed at 00ff024.
+  head_note: CHG-027 is functionally complete. T1 the AGENTS.md section, T2 the check-repo-contract control, T3 the review-loop rows and T4 the template entry are delivered and the spec status is delivered. What remains is a human read and merge authorisation.
+  transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening, editing or merging a pull request, and only when the user says so.
   dirty: false
-  pushed: true
+  pushed: false
 
 goal:
-  current: CHG-026 is landed. ADR-0002's named Layer-1 gap is closed: several candidates per generation, ranked deterministically on identical evidence. The next slice is undecided and the two candidates are recorded in next_actions.
-  phase: between_slices_next_one_undecided
+  current: Land CHG-027, the assessment lenses. Then two design changes prepared outside the checkout - ADR-0006 on budget-aware harness optimisation, and a README opening that leads with why SAAA matters - land in that order, ADR first. The next code slice after them is still undecided; see next_actions.
+  phase: chg_027_awaiting_merge
 
 next_actions:
+  - START HERE: CHG-027 needs a human read and merge authorisation, nothing else. The PR #53 body is stale - it still claims an empty Compose topology, which 00ff024 corrected, and its mutation table predates the five-lens guard - and it ends with a session URL that must be removed. Editing it needs gh and the user's go-ahead.
+  - after CHG-027, the ADR-0006 change, then the README change. Both were reviewed on 2026-10-04 against the repository and their three cited research results; the required fixes are recorded in the plan the user approved and must be applied before either is opened. The ADR comes first because the README's headline question is the ADR's direction.
+  - RISK-009 records four CLI user-experience defects in the CHG-026 --candidates flag, found by applying the new lens. Not fixed in CHG-027 because it touches no CLI code. A small separate change, any time.
+  - the next code slice is likely the live model proposer filling a generation with its AgentUsage written to the ledger. It is candidate one below and it is also the prerequisite ADR-0006 needs before cost per successful task can be measured at all.
   - START HERE: decide the next slice. CHG-026 merged, so the two tracks that were waiting on it are both open and they are genuinely different bets.
   - CANDIDATE ONE, and the stronger one: the live model proposer filling a generation. This is what turns the population from a proven mechanism into a measured one. Today the variety is the fixture proposer appending padding lines, so the spread measures padding volume and nothing about candidate quality - the change says so in three places and independent review confirmed the claim is honest. Only a live proposer answers whether a model's candidates differ in ways the scorer can see, which is ADR-0002's revisit question. Q-013 must be settled as part of it, because a live proposer chooses its own mutation ids and the duplicate rule compares ids alone.
   - CANDIDATE TWO: the AST track, ADR-0005. Unchanged from before and the case against going first is unchanged: its base case is the declared-locus gate, whose live consumer is opt-in, so it is two more changes before anything is observable.
@@ -34,6 +38,18 @@ next_actions:
   - the reachability fix from CHG-025 is enabling, not exercised: modules/adapters can compile against the conformance suite and nothing guards that until the first frontend's test does it for real.
   - StructureCompleteness.UNSUPPORTED is still produced by nothing and asserted by nothing. It is the value a registry returns for a language with no frontend, and no registry exists.
   - after the population work settles, the first frontend: JavaParser behind SourceStructureInspector, judged by the conformance suite rather than by its own tests.
+
+review_record_chg_027:
+  change: CHG-027
+  reviewed_commit: 0d5ad1f
+  fixes_commit: 00ff024
+  routing: two independent passes. The session that ran them recorded the findings in the 00ff024 commit message but not the actors, models or verdict lines, so those are unavailable rather than reconstructed here.
+  findings_actioned:
+    - blocker, the guard did not guard. It required a marker for three of the five lenses, so deleting the correctness or the quality-and-debt bullet left the check green. Now one marker per lens.
+    - blocker, the section's own worked example was false. It claimed an empty Compose topology while compose.yaml runs a digest-pinned Neo4j service carrying RISK-005. Corrected, with the same stale claim in the canonical command table.
+    - found independently by both passes, the template was unguarded. Item 18b in AGENTS_TEMPLATE.md is now guarded.
+    - the correctness lens narrowed the testing rule from new-or-changed to new. Now matches.
+  independent_challenge_lost: the record of who reviewed. The findings and their fixes are verifiable from the diff; the routing is not.
 
 review_record:
   change: CHG-026
@@ -90,6 +106,9 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-10-11 CHG-027 wrap-up validation: :domain :deterministic :adapters :cli test with --rerun-tasks, 19 tasks executed, BUILD SUCCESSFUL; project check 7/7; check-changes OK; check-glossary OK; check-wiki reports two drift warnings (knowledge and specs changed after the wiki), which are present on this branch before the wrap-up commit too and are warnings rather than failures
+  - 2026-10-11 CHG-027 one of those mutations re-run in this session rather than trusted: the Correctness bullet deleted from AGENTS.md (the deletion asserted to have applied before running) fails check-repo-contract with "missing controls required by agents-assessment-lens-controls: **Correctness.**"; AGENTS.md restored from a backup and verified byte-identical with cmp; check-repo-contract OK afterwards
+  - 2026-10-04 CHG-027 mutation evidence, recorded in the 0d5ad1f and 00ff024 commit messages and run against check-repo-contract, the only suite these controls live in: each of the five lenses deleted in turn from AGENTS.md fails the check naming that lens; removing item 18b from AGENTS_TEMPLATE.md fails it; removing the whole section and softening "applied or declared not applicable" each fail it. Each file restored byte-identical. One run first reported three lenses passing after deletion because its regex matched nothing, so nothing was deleted - a mutation that never ran looks like one that proved the code, and only the traceback printed beside the result gave it away
   - 2026-09-06 CHG-026 review-fix validation: all eight suites with --rerun-tasks, BUILD SUCCESSFUL; project check 7/7; check-changes OK; check-wiki OK; lint OK
   - 2026-09-06 CHG-026 review-fix mutation evidence, the blocker: reverting RunScopedRetriever to the per-candidate TimedRetriever fails EvolveRunnerTest.aGenerationRetrievesOnceSoEveryCandidateIsProposedFromTheSameEvidence with "expected: 1 but was: 3". Restored byte-identical
   - 2026-09-06 CHG-026 review-fix mutation evidence, the tautology: recording ranked().get(0) in place of winner() was re-applied and run against the ACCEPTANCE suite this time, not only the integration suite. Before the fix the acceptance suite passed under it - confirming the red-team finding that the assertion could not fail for the defect it named. After adding aGenerationWhereNoCandidatePromotesRecordsNoWinner the same mutation fails at the acceptance layer. Restored byte-identical. The earlier session had only ever run this mutation against the integration suite, which is why the weakness survived
