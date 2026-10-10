@@ -239,7 +239,8 @@ manufacture diagnostic certainty with a model and then treat it as measured
 fact.
 
 These observations can later select bounded adaptation operators over context,
-tools, retrieval, workflow and verification.
+tools, retrieval, workflow and self-checks, never over the acceptance checks
+fixed for the task.
 
 ### 7. Optimising small models means compiling repeated reasoning into the harness
 

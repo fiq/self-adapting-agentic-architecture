@@ -73,10 +73,10 @@ and evidence-backed escalation rather than becoming another agent runtime.
 
 `Q-010` remains the evidence question. It proposes that remaining tokens,
 provider credits, wall-clock budget, rate limits and retry allowance become
-explicit strategy state. Today `ResourceBudget` carries the first four as limits
-on one invocation, nothing selects on them, and rate limits are not represented
-at all. No automatic selector should ship until real `AgentUsage`, price identity
-and representative task outcomes show that the policy lowers cost per successful
+explicit strategy state. Today `ResourceBudget` carries all of them except rate
+limits, which are not represented anywhere, as limits on one invocation, and
+nothing selects on them. No automatic selector should ship until real
+`AgentUsage`, price identity and representative task outcomes show that the policy lowers cost per successful
 task without hiding failures or degrading quality.
 
 - Routing must be decided and audited before proposal, while deterministic
