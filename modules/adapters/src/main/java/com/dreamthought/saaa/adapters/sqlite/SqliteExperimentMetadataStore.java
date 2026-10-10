@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.adapters.sqlite;
 
 import com.dreamthought.saaa.deterministic.ExperimentMetadataStore;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.CheckEvidence;
@@ -67,6 +68,25 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to record fitness metadata", exception);
+        }
+    }
+
+    @Override
+    public void recordUsage(Candidate candidate, AgentUsage usage) {
+        Objects.requireNonNull(candidate, "candidate");
+        Objects.requireNonNull(usage, "usage");
+        try (Connection connection = connect()) {
+            connection.setAutoCommit(false);
+            try {
+                writeCandidate(connection, candidate);
+                writeUsage(connection, candidate.id(), usage);
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to record candidate usage metadata", exception);
         }
     }
 
@@ -302,6 +322,29 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                         statement.executeUpdate();
                     }
                 }
+                if (!migrationApplied(connection, 4)) {
+                    // CHG-029: every proposer observation has a durable row. All usage columns are
+                    // nullable because NULL means unavailable, which is distinct from a measured
+                    // zero. Credits are text so their decimal representation remains exact.
+                    execute(connection, """
+                            create table if not exists candidate_usage (
+                              candidate_id text primary key not null references candidates(id) on delete cascade,
+                              provider text,
+                              model text,
+                              input_tokens integer,
+                              output_tokens integer,
+                              credits_consumed text,
+                              wall_clock_millis integer,
+                              retries integer
+                            )
+                            """);
+                    try (PreparedStatement statement = connection.prepareStatement(
+                            "insert into schema_migrations(version) values (?)"
+                    )) {
+                        statement.setInt(1, 4);
+                        statement.executeUpdate();
+                    }
+                }
                 connection.commit();
             } catch (SQLException exception) {
                 connection.rollback();
@@ -356,6 +399,51 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
             statement.setString(4, candidate.worktreePath().toString());
             statement.setString(5, candidate.commitSha());
             statement.executeUpdate();
+        }
+    }
+
+    private static void writeUsage(Connection connection, String candidateId, AgentUsage usage) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                insert into candidate_usage(
+                  candidate_id, provider, model, input_tokens, output_tokens, credits_consumed,
+                  wall_clock_millis, retries)
+                values (?, ?, ?, ?, ?, ?, ?, ?)
+                on conflict(candidate_id) do update set
+                  provider = excluded.provider,
+                  model = excluded.model,
+                  input_tokens = excluded.input_tokens,
+                  output_tokens = excluded.output_tokens,
+                  credits_consumed = excluded.credits_consumed,
+                  wall_clock_millis = excluded.wall_clock_millis,
+                  retries = excluded.retries
+                """)) {
+            statement.setString(1, candidateId);
+            setNullableString(statement, 2, usage.priceIdentity().map(identity -> identity.provider()).orElse(null));
+            setNullableString(statement, 3, usage.priceIdentity().map(identity -> identity.model()).orElse(null));
+            setNullableLong(statement, 4, usage.inputTokens());
+            setNullableLong(statement, 5, usage.outputTokens());
+            setNullableString(statement, 6, usage.creditsConsumed().map(java.math.BigDecimal::toPlainString).orElse(null));
+            setNullableLong(statement, 7, usage.wallClockMillis());
+            setNullableInt(statement, 8, usage.retries());
+            statement.executeUpdate();
+        }
+    }
+
+    private static void setNullableLong(PreparedStatement statement, int index, java.util.OptionalLong value)
+            throws SQLException {
+        if (value.isPresent()) {
+            statement.setLong(index, value.getAsLong());
+        } else {
+            statement.setNull(index, java.sql.Types.INTEGER);
+        }
+    }
+
+    private static void setNullableInt(PreparedStatement statement, int index, java.util.OptionalInt value)
+            throws SQLException {
+        if (value.isPresent()) {
+            statement.setInt(index, value.getAsInt());
+        } else {
+            statement.setNull(index, java.sql.Types.INTEGER);
         }
     }
 

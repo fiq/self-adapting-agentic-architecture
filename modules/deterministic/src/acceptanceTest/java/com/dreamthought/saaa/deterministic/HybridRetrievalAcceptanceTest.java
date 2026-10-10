@@ -225,6 +225,7 @@ final class HybridRetrievalAcceptanceTest {
     private static final class NoOpMetadata implements ExperimentMetadataStore {
         @Override public void recordCandidate(Candidate candidate) { }
         @Override public void recordFitness(FitnessResult result) { }
+        @Override public void recordUsage(Candidate candidate, com.dreamthought.saaa.domain.AgentUsage usage) { }
 
         @Override
         public void recordGeneration(com.dreamthought.saaa.domain.GenerationRecord record) {

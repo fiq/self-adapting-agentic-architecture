@@ -131,6 +131,9 @@ acceptance:
     test_id: adapters/SqliteExperimentMetadataStoreIntegrationTest.aCandidatesUsageIsRecordedWithPriceIdentityAndUnobservedFieldsNull
     layer: integration
   - scenario: S5
+    test_id: adapters/SqliteExperimentMetadataStoreIntegrationTest.aCandidatesCreditsRoundTripAsExactDecimalText
+    layer: integration
+  - scenario: S5
     test_id: adapters/EvolveRunnerTest.thePerCandidateWrapperForwardsTheProposersUsageChannel
     layer: unit
   - scenario: S6
@@ -164,7 +167,7 @@ tasks:
     status: completed
   - id: T4
     slice: the ledger record, standalone - migration 4 adding candidate_usage (provider, model, per-field NULL for unavailable, credits as exact decimal text), an abstract recordUsage on the ExperimentMetadataStore port following the recordGeneration precedent (ExperimentMetadataStore.java:12-18), the SQLite implementation, and direct integration tests writing and reading rows (S5 integration). Nothing consumes it yet, which is what makes it independently green
-    status: pending
+    status: completed
   - id: T5
     slice: the wiring - MutationEvaluationLoop reads the channel and writes usage beside the fitness row (MutationEvaluationLoop.java:237), the reporter callback, the journal's per-candidate usage line (S9), the loop-level store-and-reporter unit test (S5 unit) and the actual --profile fixture generation acceptance that pins one all-NULL row per candidate (S7)
     status: pending
