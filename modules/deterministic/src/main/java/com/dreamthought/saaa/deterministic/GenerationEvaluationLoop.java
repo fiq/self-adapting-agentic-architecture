@@ -48,7 +48,16 @@ public final class GenerationEvaluationLoop {
      * outcome this exists to prevent. {@code Error} still propagates.
      */
     public RankedGeneration evaluate(MutationProposalRequest request, int candidates) {
+        return evaluate(request, candidates, EvolutionReporter.NO_OP);
+    }
+
+    /**
+     * Evaluates a generation while reporting an abort before its cause propagates to the caller.
+     */
+    public RankedGeneration evaluate(
+            MutationProposalRequest request, int candidates, EvolutionReporter reporter) {
         Objects.requireNonNull(request, "request");
+        Objects.requireNonNull(reporter, "reporter");
         if (candidates < 1) {
             throw new IllegalArgumentException(
                     "a generation needs at least one candidate, asked for " + candidates);
@@ -57,23 +66,35 @@ public final class GenerationEvaluationLoop {
         var evaluated = new ArrayList<FitnessResult>();
         var unevaluated = new ArrayList<UnevaluatedCandidate>();
         var mutations = new LinkedHashSet<String>();
-        for (int attempt = 1; attempt <= candidates; attempt++) {
-            FitnessResult result;
-            try {
-                result = Objects.requireNonNull(
-                        evaluator.evaluate(request), "a candidate evaluation returned no result");
-            } catch (RuntimeException failure) {
-                // Named by attempt rather than by candidate id, because a realisation that failed
-                // before a candidate existed has no id to record and inventing one would imply a
-                // candidate that was never created.
-                unevaluated.add(new UnevaluatedCandidate(
-                        "attempt-" + attempt + "-of-" + candidates, describe(failure)));
-                continue;
+        try {
+            for (int attempt = 1; attempt <= candidates; attempt++) {
+                FitnessResult result;
+                try {
+                    result = Objects.requireNonNull(
+                            evaluator.evaluate(request), "a candidate evaluation returned no result");
+                } catch (RuntimeException failure) {
+                    // Named by attempt rather than by candidate id, because a realisation that failed
+                    // before a candidate existed has no id to record and inventing one would imply a
+                    // candidate that was never created.
+                    unevaluated.add(new UnevaluatedCandidate(
+                            "attempt-" + attempt + "-of-" + candidates, describe(failure)));
+                    continue;
+                }
+                requireMutationNotAlreadySeen(mutations, result, attempt, candidates);
+                evaluated.add(result);
             }
-            requireMutationNotAlreadySeen(mutations, result, attempt, candidates);
-            evaluated.add(result);
+            return ranking.rank(evaluated, unevaluated);
+        } catch (RuntimeException failure) {
+            // Reporting the abort is presentation. If it fails too, the abort is still the thing
+            // the caller must see, so the reporter's failure rides along as suppressed rather than
+            // replacing it.
+            try {
+                reporter.generationAborted(candidates, evaluated.size(), describe(failure));
+            } catch (RuntimeException reportFailure) {
+                failure.addSuppressed(reportFailure);
+            }
+            throw failure;
         }
-        return ranking.rank(evaluated, unevaluated);
     }
 
     /**

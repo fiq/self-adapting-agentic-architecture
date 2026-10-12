@@ -1,0 +1,82 @@
+change:
+  id: CHG-028
+  title: Generation CLI failure semantics
+  status: delivered
+  intent: Make generation failure exits, abort journalling, runtime validation errors and ranking alignment clear and consistent for CLI users and automation.
+  audience_level: developer
+  relates_to:
+    - RISK-009
+    - PAT-004
+    - RISK-003
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: A multi-candidate generation that completes with no evidence exits 1 after printing one line that says no candidate produced evidence and names the first failure; a generation with evidence still exits 0, and a single-candidate run is unchanged.
+    scenarios:
+      - id: S1
+        when: every candidate in a generation fails to produce evidence, such as a rerun using existing candidate worktrees
+        then: the command exits 1, reports the first failure, and prints the journal path
+      - id: S2
+        when: a generation aborts after one or more candidates were evaluated, such as a proposer repeating a mutation id
+        then: the journal appends an aborted-generation entry with the evaluated count and reason before the failure propagates
+      - id: S3
+        when: an option value is rejected during command execution, or a run fails for any other reason
+        then: a rejected option value is thrown as a picocli ParameterException and renders exactly as a parse error does - its message, then usage, exit 2; any other failure prints one "error:" line to stderr and exits 1, with no usage and no stack trace
+        and:
+          - the split is by exception type at the point of throw, not by root cause. An earlier draft classified any IllegalArgumentException root cause as a usage error, which would have shown usage for a domain validation failure deep inside a run, as though the user had mistyped a flag
+          - a message relayed from Git ends in a newline; the handler strips it, which the runtime-failure test found by asserting one line rather than a prefix
+          - the error line keeps every distinct message in the cause chain, outermost first, so "failed to read ablation corpus: /missing.tsv" says what failed as well as why. The first version printed only the root cause, which reduced that to the bare path
+          - an unknown --operator is a bad option value and renders as one, closing the same two-presentations split RISK-009 named for --candidates
+      - id: S4
+        when: ranked candidates have ids longer than forty characters and different lengths
+        then: score and decision columns align to the longest id in that generation
+
+acceptance:
+  - scenario: S1
+    test_id: cli/EvolveGenerationAcceptanceTest.aGenerationWhereNoCandidateProducesEvidenceExitsOneAndNamesTheFirstFailure
+    layer: acceptance
+  - scenario: S2
+    test_id: adapters/EvolveRunnerTest.aGenerationThatAbortsRecordsItsEvaluatedCountAndReasonBeforePropagating
+    layer: unit
+  - scenario: S3
+    test_id: cli/EvolveCommandAcceptanceTest.rendersRuntimeOptionValidationLikeAParseError
+    layer: acceptance
+  - scenario: S3
+    test_id: cli/EvolveCommandAcceptanceTest.rendersARuntimeFailureAsOneErrorLineWithoutUsageOrStackTrace
+    layer: acceptance
+  - scenario: S3
+    test_id: cli/MutationLoopCliTest.aMissingAblationCorpusSaysWhatFailedNotOnlyThePath
+    layer: unit
+  - scenario: S3
+    test_id: cli/MutationLoopCliTest.anUnknownOperatorIsABadOptionValueAndRendersAsOne
+    layer: unit
+  - scenario: S2
+    test_id: deterministic/GenerationEvaluationLoopTest.aFailingAbortReporterDoesNotReplaceTheAbortCause
+    layer: unit
+  - scenario: S4
+    test_id: cli/ConsoleReporterTest.reportsTheGenerationOrderWinnerEvidenceCountAndSpread
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: Report and fail a completed no-evidence generation while preserving the single-candidate path
+    status: completed
+  - id: T2
+    slice: Append a journal abort record before a generation failure propagates
+    status: completed
+  - id: T3
+    slice: Install the shared top-level picocli execution-exception policy
+    status: completed
+  - id: T4
+    slice: Size ranking columns from the current generation and widen the fixture
+    status: completed
+
+non_goals:
+  - an aborted-generation ledger row
+  - changing one-candidate run semantics
+  - a new verbose stack-trace option or environment variable
+
+risks:
+  - The abort journal is a human-readable audit trail rather than a ledger entry. The journal append precedes propagation, while a durable structured abort ledger requires a separately designed schema and replay policy.
+  - The execution handler deliberately centralises presentation only. It does not convert runtime failures into successful commands or hide test-level exceptions from code that invokes command handlers directly.

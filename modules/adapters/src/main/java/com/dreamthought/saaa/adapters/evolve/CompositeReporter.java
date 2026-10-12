@@ -44,6 +44,11 @@ public final class CompositeReporter implements EvolutionReporter {
     }
 
     @Override
+    public void generationAborted(int requestedCount, int evaluatedCount, String reason) {
+        reporters.forEach(reporter -> reporter.generationAborted(requestedCount, evaluatedCount, reason));
+    }
+
+    @Override
     public void generationRanked(RankedGeneration generation) {
         reporters.forEach(reporter -> reporter.generationRanked(generation));
     }

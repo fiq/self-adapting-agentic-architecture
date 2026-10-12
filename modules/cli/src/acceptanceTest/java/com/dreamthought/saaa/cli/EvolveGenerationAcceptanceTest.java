@@ -131,6 +131,50 @@ final class EvolveGenerationAcceptanceTest {
                 .contains("| winner | none promoted |");
     }
 
+    /**
+     * A generation that got as far as evaluating every candidate but collected no evidence did run;
+     * it is not a successful empty result. Reusing its run id makes every candidate collide with the
+     * worktrees from the first invocation, which exercises that distinction through the public CLI.
+     */
+    @Test
+    void aGenerationWhereNoCandidateProducesEvidenceExitsOneAndNamesTheFirstFailure(@TempDir Path tempDir)
+            throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target.resolve(".saaa"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Files.writeString(target.resolve(".saaa/fixture-mutation.txt"),
+                "enforce the draft check\ndraft-check: enforce\n");
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                set -euo pipefail
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+
+        String[] arguments = {
+                "saaa-evolve", target.toString(),
+                "--behaviour-case", "workflow-check",
+                "--run-id", "reused-generation",
+                "--candidates", "2"
+        };
+        assertThat(new CommandLine(new MutationLoopCli()).execute(arguments)).isZero();
+
+        var out = new java.io.StringWriter();
+        var command = new CommandLine(new MutationLoopCli());
+        command.setOut(new java.io.PrintWriter(out, true));
+
+        int exitCode = command.execute(arguments);
+
+        assertThat(exitCode).isEqualTo(1);
+        assertThat(out.toString())
+                .contains("no candidate produced evidence; first failure:")
+                .contains("worktree")
+                .contains("  journal    " + target.resolve("journal.md").toAbsolutePath());
+        assertThat(Files.readString(target.resolve("journal.md")))
+                .contains("| evidence | 0 of 2 candidates |");
+    }
+
     private static List<String> rankedCandidateIds(java.sql.Connection connection, String runId)
             throws SQLException {
         var ids = new ArrayList<String>();

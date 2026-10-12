@@ -1,9 +1,9 @@
 session:
   updated: 2026-10-12
-  status: readme_merging_then_chg_028_chg_029
-  branch: docs/readme-value-proposition
-  worktree: .worktrees/readme; also open .worktrees/adr-0006 (merged, removable), .worktrees/chg-028, .worktrees/chg-029
-  head: docs/readme-value-proposition, rebased onto main at ce94350 (the PR #57 merge, ADR-0006). PR #58.
+  status: chg_028_merging_then_chg_029
+  branch: fix/chg-028-generation-cli-failures
+  worktree: .worktrees/chg-028; also open .worktrees/chg-029, and .worktrees/adr-0006 and .worktrees/readme (merged, removable)
+  head: fix/chg-028-generation-cli-failures, rebased onto the README head fd285f2, which merges as PR #58 before this does. PR #59.
   head_note: CHG-027 merged as PR #53 on 2026-10-11. The user then authorised review of PRs #57-#60 by opencode neuralwatt/deepseek-v4-flash followed by merge. Merge order is #57 ADR-0006, #58 README (stacked on #57), #59 CHG-028, #60 CHG-029 (stacked on #57, rebased over CHG-028 before it lands because both edit GenerationEvaluationLoop, the reporters, EvolveRunner and README). Each branch rewrites this header just before its own merge.
   transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening, editing or merging a pull request, and only when the user says so. If ssh-add -l reports no agent, SSH_AUTH_SOCK is unset in the shell; the key is in the gcr agent at /run/user/1000/gcr/ssh.
   dirty: false
@@ -14,8 +14,7 @@ goal:
   phase: merging_reviewed_prs
 
 next_actions:
-  - START HERE: CHG-027 merged (#53) and ADR-0006 merged (#57). The README is merging as #58; CHG-028 (#59) and CHG-029 (#60) follow in that order. Each is reviewed and has CI green; their own review records land with them.
-  - RISK-009 records four CLI user-experience defects in the CHG-026 --candidates flag, found by applying the new lens. Not fixed in CHG-027 because it touches no CLI code. A small separate change, any time.
+  - START HERE: CHG-027 (#53), ADR-0006 (#57) and the README (#58) merged. CHG-028 is merging as #59; CHG-029 (#60) follows and must be rebased over it first. Each is reviewed and has CI green; their own review records land with them.
   - the next code slice is likely the live model proposer filling a generation with its AgentUsage written to the ledger. It is candidate one below and it is also the prerequisite ADR-0006 needs before cost per successful task can be measured at all.
   - START HERE: decide the next slice. CHG-026 merged, so the two tracks that were waiting on it are both open and they are genuinely different bets.
   - CANDIDATE ONE, and the stronger one: the live model proposer filling a generation. This is what turns the population from a proven mechanism into a measured one. Today the variety is the fixture proposer appending padding lines, so the spread measures padding volume and nothing about candidate quality - the change says so in three places and independent review confirmed the claim is honest. Only a live proposer answers whether a model's candidates differ in ways the scorer can see, which is ADR-0002's revisit question. Q-013 must be settled as part of it, because a live proposer chooses its own mutation ids and the duplicate rule compares ids alone.
@@ -37,6 +36,15 @@ next_actions:
   - the reachability fix from CHG-025 is enabling, not exercised: modules/adapters can compile against the conformance suite and nothing guards that until the first frontend's test does it for real.
   - StructureCompleteness.UNSUPPORTED is still produced by nothing and asserted by nothing. It is the value a registry returns for a language with no frontend, and no registry exists.
   - after the population work settles, the first frontend: JavaParser behind SourceStructureInspector, judged by the conformance suite rather than by its own tests.
+
+review_record_chg_028:
+  change: CHG-028, specs/changes/CHG-028-generation-cli-failure-semantics - closes RISK-009 (now obsolete)
+  reviewed_commit: the branch head before this handoff commit
+  passes:
+    - opencode, neuralwatt/deepseek-v4.1-flash, design. VERDICT YES with should-fixes, closed in the "Close the CHG-028 review findings" commit. One finding, that the strip() fix was untested, was disproved by mutation and rejected.
+    - opencode --agent plan, neuralwatt/deepseek-v4-flash, 2026-10-12, exit-code contract per path, the describe walk, the abort record and test-name fidelity. VERDICT NO - one should-fix, that an operator which exists but cannot be declared from flags (hill-climb) is reported as a bad option value. Adjudicated and rejected in substance - every rejection OperatorContracts.declare raises is caused by a value the user passed and is fixed by changing it, so exit 2 with usage is right - but the comment named only an unknown operator and no test pinned the other two cases. Both fixed. Two nits recorded, not fixed - an embedded newline in an exception message still prints as more than one line, and only adjacent repeats in the cause chain are deduplicated.
+  mutation_evidence: rethrowing the IllegalArgumentException from declaredContract instead of wrapping it as a ParameterException fails all three option-value tests in MutationLoopCliTest (cli unit suite); EvolveCommand.java restored and verified byte-identical with cmp. Earlier mutations are in the two CHG-028 commit messages.
+  independent_challenge_lost: none for the regions covered; the two new tests were written by the lead and not re-reviewed.
 
 review_record_readme:
   change: README opening rewritten to lead with why SAAA matters, adapted from an externally drafted bundle
@@ -125,6 +133,7 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-10-12 CHG-028 pre-merge: :cli:test MutationLoopCliTest with --rerun-tasks green, and red under the wrapping mutation above; all eight suites with --rerun-tasks, 27 tasks executed, BUILD SUCCESSFUL; project check and check-changes OK
   - 2026-10-12 README pre-merge, after rebase onto ce94350: project check, check-glossary OK; check-wiki warns that specs changed after the wiki, a pre-existing advisory
   - 2026-10-12 ADR-0006 pre-merge, after rebase onto 0a5877b: project check 7/7, check-changes OK, check-glossary OK; CI fast and full-readiness green on PR #57
   - 2026-10-11 CHG-027 wrap-up validation: :domain :deterministic :adapters :cli test with --rerun-tasks, 19 tasks executed, BUILD SUCCESSFUL; project check 7/7; check-changes OK; check-glossary OK; check-wiki reports two drift warnings (knowledge and specs changed after the wiki), which are present on this branch before the wrap-up commit too and are warnings rather than failures

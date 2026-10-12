@@ -558,6 +558,63 @@ final class EvolveCommandAcceptanceTest {
         assertThat(exitCode).isNotZero();
     }
 
+    @Test
+    void rendersRuntimeOptionValidationLikeAParseError(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                exit 0
+                """);
+        initRepo(repo);
+
+        var err = new java.io.StringWriter();
+        var command = MutationLoopCli.commandLine();
+        command.setErr(new java.io.PrintWriter(err, true));
+
+        int exitCode = command.execute(
+                "saaa-evolve", target.toString(),
+                "--behaviour-case", "workflow-check",
+                "--candidates", "0");
+
+        assertThat(exitCode).isEqualTo(2);
+        assertThat(err.toString())
+                .as("a bad option value renders exactly as a parse error does: its message, then usage")
+                .startsWith("--candidates must be at least 1, got 0" + System.lineSeparator())
+                .contains("Usage:")
+                .doesNotContain("CommandLine$ExecutionException")
+                .doesNotContain("\tat ");
+    }
+
+    @Test
+    void rendersARuntimeFailureAsOneErrorLineWithoutUsageOrStackTrace(@TempDir Path tempDir)
+            throws Exception {
+        // Not a Git repository, so the run fails inside the runner rather than at option
+        // validation. It must not be presented as a mistyped flag, and it must not be a trace.
+        Path target = tempDir.resolve("not-a-repo");
+        writeFixture(target);
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                exit 0
+                """);
+
+        var err = new java.io.StringWriter();
+        var command = MutationLoopCli.commandLine();
+        command.setErr(new java.io.PrintWriter(err, true));
+
+        int exitCode = command.execute(
+                "saaa-evolve", target.toString(), "--behaviour-case", "workflow-check");
+
+        assertThat(exitCode).isEqualTo(1);
+        assertThat(err.toString())
+                .startsWith("error: ")
+                .doesNotContain("Usage:")
+                .doesNotContain("\tat ")
+                .doesNotContain("Exception");
+        assertThat(err.toString().lines().count()).as("one line, not a trace: " + err).isEqualTo(1);
+    }
+
     private static void writeFixture(Path target) throws Exception {
         Files.createDirectories(target.resolve(".saaa"));
         Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");

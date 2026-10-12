@@ -2,8 +2,8 @@
 id: RISK-009
 type: risk
 title: A generation and a single-candidate run fail differently, and only one is documented
-status: open
-summary: The same flag chooses between two paths with opposite failure semantics. A rerun with a used --run-id fails loudly on the single-candidate path and exits zero having evaluated nothing on the generation path, while --run-id's help text documents only the first. A script checking the exit code cannot tell the difference, and the README's exit-code contract points the wrong way.
+status: obsolete
+summary: CHG-028 mitigates the prior generation CLI failure-semantic gap: a no-evidence generation now exits 1 with its first failure, aborted generations journal their partial evaluation, execution errors render cleanly, and ranking columns fit real candidate ids.
 owners:
   - tech-lead
 relates_to:
@@ -79,3 +79,11 @@ what should it leave behind?** Deciding that settles the exit code, the help
 text, the README contract and the durable record together. The third is a
 one-line picocli handler and should be done for every command at once rather than
 for this flag. The fourth is a formatting choice plus a wider fixture.
+
+## Resolved by CHG-028
+
+CHG-028 makes a no-evidence generation exit 1 after naming its first failure,
+records mid-generation aborts in the journal before they propagate, gives every
+top-level CLI command one clean execution-error policy, and sizes ranking ids to
+the longest candidate in that generation. It intentionally does not add a
+generation-abort ledger row.

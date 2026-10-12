@@ -58,6 +58,24 @@ public final class JournalReporter implements EvolutionReporter {
         append(entry(result));
     }
 
+    /** Appends the reason and partial count before an aborting generation failure propagates. */
+    @Override
+    public void generationAborted(int requestedCount, int evaluatedCount, String reason) {
+        if (requestedCount < 1 || evaluatedCount < 0 || evaluatedCount > requestedCount) {
+            throw new IllegalArgumentException("generation abort counts are invalid");
+        }
+        append("""
+
+                ## %s  generation aborted
+
+                | | |
+                |---|---|
+                | evidence | %d of %d candidates |
+                | reason | %s |
+                """.formatted(Instant.now(clock), evaluatedCount, requestedCount,
+                Objects.requireNonNull(reason, "reason")));
+    }
+
     /**
      * Appends the generation's own entry, after the per-candidate entries its evaluations already
      * wrote.

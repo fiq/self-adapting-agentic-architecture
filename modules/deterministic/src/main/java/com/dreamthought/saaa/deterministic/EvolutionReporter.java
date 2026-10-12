@@ -25,6 +25,12 @@ public interface EvolutionReporter {
     default void scored(FitnessResult result) { }
 
     /**
+     * A generation stopped before it could be ranked. The count is the number of candidates that
+     * had produced evidence when the aborting condition was found.
+     */
+    default void generationAborted(int requestedCount, int evaluatedCount, String reason) { }
+
+    /**
      * One generation finished and was ranked. Never fired by a single-candidate run, which has
      * nothing to rank.
      */
