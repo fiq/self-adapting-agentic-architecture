@@ -1,6 +1,7 @@
 package com.dreamthought.saaa.deterministic;
 
 import com.dreamthought.saaa.domain.Candidate;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.CandidateBranchRef;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
@@ -184,10 +185,19 @@ public final class MutationEvaluationLoop {
         Objects.requireNonNull(baseline, "baseline");
 
         Mutation mutation = Objects.requireNonNull(mutationProposer.proposeFor(baseline), "mutation");
-        return evaluateProposed(baseline, mutation);
+        AgentUsage usage = Objects.requireNonNull(mutationProposer.usage(), "usage");
+        return evaluateProposed(baseline, mutation, usage);
     }
 
     public FitnessResult evaluate(MutationProposalRequest request) {
+        return evaluateCandidate(request).fitnessResult();
+    }
+
+    /**
+     * Evaluates one proposed candidate while retaining the mutation that produced its result for a
+     * generation-level identity check.
+     */
+    public CandidateEvaluation evaluateCandidate(MutationProposalRequest request) {
         Objects.requireNonNull(request, "request");
         var retrieval = Objects.requireNonNull(
                 evidenceRetriever.retrieve(request.retrievalQuery()), "retrieval bundle");
@@ -196,15 +206,20 @@ public final class MutationEvaluationLoop {
                 mutationProposer.proposeFor(new PreparedMutationProposalRequest(
                         request.baseline(), request.retrievalQuery(), retrieval)),
                 "mutation");
-        return evaluateProposed(request.baseline(), mutation, retrieval);
+        AgentUsage usage = Objects.requireNonNull(mutationProposer.usage(), "usage");
+        return new CandidateEvaluation(
+                mutation, evaluateProposed(request.baseline(), mutation, usage, retrieval));
     }
 
-    private FitnessResult evaluateProposed(WorkflowGraph baseline, Mutation mutation) {
-        return evaluateProposed(baseline, mutation, null);
+    private FitnessResult evaluateProposed(WorkflowGraph baseline, Mutation mutation, AgentUsage usage) {
+        return evaluateProposed(baseline, mutation, usage, null);
     }
 
     private FitnessResult evaluateProposed(
-            WorkflowGraph baseline, Mutation mutation, com.dreamthought.saaa.domain.RetrievalBundle retrieval) {
+            WorkflowGraph baseline,
+            Mutation mutation,
+            AgentUsage usage,
+            com.dreamthought.saaa.domain.RetrievalBundle retrieval) {
         reporter.proposed(mutation);
         ValidationResult validation = Objects.requireNonNull(
                 mutationValidator.validate(baseline, mutation),
@@ -235,6 +250,8 @@ public final class MutationEvaluationLoop {
             throw new IllegalStateException("fitness result candidate does not match evaluated candidate");
         }
         metadataStore.recordFitness(result);
+        metadataStore.recordUsage(candidate, usage);
+        reporter.usageObserved(candidate, usage);
         reporter.scored(result);
 
         CandidateBranchRef candidateBranchRef = CandidateBranchRef.fromCandidate(candidate);

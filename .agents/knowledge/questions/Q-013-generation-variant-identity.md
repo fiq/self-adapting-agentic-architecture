@@ -2,8 +2,9 @@
 id: Q-013
 type: question
 title: What identifies two candidates in a generation as the same mutation
-status: open
-summary: A generation refuses to rank one mutation against itself, and it decides sameness by mutation id alone. That is exact for the fixture proposer, whose ids it controls, and blunt for a live proposer, whose ids are model-chosen free text. A model returning one id over two genuinely different patches would fail the run with a diagnosis that is only half true. Comparing bodies needs the mutation to reach the deterministic rule, and a scored result carries its candidate rather than the mutation that produced it.
+status: answered
+resolution: Answered by CHG-029 (specs/changes/CHG-029-live-generation-usage). Sameness is the pair (mutation id, exact patch); the same id over a different patch ranks. Identity from the realised tree remains the recorded destination.
+summary: Answered by CHG-029. Two candidates are the same mutation only when their id and exact patch both match; the same id over a different patch ranks. Identity from the realised tree remains the recorded destination. Originally - a generation refuses to rank one mutation against itself, and it decides sameness by mutation id alone. That is exact for the fixture proposer, whose ids it controls, and blunt for a live proposer, whose ids are model-chosen free text. A model returning one id over two genuinely different patches would fail the run with a diagnosis that is only half true. Comparing bodies needs the mutation to reach the deterministic rule, and a scored result carries its candidate rather than the mutation that produced it.
 owners:
   - architect
   - tech-lead
@@ -15,10 +16,28 @@ evidence:
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/GenerationEvaluationLoop.java
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/LangChain4jMutationProposalAdapter.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationProposer.java
+  - specs/changes/CHG-029-live-generation-usage/change.toon
 review_after: 2026-12-31
 ---
 
 # Generation Variant Identity
+
+## Answer (CHG-029)
+
+The first and second candidate answers below were both taken, and the third is
+still where this ends up.
+
+- **The check is `(id, patch)`.** `GenerationEvaluationLoop` now receives the
+  mutation with each result (`CandidateEvaluation`) and fails the generation only
+  when an id and its exact patch content both repeat, with a message that says
+  the proposer produced no variant. The same id over a different patch ranks.
+- **The variant is also asked for.** The live proposer puts the variant number
+  in the model prompt. That is how it is asked to vary, never how variation is
+  checked.
+- **Not built: identity from the realised tree.** One known consequence of
+  comparing the proposal rather than the realisation: two different ids over an
+  identical patch still rank as two candidates. That is the residue this
+  question leaves, and the realised-tree rule is what would close it.
 
 ## What prompted it
 

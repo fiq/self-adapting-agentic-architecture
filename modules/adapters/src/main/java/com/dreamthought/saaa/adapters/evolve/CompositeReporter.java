@@ -2,6 +2,7 @@ package com.dreamthought.saaa.adapters.evolve;
 
 import com.dreamthought.saaa.deterministic.EvolutionReporter;
 import com.dreamthought.saaa.domain.Candidate;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.Mutation;
@@ -36,6 +37,11 @@ public final class CompositeReporter implements EvolutionReporter {
     @Override
     public void evidenceCollected(EvaluationEvidence evidence) {
         reporters.forEach(reporter -> reporter.evidenceCollected(evidence));
+    }
+
+    @Override
+    public void usageObserved(Candidate candidate, AgentUsage usage) {
+        reporters.forEach(reporter -> reporter.usageObserved(candidate, usage));
     }
 
     @Override

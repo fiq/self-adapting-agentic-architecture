@@ -9,6 +9,8 @@ import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationLimits;
 import com.dreamthought.saaa.domain.MutationScope;
+import com.dreamthought.saaa.domain.AgentUsage;
+import com.dreamthought.saaa.domain.PriceIdentity;
 import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
 import com.dreamthought.saaa.domain.RetrievalBundle;
@@ -28,12 +30,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.HexFormat;
 
 public final class LangChain4jMutationProposalAdapter implements MutationProposer {
     private final WorkflowMutationAiService service;
     private final String proposerId;
+    private final String requestedModel;
     private final AuditingChatModel auditingChatModel;
     private RetrievalBundle lastRetrieval;
 
@@ -42,25 +48,33 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
     }
 
     public static LangChain4jMutationProposalAdapter from(ChatModel chatModel, String proposerId) {
+        return from(chatModel, proposerId, null);
+    }
+
+    public static LangChain4jMutationProposalAdapter from(
+            ChatModel chatModel, String proposerId, String requestedModel) {
         Objects.requireNonNull(chatModel, "chatModel");
         var auditingChatModel = new AuditingChatModel(chatModel);
         return new LangChain4jMutationProposalAdapter(
                 AiServices.create(WorkflowMutationAiService.class, auditingChatModel),
                 proposerId,
+                requestedModel,
                 auditingChatModel);
     }
 
     LangChain4jMutationProposalAdapter(WorkflowMutationAiService service) {
-        this(service, "langchain4j", null);
+        this(service, "langchain4j", null, null);
     }
 
     private LangChain4jMutationProposalAdapter(
             WorkflowMutationAiService service,
             String proposerId,
+            String requestedModel,
             AuditingChatModel auditingChatModel
     ) {
         this.service = Objects.requireNonNull(service, "service");
         this.proposerId = Objects.requireNonNull(proposerId, "proposerId");
+        this.requestedModel = requestedModel;
         this.auditingChatModel = auditingChatModel;
     }
 
@@ -68,26 +82,63 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
     public Mutation proposeFor(WorkflowGraph baseline) {
         Objects.requireNonNull(baseline, "baseline");
         lastRetrieval = null;
-        return propose(baseline, "Improve the target while preserving declared behavior", "No retrieval evidence selected.");
+        return propose(baseline, "Improve the target while preserving declared behavior",
+                "No retrieval evidence selected.", null);
     }
 
     @Override
     public Mutation proposeFor(PreparedMutationProposalRequest request) {
         Objects.requireNonNull(request, "request");
         lastRetrieval = request.retrieval();
-        return propose(request.baseline(), request.retrievalQuery().semanticText(), request.retrieval().flattenedContext());
+        return propose(request.baseline(), request.retrievalQuery().semanticText(),
+                request.retrieval().flattenedContext(), null);
     }
 
-    private Mutation propose(WorkflowGraph baseline, String mutationIntent, String retrievalContext) {
+    /**
+     * The {@code variant}-th ask of a generation, one-based. The variant reaches the model prompt
+     * so the model can vary; whether it did is not trusted but checked, by the sameness rule in
+     * {@code GenerationEvaluationLoop} - the same division of labour {@code MutationProposer}
+     * documents for this default.
+     */
+    @Override
+    public Mutation proposeFor(PreparedMutationProposalRequest request, int variant) {
+        Objects.requireNonNull(request, "request");
+        if (variant < 1) {
+            throw new IllegalArgumentException("variant is one-based, got " + variant);
+        }
+        lastRetrieval = request.retrieval();
+        return propose(request.baseline(), request.retrievalQuery().semanticText(),
+                request.retrieval().flattenedContext(), variant);
+    }
+
+    private Mutation propose(
+            WorkflowGraph baseline, String mutationIntent, String retrievalContext, Integer variant) {
+        // Usage belongs to a proposal, not to one model call. Clearing here, rather than per call,
+        // stops one candidate inheriting the last candidate's tokens while still adding up every
+        // call a single proposal makes, should one ever make more than one.
+        if (auditingChatModel != null) {
+            auditingChatModel.clearCapturedState();
+        }
+        String context = retrievalContext.isBlank() ? "No retrieval evidence selected." : retrievalContext;
         MutationProposal proposal = Objects.requireNonNull(
-                service.proposeMutation(
-                        baseline.id(),
-                        baseline.version(),
-                        baseline.definition(),
-                        allowedScopes(),
-                        mutationIntent,
-                        retrievalContext.isBlank() ? "No retrieval evidence selected." : retrievalContext
-                ),
+                variant == null
+                        ? service.proposeMutation(
+                                baseline.id(),
+                                baseline.version(),
+                                baseline.definition(),
+                                allowedScopes(),
+                                mutationIntent,
+                                context
+                        )
+                        : service.proposeGenerationVariant(
+                                baseline.id(),
+                                baseline.version(),
+                                baseline.definition(),
+                                allowedScopes(),
+                                mutationIntent,
+                                context,
+                                variant
+                        ),
                 "mutation proposal"
         );
         return proposal.toMutation();
@@ -110,11 +161,50 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
         if (auditingChatModel.outputTokens != null) {
             attributes.put("model_output_tokens", auditingChatModel.outputTokens.toString());
         }
+        if (requestedModel != null) {
+            attributes.put("requested_model", requestedModel);
+        }
+        if (hasText(auditingChatModel.reportedModel)) {
+            attributes.put("reported_model", auditingChatModel.reportedModel);
+        }
         ProposerEvidence evidence = ProposerEvidence.of(proposerId, attributes);
         if (lastRetrieval != null) {
             evidence = evidence.withRetrieval(RetrievalProvenance.from(lastRetrieval));
         }
         return Optional.of(evidence);
+    }
+
+    @Override
+    public AgentUsage usage() {
+        if (auditingChatModel == null) {
+            return AgentUsage.none();
+        }
+        return new AgentUsage(
+                optionalLong(auditingChatModel.inputTokens),
+                optionalLong(auditingChatModel.outputTokens),
+                Optional.empty(),
+                optionalLong(auditingChatModel.wallClockMillis),
+                OptionalInt.empty(),
+                observedPriceIdentity());
+    }
+
+    private Optional<PriceIdentity> observedPriceIdentity() {
+        if (!"openai-compatible".equals(proposerId) || !hasText(auditingChatModel.reportedModel)) {
+            return Optional.empty();
+        }
+        return Optional.of(new PriceIdentity("openai-compatible", auditingChatModel.reportedModel));
+    }
+
+    private static OptionalLong optionalLong(Integer value) {
+        return value == null ? OptionalLong.empty() : OptionalLong.of(value.longValue());
+    }
+
+    private static OptionalLong optionalLong(Long value) {
+        return value == null ? OptionalLong.empty() : OptionalLong.of(value);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private static List<String> allowedScopes() {
@@ -124,12 +214,13 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
     }
 
     public interface WorkflowMutationAiService {
-        @SystemMessage("""
+        String PROPOSER_SYSTEM_PROMPT = """
                 You propose bounded workflow mutations for an experimental agentic workflow evaluator.
                 Return exactly one mutation proposal. Do not approve, score, promote or discard candidates.
                 Validation, fitness scoring, promotion and rollback are deterministic system responsibilities.
-                """)
-        @UserMessage("""
+                """;
+
+        String PROPOSAL_ASK = """
                 Baseline workflow:
                 id: {{workflowId}}
                 version: {{workflowVersion}}
@@ -154,7 +245,22 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
                 - summary: concise human-readable change summary
                 - scope: one of the allowed scopes
                 - patch: bounded workflow-definition patch text
-                """)
+                """;
+
+        /**
+         * The generation ask adds one paragraph naming the variant, so the N asks of a generation
+         * are distinguishable to the model. Everything else is {@link #PROPOSAL_ASK} unchanged: the
+         * ask is what lets the model vary, not what checks that it did.
+         */
+        String VARIANT_ASK = """
+                You are proposing variant {{variant}} of a generation of candidate mutations for one \
+                baseline; the other variants are being asked for separately. Make this proposal differ \
+                from them in substance, not only in its id.
+
+                """;
+
+        @SystemMessage(PROPOSER_SYSTEM_PROMPT)
+        @UserMessage(PROPOSAL_ASK)
         MutationProposal proposeMutation(
                 @V("workflowId") String workflowId,
                 @V("workflowVersion") String workflowVersion,
@@ -162,6 +268,18 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
                 @V("allowedScopes") List<String> allowedScopes,
                 @V("mutationIntent") String mutationIntent,
                 @V("retrievalContext") String retrievalContext
+        );
+
+        @SystemMessage(PROPOSER_SYSTEM_PROMPT)
+        @UserMessage(VARIANT_ASK + PROPOSAL_ASK)
+        MutationProposal proposeGenerationVariant(
+                @V("workflowId") String workflowId,
+                @V("workflowVersion") String workflowVersion,
+                @V("workflowDefinition") String workflowDefinition,
+                @V("allowedScopes") List<String> allowedScopes,
+                @V("mutationIntent") String mutationIntent,
+                @V("retrievalContext") String retrievalContext,
+                @V("variant") int variant
         );
     }
 
@@ -211,6 +329,8 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
         private String lastResponse;
         private Integer inputTokens;
         private Integer outputTokens;
+        private String reportedModel;
+        private Long wallClockMillis;
 
         private AuditingChatModel(ChatModel delegate) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
@@ -219,13 +339,36 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
         @Override
         public ChatResponse doChat(ChatRequest chatRequest) {
             lastPrompt = chatRequest.messages().toString();
-            ChatResponse response = delegate.doChat(chatRequest);
-            lastResponse = response.aiMessage().text();
-            if (response.tokenUsage() != null) {
-                inputTokens = response.tokenUsage().inputTokenCount();
-                outputTokens = response.tokenUsage().outputTokenCount();
+            long startedAt = System.nanoTime();
+            try {
+                ChatResponse response = delegate.doChat(chatRequest);
+                lastResponse = response.aiMessage().text();
+                if (response.tokenUsage() != null) {
+                    inputTokens = sum(inputTokens, response.tokenUsage().inputTokenCount());
+                    outputTokens = sum(outputTokens, response.tokenUsage().outputTokenCount());
+                }
+                reportedModel = response.modelName();
+                return response;
+            } finally {
+                long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+                wallClockMillis = wallClockMillis == null ? elapsed : wallClockMillis + elapsed;
             }
-            return response;
+        }
+
+        private static Integer sum(Integer soFar, Integer reported) {
+            if (reported == null) {
+                return soFar;
+            }
+            return soFar == null ? reported : soFar + reported;
+        }
+
+        private void clearCapturedState() {
+            lastPrompt = null;
+            lastResponse = null;
+            inputTokens = null;
+            outputTokens = null;
+            reportedModel = null;
+            wallClockMillis = null;
         }
 
         // AiServices asks the ChatModel for provider-specific request metadata. This wrapper only

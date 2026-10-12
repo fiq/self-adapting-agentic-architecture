@@ -51,8 +51,6 @@ final class AgentRequestTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new ResourceBudget(0, 0, BigDecimal.ZERO, 0, -1))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new AgentUsage(0, 0, BigDecimal.valueOf(-1), 0, 0))
-                .isInstanceOf(IllegalArgumentException.class);
     }
 
     static AgentRequest request(WorkflowGraph baseline) {

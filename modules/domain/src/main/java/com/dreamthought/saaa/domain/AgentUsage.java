@@ -2,26 +2,52 @@ package com.dreamthought.saaa.domain;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 /** Provider-neutral usage evidence captured after an invocation. */
 public record AgentUsage(
-        long inputTokens,
-        long outputTokens,
-        BigDecimal creditsConsumed,
-        long wallClockMillis,
-        int retries
+        OptionalLong inputTokens,
+        OptionalLong outputTokens,
+        Optional<BigDecimal> creditsConsumed,
+        OptionalLong wallClockMillis,
+        OptionalInt retries,
+        Optional<PriceIdentity> priceIdentity
 ) {
     public AgentUsage {
-        if (inputTokens < 0 || outputTokens < 0 || wallClockMillis < 0 || retries < 0) {
-            throw new IllegalArgumentException("usage values must not be negative");
-        }
+        inputTokens = Objects.requireNonNull(inputTokens, "inputTokens");
+        outputTokens = Objects.requireNonNull(outputTokens, "outputTokens");
         creditsConsumed = Objects.requireNonNull(creditsConsumed, "creditsConsumed");
-        if (creditsConsumed.signum() < 0) {
-            throw new IllegalArgumentException("creditsConsumed must not be negative");
-        }
+        wallClockMillis = Objects.requireNonNull(wallClockMillis, "wallClockMillis");
+        retries = Objects.requireNonNull(retries, "retries");
+        priceIdentity = Objects.requireNonNull(priceIdentity, "priceIdentity");
+        inputTokens.ifPresent(value -> requireNonNegative(value, "usage values"));
+        outputTokens.ifPresent(value -> requireNonNegative(value, "usage values"));
+        creditsConsumed.ifPresent(value -> requireNonNegative(value, "creditsConsumed"));
+        wallClockMillis.ifPresent(value -> requireNonNegative(value, "usage values"));
+        retries.ifPresent(value -> requireNonNegative(value, "usage values"));
     }
 
     public static AgentUsage none() {
-        return new AgentUsage(0, 0, BigDecimal.ZERO, 0, 0);
+        return new AgentUsage(
+                OptionalLong.empty(),
+                OptionalLong.empty(),
+                Optional.empty(),
+                OptionalLong.empty(),
+                OptionalInt.empty(),
+                Optional.empty());
+    }
+
+    private static void requireNonNegative(long value, String name) {
+        if (value < 0) {
+            throw new IllegalArgumentException(name + " must not be negative");
+        }
+    }
+
+    private static void requireNonNegative(BigDecimal value, String name) {
+        if (value.signum() < 0) {
+            throw new IllegalArgumentException(name + " must not be negative");
+        }
     }
 }

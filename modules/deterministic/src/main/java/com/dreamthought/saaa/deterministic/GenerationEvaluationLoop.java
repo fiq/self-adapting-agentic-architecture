@@ -5,9 +5,10 @@ import com.dreamthought.saaa.domain.MutationProposalRequest;
 import com.dreamthought.saaa.domain.RankedGeneration;
 import com.dreamthought.saaa.domain.UnevaluatedCandidate;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Evaluates a generation of candidates against one baseline and ranks what it got.
@@ -17,9 +18,10 @@ import java.util.Set;
  * a time. That is a decision to revisit against evidence that the wall clock is the problem, not a
  * limitation to route around.
  *
- * <p>The single-candidate path is untouched: this composes {@link CandidateEvaluator}, which
- * {@code MutationEvaluationLoop::evaluate} already satisfies without changing that class, so a
- * caller evaluating one candidate today behaves exactly as it did.
+ * <p>The evaluator returns the mutation alongside the scored result so the identity rule below can
+ * compare what was proposed rather than only what was recorded. The single-candidate path is
+ * untouched: {@code MutationEvaluationLoop::evaluate} keeps its signature for its current callers
+ * and only the widened {@code evaluateCandidate} carries the mutation.
  */
 public final class GenerationEvaluationLoop {
     private final CandidateEvaluator evaluator;
@@ -65,12 +67,14 @@ public final class GenerationEvaluationLoop {
 
         var evaluated = new ArrayList<FitnessResult>();
         var unevaluated = new ArrayList<UnevaluatedCandidate>();
-        var mutations = new LinkedHashSet<String>();
+        // Mutation id -> every patch seen under it. Sameness is the pair (id, patch): the same id
+        // over a different patch is two mutations and ranks, which is the Q-013 settlement.
+        var mutations = new LinkedHashMap<String, List<String>>();
         try {
             for (int attempt = 1; attempt <= candidates; attempt++) {
-                FitnessResult result;
+                CandidateEvaluation evaluation;
                 try {
-                    result = Objects.requireNonNull(
+                    evaluation = Objects.requireNonNull(
                             evaluator.evaluate(request), "a candidate evaluation returned no result");
                 } catch (RuntimeException failure) {
                     // Named by attempt rather than by candidate id, because a realisation that failed
@@ -80,8 +84,8 @@ public final class GenerationEvaluationLoop {
                             "attempt-" + attempt + "-of-" + candidates, describe(failure)));
                     continue;
                 }
-                requireMutationNotAlreadySeen(mutations, result, attempt, candidates);
-                evaluated.add(result);
+                requireMutationNotAlreadySeen(mutations, evaluation, attempt, candidates);
+                evaluated.add(evaluation.fitnessResult());
             }
             return ranking.rank(evaluated, unevaluated);
         } catch (RuntimeException failure) {
@@ -98,7 +102,7 @@ public final class GenerationEvaluationLoop {
     }
 
     /**
-     * Fails the run when two candidates carry the same mutation.
+     * Fails the run when two candidates carry the same mutation: the same id over the same patch.
      *
      * <p>Candidate ids are kept apart by the run's namespace, so one candidate evaluated N times
      * still produces N distinct ids, N worktrees and N rows. It reads exactly like a population and
@@ -110,26 +114,26 @@ public final class GenerationEvaluationLoop {
      * and a generation that quietly returned a tie would answer ADR-0002's "is ranking measurably
      * useful" question with an artefact of its own wiring.
      *
-     * <p>The comparison is on the mutation id alone, which is exact for the fixture proposer and
-     * blunt for a live one. A model chooses its own ids as free text, so it can legitimately return
-     * one id twice over genuinely different patches, and this would fail that run with a diagnosis
-     * that is only half true. The message says so. Comparing bodies instead needs the mutation to
-     * reach here, and a scored result carries its candidate rather than the mutation that produced
-     * it; that is recorded as a follow-up rather than fixed inside this change, because a live
-     * proposer filling a generation is deliberately not part of it. Found in independent review.
+     * <p>The comparison is on the pair (mutation id, patch), which settles Q-013 in code. A model
+     * chooses its own ids as free text, so one id over two genuinely different patches is two
+     * mutations and ranks; the check fires only when the patch also matches, which is exactly the
+     * case where the proposer produced no variant, and the message says so. Patches are compared as
+     * exact content. Identity derived from the realised tree rather than the proposal remains the
+     * recorded destination - the same instinct as the declared-locus gate - and is not built here.
      */
     private static void requireMutationNotAlreadySeen(
-            Set<String> seen, FitnessResult result, int attempt, int candidates) {
-        String mutationId = result.candidate().mutationId();
-        if (!seen.add(mutationId)) {
+            Map<String, List<String>> seen, CandidateEvaluation evaluation, int attempt, int candidates) {
+        var mutation = evaluation.mutation();
+        var patches = seen.computeIfAbsent(mutation.id(), id -> new ArrayList<>());
+        if (patches.contains(mutation.patch())) {
             throw new IllegalStateException(
                     "candidate " + attempt + " of " + candidates + " repeats mutation id "
-                            + mutationId + ", so this generation cannot be ranked: either the "
-                            + "proposer produced no variant for it, or it produced a different "
-                            + "mutation under an id it had already used. Only the id is compared "
-                            + "here, because a scored result carries its candidate and not the "
-                            + "mutation body");
+                            + mutation.id() + " with the same patch, so this generation cannot be "
+                            + "ranked: the proposer produced no variant for it. Two candidates are "
+                            + "the same mutation only when the id and the patch both match; the "
+                            + "same id over a different patch would have ranked as its own candidate");
         }
+        patches.add(mutation.patch());
     }
 
     private static String describe(RuntimeException failure) {

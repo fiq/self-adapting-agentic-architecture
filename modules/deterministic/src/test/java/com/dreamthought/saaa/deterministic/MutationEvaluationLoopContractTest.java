@@ -80,6 +80,9 @@ final class MutationEvaluationLoopContractTest {
                     public void recordFitness(FitnessResult recorded) { }
 
                     @Override
+                    public void recordUsage(Candidate recorded, com.dreamthought.saaa.domain.AgentUsage usage) { }
+
+                    @Override
                     public void recordGeneration(
                             com.dreamthought.saaa.domain.GenerationRecord record) {
                         throw new AssertionError("a single-candidate run has no generation to record");

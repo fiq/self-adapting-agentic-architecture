@@ -3,24 +3,99 @@ package com.dreamthought.saaa.adapters.sqlite;
 import static com.dreamthought.saaa.domain.FitnessDecision.DISCARD;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.CheckEvidence;
 import com.dreamthought.saaa.domain.EvaluationEvidence;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.FitnessScore;
+import com.dreamthought.saaa.domain.PriceIdentity;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 final class SqliteExperimentMetadataStoreIntegrationTest {
     @TempDir
     private Path tempDir;
+
+    /**
+     * S5. Usage is a per-candidate audit row: observed fields retain their values while unavailable
+     * fields remain SQL NULL. A zero would be a measurement claim, and an unobserved price identity
+     * must not turn into a placeholder provider or model.
+     */
+    @Test
+    void aCandidatesUsageIsRecordedWithPriceIdentityAndUnobservedFieldsNull() throws SQLException {
+        Path database = tempDir.resolve("experiments.sqlite");
+        var store = new SqliteExperimentMetadataStore(database);
+        var observed = candidate("candidate-usage-observed");
+        var unavailable = candidate("candidate-usage-unavailable");
+        store.recordCandidate(observed);
+        store.recordCandidate(unavailable);
+
+        store.recordUsage(observed, new AgentUsage(
+                OptionalLong.of(101),
+                OptionalLong.of(202),
+                Optional.empty(),
+                OptionalLong.of(303),
+                OptionalInt.of(4),
+                Optional.of(new PriceIdentity("observed-provider", "observed-model"))));
+        store.recordUsage(unavailable, AgentUsage.none());
+
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
+            assertThat(count(connection, "schema_migrations")).isEqualTo(4);
+            assertThat(singleText(connection,
+                    "select provider || ':' || model || ':' || input_tokens || ':' || output_tokens"
+                            + " || ':' || coalesce(credits_consumed, 'null') || ':' || wall_clock_millis || ':' || retries"
+                            + " from candidate_usage where candidate_id = ?",
+                    observed.id()))
+                    .isEqualTo("observed-provider:observed-model:101:202:null:303:4");
+            assertThat(singleText(connection,
+                    "select coalesce(provider, 'null') || ':' || coalesce(model, 'null') || ':'"
+                            + " || coalesce(cast(input_tokens as text), 'null') || ':'"
+                            + " || coalesce(cast(output_tokens as text), 'null') || ':'"
+                            + " || coalesce(credits_consumed, 'null') || ':'"
+                            + " || coalesce(cast(wall_clock_millis as text), 'null') || ':'"
+                            + " || coalesce(cast(retries as text), 'null') from candidate_usage where candidate_id = ?",
+                    unavailable.id()))
+                    .isEqualTo("null:null:null:null:null:null:null");
+        }
+    }
+
+    /** RISK-007: credits are money, so their exact decimal representation is the record. */
+    @Test
+    void aCandidatesCreditsRoundTripAsExactDecimalText() throws SQLException {
+        Path database = tempDir.resolve("experiments.sqlite");
+        var store = new SqliteExperimentMetadataStore(database);
+        var candidate = candidate("candidate-usage-credits");
+        store.recordCandidate(candidate);
+
+        store.recordUsage(candidate, new AgentUsage(
+                OptionalLong.empty(),
+                OptionalLong.empty(),
+                Optional.of(new BigDecimal("0.10000000000000000001")),
+                OptionalLong.empty(),
+                OptionalInt.empty(),
+                Optional.empty()));
+
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
+            assertThat(singleText(connection,
+                    "select credits_consumed from candidate_usage where candidate_id = ?", candidate.id()))
+                    .isEqualTo("0.10000000000000000001");
+            assertThat(singleText(connection,
+                    "select typeof(credits_consumed) from candidate_usage where candidate_id = ?", candidate.id()))
+                    .isEqualTo("text");
+        }
+    }
 
     @Test
     void recordsCandidateFitnessAndEvaluationEvidence() throws SQLException {
@@ -57,7 +132,7 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         store.recordCandidate(candidate);
 
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
-            assertThat(count(connection, "schema_migrations")).isEqualTo(3);
+            assertThat(count(connection, "schema_migrations")).isEqualTo(4);
             assertThat(singleText(connection, "select branch_name from candidates where id = ?", candidate.id()))
                     .isEqualTo(candidate.branchName());
             assertThat(singleText(connection, "select decision from fitness_results where candidate_id = ?", candidate.id()))
@@ -249,6 +324,15 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
                         List.of(new com.dreamthought.saaa.domain.FitnessObjective("o", 1.0)),
                         java.util.Set.of(), java.util.Set.of(), 0.80,
                         java.util.Set.of("case"), 80, java.util.Map.of()));
+    }
+
+    private static Candidate candidate(String candidateId) {
+        return new Candidate(
+                candidateId,
+                "mutation-" + candidateId,
+                "candidate/" + candidateId,
+                Path.of(".worktrees", candidateId),
+                "abc1234");
     }
 
     private static int count(java.sql.Connection connection, String table) throws SQLException {

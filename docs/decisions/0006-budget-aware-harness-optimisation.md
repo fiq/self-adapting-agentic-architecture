@@ -302,6 +302,12 @@ slice is actually proposed.
 
 ### Slice 0 - the prerequisite for real cost: measured usage from a live proposer
 
+*Delivered as a mechanism by `CHG-029`.* A live proposer fills a generation and
+each candidate's usage and response-declared model are recorded in the journal
+and the `candidate_usage` ledger table, NULL where unobserved. No run against a
+real provider has been made yet, so no cost per successful task has been
+measured; the paragraphs below describe what was missing before it.
+
 Cost per successful task cannot be measured today, for two reasons:
 
 - `AgentUsage` is returned by the harness adapters but is written to neither

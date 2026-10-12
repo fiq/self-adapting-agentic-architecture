@@ -3,6 +3,7 @@ package com.dreamthought.saaa.deterministic;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
 import com.dreamthought.saaa.domain.ProposerEvidence;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.util.Optional;
 
@@ -35,5 +36,10 @@ public interface MutationProposer {
 
     default Optional<ProposerEvidence> proposerEvidence() {
         return Optional.empty();
+    }
+
+    /** Usage observed while producing the most recent proposal, if any. */
+    default AgentUsage usage() {
+        return AgentUsage.none();
     }
 }

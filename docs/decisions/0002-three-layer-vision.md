@@ -41,12 +41,15 @@ one candidate per run or for a generation of N ranked on identical evidence
 fingerprint, evidence count and spread are recorded in the journal and the
 experiment ledger.
 
-*What's missing:* a live model proposer filling a generation. The proposer
-adapter exists and is covered by a WireMock-backed acceptance test, but the
-variety a generation ranks today comes from the fixture proposer varying its own
-canned mutation. That proves ranking works on candidates that differ; it does not
-show that a model's candidates differ in ways the scorer can see, and only the
-live proposer answers that. Iterated generations, elitism and an archive of
+A live model proposer can now fill a generation (`CHG-029`): each of the N asks
+names its variant in the prompt, sameness is decided on the mutation's id and
+patch together, and every candidate's observed usage and response-declared model
+are recorded. That is proven against WireMock, not against a real model.
+
+*What's missing:* the measurement. Whether a real model's candidates differ in
+ways the scorer can see is still unanswered, because no generation has yet been
+run against a real provider and its spread read. The mechanism to ask the
+question exists; the answer does not. Iterated generations, elitism and an archive of
 best-so-far are also missing and need their own decision about what survives.
 
 ### Layer 2 — SAAA as tooling for a custom agentic loop

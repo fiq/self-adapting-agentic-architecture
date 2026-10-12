@@ -13,6 +13,7 @@ import com.dreamthought.saaa.adapters.retrieval.LocalRetrievalFactory;
 import com.dreamthought.saaa.adapters.retrieval.LocalEvolutionaryMemoryFactory;
 import com.dreamthought.saaa.adapters.sqlite.SqliteExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.BenchmarkRunner;
+import com.dreamthought.saaa.deterministic.CandidateEvaluation;
 import com.dreamthought.saaa.deterministic.CandidateEvaluator;
 import com.dreamthought.saaa.deterministic.CandidateNamespace;
 import com.dreamthought.saaa.deterministic.EvolutionaryMemoryProjector;
@@ -29,6 +30,7 @@ import com.dreamthought.saaa.deterministic.MutationScopeValidator;
 import com.dreamthought.saaa.deterministic.DiffLineBudgetMutationValidator;
 import com.dreamthought.saaa.deterministic.PhenotypeBridgeScorer;
 import com.dreamthought.saaa.deterministic.ScoringConfig;
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.GenerationRecord;
@@ -120,7 +122,9 @@ public final class EvolveRunner {
 
     public EvolveRunResult run(EvolveRunRequest request, EvolutionReporter reporter) {
         var prepared = prepare(request, reporter);
-        var result = prepared.evaluator.evaluate(prepared.proposal);
+        // The evaluator returns the mutation alongside the result for the generation identity
+        // check; a single-candidate run has no generation, so only the result travels on.
+        var result = prepared.evaluator.evaluate(prepared.proposal).fitnessResult();
         return new EvolveRunResult(result, prepared.journalPath, prepared.retrievalCapture.required(),
                 prepared.proposer.proposerEvidence(), prepared.wallMillis(),
                 prepared.timedRetriever.elapsedMillis());
@@ -387,11 +391,11 @@ public final class EvolveRunner {
      * {@code GenerationEvaluationLoop} fails the run for it rather than ranking one candidate against
      * itself.
      */
-    private static final class VariantProposer implements MutationProposer {
+    static final class VariantProposer implements MutationProposer {
         private final MutationProposer delegate;
         private final int variant;
 
-        private VariantProposer(MutationProposer delegate, int variant) {
+        VariantProposer(MutationProposer delegate, int variant) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
             this.variant = variant;
         }
@@ -409,6 +413,11 @@ public final class EvolveRunner {
         @Override
         public Optional<ProposerEvidence> proposerEvidence() {
             return delegate.proposerEvidence();
+        }
+
+        @Override
+        public AgentUsage usage() {
+            return delegate.usage();
         }
     }
 
@@ -477,8 +486,8 @@ public final class EvolveRunner {
         }
 
         @Override
-        public FitnessResult evaluate(MutationProposalRequest request) {
-            return loopForCandidate.apply(++position).evaluate(request);
+        public CandidateEvaluation evaluate(MutationProposalRequest request) {
+            return loopForCandidate.apply(++position).evaluateCandidate(request);
         }
     }
 

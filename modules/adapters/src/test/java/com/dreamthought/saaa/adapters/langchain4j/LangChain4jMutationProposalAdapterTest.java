@@ -8,11 +8,21 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.TokenUsage;
 import com.dreamthought.saaa.domain.MutationLimits;
 import com.dreamthought.saaa.domain.MutationScope;
+import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
+import com.dreamthought.saaa.domain.PriceIdentity;
+import com.dreamthought.saaa.domain.RetrievalBundle;
+import com.dreamthought.saaa.domain.RetrievalDiagnostics;
+import com.dreamthought.saaa.domain.RetrievalMode;
+import com.dreamthought.saaa.domain.RetrievalQuery;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 
 final class LangChain4jMutationProposalAdapterTest {
@@ -83,6 +93,82 @@ final class LangChain4jMutationProposalAdapterTest {
         assertThat(evidence.attributes().get("prompt_digest")).startsWith("sha256:");
         assertThat(evidence.attributes().get("prompt")).contains("baseline", "agent -> tool -> answer");
         assertThat(evidence.attributes().get("raw_response")).contains("mut-003");
+    }
+
+    @Test
+    void reportsProviderUsageWithTheModelDeclaredByTheResponse() {
+        var chatModel = new StaticJsonChatModel(response(
+                "mut-usage", new TokenUsage(101, 202), "reported-model"));
+        var adapter = LangChain4jMutationProposalAdapter.from(
+                chatModel, "openai-compatible", "configured-model");
+
+        adapter.proposeFor(new WorkflowGraph("baseline", "v1", "agent -> tool -> answer"));
+
+        assertThat(adapter.usage()).isEqualTo(new com.dreamthought.saaa.domain.AgentUsage(
+                OptionalLong.of(101),
+                OptionalLong.of(202),
+                Optional.empty(),
+                adapter.usage().wallClockMillis(),
+                OptionalInt.empty(),
+                Optional.of(new PriceIdentity("openai-compatible", "reported-model"))));
+        assertThat(adapter.usage().wallClockMillis()).isPresent();
+        assertThat(adapter.proposerEvidence().orElseThrow().attributes())
+                .containsEntry("requested_model", "configured-model")
+                .containsEntry("reported_model", "reported-model");
+    }
+
+    /**
+     * CHG-029 S1. A generation asks the model for each variant explicitly: the variant number is
+     * observable in the prompt the model receives, so the model can vary and the sameness rule in
+     * {@code GenerationEvaluationLoop} can check that it did. Two different variants are asked and
+     * each number is asserted in its own ask, so a constant marker would fail the second one.
+     */
+    @Test
+    void theVariantNumberReachesTheModelPrompt() {
+        var chatModel = new StaticJsonChatModel(
+                response("mut-v-one", null, null),
+                response("mut-v-three", null, null));
+        var adapter = LangChain4jMutationProposalAdapter.from(chatModel);
+        var baseline = new WorkflowGraph("baseline", "v1", "agent -> tool -> answer");
+        var request = new PreparedMutationProposalRequest(
+                baseline,
+                new RetrievalQuery(RetrievalMode.NONE, "vary the workflow", baseline, "v1",
+                        List.of("workflow.txt"), Optional.empty()),
+                new RetrievalBundle(RetrievalMode.NONE, "test-retrieval", "v1", "none", "none",
+                        "none", "none", "none", List.of(), RetrievalDiagnostics.empty(), ""));
+
+        adapter.proposeFor(request, 1);
+        var firstAsk = chatModel.lastRequest.toString();
+        adapter.proposeFor(request, 3);
+        var thirdAsk = chatModel.lastRequest.toString();
+
+        assertThat(firstAsk).contains("variant 1 of a generation");
+        assertThat(thirdAsk)
+                .contains("variant 3 of a generation")
+                .doesNotContain("variant 1 of a generation");
+    }
+
+    @Test
+    void aResponseWithoutUsageDoesNotInheritThePreviousCallsTokens() {
+        var chatModel = new StaticJsonChatModel(
+                response("mut-first", new TokenUsage(17, 29), "reported-model"),
+                response("mut-second", null, null));
+        var adapter = LangChain4jMutationProposalAdapter.from(
+                chatModel, "openai-compatible", "configured-model");
+        var baseline = new WorkflowGraph("baseline", "v1", "agent -> tool -> answer");
+
+        adapter.proposeFor(baseline);
+        var firstUsage = adapter.usage();
+        adapter.proposeFor(baseline);
+
+        assertThat(firstUsage.inputTokens()).hasValue(17L);
+        assertThat(firstUsage.outputTokens()).hasValue(29L);
+        assertThat(adapter.usage().inputTokens()).isEmpty();
+        assertThat(adapter.usage().outputTokens()).isEmpty();
+        assertThat(adapter.usage().creditsConsumed()).isEmpty();
+        assertThat(adapter.usage().retries()).isEmpty();
+        assertThat(adapter.usage().priceIdentity()).isEmpty();
+        assertThat(adapter.usage().wallClockMillis()).isPresent();
     }
 
     @Test
@@ -170,22 +256,59 @@ final class LangChain4jMutationProposalAdapterTest {
             this.retrievalContext = retrievalContext;
             return proposal;
         }
+
+        @Override
+        public LangChain4jMutationProposalAdapter.MutationProposal proposeGenerationVariant(
+                String workflowId,
+                String workflowVersion,
+                String workflowDefinition,
+                List<String> allowedScopes,
+                String mutationIntent,
+                String retrievalContext,
+                int variant
+        ) {
+            this.workflowId = workflowId;
+            this.workflowVersion = workflowVersion;
+            this.workflowDefinition = workflowDefinition;
+            this.allowedScopes = List.copyOf(allowedScopes);
+            this.mutationIntent = mutationIntent;
+            this.retrievalContext = retrievalContext;
+            return proposal;
+        }
     }
 
     private static final class StaticJsonChatModel implements ChatModel {
-        private final String response;
+        private final ChatResponse[] responses;
+        private int responseIndex;
         private ChatRequest lastRequest;
 
         private StaticJsonChatModel(String response) {
-            this.response = response;
+            this(ChatResponse.builder().aiMessage(AiMessage.from(response)).build());
+        }
+
+        private StaticJsonChatModel(ChatResponse... responses) {
+            this.responses = responses;
         }
 
         @Override
         public ChatResponse doChat(ChatRequest chatRequest) {
             lastRequest = chatRequest;
-            return ChatResponse.builder()
-                    .aiMessage(AiMessage.from(response))
-                    .build();
+            return responses[responseIndex++];
         }
+    }
+
+    private static ChatResponse response(String id, TokenUsage tokenUsage, String modelName) {
+        return ChatResponse.builder()
+                .aiMessage(AiMessage.from("""
+                        {
+                          "id": "%s",
+                          "summary": "bounded proposal",
+                          "scope": "WORKFLOW_DEFINITION",
+                          "patch": "replace tool policy"
+                        }
+                        """.formatted(id)))
+                .tokenUsage(tokenUsage)
+                .modelName(modelName)
+                .build();
     }
 }

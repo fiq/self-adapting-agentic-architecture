@@ -11,12 +11,16 @@ import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.BenchmarkEvidence;
 import com.dreamthought.saaa.domain.Mutation;
 import com.dreamthought.saaa.domain.MutationScope;
+import com.dreamthought.saaa.domain.PriceIdentity;
 import com.dreamthought.saaa.domain.RetrievalMode;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -366,6 +370,66 @@ final class EvolveRunnerTest {
                 .as("every candidate was proposed from the same evidence, which is what makes their "
                         + "scores comparable at all")
                 .hasSize(1);
+    }
+
+    @Test
+    void thePerCandidateWrapperForwardsTheProposersUsageChannel() {
+        var distinctiveUsage = new AgentUsage(
+                OptionalLong.of(101),
+                OptionalLong.of(202),
+                Optional.of(new BigDecimal("3.03")),
+                OptionalLong.of(404),
+                OptionalInt.of(5),
+                Optional.of(new PriceIdentity("observed-provider", "observed-model")));
+        var fixtureProposer = new com.dreamthought.saaa.deterministic.MutationProposer() {
+            @Override
+            public Mutation proposeFor(com.dreamthought.saaa.domain.WorkflowGraph baseline) {
+                throw new AssertionError("usage delegation does not propose a mutation");
+            }
+
+            @Override
+            public AgentUsage usage() {
+                return distinctiveUsage;
+            }
+        };
+
+        var wrapper = new EvolveRunner.VariantProposer(fixtureProposer, 2);
+
+        assertThat(wrapper.usage()).isEqualTo(distinctiveUsage);
+    }
+
+    @Test
+    void theVariantReachesTheProposerThroughThePerCandidateWiring() {
+        var baseline = new com.dreamthought.saaa.domain.WorkflowGraph("toy", "v1", "draft-check: skip\n");
+        var request = new com.dreamthought.saaa.domain.PreparedMutationProposalRequest(
+                baseline,
+                new com.dreamthought.saaa.domain.RetrievalQuery(RetrievalMode.NONE, "vary", baseline, "v1",
+                        List.of("workflow.txt"), Optional.empty()),
+                new com.dreamthought.saaa.domain.RetrievalBundle(RetrievalMode.NONE, "test-retrieval", "v1",
+                        "none", "none", "none", "none", "none", List.of(),
+                        com.dreamthought.saaa.domain.RetrievalDiagnostics.empty(), ""));
+        var askedFor = new java.util.ArrayList<Integer>();
+        var recordingProposer = new com.dreamthought.saaa.deterministic.MutationProposer() {
+            @Override
+            public Mutation proposeFor(com.dreamthought.saaa.domain.WorkflowGraph ignored) {
+                throw new AssertionError("a generation candidate must be asked through the variant entry point");
+            }
+
+            @Override
+            public Mutation proposeFor(
+                    com.dreamthought.saaa.domain.PreparedMutationProposalRequest prepared, int variant) {
+                askedFor.add(variant);
+                return new Mutation("MUT-" + variant, "variant " + variant,
+                        MutationScope.WORKFLOW_DEFINITION, prepared.baseline().definition());
+            }
+        };
+
+        // Positions 2 and 3, not 1: the variant entry point's default delegates to the plain one,
+        // and a wrapper that forgot its position would most plausibly fall back to the first.
+        new EvolveRunner.VariantProposer(recordingProposer, 2).proposeFor(request);
+        new EvolveRunner.VariantProposer(recordingProposer, 3).proposeFor(request);
+
+        assertThat(askedFor).containsExactly(2, 3);
     }
 
     private static com.dreamthought.saaa.deterministic.MutationProposer ignoredBaselineProposer() {
