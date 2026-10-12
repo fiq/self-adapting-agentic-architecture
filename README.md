@@ -798,8 +798,8 @@ Each is recorded as deferred in `PROJECT_PROFILE.toon` with revisit conditions.
 
 Three layers, detailed in
 [ADR-0002](docs/decisions/0002-three-layer-vision.md): evolve a
-workflow or prompt file (shipped, for one candidate or a generation of
-fixture-proposed variants); SAAA as a tool an
+workflow or prompt file (shipped, for one candidate or a generation, though no
+generation has yet been run against a real provider); SAAA as a tool an
 outer agentic loop calls (`saaa-mcp` serves it, the planning loop is not built);
 the same loop on product code gated by existing tests and benchmarks
 (`--workflow-file` can target a Java file, but realisation is whole-file
