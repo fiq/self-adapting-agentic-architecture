@@ -67,9 +67,19 @@ models.
 
 The application does not yet select models by task complexity.
 
-- `Q-010` records the intended strategy: remaining tokens, provider credits,
-  wall-clock budget, rate limits and retry allowance should become explicit
-  experiment state that can select a model tier or bounded context packet.
+`ADR-0006` records the product direction: SAAA should optimise/select the
+harness around existing agents, starting with deterministic cheap-first profiles
+and evidence-backed escalation rather than becoming another agent runtime.
+
+`Q-010` remains the evidence question. It proposes that remaining tokens,
+provider credits, wall-clock budget, rate limits and retry allowance become
+explicit strategy state. Today `ResourceBudget` carries all of them except rate
+limits, as limits on one invocation. Rate limits are not represented anywhere,
+and nothing selects on any of them. No automatic selector should ship until real
+`AgentUsage`, price identity and representative task outcomes show that the
+policy lowers cost per successful task without hiding failures or degrading
+quality.
+
 - Routing must be decided and audited before proposal, while deterministic
   validation, fitness and promotion remain unchanged.
 - Do not add opaque model-name heuristics until usage evidence and an ablation

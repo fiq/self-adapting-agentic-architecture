@@ -302,6 +302,20 @@ decisions:
       - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/HarnessSessionStateMachine.java
       - modules/cli/src/acceptanceTest/java/com/dreamthought/saaa/cli/SaCommandAcceptanceTest.java
     consequence_if_changed: a networked, durable or provider-owned session implementation must preserve explicit selections and deterministic candidate authority before replacing this local client
+  - id: budget_aware_harness_optimisation_control_plane
+    decision: SAAA should optimise and select versioned harness profiles around existing agents, using deterministic cheap-first selection and evidence-backed escalation over an offline evaluation corpus, while execution remains behind AgentHarness and validation, scoring and promotion remain deterministic
+    reason:
+      - AgentHarness, AgentRoute, ResourceBudget and AgentUsage already form the provider-neutral seam needed to make harness selection auditable
+      - lower-cost and local models benefit most when repeated planning, context discovery, tool choice and verification burden is moved into explicit harness policy
+      - treating cost, quality and latency as measured outcomes keeps economics in the same empirical loop as correctness rather than in provider-specific configuration
+      - SAAA remains differentiated as a control plane that improves existing agents instead of becoming another general-purpose agent runtime
+    confidence: medium
+    status: proposed
+    validation:
+      - docs/decisions/0006-budget-aware-harness-optimisation.md
+      - .agents/knowledge/decisions/ADR-0006-budget-aware-harness-optimisation.md
+      - .agents/knowledge/questions/Q-010-resource-aware-model-routing.md
+    consequence_if_changed: resource-aware routing or harness adaptation must either receive a superseding decision that preserves ARCH-001 or remain explicit caller configuration
 
 unknowns:
   - id: Q-001
