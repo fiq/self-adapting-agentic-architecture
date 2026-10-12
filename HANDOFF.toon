@@ -1,21 +1,20 @@
 session:
-  updated: 2026-10-11
-  status: chg_027_ready_for_human_read_and_merge
-  branch: feat/chg-027-assessment-lenses
-  worktree: /home/raf/Code/github/self-adapting-agentic-architecture (no feature worktrees open)
-  head: feat/chg-027-assessment-lenses, two content commits plus this wrap-up commit on main at d0e9187, which is also origin/main as of 2026-10-11 (read through the GitHub API, because the SSH agent had no key loaded and git fetch was refused). No rebase needed. PR #53 is a draft; CI fast and full-readiness passed at 00ff024.
-  head_note: CHG-027 is functionally complete. T1 the AGENTS.md section, T2 the check-repo-contract control, T3 the review-loop rows and T4 the template entry are delivered and the spec status is delivered. What remains is a human read and merge authorisation.
-  transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening, editing or merging a pull request, and only when the user says so.
+  updated: 2026-10-12
+  status: adr_0006_merging_then_readme_chg_028_chg_029
+  branch: docs/adr-0006-harness-control-plane
+  worktree: .worktrees/adr-0006; also open .worktrees/readme, .worktrees/chg-028, .worktrees/chg-029
+  head: docs/adr-0006-harness-control-plane, rebased onto main at 0a5877b (the PR #53 merge, CHG-027). PR #57, draft until merge.
+  head_note: CHG-027 merged as PR #53 on 2026-10-11. The user then authorised review of PRs #57-#60 by opencode neuralwatt/deepseek-v4-flash followed by merge. Merge order is #57 ADR-0006, #58 README (stacked on #57), #59 CHG-028, #60 CHG-029 (stacked on #57, rebased over CHG-028 before it lands because both edit GenerationEvaluationLoop, the reporters, EvolveRunner and README). Each branch rewrites this header just before its own merge.
+  transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening, editing or merging a pull request, and only when the user says so. If ssh-add -l reports no agent, SSH_AUTH_SOCK is unset in the shell; the key is in the gcr agent at /run/user/1000/gcr/ssh.
   dirty: false
-  pushed: false
+  pushed: true
 
 goal:
-  current: Land CHG-027, the assessment lenses. Then two design changes prepared outside the checkout - ADR-0006 on budget-aware harness optimisation, and a README opening that leads with why SAAA matters - land in that order, ADR first. The next code slice after them is still undecided; see next_actions.
-  phase: chg_027_awaiting_merge
+  current: Land ADR-0006 (#57), then the README opening (#58), CHG-028 (#59) and CHG-029 (#60). After that the next step is not code but a measurement - a real provider filling a generation, which ADR-0002 and ADR-0006 slice 0 both name.
+  phase: merging_reviewed_prs
 
 next_actions:
-  - START HERE: CHG-027 needs a human read and merge authorisation, nothing else. The PR #53 body is stale - it still claims an empty Compose topology, which 00ff024 corrected, and its mutation table predates the five-lens guard - and it ends with a session URL that must be removed. Editing it needs gh and the user's go-ahead.
-  - after CHG-027, the ADR-0006 change, then the README change. Both were reviewed on 2026-10-04 against the repository and their three cited research results; the required fixes are recorded in the plan the user approved and must be applied before either is opened. The ADR comes first because the README's headline question is the ADR's direction.
+  - START HERE: CHG-027 merged (#53). ADR-0006 is merging as #57; the README (#58), CHG-028 (#59) and CHG-029 (#60) follow in that order. Each is reviewed and has CI green; their own review records land with them.
   - RISK-009 records four CLI user-experience defects in the CHG-026 --candidates flag, found by applying the new lens. Not fixed in CHG-027 because it touches no CLI code. A small separate change, any time.
   - the next code slice is likely the live model proposer filling a generation with its AgentUsage written to the ledger. It is candidate one below and it is also the prerequisite ADR-0006 needs before cost per successful task can be measured at all.
   - START HERE: decide the next slice. CHG-026 merged, so the two tracks that were waiting on it are both open and they are genuinely different bets.
@@ -38,6 +37,17 @@ next_actions:
   - the reachability fix from CHG-025 is enabling, not exercised: modules/adapters can compile against the conformance suite and nothing guards that until the first frontend's test does it for real.
   - StructureCompleteness.UNSUPPORTED is still produced by nothing and asserted by nothing. It is the value a registry returns for a language with no frontend, and no registry exists.
   - after the population work settles, the first frontend: JavaParser behind SourceStructureInspector, judged by the conformance suite rather than by its own tests.
+
+review_record_adr_0006:
+  change: ADR-0006, docs/decisions/0006-budget-aware-harness-optimisation.md
+  reviewed_commit: e9b6cb8 (and its pre-rebase equivalents 577ad7d, b1570e3)
+  passes:
+    - codex read-only, layering and authority. VERDICT NO - a harness profile could have chosen its own acceptance checks. Fixed in b1570e3 - acceptance checks, gates and fitness are fixed for the task before a profile is selected, and a profile is a self-check policy.
+    - opencode --agent plan, neuralwatt/kimi-k3, claims against the repository. VERDICT NO - present-tense claims about unbuilt work. Fixed in b1570e3.
+    - opencode --agent plan, neuralwatt/glm-5.3, re-check of the fixes. VERDICT YES with two wording slips, fixed in 126825e.
+    - opencode --agent plan, neuralwatt/deepseek-v4-flash, 2026-10-12, internal consistency, graph integrity and decided-versus-deferred. VERDICT YES, three nits; the tangled ResourceBudget sentence in docs/wiki/development.md fixed in 98d2cc3, the line-wrap and "independently shippable" nits left as cosmetic.
+  mutation_evidence: not applicable - the change is documentation and knowledge nodes and asserts nothing about a gate, decision, audit record or promotion in code. git diff --stat main...HEAD -- modules/ is empty.
+  independent_challenge_lost: none beyond the usual - no human has read the ADR's argument, only its consistency.
 
 review_record_chg_027:
   change: CHG-027
@@ -106,6 +116,7 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-10-12 ADR-0006 pre-merge, after rebase onto 0a5877b: project check 7/7, check-changes OK, check-glossary OK; CI fast and full-readiness green on PR #57
   - 2026-10-11 CHG-027 wrap-up validation: :domain :deterministic :adapters :cli test with --rerun-tasks, 19 tasks executed, BUILD SUCCESSFUL; project check 7/7; check-changes OK; check-glossary OK; check-wiki reports two drift warnings (knowledge and specs changed after the wiki), which are present on this branch before the wrap-up commit too and are warnings rather than failures
   - 2026-10-11 CHG-027 one of those mutations re-run in this session rather than trusted: the Correctness bullet deleted from AGENTS.md (the deletion asserted to have applied before running) fails check-repo-contract with "missing controls required by agents-assessment-lens-controls: **Correctness.**"; AGENTS.md restored from a backup and verified byte-identical with cmp; check-repo-contract OK afterwards
   - 2026-10-04 CHG-027 mutation evidence, recorded in the 0d5ad1f and 00ff024 commit messages and run against check-repo-contract, the only suite these controls live in: each of the five lenses deleted in turn from AGENTS.md fails the check naming that lens; removing item 18b from AGENTS_TEMPLATE.md fails it; removing the whole section and softening "applied or declared not applicable" each fail it. Each file restored byte-identical. One run first reported three lenses passing after deletion because its regex matched nothing, so nothing was deleted - a mutation that never ran looks like one that proved the code, and only the traceback printed beside the result gave it away
