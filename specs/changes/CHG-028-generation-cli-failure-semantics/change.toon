@@ -1,7 +1,7 @@
 change:
   id: CHG-028
   title: Generation CLI failure semantics
-  status: proposed
+  status: delivered
   intent: Make generation failure exits, abort journalling, runtime validation errors and ranking alignment clear and consistent for CLI users and automation.
   audience_level: developer
   relates_to:
