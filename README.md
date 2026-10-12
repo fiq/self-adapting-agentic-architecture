@@ -589,9 +589,10 @@ override a gate, request a merge or carry credentials. What does not: the check
 process is not sandboxed, so it keeps whatever filesystem and network access
 launched it. This narrows the obvious routes rather than solving anything.
 
-Ranking several candidates on identical evidence, selecting between them and
-recombining ideas from evaluated parents are not implemented, and the current
-score should not be read as if they were.
+Ranking several candidates on identical evidence is implemented, but over
+fixture-proposed variants only, so it has not yet ranked genuinely different
+ideas. Recombining ideas from evaluated parents is not implemented. The current
+score should not be read as if either were.
 
 ## Why this shape
 
@@ -638,9 +639,11 @@ several candidate variants
         + retained experiment history
 ```
 
-Three of the four exist. The candidate variants do not: SAAA evaluates one
-candidate per run, so the differentiator is a design claim rather than a working
-property.
+All four exist, the first only in part. `--candidates` evaluates several
+variants as one generation and ranks them, but the variety comes from the fixture
+proposer, which varies by appending to its own canned mutation. The
+differentiator is therefore a working mechanism, not yet a demonstrated property:
+no generation has been filled by a model proposing genuinely different ideas.
 
 ## Architecture
 
@@ -793,7 +796,8 @@ Each is recorded as deferred in `PROJECT_PROFILE.toon` with revisit conditions.
 
 Three layers, detailed in
 [ADR-0002](docs/decisions/0002-three-layer-vision.md): evolve a
-workflow or prompt file (shipped for one candidate per run); SAAA as a tool an
+workflow or prompt file (shipped, for one candidate or a generation of
+fixture-proposed variants); SAAA as a tool an
 outer agentic loop calls (`saaa-mcp` serves it, the planning loop is not built);
 the same loop on product code gated by existing tests and benchmarks
 (`--workflow-file` can target a Java file, but realisation is whole-file
