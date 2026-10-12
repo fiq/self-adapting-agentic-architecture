@@ -1,9 +1,9 @@
 session:
   updated: 2026-10-12
-  status: adr_0006_merging_then_readme_chg_028_chg_029
-  branch: docs/adr-0006-harness-control-plane
-  worktree: .worktrees/adr-0006; also open .worktrees/readme, .worktrees/chg-028, .worktrees/chg-029
-  head: docs/adr-0006-harness-control-plane, rebased onto main at 0a5877b (the PR #53 merge, CHG-027). PR #57, draft until merge.
+  status: readme_merging_then_chg_028_chg_029
+  branch: docs/readme-value-proposition
+  worktree: .worktrees/readme; also open .worktrees/adr-0006 (merged, removable), .worktrees/chg-028, .worktrees/chg-029
+  head: docs/readme-value-proposition, rebased onto main at ce94350 (the PR #57 merge, ADR-0006). PR #58.
   head_note: CHG-027 merged as PR #53 on 2026-10-11. The user then authorised review of PRs #57-#60 by opencode neuralwatt/deepseek-v4-flash followed by merge. Merge order is #57 ADR-0006, #58 README (stacked on #57), #59 CHG-028, #60 CHG-029 (stacked on #57, rebased over CHG-028 before it lands because both edit GenerationEvaluationLoop, the reporters, EvolveRunner and README). Each branch rewrites this header just before its own merge.
   transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening, editing or merging a pull request, and only when the user says so. If ssh-add -l reports no agent, SSH_AUTH_SOCK is unset in the shell; the key is in the gcr agent at /run/user/1000/gcr/ssh.
   dirty: false
@@ -14,7 +14,7 @@ goal:
   phase: merging_reviewed_prs
 
 next_actions:
-  - START HERE: CHG-027 merged (#53). ADR-0006 is merging as #57; the README (#58), CHG-028 (#59) and CHG-029 (#60) follow in that order. Each is reviewed and has CI green; their own review records land with them.
+  - START HERE: CHG-027 merged (#53) and ADR-0006 merged (#57). The README is merging as #58; CHG-028 (#59) and CHG-029 (#60) follow in that order. Each is reviewed and has CI green; their own review records land with them.
   - RISK-009 records four CLI user-experience defects in the CHG-026 --candidates flag, found by applying the new lens. Not fixed in CHG-027 because it touches no CLI code. A small separate change, any time.
   - the next code slice is likely the live model proposer filling a generation with its AgentUsage written to the ledger. It is candidate one below and it is also the prerequisite ADR-0006 needs before cost per successful task can be measured at all.
   - START HERE: decide the next slice. CHG-026 merged, so the two tracks that were waiting on it are both open and they are genuinely different bets.
@@ -37,6 +37,15 @@ next_actions:
   - the reachability fix from CHG-025 is enabling, not exercised: modules/adapters can compile against the conformance suite and nothing guards that until the first frontend's test does it for real.
   - StructureCompleteness.UNSUPPORTED is still produced by nothing and asserted by nothing. It is the value a registry returns for a language with no frontend, and no registry exists.
   - after the population work settles, the first frontend: JavaParser behind SourceStructureInspector, judged by the conformance suite rather than by its own tests.
+
+review_record_readme:
+  change: README opening rewritten to lead with why SAAA matters, adapted from an externally drafted bundle
+  reviewed_commit: dd80ef5 (pre-rebase cd53a44 and e369025)
+  passes:
+    - opencode --agent plan, neuralwatt/kimi-k3, every factual claim against its source - the three external research results and the repository. VERDICT YES, nits fixed in cd53a44.
+    - opencode --agent plan, neuralwatt/deepseek-v4-flash, 2026-10-12, claims about this repository, reader journey, links and anchors. VERDICT NO - two should-fixes, both verified and fixed in e369025. The new opening says a run evaluates one candidate or several as one generation, while three older passages still said one candidate per run and that ranking is not implemented, false since CHG-026. Each now says ranking works over fixture-proposed variants only.
+  mutation_evidence: not applicable - README only, no assertion about a gate, decision, audit record or promotion.
+  independent_challenge_lost: the reconciliation in e369025 was written by the lead after the NO and not re-reviewed; it was checked against the Population row of the README's own implementation table.
 
 review_record_adr_0006:
   change: ADR-0006, docs/decisions/0006-budget-aware-harness-optimisation.md
@@ -116,6 +125,7 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-10-12 README pre-merge, after rebase onto ce94350: project check, check-glossary OK; check-wiki warns that specs changed after the wiki, a pre-existing advisory
   - 2026-10-12 ADR-0006 pre-merge, after rebase onto 0a5877b: project check 7/7, check-changes OK, check-glossary OK; CI fast and full-readiness green on PR #57
   - 2026-10-11 CHG-027 wrap-up validation: :domain :deterministic :adapters :cli test with --rerun-tasks, 19 tasks executed, BUILD SUCCESSFUL; project check 7/7; check-changes OK; check-glossary OK; check-wiki reports two drift warnings (knowledge and specs changed after the wiki), which are present on this branch before the wrap-up commit too and are warnings rather than failures
   - 2026-10-11 CHG-027 one of those mutations re-run in this session rather than trusted: the Correctness bullet deleted from AGENTS.md (the deletion asserted to have applied before running) fails check-repo-contract with "missing controls required by agents-assessment-lens-controls: **Correctness.**"; AGENTS.md restored from a backup and verified byte-identical with cmp; check-repo-contract OK afterwards
