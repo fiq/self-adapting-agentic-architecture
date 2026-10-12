@@ -1,7 +1,7 @@
 change:
   id: CHG-029
   title: A live proposer fills a generation, and every candidate's AgentUsage is recorded
-  status: proposed
+  status: delivered
   intent: Fill a generation from the live model proposer rather than the fixture proposer, and record each candidate's observed agent usage in the journal and the experiment ledger with unobserved fields recorded as unavailable, which ADR-0006 names as slice 0 and ADR-0002 as the missing piece of Layer 1.
   audience_level: developer
   relates_to:

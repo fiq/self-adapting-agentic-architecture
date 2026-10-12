@@ -1,9 +1,9 @@
 session:
   updated: 2026-10-12
-  status: chg_028_merging_then_chg_029
-  branch: fix/chg-028-generation-cli-failures
-  worktree: .worktrees/chg-028; also open .worktrees/chg-029, and .worktrees/adr-0006 and .worktrees/readme (merged, removable)
-  head: fix/chg-028-generation-cli-failures, rebased onto the README head fd285f2, which merges as PR #58 before this does. PR #59.
+  status: chg_029_merging_then_first_real_provider_run
+  branch: feat/chg-029-live-generation-usage
+  worktree: .worktrees/chg-029; .worktrees/adr-0006, .worktrees/readme and .worktrees/chg-028 are merged and removable once verified clean and pushed
+  head: feat/chg-029-live-generation-usage, rebased onto the CHG-028 head d2a3299, which merges as PR #59 before this does. PR #60.
   head_note: CHG-027 merged as PR #53 on 2026-10-11. The user then authorised review of PRs #57-#60 by opencode neuralwatt/deepseek-v4-flash followed by merge. Merge order is #57 ADR-0006, #58 README (stacked on #57), #59 CHG-028, #60 CHG-029 (stacked on #57, rebased over CHG-028 before it lands because both edit GenerationEvaluationLoop, the reporters, EvolveRunner and README). Each branch rewrites this header just before its own merge.
   transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening, editing or merging a pull request, and only when the user says so. If ssh-add -l reports no agent, SSH_AUTH_SOCK is unset in the shell; the key is in the gcr agent at /run/user/1000/gcr/ssh.
   dirty: false
@@ -14,9 +14,10 @@ goal:
   phase: merging_reviewed_prs
 
 next_actions:
-  - START HERE: CHG-027 (#53), ADR-0006 (#57) and the README (#58) merged. CHG-028 is merging as #59; CHG-029 (#60) follows and must be rebased over it first. Each is reviewed and has CI green; their own review records land with them.
-  - the next code slice is likely the live model proposer filling a generation with its AgentUsage written to the ledger. It is candidate one below and it is also the prerequisite ADR-0006 needs before cost per successful task can be measured at all.
-  - START HERE: decide the next slice. CHG-026 merged, so the two tracks that were waiting on it are both open and they are genuinely different bets.
+  - START HERE: CHG-027 (#53), ADR-0006 (#57), the README (#58), CHG-028 (#59) and CHG-029 (#60) are merged. The next step is a measurement, not code - run a generation with a real provider through --profile openai-compatible and read the candidate_usage rows and the journal. That is the question ADR-0002 Layer 1 and ADR-0006 slice 0 both leave open - whether a model's candidates differ in ways the scorer can see - and the first real cost per candidate.
+  - Q-013 residue - two candidates with different mutation ids over an identical patch still rank as two. Settling it needs an identity from the realised tree, recorded in the CHG-029 spec as deferred.
+  - CHG-028 review nits not fixed - an embedded newline in an exception message prints as more than one line, and only adjacent repeats in the cause chain are deduplicated.
+  - superseded below - candidate one, the live proposer filling a generation, is delivered by CHG-029. The AST track (candidate two) is still open.
   - CANDIDATE ONE, and the stronger one: the live model proposer filling a generation. This is what turns the population from a proven mechanism into a measured one. Today the variety is the fixture proposer appending padding lines, so the spread measures padding volume and nothing about candidate quality - the change says so in three places and independent review confirmed the claim is honest. Only a live proposer answers whether a model's candidates differ in ways the scorer can see, which is ADR-0002's revisit question. Q-013 must be settled as part of it, because a live proposer chooses its own mutation ids and the duplicate rule compares ids alone.
   - CANDIDATE TWO: the AST track, ADR-0005. Unchanged from before and the case against going first is unchanged: its base case is the declared-locus gate, whose live consumer is opt-in, so it is two more changes before anything is observable.
   - the deferred items below survive the merge and are still true.
@@ -36,6 +37,19 @@ next_actions:
   - the reachability fix from CHG-025 is enabling, not exercised: modules/adapters can compile against the conformance suite and nothing guards that until the first frontend's test does it for real.
   - StructureCompleteness.UNSUPPORTED is still produced by nothing and asserted by nothing. It is the value a registry returns for a language with no frontend, and no registry exists.
   - after the population work settles, the first frontend: JavaParser behind SourceStructureInspector, judged by the conformance suite rather than by its own tests.
+
+review_record_chg_029:
+  change: CHG-029, specs/changes/CHG-029-live-generation-usage - ADR-0006 slice 0 and the ADR-0002 Layer 1 gap; settles Q-013 for (id, patch)
+  passes:
+    - codex read-only, the spec. VERDICT NO - five findings, among them that "zero versus unavailable" was not representable in AgentUsage. Fixed.
+    - codex read-only, the spec re-check. VERDICT NO - the price identity came from AgentRoute, which records intent, not provider proof. Fixed - price identity is the response-declared model only.
+    - opencode, neuralwatt/deepseek-v4.1-flash, design. VERDICT YES, nits closed.
+    - opencode, neuralwatt/glm-5.3, audit. VERDICT YES, one should-fix - swapping the usageObserved and scored events left every suite green. Confirmed by mutation; the S5 acceptance test now pins the journal usage lines.
+    - opencode --agent plan, neuralwatt/deepseek-v4-flash, 2026-10-12, migration safety, adapter lifecycle on the variant and exception paths, exactness of the sameness check, public API width. VERDICT YES, no blocker or should-fix; its one actionable nit was this handoff record.
+  rebase: rebased over CHG-028 before merge. GenerationEvaluationLoop conflicted - CHG-028's abort-reporting try/catch now wraps CHG-029's (id, patch) map. README conflicted in two passages; CHG-029's wording was kept because it is the one true after a live proposer can fill a generation, and the roadmap line was brought up to date in a follow-up commit.
+  mutation_evidence: recorded per task in the CHG-029 commit messages, each file restored and checked with cmp; the lead reproduced at least one per delegated task. After the rebase, see tests_run.
+  independent_challenge_lost: the conflict resolution in GenerationEvaluationLoop and the fitted abort-reporter test were done by the lead and not re-reviewed; the resolution is the union of two reviewed changes, both changes' tests cover it, and a mutation of the merged abort path fails in two suites (see tests_run).
+  delegation: T1-T5 and T7 by codex workspace-write and opencode kimi-k3 build agents, committed by the lead; codex hit its usage limit during T6 and kimi-k3 finished from the partial tree, which was reviewed as untrusted.
 
 review_record_chg_028:
   change: CHG-028, specs/changes/CHG-028-generation-cli-failure-semantics - closes RISK-009 (now obsolete)
@@ -133,6 +147,7 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-10-12 CHG-029 pre-merge, after rebase over CHG-028: all eight suites with --rerun-tasks, 27 tasks executed, BUILD SUCCESSFUL; project check, check-changes and check-glossary OK. The rebase also produced a conflict that merged cleanly as text - CHG-028's GenerationEvaluationLoopTest.aFailingAbortReporterDoesNotReplaceTheAbortCause built its evaluator from FitnessResult, which CHG-029 T6 replaced with CandidateEvaluation, and a repeated id alone no longer aborts. The test now repeats id and patch, folded into the T6 commit so every commit compiles; that commit was built and its deterministic tests run on their own. Mutation on the merged loop - deleting the reporter.generationAborted call fails GenerationEvaluationLoopTest (deterministic unit) and EvolveRunnerTest.aGenerationThatAbortsRecordsItsEvaluatedCountAndReasonBeforePropagating (adapters unit); restored and verified byte-identical with cmp
   - 2026-10-12 CHG-028 pre-merge: :cli:test MutationLoopCliTest with --rerun-tasks green, and red under the wrapping mutation above; all eight suites with --rerun-tasks, 27 tasks executed, BUILD SUCCESSFUL; project check and check-changes OK
   - 2026-10-12 README pre-merge, after rebase onto ce94350: project check, check-glossary OK; check-wiki warns that specs changed after the wiki, a pre-existing advisory
   - 2026-10-12 ADR-0006 pre-merge, after rebase onto 0a5877b: project check 7/7, check-changes OK, check-glossary OK; CI fast and full-readiness green on PR #57
