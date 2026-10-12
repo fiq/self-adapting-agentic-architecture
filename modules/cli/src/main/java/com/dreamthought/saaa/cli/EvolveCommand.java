@@ -157,7 +157,12 @@ public final class EvolveCommand implements Callable<Integer> {
         });
     }
 
-    /** An unknown --operator is a bad option value, so it renders as one: message, usage, exit 2. */
+    /**
+     * Every rejection here is caused by a value the user passed: an unknown --operator, one that
+     * exists but cannot be declared from flags yet (hill-climb, exploratory-leap), or a
+     * --required-evidence id that cannot name a check. The fix is always to change what was passed,
+     * so each renders as a bad option value: message, usage, exit 2.
+     */
     private MutationContract declaredContract() {
         try {
             return OperatorContracts.declare(operator, requiredEvidence, workflowFile);

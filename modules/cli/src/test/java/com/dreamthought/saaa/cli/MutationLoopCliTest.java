@@ -68,4 +68,35 @@ class MutationLoopCliTest {
                 .startsWith("unsupported mutation operator: bogus")
                 .contains("Usage:");
     }
+
+    @Test
+    void anOperatorThatCannotBeDeclaredFromFlagsIsAlsoABadOptionValue(@TempDir Path tempDir) throws IOException {
+        var err = new StringWriter();
+        var command = MutationLoopCli.commandLine();
+        command.setErr(new PrintWriter(err, true));
+
+        int exitCode = command.execute(
+                "saaa-evolve", tempDir.toString(), "--behaviour-case", "x", "--operator", "hill-climb");
+
+        assertThat(exitCode).isEqualTo(2);
+        assertThat(err.toString())
+                .startsWith("operator hill-climb requires a search posture")
+                .contains("Usage:");
+    }
+
+    @Test
+    void aRequiredEvidenceIdThatCannotNameACheckIsABadOptionValue(@TempDir Path tempDir) throws IOException {
+        var err = new StringWriter();
+        var command = MutationLoopCli.commandLine();
+        command.setErr(new PrintWriter(err, true));
+
+        int exitCode = command.execute(
+                "saaa-evolve", tempDir.toString(), "--behaviour-case", "x",
+                "--operator", "targeted-behavior-change", "--required-evidence", "Not-Snake");
+
+        assertThat(exitCode).isEqualTo(2);
+        assertThat(err.toString())
+                .startsWith("required evidence id Not-Snake must be lower snake_case")
+                .contains("Usage:");
+    }
 }
