@@ -52,7 +52,7 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         store.recordUsage(unavailable, AgentUsage.none());
 
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
-            assertThat(count(connection, "schema_migrations")).isEqualTo(4);
+            assertThat(count(connection, "schema_migrations")).isEqualTo(5);
             assertThat(singleText(connection,
                     "select provider || ':' || model || ':' || input_tokens || ':' || output_tokens"
                             + " || ':' || coalesce(credits_consumed, 'null') || ':' || wall_clock_millis || ':' || retries"
@@ -132,7 +132,7 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         store.recordCandidate(candidate);
 
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
-            assertThat(count(connection, "schema_migrations")).isEqualTo(4);
+            assertThat(count(connection, "schema_migrations")).isEqualTo(5);
             assertThat(singleText(connection, "select branch_name from candidates where id = ?", candidate.id()))
                     .isEqualTo(candidate.branchName());
             assertThat(singleText(connection, "select decision from fitness_results where candidate_id = ?", candidate.id()))
@@ -242,6 +242,81 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
                     "select reason from generation_unevaluated where run_id = ? and position = 1", "run-1"))
                     .as("absent evidence is recorded, never a candidate quietly dropped")
                     .contains("worktree already exists");
+        }
+    }
+
+    /**
+     * CHG-031 S2. An attempt that failed before the model answered has no usage, and its row says
+     * so with NULL in every usage column. An attempt that did answer keeps its figures. Both are in
+     * one generation so a write that zeroed the first or copied the second into it would fail.
+     */
+    @Test
+    void anAttemptThatFailedBeforeTheModelAnsweredRecordsNoUsage() throws SQLException {
+        Path database = tempDir.resolve("experiments.sqlite");
+        var store = new SqliteExperimentMetadataStore(database);
+        var spent = new AgentUsage(
+                OptionalLong.of(202), OptionalLong.of(22), Optional.of(new java.math.BigDecimal("0.000123")),
+                OptionalLong.of(7), OptionalInt.of(2), Optional.of(new PriceIdentity("openai-compatible", "m-2")));
+        var generation = new com.dreamthought.saaa.domain.RankedGeneration(
+                List.of(),
+                List.of(
+                        new com.dreamthought.saaa.domain.UnevaluatedCandidate(
+                                "attempt-1-of-2", "IllegalStateException: transport error"),
+                        new com.dreamthought.saaa.domain.UnevaluatedCandidate(
+                                "attempt-2-of-2", "IllegalStateException: scope rejected",
+                                Optional.of(spent))));
+
+        store.recordGeneration(new com.dreamthought.saaa.domain.GenerationRecord(
+                "run-usage", generation, Instant.parse("2026-11-07T00:00:00Z")));
+
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
+            assertThat(singleText(connection, """
+                    select coalesce(provider, 'null') || ',' || coalesce(model, 'null') || ','
+                      || coalesce(cast(input_tokens as text), 'null') || ','
+                      || coalesce(cast(output_tokens as text), 'null') || ','
+                      || coalesce(credits_consumed, 'null') || ','
+                      || coalesce(cast(wall_clock_millis as text), 'null') || ','
+                      || coalesce(cast(retries as text), 'null')
+                    from generation_unevaluated where run_id = ? and position = 1
+                    """, "run-usage"))
+                    .as("absence is NULL, never zero")
+                    .isEqualTo("null,null,null,null,null,null,null");
+            assertThat(singleText(connection, """
+                    select provider || ',' || model || ',' || input_tokens || ',' || output_tokens || ','
+                      || credits_consumed || ',' || wall_clock_millis || ',' || retries
+                    from generation_unevaluated where run_id = ? and position = 2
+                    """, "run-usage"))
+                    .as("credits as exact text, retries and wall clock in their own columns")
+                    .isEqualTo("openai-compatible,m-2,202,22,0.000123,7,2");
+        }
+    }
+
+    /** A database made before CHG-031 gains the usage columns on open and keeps its rows. */
+    @Test
+    void aDatabaseFromBeforeTheUsageColumnsKeepsItsUnevaluatedRowsAndGainsThem() throws SQLException {
+        Path database = tempDir.resolve("experiments.sqlite");
+        new SqliteExperimentMetadataStore(database);
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+             var statement = connection.createStatement()) {
+            statement.execute("alter table generation_unevaluated rename to generation_unevaluated_new");
+            statement.execute("""
+                    create table generation_unevaluated (
+                      run_id text not null, position integer not null,
+                      candidate_reference text not null, reason text not null,
+                      primary key (run_id, position))
+                    """);
+            statement.execute("drop table generation_unevaluated_new");
+            statement.execute("insert into generation_unevaluated values ('old-run', 1, 'attempt-1-of-1', 'old')");
+            statement.execute("delete from schema_migrations where version = 5");
+        }
+
+        new SqliteExperimentMetadataStore(database);
+
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
+            assertThat(singleText(connection,
+                    "select reason || ',' || coalesce(model, 'null') from generation_unevaluated "
+                            + "where run_id = ?", "old-run"))
+                    .isEqualTo("old,null");
         }
     }
 

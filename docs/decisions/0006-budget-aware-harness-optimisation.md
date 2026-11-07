@@ -334,6 +334,12 @@ What cannot happen without it is any empirical claim about real cost: no slice
 may report cost per successful task, or compare profiles on cost, until slice 0
 supplies measured usage and price identity.
 
+Measured usage includes attempts that never became candidates. Since `CHG-031`
+an attempt the model answered and validation rejected records its usage on its
+`generation_unevaluated` row, so a generation's spend is `candidate_usage` plus
+those rows. Before it, rejected attempts were spent and unrecorded, which in the
+first live runs was one ask in three.
+
 ### Slice A - harness-profile contract
 
 Introduce the smallest provider-neutral profile identity needed to describe two

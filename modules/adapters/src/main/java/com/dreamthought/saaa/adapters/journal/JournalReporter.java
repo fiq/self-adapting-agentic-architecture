@@ -111,7 +111,9 @@ public final class JournalReporter implements EvolutionReporter {
         var lost = new StringBuilder();
         generation.unevaluated().forEach(candidate -> lost
                 .append("- no evidence: ").append(candidate.reference())
-                .append(" — ").append(candidate.reason()).append('\n'));
+                .append(" — ").append(candidate.reason())
+                .append(candidate.usageSummary().map(text -> " (" + text + ")").orElse(""))
+                .append('\n'));
 
         return """
 

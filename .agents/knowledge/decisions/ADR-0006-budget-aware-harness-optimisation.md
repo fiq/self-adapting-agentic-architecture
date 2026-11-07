@@ -69,7 +69,9 @@ without it. Then: profile contract, deterministic selection, progressive
 escalation and cumulative usage, failure-directed adaptation, trace/eval corpus
 ingestion, and cost/quality selection/export. Selection and escalation run over
 an offline evaluation corpus; live per-task escalation needs its own decision.
-Each slice receives a `CHG-*` id only when it is actually proposed.
+Each slice receives a `CHG-*` id only when it is actually proposed. Generation
+spend includes rejected attempts, recorded on `generation_unevaluated` since
+`CHG-031`.
 
 `Q-010` stays open for the empirical routing question rather than the
 architectural one.

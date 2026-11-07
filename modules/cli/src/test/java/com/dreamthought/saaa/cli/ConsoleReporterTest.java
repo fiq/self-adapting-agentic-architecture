@@ -76,6 +76,27 @@ final class ConsoleReporterTest {
                 .isEqualTo(lines.get(2).indexOf("0.95"));
     }
 
+    /** CHG-031. The no-evidence line names what a rejected attempt cost, and only when known. */
+    @Test
+    void theNoEvidenceLineShowsWhatARejectedAttemptCostWhenKnown() {
+        var output = new StringWriter();
+        var reporter = new ConsoleReporter(new PrintWriter(output));
+        var spent = new com.dreamthought.saaa.domain.AgentUsage(
+                java.util.OptionalLong.of(202), java.util.OptionalLong.of(22),
+                java.util.Optional.empty(), java.util.OptionalLong.empty(), java.util.OptionalInt.empty(),
+                java.util.Optional.of(new com.dreamthought.saaa.domain.PriceIdentity("prov", "mod")));
+
+        reporter.generationRanked(new RankedGeneration(
+                List.of(),
+                List.of(new UnevaluatedCandidate("attempt-1-of-2", "rejected", java.util.Optional.of(spent)),
+                        new UnevaluatedCandidate("attempt-2-of-2", "transport"))));
+
+        assertThat(output.toString().lines().toList())
+                .contains("  no evidence attempt-1-of-2  rejected (usage prov / mod; input tokens 202; "
+                        + "output tokens 22)")
+                .contains("  no evidence attempt-2-of-2  transport");
+    }
+
     /**
      * S4. Ranking selects among the candidates the gates promoted; it is not a second opinion on the
      * gates. A generation where nothing promoted must say so rather than name its best discard,

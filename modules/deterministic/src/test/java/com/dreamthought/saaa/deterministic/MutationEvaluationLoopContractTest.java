@@ -2,6 +2,7 @@ package com.dreamthought.saaa.deterministic;
 
 import static com.dreamthought.saaa.domain.MutationOperatorType.TARGETED_BEHAVIOR_CHANGE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dreamthought.saaa.domain.Candidate;
 import com.dreamthought.saaa.domain.CandidateBranchRef;
@@ -51,8 +52,35 @@ final class MutationEvaluationLoopContractTest {
                 .isEmpty();
     }
 
+    /**
+     * CHG-031. A failure of the usage write itself is not wrapped as a failed attempt. The write may
+     * have committed before it threw, and the generation would then record the same spend again; an
+     * undercount is visible as a missing row, a double count is silent.
+     */
+    @Test
+    void aFailureOfTheUsageWriteItselfIsNotWrappedAsAFailedAttempt() {
+        var seen = new AtomicReference<Optional<MutationContract>>();
+        var loop = loopSupplying(null, seen, () -> { throw new IllegalStateException("usage write failed"); });
+        var baseline = new WorkflowGraph("toy", "v1", "old content");
+        var request = new com.dreamthought.saaa.domain.MutationProposalRequest(
+                baseline,
+                new com.dreamthought.saaa.domain.RetrievalQuery(
+                        com.dreamthought.saaa.domain.RetrievalMode.NONE, "task", baseline,
+                        "0".repeat(40), List.of("workflow.yaml"), Optional.empty()));
+
+        assertThatThrownBy(() -> loop.evaluateCandidate(request))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("usage write failed");
+    }
+
     private static MutationEvaluationLoop loopSupplying(
             MutationContract contract, AtomicReference<Optional<MutationContract>> seen) {
+        return loopSupplying(contract, seen, () -> { });
+    }
+
+    private static MutationEvaluationLoop loopSupplying(
+            MutationContract contract, AtomicReference<Optional<MutationContract>> seen,
+            Runnable onRecordUsage) {
         var mutation = new Mutation("MUT-1", "tighten guard", MutationScope.WORKFLOW_DEFINITION, "new content");
         var candidate = new Candidate(
                 "candidate-MUT-1", "MUT-1", "candidate/toy-MUT-1", Path.of(".worktrees/c"), "abc1234");
@@ -80,7 +108,9 @@ final class MutationEvaluationLoopContractTest {
                     public void recordFitness(FitnessResult recorded) { }
 
                     @Override
-                    public void recordUsage(Candidate recorded, com.dreamthought.saaa.domain.AgentUsage usage) { }
+                    public void recordUsage(Candidate recorded, com.dreamthought.saaa.domain.AgentUsage usage) {
+                        onRecordUsage.run();
+                    }
 
                     @Override
                     public void recordGeneration(
