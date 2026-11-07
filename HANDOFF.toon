@@ -16,6 +16,7 @@ goal:
 next_actions:
   - START HERE: #64 (CHG-032) and #65 (CHG-033) are merged. Remove .worktrees/chg-032 and .worktrees/chg-033 after checking they are clean.
   - Live measurement - run a neuralwatt generation (glm-5.3-flash-flex, --candidates 3 or 5) on fixtures/multi-answer-workflow with its 4 required and 3 held-out cases. Record ranked vs duplicate counts, scores and spread in ADR-0002 "First measurement".
+  - CHG-032 fix-review nits (GLM-5.3, APPROVE) not fixed - console says '1 duplicates' for one; console and journal duplicate labels differ in width; RankedGeneration does not check duplicates against unevaluated ids (the loop cannot produce that). Migration 6 was edited in place on the branch, accepted because it never reached main.
   - RISK-010 - a held-out case gates through the 0.80 threshold although the help says it gates nothing. Needs a decision (may a held-out case flip PROMOTE to DISCARD?), not a fixture change.
   - CHG-030 deferred - a proposal rejected on a single-candidate run leaves only the console error line; no journal entry and no raw model text.
   - the default --task text led the model to treat current values as constraints and to guess check vocabulary (nw3); with a stated goal it converged (nw4). Worth a look when choosing the next target.
