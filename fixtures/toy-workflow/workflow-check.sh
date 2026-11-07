@@ -4,9 +4,11 @@ set -euo pipefail
 
 workflow="$(dirname "$0")/workflow.txt"
 
-if grep -q '^draft-check: skip$' "$workflow"; then
-  echo "publish guard is disabled: draft-check is skipped"
-  exit 1
+# Pass only when a line says the draft check actually blocks (not warns, skips or is diff text).
+if grep -q -E '^draft-check: (enforce|required|run)$' "$workflow"; then
+  echo "publish guard holds: draft-check is enforced"
+  exit 0
 fi
 
-echo "publish guard holds: draft-check is enforced"
+echo "publish guard fails: no line sets draft-check to enforce, required or run"
+exit 1
