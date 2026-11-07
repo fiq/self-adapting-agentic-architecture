@@ -19,14 +19,22 @@ final class WholeFileContentValidatorTest {
             "--- old\r\n+++ new\r\n",
             "@@ definition @@\n publish-policy: allow\n-draft-check: skip\n+draft-check: enforce\n",
             "draft-check: enforce\n@@ -1 +1 @@\n",
-            "@@"
+            "@@",
+            "  @@ -1 +1 @@\n",
+            "\t@@ -1 +1 @@\n",
+            "  --- old\n  +++ new\n",
+            "\t--- old\n\t+++ new\n",
+            "diff --git a/workflow.txt b/workflow.txt\n",
+            "***************\n",
+            "*** old\n--- new\n",
+            "  *** old\n\t--- new\n"
     })
     void rejectsDiffShapedContent(String content) {
         var result = validator.validate(baseline, mutation(content));
 
         assertThat(result.valid()).isFalse();
         assertThat(result.messages()).containsExactly(
-                "diff-shaped content is not supported; provide the complete new workflow file, not a diff");
+                "the proposal is a diff, not the complete workflow file (diff-shaped content); no candidate was created");
     }
 
     @ParameterizedTest
@@ -37,7 +45,10 @@ final class WholeFileContentValidatorTest {
             "+++ literal line\n",
             "--- standalone\ncontent\n+++ separate literal line\n",
             "mention @@ inline\n",
-            "---old\n+++new\n"
+            "---old\n+++new\n",
+            "---\nworkflow: enforce\n",
+            "+x\n-x\n",
+            "*** standalone\ncontent\n--- separate literal line\n"
     })
     void acceptsWholeFileContentIncludingOrdinaryPlusAndMinusLines(String content) {
         var result = validator.validate(baseline, mutation(content));
