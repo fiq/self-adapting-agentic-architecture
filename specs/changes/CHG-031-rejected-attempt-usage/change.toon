@@ -1,0 +1,60 @@
+change:
+  id: CHG-031
+  title: A generation records what a rejected attempt cost
+  status: proposed
+  intent: Make generation cost complete. When a proposal is rejected after the model answered, such as by scope validation, its tokens were spent but no row records them, because candidate_usage is keyed by a candidate that never came to exist. Found by the first live generation on 2026-11-07, where one of three asks in each run left no usage.
+  audience_level: developer
+  relates_to:
+    - ADR-0006
+    - PAT-004
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: When a generation attempt fails after the proposer returned, the attempt's usage (provider, model, input and output tokens, wall clock, credits and retries where known) is recorded against that attempt's unevaluated entry, and shown in the journal and console "no evidence" line.
+    scenarios:
+      - id: S1
+        when: a live proposer answers and its proposal is rejected by validation in a generation
+        then: the generation_unevaluated row for that attempt carries the attempt's provider, model and token counts, and the journal's no-evidence line shows them
+      - id: S2
+        when: an attempt fails before the proposer returned, such as a transport error
+        then: the unevaluated row's usage fields are empty, not zero, so absence is distinguishable from a free attempt
+      - id: S3
+        when: a generation has evaluated and rejected attempts
+        then: summing usage over candidate_usage for the run's candidates and generation_unevaluated for the run gives the generation's whole spend
+
+acceptance:
+  - scenario: S1
+    test_id: cli/RejectedAttemptUsageAcceptanceTest.aRejectedLiveAttemptRecordsWhatItCost
+    layer: acceptance
+  - scenario: S2
+    test_id: adapters/SqliteExperimentMetadataStoreIntegrationTest.anAttemptThatFailedBeforeTheModelAnsweredRecordsNoUsage
+    layer: integration
+  - scenario: S3
+    test_id: cli/RejectedAttemptUsageAcceptanceTest.aGenerationsWholeSpendIsTheSumOfBothTables
+    layer: acceptance
+
+tasks:
+  - id: T1
+    slice: Acceptance test in a NEW file RejectedAttemptUsageAcceptanceTest, seen red first
+    status: pending
+  - id: T2
+    slice: Carry usage with a post-proposal failure to GenerationEvaluationLoop; UnevaluatedCandidate gains optional usage
+    status: pending
+  - id: T3
+    slice: Nullable usage columns on generation_unevaluated through the existing schema_migrations path
+    status: pending
+  - id: T4
+    slice: Journal and console no-evidence lines show usage when present
+    status: pending
+  - id: T5
+    slice: README usage section and ADR-0006 (both copies) note that generation spend now includes rejected attempts
+    status: pending
+
+non_goals:
+  - recording usage for a failed single-candidate (non-generation) run
+  - a price schedule or currency cost
+  - changing why attempts are rejected (CHG-030)
+
+risks:
+  - Two tables must be summed for a generation's spend. Accepted over a third usage table keyed by attempt, because the unevaluated row is already the record of that attempt.
