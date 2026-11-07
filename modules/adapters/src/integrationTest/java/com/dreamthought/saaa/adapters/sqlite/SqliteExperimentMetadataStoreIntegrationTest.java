@@ -255,8 +255,8 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         Path database = tempDir.resolve("experiments.sqlite");
         var store = new SqliteExperimentMetadataStore(database);
         var spent = new AgentUsage(
-                OptionalLong.of(202), OptionalLong.of(22), Optional.empty(), OptionalLong.of(7),
-                OptionalInt.empty(), Optional.of(new PriceIdentity("openai-compatible", "m-2")));
+                OptionalLong.of(202), OptionalLong.of(22), Optional.of(new java.math.BigDecimal("0.000123")),
+                OptionalLong.of(7), OptionalInt.of(2), Optional.of(new PriceIdentity("openai-compatible", "m-2")));
         var generation = new com.dreamthought.saaa.domain.RankedGeneration(
                 List.of(),
                 List.of(
@@ -283,10 +283,11 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
                     .isEqualTo("null,null,null,null,null,null,null");
             assertThat(singleText(connection, """
                     select provider || ',' || model || ',' || input_tokens || ',' || output_tokens || ','
-                      || wall_clock_millis || ',' || coalesce(cast(retries as text), 'null')
+                      || credits_consumed || ',' || wall_clock_millis || ',' || retries
                     from generation_unevaluated where run_id = ? and position = 2
                     """, "run-usage"))
-                    .isEqualTo("openai-compatible,m-2,202,22,7,null");
+                    .as("credits as exact text, retries and wall clock in their own columns")
+                    .isEqualTo("openai-compatible,m-2,202,22,0.000123,7,2");
         }
     }
 
