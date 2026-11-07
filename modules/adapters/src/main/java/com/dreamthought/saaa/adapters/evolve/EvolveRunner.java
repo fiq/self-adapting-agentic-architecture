@@ -124,7 +124,14 @@ public final class EvolveRunner {
         var prepared = prepare(request, reporter);
         // The evaluator returns the mutation alongside the result for the generation identity
         // check; a single-candidate run has no generation, so only the result travels on.
-        var result = prepared.evaluator.evaluate(prepared.proposal).fitnessResult();
+        final com.dreamthought.saaa.domain.FitnessResult result;
+        try {
+            result = prepared.evaluator.evaluate(prepared.proposal).fitnessResult();
+        } catch (com.dreamthought.saaa.deterministic.AttemptFailedAfterProposalException failure) {
+            // Only a generation has an unevaluated record to carry usage into; a single run
+            // surfaces the original failure.
+            throw failure.getCause();
+        }
         return new EvolveRunResult(result, prepared.journalPath, prepared.retrievalCapture.required(),
                 prepared.proposer.proposerEvidence(), prepared.wallMillis(),
                 prepared.timedRetriever.elapsedMillis());

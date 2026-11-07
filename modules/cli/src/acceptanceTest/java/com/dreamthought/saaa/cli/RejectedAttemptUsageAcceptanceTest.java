@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -127,6 +128,43 @@ final class RejectedAttemptUsageAcceptanceTest {
                     assertThat(rows.getLong(2)).isEqualTo(33);
                 }
             }
+        } finally {
+            clear();
+            server.stop();
+        }
+    }
+
+    /**
+     * A single-candidate run has no generation to carry usage into, so a rejected proposal must
+     * surface as the original failure, not as the internal wrapper.
+     */
+    @Test
+    void aRejectedSingleCandidateRunFailsWithTheOriginalException(@TempDir Path tempDir) throws Exception {
+        var server = startStub();
+        try {
+            stubVariants(server,
+                    response("mut-bad", "PROMPT", "draft-check: enforce\n# two\n",
+                            "declared-model-one", 101, 11));
+            configure(server);
+            Path repo = initLiveRepo(tempDir);
+            Path target = repo.resolve("toy");
+
+            var failure = new AtomicReference<Exception>();
+            var commandLine = new CommandLine(new MutationLoopCli());
+            commandLine.setExecutionExceptionHandler((exception, command, parseResult) -> {
+                failure.set(exception);
+                return 1;
+            });
+            int exitCode = commandLine.execute(
+                    "saaa-evolve", target.toString(),
+                    "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check",
+                    "--run-id", "single-run",
+                    "--max-lines", "8");
+
+            assertThat(exitCode).isNotZero();
+            assertThat(failure.get()).isExactlyInstanceOf(IllegalStateException.class);
+            assertThat(failure.get().getMessage()).startsWith("mutation validation failed:");
         } finally {
             clear();
             server.stop();
