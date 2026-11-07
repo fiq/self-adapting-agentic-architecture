@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# Required: a release must be gated by at least one of review or tests.
+# Required: a release is gated by review or by tests.
 set -euo pipefail
+source "$(dirname "$0")/knob.sh"
 
-workflow="$(dirname "$0")/workflow.txt"
-
-# Passes on any one of two independent gates, so several different edits satisfy it.
-if grep -q -x -E "review: required|tests: run" "$workflow"; then
+if knob_is review "${REVIEW_GATE[@]}" || knob_is tests "${TESTS_GATE[@]}"; then
   echo "release is gated: review is required or tests run"
   exit 0
 fi
-echo "release is not gated: neither review: required nor tests: run is set"
+echo "release is not gated: set review to required or tests to run"
 exit 1

@@ -26,7 +26,8 @@ import picocli.CommandLine;
  * assertions read the recorded decision, the recorded held-out results and the recorded score.
  */
 final class MultiAnswerFixtureAcceptanceTest {
-    private static final List<String> REQUIRED = List.of("has-a-gate", "keeps-every-knob", "recovery-exists");
+    private static final List<String> REQUIRED = List.of(
+            "has-a-gate", "keeps-every-knob", "one-value-per-knob", "recovery-exists");
     private static final List<String> HELD_OUT = List.of("reviewed", "tested", "staged-rollout");
     private static final List<String> ANSWERS = List.of(
             "review-tests-and-canary", "review-and-staged-rollout", "tests-only");
@@ -42,6 +43,7 @@ final class MultiAnswerFixtureAcceptanceTest {
                 .as("the baseline must fail at least one required case, or there is no transition")
                 .isNotZero();
         assertThat(exitCodeOf(target, "keeps-every-knob")).isZero();
+        assertThat(exitCodeOf(target, "one-value-per-knob")).isZero();
         assertThat(exitCodeOf(target, "recovery-exists")).isZero();
 
         // The same fact through the command: a mutation that leaves the gate failing is discarded,
@@ -87,9 +89,43 @@ final class MultiAnswerFixtureAcceptanceTest {
                 .as("this answer fails exactly one held-out case: %s", outcome.heldOut())
                 .isEqualTo(1);
         assertThat(outcome.decision())
-                .as("with six cases a held-out failure costs 0.40/6, so it must not trip RISK-010")
+                .as("with seven cases a held-out failure costs 0.40/7 before renormalisation, so it must not trip RISK-010")
                 .isEqualTo("PROMOTE");
         assertThat(outcome.score()).isGreaterThanOrEqualTo(new BigDecimal("0.80"));
+    }
+
+    /**
+     * The checks read the workflow the way a person would, so a live model is judged on what it
+     * meant rather than on its spelling: case, spacing and the listed synonyms do not matter, while
+     * a disabled, empty or repeated value fails. Each row is (lines of workflow.txt, case, expected).
+     */
+    @Test
+    void checksAcceptPlausibleSpellingsAndRejectDisabledOrRepeatedValues(@TempDir Path tempDir) throws Exception {
+        String rest = "rollout: all-at-once\nnotify: none\n";
+        record Row(String workflow, String caseName, boolean passes) {}
+        List<Row> rows = List.of(
+                new Row("Review:  Require  \ntests: skip\n" + rest + "recovery: manual\n", "has-a-gate", true),
+                new Row("review: skip\nTESTS : Run\n" + rest + "recovery: manual\n", "has-a-gate", true),
+                new Row("review: required\ntests: skip\nrollout: Phased \nnotify: none\nrecovery: manual\n",
+                        "staged-rollout", true),
+                new Row("review: required\ntests: skip\n" + rest + "recovery: Automatic\n", "recovery-exists", true),
+                new Row("review: required\ntests: skip\n" + rest + "recovery: OFF \n", "recovery-exists", false),
+                new Row("review: required\ntests: skip\n" + rest + "recovery: false\n", "recovery-exists", false),
+                new Row("review: required\ntests: skip\n" + rest + "recovery:   \n", "keeps-every-knob", false),
+                new Row("review: required\ntests: skip\n" + rest + "recovery: manual\nreview: skip\n",
+                        "one-value-per-knob", false),
+                new Row("review: required\ntests: skip\n" + rest + "recovery: manual\nreview: skip\n",
+                        "reviewed", false),
+                new Row("# review: required\nreview: skip\ntests: skip\n" + rest + "recovery: manual\n",
+                        "has-a-gate", false));
+
+        Path target = copyFixture(tempDir.resolve("spellings"));
+        for (Row row : rows) {
+            Files.writeString(target.resolve("workflow.txt"), row.workflow());
+            assertThat(exitCodeOf(target, row.caseName()) == 0)
+                    .as("%s on:%n%s", row.caseName(), row.workflow())
+                    .isEqualTo(row.passes());
+        }
     }
 
     private static Outcome evolve(Path root, List<String> mutationLines) throws Exception {

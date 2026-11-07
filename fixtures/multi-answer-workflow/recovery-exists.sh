@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Required: recovery must not be removed or disabled.
+# Required: recovery stays on (manual or automatic). Allow-listed, so off, false or skip all fail.
 set -euo pipefail
+source "$(dirname "$0")/knob.sh"
 
-workflow="$(dirname "$0")/workflow.txt"
-
-if grep -q -x -E "recovery: (none|off|disabled)" "$workflow"; then
-  echo "recovery is disabled"
-  exit 1
+if knob_is recovery "${RECOVERY_ON[@]}"; then
+  echo "recovery is available"
+  exit 0
 fi
-echo "recovery is available"
+echo "recovery is not manual or automatic"
+exit 1

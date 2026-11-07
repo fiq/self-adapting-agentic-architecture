@@ -204,7 +204,8 @@ proposal fixes it, so the run promotes.
 The toy fixture has one correct edit, so every passing candidate scores the
 same. To compare candidates, use `fixtures/multi-answer-workflow`: several
 different edits pass every required case and score differently on held-out
-cases. Its README has the command and the scores of its reference answers.
+cases. Its README has the commands, the scores of its reference answers and
+the arithmetic behind them.
 
 ## Current implementation
 

@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Required: an answer must keep all five knobs, so deleting lines is not an answer.
+# Required: every knob is still there with a value, so deleting lines is not an answer.
 set -euo pipefail
+source "$(dirname "$0")/knob.sh"
 
-workflow="$(dirname "$0")/workflow.txt"
-
-for knob in review tests rollout notify recovery; do
-  if ! grep -q -E "^${knob}: .+$" "$workflow"; then
-    echo "knob missing: ${knob}"
+for knob in "${KNOBS[@]}"; do
+  if [ -z "$(values_of "$knob" | grep -v "^$" || true)" ]; then
+    echo "knob missing or empty: ${knob}"
     exit 1
   fi
 done

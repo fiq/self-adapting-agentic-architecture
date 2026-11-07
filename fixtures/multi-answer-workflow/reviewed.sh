@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Held-out: rewards a mandatory human review.
+# Held-out: rewards requiring a review.
 set -euo pipefail
+source "$(dirname "$0")/knob.sh"
 
-workflow="$(dirname "$0")/workflow.txt"
-
-if grep -q -x "review: required" "$workflow"; then
+if knob_is review "${REVIEW_GATE[@]}"; then
   echo "review is required"
   exit 0
 fi

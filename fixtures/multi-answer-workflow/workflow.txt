@@ -1,3 +1,7 @@
+# Allowed values (first is the default):
+#   review: skip | required      tests: skip | run
+#   rollout: all-at-once | staged | canary
+#   notify: none | email | chat  recovery: manual | automatic
 review: skip
 tests: skip
 rollout: all-at-once

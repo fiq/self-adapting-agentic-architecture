@@ -23,6 +23,9 @@ deltas:
       - id: S3
         when: a reference answer that fails exactly one held-out case is scored
         then: it still promotes, so the fixture does not trip RISK-010
+      - id: S4
+        when: a live model writes a good value with different case, spacing or a listed synonym, or writes a disabled, empty or repeated value
+        then: the good spelling passes the check and the disabled, empty or repeated value fails it
 
 acceptance:
   - scenario: S1
@@ -33,6 +36,9 @@ acceptance:
     layer: acceptance
   - scenario: S3
     test_id: cli/MultiAnswerFixtureAcceptanceTest.oneHeldOutFailureStillPromotes
+    layer: acceptance
+  - scenario: S4
+    test_id: cli/MultiAnswerFixtureAcceptanceTest.checksAcceptPlausibleSpellingsAndRejectDisabledOrRepeatedValues
     layer: acceptance
 
 tasks:
@@ -53,3 +59,5 @@ non_goals:
 
 risks:
   - Hand-picked reference answers prove the fixture can separate candidates, not that a model will find different ones.
+  - The weakest answer (tests-only, and the canned mutation) clears the threshold by about 0.033. Adding a case it fails, or a larger diff, can drop it below 0.80; the fixture README states the margin.
+  - The checks accept listed synonyms only. A model's spelling outside them fails for wording rather than intent; workflow.txt lists the canonical values so the model can see them.

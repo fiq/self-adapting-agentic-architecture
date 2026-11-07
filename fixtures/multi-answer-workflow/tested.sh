@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Held-out: rewards running the tests.
 set -euo pipefail
+source "$(dirname "$0")/knob.sh"
 
-workflow="$(dirname "$0")/workflow.txt"
-
-if grep -q -x "tests: run" "$workflow"; then
+if knob_is tests "${TESTS_GATE[@]}"; then
   echo "tests run"
   exit 0
 fi
