@@ -138,6 +138,30 @@ final class JournalReporterTest {
                 .contains("- no evidence: attempt-3-of-3");
     }
 
+    /** CHG-031. A rejected attempt that spent tokens says so on its no-evidence line. */
+    @Test
+    void aNoEvidenceLineShowsWhatTheRejectedAttemptCostWhenKnown(@TempDir Path dir) throws IOException {
+        Path journal = dir.resolve("journal.md");
+        var reporter = new JournalReporter(journal, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+        var spent = new com.dreamthought.saaa.domain.AgentUsage(
+                java.util.OptionalLong.of(202), java.util.OptionalLong.of(22),
+                java.util.Optional.empty(), java.util.OptionalLong.empty(), java.util.OptionalInt.empty(),
+                java.util.Optional.of(new com.dreamthought.saaa.domain.PriceIdentity("prov", "mod")));
+
+        reporter.generationRanked(new com.dreamthought.saaa.domain.RankedGeneration(
+                List.of(),
+                List.of(
+                        new com.dreamthought.saaa.domain.UnevaluatedCandidate(
+                                "attempt-1-of-2", "rejected", java.util.Optional.of(spent)),
+                        new com.dreamthought.saaa.domain.UnevaluatedCandidate(
+                                "attempt-2-of-2", "transport"))));
+
+        assertThat(Files.readString(journal))
+                .contains("- no evidence: attempt-1-of-2 — rejected (usage prov / mod; input tokens 202; "
+                        + "output tokens 22)\n")
+                .contains("- no evidence: attempt-2-of-2 — transport\n");
+    }
+
     /**
      * A generation that promoted nothing says so. Naming its best discard as a winner would move the
      * deciding step out of fixed code and into whoever reads the journal.

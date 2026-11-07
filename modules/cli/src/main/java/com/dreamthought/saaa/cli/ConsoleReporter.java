@@ -72,7 +72,8 @@ public final class ConsoleReporter implements EvolutionReporter {
                     result.fitnessScore().rawMagnitude(), result.decision());
         }
         generation.unevaluated().forEach(candidate ->
-                out.printf("  no evidence %s  %s%n", candidate.reference(), candidate.reason()));
+                out.printf("  no evidence %s  %s%s%n", candidate.reference(), candidate.reason(),
+                        candidate.usageSummary().map(text -> " (" + text + ")").orElse("")));
         generation.spread().ifPresent(spread -> out.printf("  spread     %.2f%n", spread));
         out.printf("  winner     %s%n",
                 generation.winner().map(result -> result.candidate().id()).orElse("none promoted"));
