@@ -4,6 +4,7 @@ import com.dreamthought.saaa.adapters.checks.CommandCheckRunner;
 import com.dreamthought.saaa.adapters.checks.CommandCheckRunner.CommandCheck;
 import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
 import com.dreamthought.saaa.adapters.git.GitCandidateWorkspace;
+import com.dreamthought.saaa.adapters.git.GitRealisedTreeIdentity;
 import com.dreamthought.saaa.adapters.git.GitRealizationInspector;
 import com.dreamthought.saaa.adapters.git.GitRepositoryRevision;
 import com.dreamthought.saaa.adapters.git.JGitChangedPathInspector;
@@ -174,6 +175,12 @@ public final class EvolveRunner {
         Path workflowPath = folder.resolve(request.workflowFile()).normalize();
         if (!workflowPath.startsWith(folder)) {
             throw new IllegalArgumentException("workflowFile must stay inside targetFolder");
+        }
+        if (gitRoot.relativize(workflowPath).startsWith(
+                Path.of(GitRealisedTreeIdentity.AUDIT_ENVELOPE_DIRECTORY))) {
+            throw new IllegalArgumentException("workflowFile must not be inside "
+                    + GitRealisedTreeIdentity.AUDIT_ENVELOPE_DIRECTORY
+                    + "; that folder holds candidate audit records");
         }
         requireNoSymlinkSegments(folder, workflowPath);
         if (!Files.isRegularFile(workflowPath, LinkOption.NOFOLLOW_LINKS)) {

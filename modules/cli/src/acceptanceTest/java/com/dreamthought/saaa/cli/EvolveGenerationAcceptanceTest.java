@@ -60,6 +60,29 @@ final class EvolveGenerationAcceptanceTest {
                 assertThat(singleText(connection,
                         "select requested_count from generations where run_id = ?", "same-tree"))
                         .isEqualTo("3");
+                org.assertj.core.api.SoftAssertions.assertSoftly(softly -> {
+                    try {
+                        softly.assertThat(singleText(connection, """
+                                select group_concat(candidate_id || ':' || input_tokens || ':' || output_tokens, ',')
+                                from (select * from candidate_usage
+                                      where candidate_id like 'candidate-same-tree-c%' order by candidate_id)
+                                """))
+                                .isEqualTo("candidate-same-tree-c1-mut-one:1:1,"
+                                        + "candidate-same-tree-c2-mut-two:1:1,candidate-same-tree-c3-mut-three:1:1");
+                        softly.assertThat(singleText(connection, """
+                                select sum(i) || ':' || sum(o) from (
+                                  select input_tokens i, output_tokens o from candidate_usage
+                                    where candidate_id like 'candidate-same-tree-c%'
+                                  union all
+                                  select input_tokens, output_tokens from generation_unevaluated
+                                    where run_id = 'same-tree')
+                                """))
+                                .as("CHG-031 S3: duplicate evaluations still count in the whole spend")
+                                .isEqualTo("3:3");
+                    } catch (SQLException failure) {
+                        throw new AssertionError(failure);
+                    }
+                });
                 try (var rows = connection.createStatement().executeQuery("""
                         select candidate_id, same_as_candidate_id from generation_duplicates
                         where run_id = 'same-tree' order by candidate_id
@@ -74,6 +97,9 @@ final class EvolveGenerationAcceptanceTest {
                 }
             }
             String journal = Files.readString(target.resolve("journal.md"));
+            assertThat(journal).contains("| evidence | 3 candidates: 1 ranked, 2 duplicates, 0 without evidence |");
+            assertThat(output.toString()).contains(
+                    "generation 3 candidates: 1 ranked, 2 duplicates, 0 without evidence");
             assertThat(journal.lines().filter(line -> line.contains("duplicate  ")).count()).isEqualTo(2);
             assertThat(output.toString().lines().filter(line -> line.contains("duplicate  ")).count()).isEqualTo(2);
             for (int index = 2; index <= 3; index++) {
@@ -81,7 +107,7 @@ final class EvolveGenerationAcceptanceTest {
                         + (index == 2 ? "-mut-two" : "-mut-three")
                         + "  realised the same files as candidate-same-tree-c1-mut-one; not ranked";
                 assertThat(journal).contains(line);
-                assertThat(output.toString()).contains(line);
+                assertThat(output.toString()).contains(line.replace("duplicate  ", "duplicate   "));
             }
         } finally {
             clearOpenAiCompatibleProfileConfig();

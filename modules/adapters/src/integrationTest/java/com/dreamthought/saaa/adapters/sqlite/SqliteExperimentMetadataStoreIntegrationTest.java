@@ -34,8 +34,8 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         Path database = tempDir.resolve("duplicates.sqlite");
         var store = new SqliteExperimentMetadataStore(database);
         var first = scored("candidate-first", 0.81, com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
-        var second = scored("candidate-second", 0.99, com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
-        var third = scored("candidate-third", 0.95, com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
+        var second = scored("candidate-z-second", 0.99, com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
+        var third = scored("candidate-a-third", 0.95, com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
         for (var result : List.of(first, second, third)) {
             store.recordFitness(result);
             store.recordUsage(result.candidate(), new AgentUsage(
@@ -51,8 +51,8 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         store = new SqliteExperimentMetadataStore(database);
         var generation = new com.dreamthought.saaa.domain.RankedGeneration(
                 List.of(first), List.of(), List.of(
-                        new com.dreamthought.saaa.domain.DuplicateCandidate("candidate-second", "candidate-first"),
-                        new com.dreamthought.saaa.domain.DuplicateCandidate("candidate-third", "candidate-first")));
+                        new com.dreamthought.saaa.domain.DuplicateCandidate("candidate-z-second", "candidate-first"),
+                        new com.dreamthought.saaa.domain.DuplicateCandidate("candidate-a-third", "candidate-first")));
         var record = new com.dreamthought.saaa.domain.GenerationRecord("duplicate-run", generation, Instant.EPOCH);
         store.recordGeneration(record);
         // Reopening and recording again exercises migration idempotence and child-row replacement.
@@ -60,7 +60,13 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         store.recordGeneration(record);
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
             assertThat(count(connection, "generation_duplicates")).isEqualTo(2);
-            for (String id : List.of("candidate-second", "candidate-third")) {
+            assertThat(singleText(connection, """
+                    select group_concat(position || ':' || candidate_id, ',') from (
+                      select position, candidate_id from generation_duplicates
+                        where run_id = 'duplicate-run' order by position)
+                    """))
+                    .isEqualTo("1:candidate-z-second,2:candidate-a-third");
+            for (String id : List.of("candidate-z-second", "candidate-a-third")) {
                 assertThat(singleText(connection,
                         "select run_id || ':' || same_as_candidate_id from generation_duplicates where candidate_id = ?",
                         id)).isEqualTo("duplicate-run:candidate-first");

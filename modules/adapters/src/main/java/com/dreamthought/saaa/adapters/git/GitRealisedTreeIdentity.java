@@ -22,7 +22,7 @@ import org.eclipse.jgit.treewalk.TreeWalk;
  * Git's own path order, hashed with SHA-256.
  */
 public final class GitRealisedTreeIdentity implements RealisedTreeIdentity {
-    static final String AUDIT_ENVELOPE_DIRECTORY = ".saaa/candidates/";
+    public static final String AUDIT_ENVELOPE_DIRECTORY = ".saaa/candidates/";
 
     @Override
     public String treeOf(Candidate candidate) {
@@ -38,8 +38,13 @@ public final class GitRealisedTreeIdentity implements RealisedTreeIdentity {
                 if (path.startsWith(AUDIT_ENVELOPE_DIRECTORY)) {
                     continue;
                 }
-                String entry = tree.getFileMode(0).toString() + ' ' + tree.getObjectId(0).name() + ' ' + path + '\n';
-                digest.update(entry.getBytes(StandardCharsets.UTF_8));
+                // Git paths cannot contain NUL, but can contain newlines and arbitrary bytes.
+                digest.update(tree.getFileMode(0).toString().getBytes(StandardCharsets.US_ASCII));
+                digest.update((byte) 0);
+                digest.update(tree.getObjectId(0).name().getBytes(StandardCharsets.US_ASCII));
+                digest.update((byte) 0);
+                digest.update(tree.getRawPath());
+                digest.update((byte) 0);
             }
             return HexFormat.of().formatHex(digest.digest());
         } catch (IOException | NoSuchAlgorithmException | RuntimeException exception) {

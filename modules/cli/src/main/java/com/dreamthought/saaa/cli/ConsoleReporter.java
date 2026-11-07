@@ -60,8 +60,14 @@ public final class ConsoleReporter implements EvolutionReporter {
     @Override
     public void generationRanked(RankedGeneration generation) {
         Objects.requireNonNull(generation, "generation");
-        out.printf("  generation %d of %d candidates produced evidence%n",
-                generation.evaluatedCount(), generation.requestedCount());
+        if (generation.duplicates().isEmpty()) {
+            out.printf("  generation %d of %d candidates produced evidence%n",
+                    generation.evaluatedCount(), generation.requestedCount());
+        } else {
+            out.printf("  generation %d candidates: %d ranked, %d duplicates, %d without evidence%n",
+                    generation.requestedCount(), generation.ranked().size(), generation.duplicates().size(),
+                    generation.unevaluated().size());
+        }
         int candidateWidth = generation.ranked().stream()
                 .mapToInt(result -> result.candidate().id().length())
                 .max()
@@ -75,7 +81,7 @@ public final class ConsoleReporter implements EvolutionReporter {
                 out.printf("  no evidence %s  %s%s%n", candidate.reference(), candidate.reason(),
                         candidate.usageSummary().map(text -> " (" + text + ")").orElse("")));
         generation.duplicates().forEach(candidate ->
-                out.printf("  duplicate  %s  realised the same files as %s; not ranked%n",
+                out.printf("  duplicate   %s  realised the same files as %s; not ranked%n",
                         candidate.candidateId(), candidate.sameAsCandidateId()));
         generation.spread().ifPresent(spread -> out.printf("  spread     %.2f%n", spread));
         out.printf("  winner     %s%n",

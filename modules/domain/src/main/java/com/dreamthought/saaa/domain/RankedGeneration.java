@@ -47,6 +47,22 @@ public record RankedGeneration(List<FitnessResult> ranked, List<UnevaluatedCandi
                     "two candidates in one generation share an id, so the ranking cannot be total");
         }
 
+        Set<String> duplicateIds = new TreeSet<>();
+        for (var duplicate : duplicates) {
+            if (!duplicateIds.add(duplicate.candidateId())) {
+                throw new IllegalArgumentException("duplicate candidate ids must be unique");
+            }
+            if (duplicate.candidateId().equals(duplicate.sameAsCandidateId())) {
+                throw new IllegalArgumentException("a duplicate cannot be the same as itself");
+            }
+            if (ids.contains(duplicate.candidateId())) {
+                throw new IllegalArgumentException("duplicate candidate ids must be disjoint from ranked ids");
+            }
+            if (!ids.contains(duplicate.sameAsCandidateId())) {
+                throw new IllegalArgumentException("a duplicate must reference a ranked candidate");
+            }
+        }
+
         // A generation is a comparison, and CHG-024 stamped the fingerprint so that scores measured
         // under different objectives, weights, thresholds, probes or budgets are never compared. A
         // single-candidate run had nothing to compare against; this is where that guard earns its

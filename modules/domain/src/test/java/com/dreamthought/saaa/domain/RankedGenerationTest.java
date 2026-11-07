@@ -87,6 +87,39 @@ final class RankedGenerationTest {
         assertThat(generation.requestedCount()).isEqualTo(1);
     }
 
+    @Test
+    void duplicateCandidateIdsMustBeUnique() {
+        var first = result("first", 0.9, FitnessDecision.PROMOTE);
+        assertThatThrownBy(() -> new RankedGeneration(List.of(first), List.of(), List.of(
+                new DuplicateCandidate("repeated", "first"), new DuplicateCandidate("repeated", "first"))))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("must be unique");
+    }
+
+    @Test
+    void duplicateCandidateIdsMustBeDisjointFromRankedIds() {
+        var first = result("first", 0.9, FitnessDecision.PROMOTE);
+        var second = result("second", 0.8, FitnessDecision.PROMOTE);
+        assertThatThrownBy(() -> new RankedGeneration(List.of(first, second), List.of(),
+                List.of(new DuplicateCandidate("second", "first"))))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("disjoint");
+    }
+
+    @Test
+    void aDuplicateCannotReferenceItself() {
+        var first = result("first", 0.9, FitnessDecision.PROMOTE);
+        assertThatThrownBy(() -> new RankedGeneration(List.of(first), List.of(),
+                List.of(new DuplicateCandidate("repeated", "repeated"))))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("same as itself");
+    }
+
+    @Test
+    void aDuplicateMustReferenceARankedCandidate() {
+        var first = result("first", 0.9, FitnessDecision.PROMOTE);
+        assertThatThrownBy(() -> new RankedGeneration(List.of(first), List.of(),
+                List.of(new DuplicateCandidate("repeated", "missing"))))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("reference a ranked candidate");
+    }
+
     private static FitnessResult result(String candidateId, double magnitude, FitnessDecision decision) {
         return result(candidateId, magnitude, decision, context(0.80));
     }

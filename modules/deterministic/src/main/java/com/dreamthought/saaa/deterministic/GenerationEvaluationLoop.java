@@ -72,6 +72,7 @@ public final class GenerationEvaluationLoop {
         var unevaluated = new ArrayList<UnevaluatedCandidate>();
         var duplicates = new ArrayList<DuplicateCandidate>();
         var firstByTree = new LinkedHashMap<String, String>();
+        String fingerprint = null;
         try {
             for (int attempt = 1; attempt <= candidates; attempt++) {
                 CandidateEvaluation evaluation;
@@ -93,6 +94,11 @@ public final class GenerationEvaluationLoop {
                     continue;
                 }
                 var result = evaluation.fitnessResult();
+                if (fingerprint != null && !fingerprint.equals(result.scoringFingerprint())) {
+                    throw new IllegalArgumentException("a generation cannot mix scoring fingerprints: "
+                            + fingerprint + ", " + result.scoringFingerprint());
+                }
+                fingerprint = result.scoringFingerprint();
                 String tree = Objects.requireNonNull(treeIdentity.treeOf(result.candidate()), "realised tree");
                 String first = firstByTree.putIfAbsent(tree, result.candidate().id());
                 if (first == null) {

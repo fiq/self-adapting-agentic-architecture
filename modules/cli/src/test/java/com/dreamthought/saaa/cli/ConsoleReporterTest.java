@@ -76,6 +76,21 @@ final class ConsoleReporterTest {
                 .isEqualTo(lines.get(2).indexOf("0.95"));
     }
 
+    @Test
+    void distinguishesRankedCandidatesFromDuplicatesAndAlignsTheirLabels() {
+        var output = new StringWriter();
+        var reporter = new ConsoleReporter(new PrintWriter(output));
+        reporter.generationRanked(new RankedGeneration(
+                List.of(result("first", "0.9", FitnessDecision.PROMOTE)),
+                List.of(new UnevaluatedCandidate("failed", "no worktree")),
+                List.of(new com.dreamthought.saaa.domain.DuplicateCandidate("second", "first"))));
+
+        assertThat(output.toString().lines()).contains(
+                "  generation 3 candidates: 1 ranked, 1 duplicates, 1 without evidence",
+                "  duplicate   second  realised the same files as first; not ranked",
+                "  no evidence failed  no worktree");
+    }
+
     /** CHG-031. The no-evidence line names what a rejected attempt cost, and only when known. */
     @Test
     void theNoEvidenceLineShowsWhatARejectedAttemptCostWhenKnown() {

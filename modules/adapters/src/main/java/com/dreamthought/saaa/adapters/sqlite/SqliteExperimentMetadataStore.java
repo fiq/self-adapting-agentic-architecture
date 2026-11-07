@@ -105,8 +105,9 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                 for (var ranked : generation.ranked()) {
                     writeGenerationRanking(connection, record.runId(), position++, ranked.candidate().id());
                 }
+                position = 1;
                 for (var duplicate : generation.duplicates()) {
-                    writeGenerationDuplicate(connection, record.runId(), duplicate);
+                    writeGenerationDuplicate(connection, record.runId(), position++, duplicate);
                 }
                 position = 1;
                 for (var lost : generation.unevaluated()) {
@@ -176,13 +177,14 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
     }
 
     private static void writeGenerationDuplicate(
-            Connection connection, String runId,
+            Connection connection, String runId, int position,
             com.dreamthought.saaa.domain.DuplicateCandidate duplicate) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "insert into generation_duplicates(run_id, candidate_id, same_as_candidate_id) values (?, ?, ?)")) {
+                "insert into generation_duplicates(run_id, position, candidate_id, same_as_candidate_id) values (?, ?, ?, ?)")) {
             statement.setString(1, runId);
-            statement.setString(2, duplicate.candidateId());
-            statement.setString(3, duplicate.sameAsCandidateId());
+            statement.setInt(2, position);
+            statement.setString(3, duplicate.candidateId());
+            statement.setString(4, duplicate.sameAsCandidateId());
             statement.executeUpdate();
         }
     }
@@ -395,9 +397,11 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                     execute(connection, """
                             create table generation_duplicates (
                               run_id text not null references generations(run_id) on delete cascade,
+                              position integer not null,
                               candidate_id text not null references candidates(id) on delete cascade,
                               same_as_candidate_id text not null references candidates(id) on delete cascade,
-                              primary key (run_id, candidate_id)
+                              primary key (run_id, position),
+                              unique (run_id, candidate_id)
                             )
                             """);
                     try (PreparedStatement statement = connection.prepareStatement(

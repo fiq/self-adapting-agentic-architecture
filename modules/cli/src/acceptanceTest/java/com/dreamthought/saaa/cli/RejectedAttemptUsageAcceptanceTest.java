@@ -1,16 +1,12 @@
 package com.dreamthought.saaa.cli;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.containing;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.clearOpenAiCompatibleProfileConfig;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.configureOpenAiCompatibleProfile;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.escapeJson;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.startOpenAiStub;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.stubOpenAiMutationResponses;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
@@ -26,10 +22,6 @@ import picocli.CommandLine;
  * generation's cost is only complete if that spend is recorded against the attempt.
  */
 final class RejectedAttemptUsageAcceptanceTest {
-    private static final String BASE_URL_PROPERTY = "saaa.model.base-url";
-    private static final String API_KEY_PROPERTY = "saaa.model.api-key";
-    private static final String MODEL_NAME_PROPERTY = "saaa.model.name";
-
     /**
      * S1. Variant two answers with scope PROMPT, which scope validation rejects. Its row in
      * generation_unevaluated carries the provider, the model the provider declared and the token
@@ -37,14 +29,14 @@ final class RejectedAttemptUsageAcceptanceTest {
      */
     @Test
     void aRejectedLiveAttemptRecordsWhatItCost(@TempDir Path tempDir) throws Exception {
-        var server = startStub();
+        var server = startOpenAiStub();
         try {
-            stubVariants(server,
+            stubOpenAiMutationResponses(server,
                     response("mut-ok", "WORKFLOW_DEFINITION", "draft-check: enforce\n",
                             "declared-model-one", 101, 11),
                     response("mut-bad", "PROMPT", "draft-check: enforce\n# two\n",
                             "declared-model-two", 202, 22));
-            configure(server);
+            configureOpenAiCompatibleProfile(server);
             Path repo = initLiveRepo(tempDir);
             Path target = repo.resolve("toy");
 
@@ -79,7 +71,7 @@ final class RejectedAttemptUsageAcceptanceTest {
                     .contains("202")
                     .contains("22");
         } finally {
-            clear();
+            clearOpenAiCompatibleProfileConfig();
             server.stop();
         }
     }
@@ -90,14 +82,14 @@ final class RejectedAttemptUsageAcceptanceTest {
      */
     @Test
     void aGenerationsWholeSpendIsTheSumOfBothTables(@TempDir Path tempDir) throws Exception {
-        var server = startStub();
+        var server = startOpenAiStub();
         try {
-            stubVariants(server,
+            stubOpenAiMutationResponses(server,
                     response("mut-ok", "WORKFLOW_DEFINITION", "draft-check: enforce\n",
                             "declared-model-one", 101, 11),
                     response("mut-bad", "PROMPT", "draft-check: enforce\n# two\n",
                             "declared-model-two", 202, 22));
-            configure(server);
+            configureOpenAiCompatibleProfile(server);
             Path repo = initLiveRepo(tempDir);
             Path target = repo.resolve("toy");
 
@@ -129,7 +121,7 @@ final class RejectedAttemptUsageAcceptanceTest {
                 }
             }
         } finally {
-            clear();
+            clearOpenAiCompatibleProfileConfig();
             server.stop();
         }
     }
@@ -140,12 +132,12 @@ final class RejectedAttemptUsageAcceptanceTest {
      */
     @Test
     void aRejectedSingleCandidateRunFailsWithTheOriginalException(@TempDir Path tempDir) throws Exception {
-        var server = startStub();
+        var server = startOpenAiStub();
         try {
-            stubVariants(server,
+            stubOpenAiMutationResponses(server,
                     response("mut-bad", "PROMPT", "draft-check: enforce\n# two\n",
                             "declared-model-one", 101, 11));
-            configure(server);
+            configureOpenAiCompatibleProfile(server);
             Path repo = initLiveRepo(tempDir);
             Path target = repo.resolve("toy");
 
@@ -166,7 +158,7 @@ final class RejectedAttemptUsageAcceptanceTest {
             assertThat(failure.get()).isExactlyInstanceOf(IllegalStateException.class);
             assertThat(failure.get().getMessage()).startsWith("mutation validation failed:");
         } finally {
-            clear();
+            clearOpenAiCompatibleProfileConfig();
             server.stop();
         }
     }
@@ -176,33 +168,10 @@ final class RejectedAttemptUsageAcceptanceTest {
                 .orElseThrow(() -> new AssertionError("no line containing '" + needle + "' in:\n" + text));
     }
 
-    private static WireMockServer startStub() {
-        var server = new WireMockServer(WireMockConfiguration.options().dynamicPort());
-        server.start();
-        return server;
-    }
-
-    private static void stubVariants(WireMockServer server, String... responses) {
-        for (int index = 0; index < responses.length; index++) {
-            int variant = index + 1;
-            var stub = post(urlEqualTo("/v1/chat/completions"))
-                    .inScenario("rejected-attempt")
-                    .whenScenarioStateIs(index == 0 ? Scenario.STARTED : "answered-" + index)
-                    .withRequestBody(matchingJsonPath("$.messages[1].content",
-                            containing("variant " + variant + " of a generation")))
-                    .withHeader("Authorization", equalTo("Bearer local-test-key"))
-                    .willReturn(okJson(responses[index]));
-            if (index < responses.length - 1) {
-                stub.willSetStateTo("answered-" + (index + 1));
-            }
-            server.stubFor(stub);
-        }
-    }
-
     private static String response(
             String id, String scope, String patch, String declaredModel, long in, long out) {
         String mutation = "{\"id\":\"" + id + "\",\"summary\":\"enforce the draft check\",\"scope\":\""
-                + scope + "\",\"patch\":\"" + escape(patch) + "\"}";
+                + scope + "\",\"patch\":\"" + escapeJson(patch) + "\"}";
         return """
                 {
                   "id": "chatcmpl-local",
@@ -215,23 +184,7 @@ final class RejectedAttemptUsageAcceptanceTest {
                   ],
                   "usage": {"prompt_tokens": %d, "completion_tokens": %d, "total_tokens": %d}
                 }
-                """.formatted(declaredModel, escape(mutation), in, out, in + out);
-    }
-
-    private static String escape(String raw) {
-        return raw.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
-    }
-
-    private static void configure(WireMockServer server) {
-        System.setProperty(BASE_URL_PROPERTY, server.baseUrl() + "/v1");
-        System.setProperty(API_KEY_PROPERTY, "local-test-key");
-        System.setProperty(MODEL_NAME_PROPERTY, "local-test-model");
-    }
-
-    private static void clear() {
-        System.clearProperty(BASE_URL_PROPERTY);
-        System.clearProperty(API_KEY_PROPERTY);
-        System.clearProperty(MODEL_NAME_PROPERTY);
+                """.formatted(declaredModel, escapeJson(mutation), in, out, in + out);
     }
 
     private static Path initLiveRepo(Path tempDir) throws Exception {

@@ -64,6 +64,19 @@ final class EvolveRunnerTest {
     }
 
     @Test
+    void refusesWorkflowInsideTheRepositoryCandidateAuditDirectory(@TempDir Path repo) throws Exception {
+        Files.createDirectory(repo.resolve(".git"));
+        Path target = Files.createDirectories(repo.resolve(".saaa/candidates/nested"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        var request = new EvolveRunRequest(target, "fixture", "workflow.txt", List.of("workflow-check"), 80);
+
+        assertThatThrownBy(() -> new EvolveRunner().run(request, EvolutionReporter.NO_OP))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(".saaa/candidates/")
+                .hasMessageContaining("that folder holds candidate audit records");
+    }
+
+    @Test
     void refusesWorkflowFileSymlinkBeforeReadingBaseline(@TempDir Path dir) throws Exception {
         Files.createDirectory(dir.resolve(".git"));
         Path target = Files.createDirectory(dir.resolve("toy"));

@@ -122,6 +122,19 @@ final class GenerationEvaluationLoopTest {
     }
 
     @Test
+    void aDuplicateTreeWithADifferentScoringFingerprintAbortsTheGeneration() {
+        var first = evaluation("candidate-a", 0.9, FitnessDecision.PROMOTE);
+        var other = new CandidateEvaluation(first.mutation(), result("candidate-b", 0.8,
+                FitnessDecision.PROMOTE, FitnessResultFixtures.context(0.6)));
+        var loop = new GenerationEvaluationLoop(evaluatorReturning(() -> first, () -> other),
+                candidate -> "same-tree");
+
+        assertThatThrownBy(() -> loop.evaluate(request(), 2))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("a generation cannot mix scoring fingerprints");
+    }
+
+    @Test
     void candidatesWithDifferentTreesBothRankWhateverTheirIds() {
         var evaluator = evaluatorReturning(
                 () -> evaluationForMutation("candidate-a", "MUT-shared", "same proposal", 0.90),

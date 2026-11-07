@@ -470,12 +470,7 @@ final class EvolveCommandAcceptanceTest {
                     """);
             initRepo(repo);
 
-            var failure = new AtomicReference<Exception>();
             var commandLine = new CommandLine(new MutationLoopCli());
-            commandLine.setExecutionExceptionHandler((exception, command, parseResult) -> {
-                failure.set(exception);
-                return 1;
-            });
             int exitCode = commandLine.execute(
                     "saaa-evolve", target.toString(),
                     "--profile", "openai-compatible",
@@ -485,7 +480,9 @@ final class EvolveCommandAcceptanceTest {
                     "--max-lines", "8");
 
             assertThat(exitCode).isZero();
-            assertThat(failure.get()).isNull();
+            assertThat(Files.readString(target.resolve("journal.md")))
+                    .contains("- duplicate  candidate-s3-run-c2-mut-live-repeat  realised the same files as "
+                            + "candidate-s3-run-c1-mut-live-repeat; not ranked");
             try (var connection = DriverManager.getConnection(
                     "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
                 assertThat(countRows(connection,

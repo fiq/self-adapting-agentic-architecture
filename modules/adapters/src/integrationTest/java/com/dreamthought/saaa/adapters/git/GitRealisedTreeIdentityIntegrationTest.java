@@ -47,9 +47,29 @@ final class GitRealisedTreeIdentityIntegrationTest {
         assertThat(identity.treeOf(different)).isNotEqualTo(identity.treeOf(first));
         // A file outside the audit directory that only lives under .saaa still counts.
         Files.writeString(repo.resolve(".saaa/fixture-mutation.txt"), "summary\nfirst\n");
-        git(repo, "add", ".");
+        git(repo, "add", ".saaa/fixture-mutation.txt");
         git(repo, "commit", "-m", "other .saaa content");
         assertThat(identity.treeOf(candidate(repo, "other-saaa"))).isNotEqualTo(identity.treeOf(different));
+    }
+
+    @Test
+    void aNewlineInAPathCannotImpersonateAnotherTreeEntry(@TempDir Path repo) throws Exception {
+        git(repo, "init", "-b", "main");
+        git(repo, "config", "user.name", "Test");
+        git(repo, "config", "user.email", "test@example.invalid");
+        Files.writeString(repo.resolve("a"), "same blob");
+        Files.writeString(repo.resolve("b"), "same blob");
+        git(repo, "add", ".");
+        git(repo, "commit", "-m", "two entries");
+        var twoEntries = candidate(repo, "two");
+        String blob = git(repo, "rev-parse", "HEAD:a").trim();
+        git(repo, "rm", "a", "b");
+        // The old newline-separated encoding rendered this one path as the two entries above.
+        Files.writeString(repo.resolve("a\n100644 " + blob + " b"), "same blob");
+        git(repo, "add", ".");
+        git(repo, "commit", "-m", "one entry with a newline");
+        var identity = new GitRealisedTreeIdentity();
+        assertThat(identity.treeOf(candidate(repo, "one"))).isNotEqualTo(identity.treeOf(twoEntries));
     }
 
     @Test
