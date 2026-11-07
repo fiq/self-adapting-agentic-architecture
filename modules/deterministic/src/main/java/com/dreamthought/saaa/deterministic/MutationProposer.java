@@ -29,10 +29,9 @@ public interface MutationProposer {
      * proposer with no notion of variety are N ordinary calls. For a deterministic proposer that is
      * one candidate N times, which reads like a population and is not one.
      *
-     * <p>That default is safe only because nothing relies on it being enough:
-     * {@code GenerationEvaluationLoop} checks that a generation's candidates actually carry distinct
-     * mutations and fails the run when they do not. A proposer that cannot vary is therefore reported
-     * rather than quietly evaluated N times.
+     * <p>{@code GenerationEvaluationLoop} compares the realised committed trees after evaluation.
+     * Repeated trees are reported as duplicates of the first candidate and excluded from ranking,
+     * so a proposer that cannot vary cannot inflate the ranked population.
      */
     default Mutation proposeFor(PreparedMutationProposalRequest request, int variant) {
         if (variant < 1) {

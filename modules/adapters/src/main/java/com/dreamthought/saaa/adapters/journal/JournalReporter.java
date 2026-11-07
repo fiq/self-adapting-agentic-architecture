@@ -115,6 +115,11 @@ public final class JournalReporter implements EvolutionReporter {
                 .append(candidate.usageSummary().map(text -> " (" + text + ")").orElse(""))
                 .append('\n'));
 
+        generation.duplicates().forEach(candidate -> lost
+                .append("- duplicate  ").append(candidate.candidateId())
+                .append("  realised the same files as ").append(candidate.sameAsCandidateId())
+                .append("; not ranked\n"));
+
         return """
 
                 ## %s  generation

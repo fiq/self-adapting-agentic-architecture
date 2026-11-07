@@ -1,14 +1,13 @@
 package com.dreamthought.saaa.deterministic;
 
 import com.dreamthought.saaa.domain.AgentUsage;
+import com.dreamthought.saaa.domain.DuplicateCandidate;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.MutationProposalRequest;
 import com.dreamthought.saaa.domain.RankedGeneration;
 import com.dreamthought.saaa.domain.UnevaluatedCandidate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -20,26 +19,28 @@ import java.util.Optional;
  * a time. That is a decision to revisit against evidence that the wall clock is the problem, not a
  * limitation to route around.
  *
- * <p>The evaluator returns the mutation alongside the scored result so the identity rule below can
- * compare what was proposed rather than only what was recorded. The single-candidate path is
- * untouched: {@code MutationEvaluationLoop::evaluate} keeps its signature for its current callers
- * and only the widened {@code evaluateCandidate} carries the mutation.
+ * <p>Identity is the realised committed tree, regardless of mutation id or patch. The first
+ * candidate with a tree ranks; later matches are recorded as duplicates. Identity lookup failures
+ * abort the run because they prevent a trustworthy comparison.
  */
 public final class GenerationEvaluationLoop {
     private final CandidateEvaluator evaluator;
     private final PopulationRankingPolicy ranking;
+    private final RealisedTreeIdentity treeIdentity;
 
-    public GenerationEvaluationLoop(CandidateEvaluator evaluator) {
-        this(evaluator, new PopulationRankingPolicy());
+    public GenerationEvaluationLoop(CandidateEvaluator evaluator, RealisedTreeIdentity treeIdentity) {
+        this(evaluator, treeIdentity, new PopulationRankingPolicy());
     }
 
-    public GenerationEvaluationLoop(CandidateEvaluator evaluator, PopulationRankingPolicy ranking) {
+    public GenerationEvaluationLoop(
+            CandidateEvaluator evaluator, RealisedTreeIdentity treeIdentity, PopulationRankingPolicy ranking) {
         this.evaluator = Objects.requireNonNull(evaluator, "evaluator");
+        this.treeIdentity = Objects.requireNonNull(treeIdentity, "treeIdentity");
         this.ranking = Objects.requireNonNull(ranking, "ranking");
     }
 
     /**
-     * Evaluates {@code candidates} candidates and ranks the ones that produced evidence.
+     * Evaluates {@code candidates} candidates and ranks the first for each distinct realised tree.
      *
      * <p>A candidate that fails outright does not abort the generation. It is recorded with its
      * reason and the rest continue, because one unrealisable mutation says nothing about the others
@@ -69,9 +70,8 @@ public final class GenerationEvaluationLoop {
 
         var evaluated = new ArrayList<FitnessResult>();
         var unevaluated = new ArrayList<UnevaluatedCandidate>();
-        // Mutation id -> every patch seen under it. Sameness is the pair (id, patch): the same id
-        // over a different patch is two mutations and ranks, which is the Q-013 settlement.
-        var mutations = new LinkedHashMap<String, List<String>>();
+        var duplicates = new ArrayList<DuplicateCandidate>();
+        var firstByTree = new LinkedHashMap<String, String>();
         try {
             for (int attempt = 1; attempt <= candidates; attempt++) {
                 CandidateEvaluation evaluation;
@@ -92,56 +92,28 @@ public final class GenerationEvaluationLoop {
                             "attempt-" + attempt + "-of-" + candidates, describe(cause), spent));
                     continue;
                 }
-                requireMutationNotAlreadySeen(mutations, evaluation, attempt, candidates);
-                evaluated.add(evaluation.fitnessResult());
+                var result = evaluation.fitnessResult();
+                String tree = Objects.requireNonNull(treeIdentity.treeOf(result.candidate()), "realised tree");
+                String first = firstByTree.putIfAbsent(tree, result.candidate().id());
+                if (first == null) {
+                    evaluated.add(result);
+                } else {
+                    duplicates.add(new DuplicateCandidate(result.candidate().id(), first));
+                }
             }
-            return ranking.rank(evaluated, unevaluated);
+            var ranked = ranking.rank(evaluated, unevaluated);
+            return new RankedGeneration(ranked.ranked(), ranked.unevaluated(), duplicates);
         } catch (RuntimeException failure) {
             // Reporting the abort is presentation. If it fails too, the abort is still the thing
             // the caller must see, so the reporter's failure rides along as suppressed rather than
             // replacing it.
             try {
-                reporter.generationAborted(candidates, evaluated.size(), describe(failure));
+                reporter.generationAborted(candidates, evaluated.size() + duplicates.size(), describe(failure));
             } catch (RuntimeException reportFailure) {
                 failure.addSuppressed(reportFailure);
             }
             throw failure;
         }
-    }
-
-    /**
-     * Fails the run when two candidates carry the same mutation: the same id over the same patch.
-     *
-     * <p>Candidate ids are kept apart by the run's namespace, so one candidate evaluated N times
-     * still produces N distinct ids, N worktrees and N rows. It reads exactly like a population and
-     * is not one: the ranking would be a tie broken by candidate id, and the spread would be zero
-     * for a reason that has nothing to do with the candidates.
-     *
-     * <p>Thrown rather than recorded as an unevaluated candidate, because this is not a candidate
-     * that failed. It is the proposer failing to vary, which makes the whole generation meaningless,
-     * and a generation that quietly returned a tie would answer ADR-0002's "is ranking measurably
-     * useful" question with an artefact of its own wiring.
-     *
-     * <p>The comparison is on the pair (mutation id, patch), which settles Q-013 in code. A model
-     * chooses its own ids as free text, so one id over two genuinely different patches is two
-     * mutations and ranks; the check fires only when the patch also matches, which is exactly the
-     * case where the proposer produced no variant, and the message says so. Patches are compared as
-     * exact content. Identity derived from the realised tree rather than the proposal remains the
-     * recorded destination - the same instinct as the declared-locus gate - and is not built here.
-     */
-    private static void requireMutationNotAlreadySeen(
-            Map<String, List<String>> seen, CandidateEvaluation evaluation, int attempt, int candidates) {
-        var mutation = evaluation.mutation();
-        var patches = seen.computeIfAbsent(mutation.id(), id -> new ArrayList<>());
-        if (patches.contains(mutation.patch())) {
-            throw new IllegalStateException(
-                    "candidate " + attempt + " of " + candidates + " repeats mutation id "
-                            + mutation.id() + " with the same patch, so this generation cannot be "
-                            + "ranked: the proposer produced no variant for it. Two candidates are "
-                            + "the same mutation only when the id and the patch both match; the "
-                            + "same id over a different patch would have ranked as its own candidate");
-        }
-        patches.add(mutation.patch());
     }
 
     private static String describe(RuntimeException failure) {

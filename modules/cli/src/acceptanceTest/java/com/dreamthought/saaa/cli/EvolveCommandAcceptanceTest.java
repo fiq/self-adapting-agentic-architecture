@@ -1,5 +1,12 @@
 package com.dreamthought.saaa.cli;
 
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.clearOpenAiCompatibleProfileConfig;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.configureOpenAiCompatibleProfile;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.escapeJson;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.openAiMutationResponse;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.quoteJson;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.startOpenAiStub;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.stubOpenAiMutationResponses;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
@@ -11,7 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -25,10 +31,6 @@ import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 
 final class EvolveCommandAcceptanceTest {
-    private static final String BASE_URL_PROPERTY = "saaa.model.base-url";
-    private static final String API_KEY_PROPERTY = "saaa.model.api-key";
-    private static final String MODEL_NAME_PROPERTY = "saaa.model.name";
-
     @Test
     void runsOneGenerationWithFixtureProfileAndReportsADecision(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");
@@ -447,17 +449,9 @@ final class EvolveCommandAcceptanceTest {
         }
     }
 
-    /**
-     * CHG-029 S3. A live proposer asked for a generation can answer every variant ask with the same
-     * mutation: one id over one patch. The variant ask is what lets the model vary; this rule is
-     * what checks that it did. The run fails and the failure names non-variation - the id repeated
-     * and the patch matched - because any non-zero exit, an unmatched stub or a validation
-     * rejection, would otherwise satisfy the assertion. What was evaluated keeps its per-candidate
-     * fitness rows, and no generation row is written: a generation that cannot be ranked was never
-     * a comparison.
-     */
+    /** CHG-032 S4: a non-varying live proposer completes with a visible duplicate. */
     @Test
-    void aLiveGenerationWhoseProposerRepeatsIdAndPatchFailsNamingNonVariation(@TempDir Path tempDir)
+    void aLiveGenerationWhoseProposerRepeatsIdAndPatchRecordsADuplicate(@TempDir Path tempDir)
             throws Exception {
         var server = startOpenAiStub();
         try {
@@ -490,13 +484,8 @@ final class EvolveCommandAcceptanceTest {
                     "--candidates", "2",
                     "--max-lines", "8");
 
-            assertThat(exitCode).isNotZero();
-            assertThat(failure.get())
-                    .as("the failure pins the reason, not only the exit code")
-                    .hasMessageContaining("mut-live-repeat")
-                    .hasMessageContaining("same patch")
-                    .hasMessageContaining("produced no variant")
-                    .hasMessageContaining("cannot be ranked");
+            assertThat(exitCode).isZero();
+            assertThat(failure.get()).isNull();
             try (var connection = DriverManager.getConnection(
                     "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
                 assertThat(countRows(connection,
@@ -507,8 +496,10 @@ final class EvolveCommandAcceptanceTest {
                         .isEqualTo(2);
                 assertThat(countRows(connection,
                         "select count(*) from generations where run_id = 's3-run'"))
-                        .as("a generation that cannot be ranked was never a comparison")
-                        .isZero();
+                        .isEqualTo(1);
+                assertThat(countRows(connection,
+                        "select count(*) from generation_duplicates where run_id = 's3-run'"))
+                        .isEqualTo(1);
             }
         } finally {
             clearOpenAiCompatibleProfileConfig();
@@ -1054,12 +1045,6 @@ final class EvolveCommandAcceptanceTest {
                 "enforce the draft check\ndraft-check: enforce\n");
     }
 
-    private static WireMockServer startOpenAiStub() {
-        var server = new WireMockServer(WireMockConfiguration.options().dynamicPort());
-        server.start();
-        return server;
-    }
-
     private static void stubOpenAiMutationResponse(WireMockServer server) {
         server.stubFor(post(urlEqualTo("/v1/chat/completions"))
                 .withHeader("Authorization", equalTo("Bearer local-test-key"))
@@ -1089,72 +1074,6 @@ final class EvolveCommandAcceptanceTest {
                           }
                         }
                         """)));
-    }
-
-    /**
-     * Answers the N asks of a generation in order, one stubbed response per ask. The request
-     * matchers are the same ones {@link #stubOpenAiMutationResponse} uses, so a request that is not
-     * the expected proposal prompt gets no answer and fails the run rather than passing on a canned
-     * response.
-     */
-    private static void stubOpenAiMutationResponses(WireMockServer server, String... responses) {
-        for (int index = 0; index < responses.length; index++) {
-            var stub = post(urlEqualTo("/v1/chat/completions"))
-                    .inScenario("live-generation")
-                    .whenScenarioStateIs(index == 0 ? Scenario.STARTED : "answered-" + index)
-                    .withHeader("Authorization", equalTo("Bearer local-test-key"))
-                    .withRequestBody(matchingJsonPath("$.model", equalTo("local-test-model")))
-                    .withRequestBody(matchingJsonPath("$.messages[0].content",
-                            containing("bounded workflow mutations")))
-                    .withRequestBody(matchingJsonPath("$.messages[1].content",
-                            containing("draft-check: skip")))
-                    .willReturn(okJson(responses[index]));
-            if (index < responses.length - 1) {
-                stub.willSetStateTo("answered-" + (index + 1));
-            }
-            server.stubFor(stub);
-        }
-    }
-
-    /**
-     * The stub declares the mutation as JSON inside the assistant message, which is the shape the
-     * adapter parses. The patch is the workflow file's replacement text.
-     */
-    private static String openAiMutationResponse(String mutationId, String patch) {
-        String mutationJson = "{\"id\":\"" + mutationId
-                + "\",\"summary\":\"enforce the draft check\",\"scope\":\"WORKFLOW_DEFINITION\","
-                + "\"patch\":\"" + escapeJson(patch) + "\"}";
-        return """
-                {
-                  "id": "chatcmpl-local",
-                  "object": "chat.completion",
-                  "created": 1,
-                  "model": "local-test-model",
-                  "choices": [
-                    {
-                      "index": 0,
-                      "message": {
-                        "role": "assistant",
-                        "content": %s
-                      },
-                      "finish_reason": "stop"
-                    }
-                  ],
-                  "usage": {
-                    "prompt_tokens": 1,
-                    "completion_tokens": 1,
-                    "total_tokens": 2
-                  }
-                }
-                """.formatted(quoteJson(mutationJson));
-    }
-
-    private static String quoteJson(String raw) {
-        return "\"" + escapeJson(raw) + "\"";
-    }
-
-    private static String escapeJson(String raw) {
-        return raw.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
     }
 
     private static List<String> rankedCandidateIds(java.sql.Connection connection, String runId)
@@ -1293,18 +1212,6 @@ final class EvolveCommandAcceptanceTest {
                 return rows.getString(1);
             }
         }
-    }
-
-    private static void configureOpenAiCompatibleProfile(WireMockServer server) {
-        System.setProperty(BASE_URL_PROPERTY, server.baseUrl() + "/v1");
-        System.setProperty(API_KEY_PROPERTY, "local-test-key");
-        System.setProperty(MODEL_NAME_PROPERTY, "local-test-model");
-    }
-
-    private static void clearOpenAiCompatibleProfileConfig() {
-        System.clearProperty(BASE_URL_PROPERTY);
-        System.clearProperty(API_KEY_PROPERTY);
-        System.clearProperty(MODEL_NAME_PROPERTY);
     }
 
     /**

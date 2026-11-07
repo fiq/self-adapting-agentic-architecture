@@ -74,6 +74,9 @@ public final class ConsoleReporter implements EvolutionReporter {
         generation.unevaluated().forEach(candidate ->
                 out.printf("  no evidence %s  %s%s%n", candidate.reference(), candidate.reason(),
                         candidate.usageSummary().map(text -> " (" + text + ")").orElse("")));
+        generation.duplicates().forEach(candidate ->
+                out.printf("  duplicate  %s  realised the same files as %s; not ranked%n",
+                        candidate.candidateId(), candidate.sameAsCandidateId()));
         generation.spread().ifPresent(spread -> out.printf("  spread     %.2f%n", spread));
         out.printf("  winner     %s%n",
                 generation.winner().map(result -> result.candidate().id()).orElse("none promoted"));

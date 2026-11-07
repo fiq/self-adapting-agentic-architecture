@@ -105,6 +105,9 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                 for (var ranked : generation.ranked()) {
                     writeGenerationRanking(connection, record.runId(), position++, ranked.candidate().id());
                 }
+                for (var duplicate : generation.duplicates()) {
+                    writeGenerationDuplicate(connection, record.runId(), duplicate);
+                }
                 position = 1;
                 for (var lost : generation.unevaluated()) {
                     writeGenerationUnevaluated(connection, record.runId(), position++, lost);
@@ -120,7 +123,7 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
     }
 
     private static void deleteGenerationChildren(Connection connection, String runId) throws SQLException {
-        for (String table : java.util.List.of("generation_rankings", "generation_unevaluated")) {
+        for (String table : java.util.List.of("generation_rankings", "generation_unevaluated", "generation_duplicates")) {
             try (PreparedStatement statement =
                          connection.prepareStatement("delete from " + table + " where run_id = ?")) {
                 statement.setString(1, runId);
@@ -168,6 +171,18 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
             statement.setString(1, runId);
             statement.setInt(2, position);
             statement.setString(3, candidateId);
+            statement.executeUpdate();
+        }
+    }
+
+    private static void writeGenerationDuplicate(
+            Connection connection, String runId,
+            com.dreamthought.saaa.domain.DuplicateCandidate duplicate) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "insert into generation_duplicates(run_id, candidate_id, same_as_candidate_id) values (?, ?, ?)")) {
+            statement.setString(1, runId);
+            statement.setString(2, duplicate.candidateId());
+            statement.setString(3, duplicate.sameAsCandidateId());
             statement.executeUpdate();
         }
     }
@@ -372,6 +387,22 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                             "insert into schema_migrations(version) values (?)"
                     )) {
                         statement.setInt(1, 5);
+                        statement.executeUpdate();
+                    }
+                }
+                if (!migrationApplied(connection, 6)) {
+                    // CHG-032: duplicates keep their existing candidate and usage rows.
+                    execute(connection, """
+                            create table generation_duplicates (
+                              run_id text not null references generations(run_id) on delete cascade,
+                              candidate_id text not null references candidates(id) on delete cascade,
+                              same_as_candidate_id text not null references candidates(id) on delete cascade,
+                              primary key (run_id, candidate_id)
+                            )
+                            """);
+                    try (PreparedStatement statement = connection.prepareStatement(
+                            "insert into schema_migrations(version) values (?)")) {
+                        statement.setInt(1, 6);
                         statement.executeUpdate();
                     }
                 }

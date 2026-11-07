@@ -44,16 +44,16 @@ acceptance:
 tasks:
   - id: T1
     slice: Acceptance test seen red first; real Git worktrees, OpenAI-compatible stub returning three ids over one file
-    status: pending
+    status: completed
   - id: T2
     slice: Deterministic port RealisedTreeIdentity (Candidate to tree id) and a Git adapter reading the commit's tree
-    status: pending
+    status: completed
   - id: T3
     slice: GenerationEvaluationLoop dedupes by tree; RankedGeneration gains duplicates; the (id, patch) abort is removed
-    status: pending
+    status: completed
   - id: T4
     slice: Ledger table for duplicates through schema_migrations; journal and console duplicate lines
-    status: pending
+    status: completed
   - id: T5
     slice: Q-013 resolved, ADR-0002 (both copies) and README note the rule
     status: pending

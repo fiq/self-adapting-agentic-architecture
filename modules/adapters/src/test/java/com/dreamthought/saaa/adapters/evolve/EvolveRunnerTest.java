@@ -253,23 +253,34 @@ final class EvolveRunnerTest {
                 "MUT-repeated", "enforce the draft check", MutationScope.WORKFLOW_DEFINITION,
                 "draft-check: enforce\n"));
 
+        // Memory append is the last step of evaluation. Make the repository unavailable there,
+        // after scoring and diff inspection, so the following tree lookup is the operation that fails.
+        var appended = new java.util.concurrent.atomic.AtomicInteger();
+        com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore breakSecondRepositoryHandle = record -> {
+            if (appended.incrementAndGet() != 2) return;
+            try {
+                Files.move(repo.resolve(".git"), repo.resolve("unreadable-git-metadata"));
+            } catch (java.io.IOException failure) {
+                throw new AssertionError("could not break the test's repository handle", failure);
+            }
+        };
         assertThatThrownBy(() -> new EvolveRunner(
                 registry,
                 java.time.Clock.systemUTC(),
                 (mode, root) -> com.dreamthought.saaa.deterministic.EvidenceRetriever.none("test-retrieval"),
-                (mode, root) -> com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore.disabled())
+                (mode, root) -> breakSecondRepositoryHandle)
                 .runGeneration(
                         new EvolveRunRequest(target, "openai-compatible", "workflow.txt",
                                 List.of("workflow-check"), 20, RetrievalMode.NONE, "vary the check",
                                 Optional.of("aborted-run")),
                         EvolutionReporter.NO_OP, 2))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("repeats mutation id MUT-repeated");
+                .hasMessageContaining("failed to read realised tree");
 
         assertThat(Files.readString(target.resolve("journal.md")))
                 .contains("generation aborted")
                 .contains("| evidence | 1 of 2 candidates |")
-                .contains("repeats mutation id MUT-repeated");
+                .contains("failed to read realised tree for candidate-aborted-run-c2-mut-repeated");
     }
 
     /**
