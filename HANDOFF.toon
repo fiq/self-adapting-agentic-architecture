@@ -1,20 +1,20 @@
 session:
   updated: 2026-11-07
-  status: three_reviewed_prs_awaiting_merge
-  branch: fix/chg-030-full-file-proposals (this header); also feat/chg-031-rejected-attempt-usage and chore/toy-fixture-hardening
-  worktree: .worktrees/chg-030, .worktrees/chg-031, .worktrees/fixture - all clean and pushed. The four merged worktrees from 2026-10-12 were repaired after the ~/Code reorg moved the repo (git worktree repair), verified clean and merged, then removed with their local and remote branches on the user's say-so.
-  head: PR #61 CHG-030 (this branch), PR #62 CHG-031, PR #63 fixture hardening plus RISK-010. All three branch from main e7f14ac and are independent; suggested merge order #63, #61, #62, rebasing #62 after #61 because both touch EvolveRunner (different regions) and ADR-0006/README (different paragraphs).
-  head_note: 2026-11-07 session. First live generations against neuralwatt glm-5.3-flash-flex (runs nw1-nw4, scratch repos outside the tree) found that live candidates wrote the model's diff as the file. CHG-030 fixes that, CHG-031 records the cost of rejected attempts, the fixture check now rejects warn and diff text. With the fix the spread is still 0.00 on the toy fixture - see ADR-0002 "First measurement".
-  transport_note: git over ssh for fetch, push and rebase. The key now lives in an agent socket under ~/.ssh/agent/ (s.*.agent.*) rather than the gcr path; a fresh shell has SSH_AUTH_SOCK unset, so export it from that socket. gh opened the three draft PRs this session, under AGENTS.md "open a PR as a draft as soon as the branch has something on it"; the earlier note reserving gh for when the user says so was not re-confirmed with the user, so ask before merging through gh.
+  status: chg_030_031_merged_next_is_q013
+  branch: main after PR #62; this header was written on feat/chg-031-rejected-attempt-usage, the last of the three to land
+  worktree: .worktrees/chg-030, .worktrees/chg-031 and .worktrees/fixture are merged and removable once verified clean
+  head: PR #63 (fixture + RISK-010) merged as c61ddad, PR #61 (CHG-030) as 46c87e1, PR #62 (CHG-031) last, after origin/main was merged into it (not rebased - no force-push was authorised) and its README row conflict resolved.
+  head_note: 2026-11-07 session. First live generations against neuralwatt glm-5.3-flash-flex (runs nw1-nw4) found that live candidates wrote the model's diff as the file. CHG-030 fixes that, CHG-031 records the cost of rejected attempts, the fixture check now rejects warn and diff text. With the fix the spread is still 0.00 on the toy fixture - see ADR-0002 "First measurement". The user merged by delegation ("you merge") and asked that an early clear be treated as covering the whole task.
+  transport_note: git over ssh for fetch, push and rebase. The key lives in an agent socket under ~/.ssh/agent/ (s.*.agent.*); a fresh shell has SSH_AUTH_SOCK unset, so export it from that socket. gh is used for PR open/ready/merge.
   dirty: false
   pushed: true
 
 goal:
-  current: Get #61, #62 and #63 merged by the user, then the next measurement needs a target with more than one good answer and realised-tree identity (Q-013), because on the toy fixture every candidate converges on one file.
-  phase: awaiting_human_merge
+  current: Settle Q-013 with identity from the realised tree, then choose a target with more than one good answer and measure again. On the toy fixture every candidate converges on one file.
+  phase: next_slice_selection
 
 next_actions:
-  - START HERE: PRs #61 (CHG-030), #62 (CHG-031) and #63 (fixture + RISK-010) are drafts, verified by the lead and independently reviewed; every accepted finding is fixed. The human owns merge. Mark them ready, merge #63 and #61, rebase #62 onto main, rerun its suites with --rerun-tasks, merge.
+  - START HERE: #61 (CHG-030), #62 (CHG-031) and #63 (fixture + RISK-010) are merged. Remove the three merged worktrees after checking they are clean.
   - Q-013 next, not later. Run nw4 realised the identical file under three ids and ranked it as a population of three with spread 0.00. Identity from the realised tree is now the blocker for any population measurement.
   - A target with more than one good answer. The toy fixture has one, so it cannot show whether a model's candidates differ in ways the scorer can see. ADR-0002 "First measurement" records why.
   - RISK-010 - a held-out case gates through the 0.80 threshold although the help says it gates nothing. Needs a decision (may a held-out case flip PROMOTE to DISCARD?), not a fixture change.
