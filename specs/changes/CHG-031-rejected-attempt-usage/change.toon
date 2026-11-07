@@ -49,7 +49,7 @@ tasks:
     status: done
   - id: T5
     slice: README usage section and ADR-0006 (both copies) note that generation spend now includes rejected attempts
-    status: pending
+    status: completed
 
 non_goals:
   - recording usage for a failed single-candidate (non-generation) run
