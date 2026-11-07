@@ -126,7 +126,8 @@ public final class AcpAgentHarness implements AgentHarness {
                 + request.retrieval().map(bundle -> "\nRetrieved evidence capsule context:\n"
                         + bundle.flattenedContext()).orElse("")
                 + "\nJSON fields: id, summary, scope, patch. Scope must be one of "
-                + List.of(MutationScope.values());
+                + List.of(MutationScope.values())
+                + ". The patch field must contain the complete new workflow file, not a diff.";
     }
 
     private static String required(JsonNode root, String field) {

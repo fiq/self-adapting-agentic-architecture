@@ -25,7 +25,6 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -41,6 +40,7 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
     private final String proposerId;
     private final String requestedModel;
     private final AuditingChatModel auditingChatModel;
+    private final Set<MutationScope> allowedScopes;
     private RetrievalBundle lastRetrieval;
 
     public static LangChain4jMutationProposalAdapter from(ChatModel chatModel) {
@@ -59,23 +59,31 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
                 AiServices.create(WorkflowMutationAiService.class, auditingChatModel),
                 proposerId,
                 requestedModel,
-                auditingChatModel);
+                auditingChatModel, Set.of(MutationScope.values()));
     }
 
     LangChain4jMutationProposalAdapter(WorkflowMutationAiService service) {
-        this(service, "langchain4j", null, null);
+        this(service, "langchain4j", null, null, Set.of(MutationScope.values()));
     }
 
     private LangChain4jMutationProposalAdapter(
             WorkflowMutationAiService service,
             String proposerId,
             String requestedModel,
-            AuditingChatModel auditingChatModel
+            AuditingChatModel auditingChatModel,
+            Set<MutationScope> allowedScopes
     ) {
         this.service = Objects.requireNonNull(service, "service");
         this.proposerId = Objects.requireNonNull(proposerId, "proposerId");
         this.requestedModel = requestedModel;
         this.auditingChatModel = auditingChatModel;
+        this.allowedScopes = Set.copyOf(allowedScopes);
+    }
+
+    /** Configures the scopes offered by this realization path without changing the provider. */
+    public LangChain4jMutationProposalAdapter withAllowedScopes(Set<MutationScope> allowedScopes) {
+        return new LangChain4jMutationProposalAdapter(
+                service, proposerId, requestedModel, auditingChatModel, allowedScopes);
     }
 
     @Override
@@ -207,8 +215,8 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
         return value != null && !value.isBlank();
     }
 
-    private static List<String> allowedScopes() {
-        return Arrays.stream(MutationScope.values())
+    private List<String> allowedScopes() {
+        return allowedScopes.stream().sorted()
                 .map(Enum::name)
                 .toList();
     }
@@ -244,7 +252,7 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
                 - id: stable mutation identifier
                 - summary: concise human-readable change summary
                 - scope: one of the allowed scopes
-                - patch: bounded workflow-definition patch text
+                - patch: content - the complete new workflow file, not a diff
                 """;
 
         /**
@@ -283,6 +291,7 @@ public final class LangChain4jMutationProposalAdapter implements MutationPropose
         );
     }
 
+    // Keep "patch" as the JSON field name for wire compatibility; it carries whole-file content.
     public record MutationProposal(String id, String summary, String scope, String patch) {
         private Mutation toMutation() {
             return new Mutation(

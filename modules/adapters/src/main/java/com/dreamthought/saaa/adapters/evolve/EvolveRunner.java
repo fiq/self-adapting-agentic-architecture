@@ -3,6 +3,7 @@ package com.dreamthought.saaa.adapters.evolve;
 import com.dreamthought.saaa.adapters.checks.CommandCheckRunner;
 import com.dreamthought.saaa.adapters.checks.CommandCheckRunner.CommandCheck;
 import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
+import com.dreamthought.saaa.adapters.langchain4j.LangChain4jMutationProposalAdapter;
 import com.dreamthought.saaa.adapters.git.GitCandidateWorkspace;
 import com.dreamthought.saaa.adapters.git.GitRealizationInspector;
 import com.dreamthought.saaa.adapters.git.GitRepositoryRevision;
@@ -27,6 +28,7 @@ import com.dreamthought.saaa.deterministic.ExperimentMetadataStore;
 import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.deterministic.MutationEvaluationLoop;
 import com.dreamthought.saaa.deterministic.MutationScopeValidator;
+import com.dreamthought.saaa.deterministic.WholeFileContentValidator;
 import com.dreamthought.saaa.deterministic.DiffLineBudgetMutationValidator;
 import com.dreamthought.saaa.deterministic.PhenotypeBridgeScorer;
 import com.dreamthought.saaa.deterministic.ScoringConfig;
@@ -61,6 +63,7 @@ import java.util.function.BiFunction;
 import java.util.function.IntFunction;
 
 public final class EvolveRunner {
+    private static final Set<MutationScope> REALISABLE_SCOPES = Set.of(MutationScope.WORKFLOW_DEFINITION);
     private final ProposerProfileRegistry profileRegistry;
     private final Clock clock;
     private final BiFunction<RetrievalMode, Path, EvidenceRetriever> retrievalResolver;
@@ -205,7 +208,10 @@ public final class EvolveRunner {
         var namespace = request.runId()
                 .map(CandidateNamespace::forRunId)
                 .orElseGet(() -> CandidateNamespace.forRun(Instant.now(clock)));
-        MutationProposer proposer = profileRegistry.resolve(request.profile(), folder);
+        MutationProposer resolvedProposer = profileRegistry.resolve(request.profile(), folder);
+        MutationProposer proposer = resolvedProposer instanceof LangChain4jMutationProposalAdapter live
+                ? live.withAllowedScopes(REALISABLE_SCOPES)
+                : resolvedProposer;
         // Hoisted out of the per-candidate loop deliberately, because both accumulate across the
         // whole run: the retriever totals the time every candidate spent retrieving, and the capture
         // holds the bundle the run is reported with. Rebuilding either per candidate would report
@@ -234,7 +240,8 @@ public final class EvolveRunner {
                 new VariantProposer(proposer, position),
                 new CompositeMutationValidator(List.of(
                         new BoundedMutationValidator(),
-                        new MutationScopeValidator(Set.of(MutationScope.WORKFLOW_DEFINITION)),
+                        new MutationScopeValidator(REALISABLE_SCOPES),
+                        new WholeFileContentValidator(),
                         new DiffLineBudgetMutationValidator(request.maxLines()))),
                 new GitCandidateWorkspace(
                         gitRoot,

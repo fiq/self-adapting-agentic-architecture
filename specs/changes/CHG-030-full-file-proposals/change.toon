@@ -50,16 +50,16 @@ acceptance:
 tasks:
   - id: T1
     slice: Acceptance tests S1 and S2 with a real-shaped (diff) stub response, seen red first
-    status: pending
+    status: completed
   - id: T2
     slice: Deterministic whole-file validator, composed into the runner's validator chain
-    status: pending
+    status: completed
   - id: T3
     slice: Prompt wording - "content - the complete new workflow file, not a diff"; field name kept as patch on the wire for compatibility, documented
-    status: pending
+    status: completed
   - id: T4
     slice: One source of realisable scopes in EvolveRunner, passed to both validator and proposer
-    status: pending
+    status: completed
   - id: T5
     slice: README, ADR-0002 and ADR-0006 (both copies) record that the first live measurement was invalidated by this defect
     status: pending
