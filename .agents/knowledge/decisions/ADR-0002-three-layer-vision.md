@@ -40,7 +40,9 @@ Three concentric layers:
    0.00: one good answer, reached identically by every candidate. Whether a
    population pays needs a target with more than one good answer:
    `fixtures/multi-answer-workflow` (`CHG-033`) is that target, measured with
-   reference answers only so far (see the full ADR and `Q-013`).
+   reference answers only so far. Since `CHG-032` a generation ranks one
+   candidate per distinct set of committed files and records the rest as
+   duplicates (see the full ADR and `Q-013`).
 2. **Layer 2** — SAAA exposed as a tool an outer agentic loop can call, so the
    outer loop plans *what to try* and consumes SAAA's scores rather than
    overriding them.

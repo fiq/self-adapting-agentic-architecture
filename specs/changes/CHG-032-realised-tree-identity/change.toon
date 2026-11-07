@@ -56,7 +56,7 @@ tasks:
     status: completed
   - id: T5
     slice: Q-013 resolved, ADR-0002 (both copies) and README note the rule
-    status: pending
+    status: completed
 
 non_goals:
   - skipping checks for a duplicate before it is evaluated; checks are local and cheap, and the model cost is already spent
