@@ -3,7 +3,6 @@ package com.dreamthought.saaa.adapters.evolve;
 import com.dreamthought.saaa.adapters.checks.CommandCheckRunner;
 import com.dreamthought.saaa.adapters.checks.CommandCheckRunner.CommandCheck;
 import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
-import com.dreamthought.saaa.adapters.langchain4j.LangChain4jMutationProposalAdapter;
 import com.dreamthought.saaa.adapters.git.GitCandidateWorkspace;
 import com.dreamthought.saaa.adapters.git.GitRealizationInspector;
 import com.dreamthought.saaa.adapters.git.GitRepositoryRevision;
@@ -208,10 +207,8 @@ public final class EvolveRunner {
         var namespace = request.runId()
                 .map(CandidateNamespace::forRunId)
                 .orElseGet(() -> CandidateNamespace.forRun(Instant.now(clock)));
-        MutationProposer resolvedProposer = profileRegistry.resolve(request.profile(), folder);
-        MutationProposer proposer = resolvedProposer instanceof LangChain4jMutationProposalAdapter live
-                ? live.withAllowedScopes(REALISABLE_SCOPES)
-                : resolvedProposer;
+        MutationProposer proposer = profileRegistry.resolve(request.profile(), folder)
+                .withAllowedScopes(REALISABLE_SCOPES);
         // Hoisted out of the per-candidate loop deliberately, because both accumulate across the
         // whole run: the retriever totals the time every candidate spent retrieving, and the capture
         // holds the bundle the run is reported with. Rebuilding either per candidate would report

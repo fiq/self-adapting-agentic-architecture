@@ -7,6 +7,7 @@ import com.dreamthought.saaa.domain.AgentRunStatus;
 import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.AgentRoute;
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
 import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.ResourceBudget;
@@ -31,6 +32,11 @@ public final class AgentHarnessMutationProposer implements MutationProposer {
         this.harness = Objects.requireNonNull(harness, "harness");
         this.route = Objects.requireNonNull(route, "route");
         this.budget = Objects.requireNonNull(budget, "budget");
+    }
+
+    @Override
+    public AgentHarnessMutationProposer withAllowedScopes(Set<MutationScope> scopes) {
+        return new AgentHarnessMutationProposer(harness.withAllowedScopes(scopes), route, budget);
     }
 
     @Override

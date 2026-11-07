@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,9 +35,21 @@ public final class AcpAgentHarness implements AgentHarness {
     private static final Pattern JSON_OBJECT = Pattern.compile("\\{.*\\}", Pattern.DOTALL);
     private static final ObjectMapper JSON = new ObjectMapper();
     private final AcpAgentConfig config;
+    private final Set<MutationScope> allowedScopes;
 
     public AcpAgentHarness(AcpAgentConfig config) {
+        this(config, Set.of(MutationScope.values()));
+    }
+
+    private AcpAgentHarness(AcpAgentConfig config, Set<MutationScope> allowedScopes) {
         this.config = Objects.requireNonNull(config, "config");
+        this.allowedScopes = Set.copyOf(allowedScopes);
+    }
+
+    /** Configures the scope offer without changing the ACP process configuration. */
+    @Override
+    public AcpAgentHarness withAllowedScopes(Set<MutationScope> scopes) {
+        return new AcpAgentHarness(config, scopes);
     }
 
     @Override
@@ -114,7 +127,7 @@ public final class AcpAgentHarness implements AgentHarness {
         return AgentParameters.builder(config.command()).args(config.arguments()).build();
     }
 
-    private static String promptFor(AgentRequest request) {
+    private String promptFor(AgentRequest request) {
         var baseline = request.proposal().baseline();
         return "Return exactly one JSON mutation proposal and do not approve it. Expected schema: "
                 + request.expectedOutputSchema()
@@ -126,7 +139,7 @@ public final class AcpAgentHarness implements AgentHarness {
                 + request.retrieval().map(bundle -> "\nRetrieved evidence capsule context:\n"
                         + bundle.flattenedContext()).orElse("")
                 + "\nJSON fields: id, summary, scope, patch. Scope must be one of "
-                + List.of(MutationScope.values())
+                + allowedScopes.stream().sorted().toList()
                 + ". The patch field must contain the complete new workflow file, not a diff.";
     }
 

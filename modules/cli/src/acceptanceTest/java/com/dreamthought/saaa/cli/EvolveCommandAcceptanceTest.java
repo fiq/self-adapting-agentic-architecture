@@ -342,7 +342,7 @@ final class EvolveCommandAcceptanceTest {
             assertThat(Files.readString(target.resolve("journal.md"))).contains("workflow-check PASSED");
             server.verify(postRequestedFor(urlEqualTo("/v1/chat/completions"))
                     .withRequestBody(matchingJsonPath("$.messages[1].content",
-                            containing("complete new workflow file, not a diff")))
+                            containing("complete new workflow file, whole and not a diff")))
                     .withRequestBody(matchingJsonPath("$.messages[1].content",
                             containing("Allowed mutation scopes: [WORKFLOW_DEFINITION]"))));
         } finally {
@@ -374,7 +374,7 @@ final class EvolveCommandAcceptanceTest {
             String branchesBefore = gitOutput(repo, "branch", "--format=%(refname)");
             String worktreesBefore = gitOutput(repo, "worktree", "list", "--porcelain");
             var err = new java.io.StringWriter();
-            var command = new CommandLine(new MutationLoopCli());
+            var command = MutationLoopCli.commandLine();
             command.setErr(new java.io.PrintWriter(err, true));
 
             int exitCode = command.execute(
@@ -382,8 +382,11 @@ final class EvolveCommandAcceptanceTest {
                     "--behaviour-case", "workflow-check", "--run-id", "reject-diff", "--max-lines", "20");
 
             assertAll(
-                    () -> assertThat(exitCode).isNotZero(),
-                    () -> assertThat(err.toString()).contains("diff-shaped content"),
+                    () -> assertThat(exitCode).isEqualTo(1),
+                    () -> assertThat(err.toString()).isEqualTo(
+                            "error: mutation validation failed: the proposal is a diff, not the complete workflow file "
+                                    + "(diff-shaped content); no candidate was created" + System.lineSeparator()),
+                    () -> assertThat(target.resolve("journal.md")).doesNotExist(),
                     () -> assertThat(repo.resolve(".worktrees")).doesNotExist(),
                     () -> assertThat(gitOutput(repo, "branch", "--format=%(refname)")).isEqualTo(branchesBefore),
                     () -> assertThat(gitOutput(repo, "worktree", "list", "--porcelain")).isEqualTo(worktreesBefore),

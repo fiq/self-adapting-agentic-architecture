@@ -95,6 +95,11 @@ final class LangChain4jMutationProposalAdapterTest {
 
         assertThat(chatModel.lastRequest).isNotNull();
         assertThat(chatModel.lastRequest.toString()).contains("baseline", "agent -> tool -> answer");
+        assertThat(chatModel.lastRequest.toString())
+                .contains("Allowed mutation scopes: " + Arrays.stream(MutationScope.values())
+                        .map(Enum::name).toList())
+                .contains("- patch: the complete new workflow file, whole and not a diff")
+                .contains("make the smallest relevant change and return the whole file with it applied");
         assertThat(mutation.id()).isEqualTo("mut-002");
         assertThat(mutation.scope()).isEqualTo(MutationScope.TOOL_CONFIGURATION);
         assertThat(mutation.patch()).isEqualTo("set tool selection policy to deterministic");

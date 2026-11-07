@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dreamthought.saaa.deterministic.EvolutionReporter;
 import com.dreamthought.saaa.deterministic.AgentHarness;
+import com.dreamthought.saaa.deterministic.MutationProposer;
 import com.dreamthought.saaa.domain.AgentRunResult;
 import com.dreamthought.saaa.domain.AgentRunStatus;
 import com.dreamthought.saaa.domain.AgentUsage;
@@ -21,11 +22,47 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 final class EvolveRunnerTest {
+    @Test
+    void passesRealisableScopesThroughTheProposerPort(@TempDir Path repo) throws Exception {
+        Path target = Files.createDirectories(repo.resolve("toy"));
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        Path check = Files.writeString(target.resolve("workflow-check.sh"), "#!/usr/bin/env bash\nexit 0\n");
+        check.toFile().setExecutable(true);
+        git(repo, "init", "-b", "main");
+        git(repo, "add", ".");
+        git(repo, "-c", "user.name=test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture");
+        var offeredScopes = new AtomicReference<Set<MutationScope>>();
+        MutationProposer proposer = new MutationProposer() {
+            @Override
+            public MutationProposer withAllowedScopes(Set<MutationScope> scopes) {
+                offeredScopes.set(Set.copyOf(scopes));
+                return baseline -> {
+                    throw new IllegalStateException("configured proposer reached");
+                };
+            }
+
+            @Override
+            public Mutation proposeFor(com.dreamthought.saaa.domain.WorkflowGraph baseline) {
+                throw new IllegalStateException("unconfigured proposer reached");
+            }
+        };
+        var runner = new EvolveRunner(new ProposerProfileRegistry(ignored -> proposer),
+                java.time.Clock.systemUTC(),
+                (mode, root) -> com.dreamthought.saaa.deterministic.EvidenceRetriever.none("test-retrieval"),
+                (mode, root) -> com.dreamthought.saaa.deterministic.EvolutionaryMemoryStore.disabled());
+
+        assertThatThrownBy(() -> runner.run(
+                new EvolveRunRequest(target, "openai-compatible", "workflow.txt", List.of("workflow-check"), 20),
+                EvolutionReporter.NO_OP)).hasMessage("configured proposer reached");
+        assertThat(offeredScopes.get()).containsExactly(MutationScope.WORKFLOW_DEFINITION);
+    }
+
     @Test
     void refusesWorkflowFileSymlinkBeforeReadingBaseline(@TempDir Path dir) throws Exception {
         Files.createDirectory(dir.resolve(".git"));
