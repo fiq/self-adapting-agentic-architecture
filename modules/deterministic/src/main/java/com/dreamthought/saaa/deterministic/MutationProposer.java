@@ -1,15 +1,22 @@
 package com.dreamthought.saaa.deterministic;
 
 import com.dreamthought.saaa.domain.Mutation;
+import com.dreamthought.saaa.domain.MutationScope;
 import com.dreamthought.saaa.domain.PreparedMutationProposalRequest;
 import com.dreamthought.saaa.domain.ProposerEvidence;
 import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.WorkflowGraph;
 import java.util.Optional;
+import java.util.Set;
 
 @FunctionalInterface
 public interface MutationProposer {
     Mutation proposeFor(WorkflowGraph baseline);
+
+    /** A proposer that does not prompt for a scope ignores this restriction. */
+    default MutationProposer withAllowedScopes(Set<MutationScope> scopes) {
+        return this;
+    }
 
     default Mutation proposeFor(PreparedMutationProposalRequest request) {
         return proposeFor(request.baseline());

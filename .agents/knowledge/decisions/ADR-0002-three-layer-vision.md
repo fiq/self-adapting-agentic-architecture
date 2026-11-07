@@ -35,7 +35,11 @@ Three concentric layers:
 
 1. **Layer 1** — evolve a workflow, prompt or agent-configuration file.
    Shipped end-to-end for one candidate per run (`CHG-003`), with a canned
-   fixture proposer.
+   fixture proposer, and for a generation filled by a live model (`CHG-029`).
+   The first live generations (2026-11-07, toy fixture) measured a spread of
+   0.00: one good answer, reached identically by every candidate. Whether a
+   population pays needs a target with more than one good answer (see the
+   full ADR and `Q-013`).
 2. **Layer 2** — SAAA exposed as a tool an outer agentic loop can call, so the
    outer loop plans *what to try* and consumes SAAA's scores rather than
    overriding them.

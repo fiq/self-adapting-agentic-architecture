@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -310,6 +311,91 @@ final class EvolveCommandAcceptanceTest {
         assertThat(exitCode).isNotZero();
         assertThat(Files.exists(target.resolve("journal.md"))).isFalse();
         assertThat(Files.exists(repo.resolve(".worktrees"))).isFalse();
+    }
+
+    @Test
+    void aLiveProposalIsTheFullReplacementFile(@TempDir Path tempDir) throws Exception {
+        var server = startOpenAiStub();
+        try {
+            String replacement = "publish-policy: allow\ndraft-check: enforce\n+literal-setting\n-literal-setting\n";
+            stubOpenAiMutationResponses(server, openAiMutationResponse("mut-full-file", replacement));
+            configureOpenAiCompatibleProfile(server);
+            Path repo = tempDir.resolve("repo");
+            Path target = repo.resolve("toy");
+            Files.createDirectories(target);
+            Files.writeString(target.resolve("workflow.txt"), "publish-policy: allow\ndraft-check: skip\n");
+            writeCheck(target, "workflow-check", """
+                    #!/usr/bin/env bash
+                    set -euo pipefail
+                    expected=$'publish-policy: allow\\ndraft-check: enforce\\n+literal-setting\\n-literal-setting'
+                    test "$(cat "$(dirname "$0")/workflow.txt")" = "$expected"
+                    """);
+            initRepo(repo);
+
+            int exitCode = new CommandLine(new MutationLoopCli()).execute(
+                    "saaa-evolve", target.toString(), "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check", "--run-id", "full-file", "--max-lines", "20");
+
+            assertThat(exitCode).isZero();
+            Path candidate = repo.resolve(".worktrees/candidate-toy-full-file-c1-mut-full-file");
+            assertThat(Files.readString(candidate.resolve("toy/workflow.txt"))).isEqualTo(replacement);
+            assertThat(Files.readString(target.resolve("journal.md"))).contains("workflow-check PASSED");
+            server.verify(postRequestedFor(urlEqualTo("/v1/chat/completions"))
+                    .withRequestBody(matchingJsonPath("$.messages[1].content",
+                            containing("complete new workflow file, whole and not a diff")))
+                    .withRequestBody(matchingJsonPath("$.messages[1].content",
+                            containing("Allowed mutation scopes: [WORKFLOW_DEFINITION]"))));
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
+    }
+
+    @Test
+    void aLiveProposalShapedLikeADiffIsRejectedBeforeAnyCandidateExists(@TempDir Path tempDir) throws Exception {
+        var server = startOpenAiStub();
+        try {
+            String diff = "--- baseline: toy\n+++ mutated\n@@ definition @@\n publish-policy: allow\n"
+                    + "-draft-check: skip\n+draft-check: enforce\n";
+            stubOpenAiMutationResponses(server, openAiMutationResponse("mut-diff", diff));
+            configureOpenAiCompatibleProfile(server);
+            Path repo = tempDir.resolve("repo");
+            Path target = repo.resolve("toy");
+            Files.createDirectories(target);
+            String original = "publish-policy: allow\ndraft-check: skip\n";
+            Files.writeString(target.resolve("workflow.txt"), original);
+            // This is the permissive real-run check that let a diff pass as a workflow file.
+            writeCheck(target, "workflow-check", """
+                    #!/usr/bin/env bash
+                    set -euo pipefail
+                    ! grep -q '^draft-check: skip$' "$(dirname "$0")/workflow.txt"
+                    """);
+            initRepo(repo);
+            String branchesBefore = gitOutput(repo, "branch", "--format=%(refname)");
+            String worktreesBefore = gitOutput(repo, "worktree", "list", "--porcelain");
+            var err = new java.io.StringWriter();
+            var command = MutationLoopCli.commandLine();
+            command.setErr(new java.io.PrintWriter(err, true));
+
+            int exitCode = command.execute(
+                    "saaa-evolve", target.toString(), "--profile", "openai-compatible",
+                    "--behaviour-case", "workflow-check", "--run-id", "reject-diff", "--max-lines", "20");
+
+            assertAll(
+                    () -> assertThat(exitCode).isEqualTo(1),
+                    () -> assertThat(err.toString()).isEqualTo(
+                            "error: mutation validation failed: the proposal is a diff, not the complete workflow file "
+                                    + "(diff-shaped content); no candidate was created" + System.lineSeparator()),
+                    () -> assertThat(target.resolve("journal.md")).doesNotExist(),
+                    () -> assertThat(repo.resolve(".worktrees")).doesNotExist(),
+                    () -> assertThat(gitOutput(repo, "branch", "--format=%(refname)")).isEqualTo(branchesBefore),
+                    () -> assertThat(gitOutput(repo, "worktree", "list", "--porcelain")).isEqualTo(worktreesBefore),
+                    () -> assertThat(Files.readString(target.resolve("workflow.txt"))).isEqualTo(original));
+            server.verify(1, postRequestedFor(urlEqualTo("/v1/chat/completions")));
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
     }
 
     @Test
