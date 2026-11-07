@@ -25,11 +25,13 @@ deltas:
           - the rule is deterministic text inspection; it does not ask a model whether the text is a diff
   - op: MODIFIED
     capability: mutation-fitness-loop
-    requirement: The scopes a live prompt offers are exactly the scopes the run's validator accepts, taken from one source in the runner wiring.
+    requirement: The scopes a live prompt offers are exactly the scopes the run's validator accepts, taken from one source in the runner wiring, for every live proposer - the openai-compatible and acp profiles alike - through a port default that a proposer which does not prompt for scope ignores.
     scenarios:
       - id: S3
         when: a live proposer is asked for a mutation
         then: the prompt's allowed scopes list only the scopes the run will realise (today WORKFLOW_DEFINITION), so the model is not invited to choose a scope the run will reject
+        and:
+          - review (GLM-5.3) found the first round restricted only the LangChain4j adapter, through an instanceof in EvolveRunner, so the acp profile still offered every scope
         and:
           - evidence - 2 of 6 live asks across runs nw1 and nw2 chose PROMPT or TOOL_CONFIGURATION, which the prompt offered and the validator rejects
 
@@ -68,6 +70,8 @@ non_goals:
   - applying unified diffs (rejected as more surface for no current gain)
   - realising PROMPT or TOOL_CONFIGURATION scopes
   - recording tokens for rejected attempts (CHG-031)
+  - a journal entry and the raw model text for a proposal rejected on a single-candidate run; the console error line is the only trace today (review, Claude Sonnet). Recorded as a follow-up, not done here
 
 risks:
   - Text inspection can reject a legitimate workflow file that happens to contain diff-like lines. Accepted for the toy-scale targets in use; the rule requires the leading "--- "/"+++ " header pair or an "@@" hunk line, not any line starting with + or -.
+  - The validator is text inspection over known diff shapes (unified, indented unified, git header, context format). A diff in a shape it does not know, such as one with every line quoted, would still be written as the file; the prompt wording is the first defence and the toy check the last.
