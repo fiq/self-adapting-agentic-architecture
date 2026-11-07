@@ -233,7 +233,7 @@ implemented** means no code.
 |---|---|---|
 | Propose, isolate, commit, check, score, decide, journal | Working | one candidate per `saaa-evolve` run, or several with `--candidates` |
 | Canned proposer | Working | `--profile fixture` reads `<target>/.saaa/fixture-mutation.txt` |
-| Live model proposer | Partial | `--profile openai-compatible` via LangChain4j, covered by WireMock-backed acceptance tests including a filled generation, not exercised by the shipped fixture and not yet run against a real provider |
+| Live model proposer | Partial | `--profile openai-compatible` via LangChain4j, covered by WireMock-backed acceptance tests including a filled generation, not exercised by the shipped fixture. First run against a real provider on 2026-11-07 (neuralwatt `glm-5.3-flash-flex`), which found a defect that wrote the model's diff as the workflow file; fixed by CHG-030 |
 | Usage recording | Partial | every candidate's observed token counts, wall clock and response-declared model go to the journal and the `candidate_usage` ledger table, and a field nobody observed is recorded as unavailable rather than zero. An attempt in a generation that the model answered but validation then rejected has no candidate row, so its usage goes on its `generation_unevaluated` row and its journal no-evidence line instead (CHG-031); a generation's whole spend is the sum of both tables. Partial because no provider reports credits, so cost is not yet computed |
 | ACP agent proposer | Partial | `--profile acp` invokes a configured local ACP-over-stdio agent; wiring and fake-harness coverage are complete, while installed-agent interoperability remains opt-in |
 | Interactive harness session | Partial | `saaa sa` exposes explicit target and proposer-route selection, then runs either bounded whole-file workflow or code evolution through the existing deterministic loop |
@@ -241,7 +241,7 @@ implemented** means no code.
 | Benchmark-backed objectives | Partial | `--benchmark`/`--benchmark-budget` wire a real `JmhBenchmarkRunner` from `:cli` into `EvolveRunner`; with neither flag given the run still measures nothing, and only one static JMH benchmark class ships, and it runs with no warmup, one iteration and no forks, so a single measurement is dominated by noise rather than by the candidate |
 | Behavioural-safety evidence | Partial | `--safety-probe` names checks whose pass fraction becomes the objective; a probe that did not run counts as failed. Probes grade rather than gate, so a failing probe lowers the score and does not discard. With no probes declared the objective stays at `1.0` |
 | Retrieval treatments | Partial | `NONE` needs nothing; `VECTOR`, `GRAPH` and `HYBRID` need Neo4j and an embedding endpoint |
-| Population, ranking, selection | Partial | `--candidates N` evaluates N candidates against one baseline, one at a time, each in its own worktree, and ranks them on identical evidence. Ranking selects among the candidates the gates promoted and never overrides them, so a generation where nothing promoted records no winner. The journal and the experiment ledger carry the order, the winner, the shared scoring fingerprint, how many of N produced evidence and the spread of scores. A live proposer can fill a generation, asked for each variant by number; two candidates are the same mutation only when their id and patch both match. Partial because no generation has yet been run against a real provider, so whether a model's candidates differ in ways the scorer can see is still unmeasured, and generations do not yet iterate |
+| Population, ranking, selection | Partial | `--candidates N` evaluates N candidates against one baseline, one at a time, each in its own worktree, and ranks them on identical evidence. Ranking selects among the candidates the gates promoted and never overrides them, so a generation where nothing promoted records no winner. The journal and the experiment ledger carry the order, the winner, the shared scoring fingerprint, how many of N produced evidence and the spread of scores. A live proposer can fill a generation, asked for each variant by number; two candidates are the same mutation only when their id and patch both match. Partial because the first live generations (2026-11-07, toy fixture, see ADR-0002) measured a spread of 0.00: without a stated goal every candidate failed the same checks, and with one all three realised the identical file under three different ids, which the sameness rule still ranks as three (`Q-013`). Generations do not yet iterate |
 | Recombination | Not implemented | `ConceptualCrossoverPolicy` exists with unit tests and is wired into no command |
 | Evolving product code | Partial | `--workflow-file` accepts any regular file and an acceptance test targets a Java file; realisation is whole-file replacement, not an AST edit |
 
@@ -643,9 +643,11 @@ several candidate variants
 
 All four now exist as mechanism. A generation of `--candidates N` evaluates N
 variants against identical evidence and ranks them, and a live model can fill it.
-What is not yet shown is that the differentiator pays: no generation has been run
-against a real provider, so whether a model's variants differ in ways the scorer
-can see is still a design claim rather than a measured property.
+What is not yet shown is that the differentiator pays. The first live
+generations, on the toy fixture, measured a spread of 0.00 (ADR-0002 records
+the runs), so on that target the population bought nothing: the model either
+missed what the check accepts or converged on one file. Whether it pays on a
+target with room for genuinely different good answers is still open.
 
 ## Architecture
 
@@ -798,8 +800,8 @@ Each is recorded as deferred in `PROJECT_PROFILE.toon` with revisit conditions.
 
 Three layers, detailed in
 [ADR-0002](docs/decisions/0002-three-layer-vision.md): evolve a
-workflow or prompt file (shipped, for one candidate or a generation, though no
-generation has yet been run against a real provider); SAAA as a tool an
+workflow or prompt file (shipped, for one candidate or a generation; the first live
+generations measured no spread on the toy fixture); SAAA as a tool an
 outer agentic loop calls (`saaa-mcp` serves it, the planning loop is not built);
 the same loop on product code gated by existing tests and benchmarks
 (`--workflow-file` can target a Java file, but realisation is whole-file

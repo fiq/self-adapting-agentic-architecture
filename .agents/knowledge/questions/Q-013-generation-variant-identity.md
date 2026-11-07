@@ -39,6 +39,17 @@ still where this ends up.
   identical patch still rank as two candidates. That is the residue this
   question leaves, and the realised-tree rule is what would close it.
 
+## Observed live (2026-11-07)
+
+The residue is no longer hypothetical. Run `nw4` (neuralwatt
+`glm-5.3-flash-flex`, three candidates, toy fixture, a stated goal) produced
+ids `toy-safe-publish-gated-enforce`, `toy-safe-publish-gated` and
+`toy-mut3-draft-enforce-publish-gated`, each realising exactly
+`publish-policy: gated` / `draft-check: enforce`. All three promoted at 0.99
+and ranked as a population of three with spread 0.00. The variant ask did not
+make the model vary. Identity from the realised tree is now the next step for
+this question rather than a recorded destination.
+
 ## What prompted it
 
 Independent review of `CHG-026`, the population slice. A generation fails the

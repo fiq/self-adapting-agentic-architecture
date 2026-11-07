@@ -23,7 +23,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 final class LangChain4jMutationProposalAdapterTest {
     @Test
@@ -51,6 +54,31 @@ final class LangChain4jMutationProposalAdapterTest {
         assertThat(mutation.patch()).isEqualTo("replace tool policy");
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void offersOnlyTheScopesItIsGiven(boolean generation) {
+        var baseline = new WorkflowGraph("baseline", "v1", "agent -> answer");
+        var request = new PreparedMutationProposalRequest(
+                baseline,
+                new RetrievalQuery(RetrievalMode.NONE, "vary the workflow", baseline, "v1",
+                        List.of("workflow.txt"), Optional.empty()),
+                new RetrievalBundle(RetrievalMode.NONE, "test-retrieval", "v1", "none", "none",
+                        "none", "none", "none", List.of(), RetrievalDiagnostics.empty(), ""));
+        // A second, different singleton catches a hard-coded WORKFLOW_DEFINITION list.
+        for (var scope : List.of(WORKFLOW_DEFINITION, MutationScope.PROMPT)) {
+            var service = new RecordingMutationService(new LangChain4jMutationProposalAdapter.MutationProposal(
+                    "mut-scope", "rewrite definition", scope.name(), "agent -> tool"));
+            var adapter = new LangChain4jMutationProposalAdapter(service).withAllowedScopes(Set.of(scope));
+
+            if (generation) {
+                adapter.proposeFor(request, 1);
+            } else {
+                adapter.proposeFor(baseline);
+            }
+            assertThat(service.allowedScopes).containsExactly(scope.name());
+        }
+    }
+
     @Test
     void createsTypedAiServiceFromChatModelWithoutCommittingToProvider() {
         var chatModel = new StaticJsonChatModel("""
@@ -67,6 +95,11 @@ final class LangChain4jMutationProposalAdapterTest {
 
         assertThat(chatModel.lastRequest).isNotNull();
         assertThat(chatModel.lastRequest.toString()).contains("baseline", "agent -> tool -> answer");
+        assertThat(chatModel.lastRequest.toString())
+                .contains("Allowed mutation scopes: " + Arrays.stream(MutationScope.values())
+                        .map(Enum::name).toList())
+                .contains("- patch: the complete new workflow file, whole and not a diff")
+                .contains("make the smallest relevant change and return the whole file with it applied");
         assertThat(mutation.id()).isEqualTo("mut-002");
         assertThat(mutation.scope()).isEqualTo(MutationScope.TOOL_CONFIGURATION);
         assertThat(mutation.patch()).isEqualTo("set tool selection policy to deterministic");

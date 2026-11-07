@@ -46,10 +46,27 @@ names its variant in the prompt, sameness is decided on the mutation's id and
 patch together, and every candidate's observed usage and response-declared model
 are recorded. That is proven against WireMock, not against a real model.
 
-*What's missing:* the measurement. Whether a real model's candidates differ in
-ways the scorer can see is still unanswered, because no generation has yet been
-run against a real provider and its spread read. The mechanism to ask the
-question exists; the answer does not. Iterated generations, elitism and an archive of
+*First measurement (2026-11-07).* Four generations of three candidates against
+neuralwatt `glm-5.3-flash-flex` on the toy fixture, runs `nw1`-`nw4`:
+
+- `nw1`, `nw2`: invalid. The live prompt asked for "patch text" and the
+  realiser wrote the model's unified diff as the whole workflow file; `nw1`
+  promoted two such files past a check that only rejected an exact
+  `draft-check: skip` line. Fixed by `CHG-030`; the fixture check was hardened
+  in the same session. Two of six asks also chose a scope the run rejects.
+- `nw3`, default task: three whole-file candidates, all failing the same two
+  checks (the model wrote `draft-check: require`, which the check does not
+  accept, and treated the current values as constraints). Spread 0.00.
+- `nw4`, with a stated goal: three candidates, all PROMOTE at 0.99, all the
+  identical file under three different ids. Spread 0.00. The variant ask did
+  not produce variation, and the `(id, patch)` sameness rule ranked one answer
+  as three (`Q-013`).
+
+*What's missing:* a measurement that could come out the other way. On the toy
+fixture there is one good answer, so the scorer had nothing to separate.
+Whether a model's candidates differ in ways the scorer can see needs a target
+with more than one good answer, and identity from the realised tree so
+duplicates stop counting as a population. Iterated generations, elitism and an archive of
 best-so-far are also missing and need their own decision about what survives.
 
 ### Layer 2 — SAAA as tooling for a custom agentic loop
