@@ -186,11 +186,21 @@ public final class MutationEvaluationLoop {
 
         Mutation mutation = Objects.requireNonNull(mutationProposer.proposeFor(baseline), "mutation");
         AgentUsage usage = Objects.requireNonNull(mutationProposer.usage(), "usage");
-        return evaluateProposed(baseline, mutation, usage);
+        try {
+            return evaluateProposed(baseline, mutation, usage);
+        } catch (AttemptFailedAfterProposalException failure) {
+            throw failure.getCause();
+        }
     }
 
     public FitnessResult evaluate(MutationProposalRequest request) {
-        return evaluateCandidate(request).fitnessResult();
+        try {
+            return evaluateCandidate(request).fitnessResult();
+        } catch (AttemptFailedAfterProposalException failure) {
+            // The single-candidate path has no unevaluated record to carry usage into, so it keeps
+            // throwing what it always threw.
+            throw failure.getCause();
+        }
     }
 
     /**
@@ -220,37 +230,46 @@ public final class MutationEvaluationLoop {
             Mutation mutation,
             AgentUsage usage,
             com.dreamthought.saaa.domain.RetrievalBundle retrieval) {
-        reporter.proposed(mutation);
-        ValidationResult validation = Objects.requireNonNull(
-                mutationValidator.validate(baseline, mutation),
-                "validation"
-        );
-        if (!validation.valid()) {
-            throw new IllegalStateException(
-                    "mutation validation failed: " + String.join("; ", validation.messages())
+        Candidate candidate;
+        FitnessResult result;
+        try {
+            reporter.proposed(mutation);
+            ValidationResult validation = Objects.requireNonNull(
+                    mutationValidator.validate(baseline, mutation),
+                    "validation"
             );
-        }
+            if (!validation.valid()) {
+                throw new IllegalStateException(
+                        "mutation validation failed: " + String.join("; ", validation.messages())
+                );
+            }
 
-        Candidate candidate = Objects.requireNonNull(
-                candidateWorkspace.createCommittedCandidate(baseline, mutation),
-                "candidate"
-        );
-        metadataStore.recordCandidate(candidate);
-        reporter.candidateCreated(candidate);
+            candidate = Objects.requireNonNull(
+                    candidateWorkspace.createCommittedCandidate(baseline, mutation),
+                    "candidate"
+            );
+            metadataStore.recordCandidate(candidate);
+            reporter.candidateCreated(candidate);
 
-        EvaluationEvidence evidence = new EvaluationEvidence(
-                checkRunner.runChecks(candidate),
-                benchmarkRunner.runBenchmarks(candidate),
-                Instant.now(clock)
-        );
-        reporter.evidenceCollected(evidence);
-        FitnessResult result = Objects.requireNonNull(
-                fitnessScorer.score(candidate, evidence, contract), "result");
-        if (!result.candidate().equals(candidate)) {
-            throw new IllegalStateException("fitness result candidate does not match evaluated candidate");
+            EvaluationEvidence evidence = new EvaluationEvidence(
+                    checkRunner.runChecks(candidate),
+                    benchmarkRunner.runBenchmarks(candidate),
+                    Instant.now(clock)
+            );
+            reporter.evidenceCollected(evidence);
+            result = Objects.requireNonNull(
+                    fitnessScorer.score(candidate, evidence, contract), "result");
+            if (!result.candidate().equals(candidate)) {
+                throw new IllegalStateException("fitness result candidate does not match evaluated candidate");
+            }
+            metadataStore.recordFitness(result);
+            metadataStore.recordUsage(candidate, usage);
+        } catch (RuntimeException failure) {
+            // The proposer answered, so tokens were spent. Hand them to the generation, which
+            // records them against the attempt, since no candidate row will. Failures after the
+            // usage row is written are not wrapped: that usage is already recorded.
+            throw new AttemptFailedAfterProposalException(failure, usage);
         }
-        metadataStore.recordFitness(result);
-        metadataStore.recordUsage(candidate, usage);
         reporter.usageObserved(candidate, usage);
         reporter.scored(result);
 

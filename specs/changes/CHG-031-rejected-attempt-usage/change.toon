@@ -37,16 +37,16 @@ acceptance:
 tasks:
   - id: T1
     slice: Acceptance test in a NEW file RejectedAttemptUsageAcceptanceTest, seen red first
-    status: pending
+    status: done
   - id: T2
     slice: Carry usage with a post-proposal failure to GenerationEvaluationLoop; UnevaluatedCandidate gains optional usage
-    status: pending
+    status: done
   - id: T3
     slice: Nullable usage columns on generation_unevaluated through the existing schema_migrations path
-    status: pending
+    status: done
   - id: T4
     slice: Journal and console no-evidence lines show usage when present
-    status: pending
+    status: done
   - id: T5
     slice: README usage section and ADR-0006 (both copies) note that generation spend now includes rejected attempts
     status: pending

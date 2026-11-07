@@ -1,5 +1,6 @@
 package com.dreamthought.saaa.deterministic;
 
+import com.dreamthought.saaa.domain.AgentUsage;
 import com.dreamthought.saaa.domain.FitnessResult;
 import com.dreamthought.saaa.domain.MutationProposalRequest;
 import com.dreamthought.saaa.domain.RankedGeneration;
@@ -9,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Evaluates a generation of candidates against one baseline and ranks what it got.
@@ -80,8 +82,14 @@ public final class GenerationEvaluationLoop {
                     // Named by attempt rather than by candidate id, because a realisation that failed
                     // before a candidate existed has no id to record and inventing one would imply a
                     // candidate that was never created.
+                    RuntimeException cause = failure;
+                    Optional<AgentUsage> spent = Optional.empty();
+                    if (failure instanceof AttemptFailedAfterProposalException answered) {
+                        cause = answered.getCause();
+                        spent = Optional.of(answered.usage());
+                    }
                     unevaluated.add(new UnevaluatedCandidate(
-                            "attempt-" + attempt + "-of-" + candidates, describe(failure)));
+                            "attempt-" + attempt + "-of-" + candidates, describe(cause), spent));
                     continue;
                 }
                 requireMutationNotAlreadySeen(mutations, evaluation, attempt, candidates);

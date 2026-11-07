@@ -210,6 +210,26 @@ final class GenerationEvaluationLoopTest {
     }
 
     /** A result whose mutation identity the test does not care about, distinct per candidate id. */
+    /** CHG-031. A failure after the proposer answered keeps its usage, and its reason stays readable. */
+    @Test
+    void anAttemptFailingAfterTheProposerAnsweredCarriesItsUsageIntoTheUnevaluatedEntry() {
+        var spent = new com.dreamthought.saaa.domain.AgentUsage(
+                java.util.OptionalLong.of(5), java.util.OptionalLong.of(2), Optional.empty(),
+                java.util.OptionalLong.empty(), java.util.OptionalInt.empty(), Optional.empty());
+        var loop = new GenerationEvaluationLoop(evaluatorReturning(
+                () -> { throw new AttemptFailedAfterProposalException(
+                        new IllegalStateException("mutation validation failed: scope"), spent); },
+                () -> { throw new IllegalStateException("transport"); }));
+
+        var generation = loop.evaluate(request(), 2);
+
+        assertThat(generation.unevaluated()).hasSize(2);
+        assertThat(generation.unevaluated().get(0).reason())
+                .isEqualTo("IllegalStateException: mutation validation failed: scope");
+        assertThat(generation.unevaluated().get(0).usage()).contains(spent);
+        assertThat(generation.unevaluated().get(1).usage()).isEmpty();
+    }
+
     private static CandidateEvaluation evaluation(
             String candidateId, double magnitude, FitnessDecision decision) {
         return evaluationForMutation(
