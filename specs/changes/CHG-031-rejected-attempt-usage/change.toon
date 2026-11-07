@@ -58,3 +58,5 @@ non_goals:
 
 risks:
   - Two tables must be summed for a generation's spend. Accepted over a third usage table keyed by attempt, because the unevaluated row is already the record of that attempt.
+  - A failure inside recordUsage itself propagates without its usage, so a write that half-failed can undercount. Chosen over carrying the usage, because recordUsage can commit and then throw on close, and a carried usage would then be written twice. An undercount shows as a missing row; a double count is silent (review, codex).
+  - A single-candidate run must surface the original failure type. The first round leaked the internal wrapper there, because EvolveRunner's single-candidate path reaches evaluateCandidate directly (review, codex).
