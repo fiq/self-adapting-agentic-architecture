@@ -1,0 +1,73 @@
+change:
+  id: CHG-030
+  title: Live proposals carry the full replacement file, and only realisable scopes are offered
+  status: proposed
+  intent: Make a live model's proposal mean what the realiser does with it. The realiser writes the proposal's text as the whole workflow file, but the prompt asks for "patch text", so a real model returns a unified diff and the candidate's workflow file becomes diff text. Found by the first live generation against a real provider on 2026-11-07.
+  audience_level: developer
+  relates_to:
+    - ADR-0002
+    - ADR-0006
+    - PAT-004
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: A live proposal's text is the complete new content of the workflow file. The prompt says so in those words, and a proposal whose text is shaped like a unified diff is rejected by deterministic validation before any candidate is created.
+    scenarios:
+      - id: S1
+        when: a live proposer returns the complete new workflow file
+        then: the candidate's workflow file equals that text exactly and its checks run against it
+      - id: S2
+        when: a live proposer returns unified-diff-shaped text, such as lines beginning "--- ", "+++ " and "@@"
+        then: validation fails naming diff-shaped content, no candidate worktree or branch is created, and the workflow file is never written with diff text
+        and:
+          - evidence - run nw1 promoted two candidates whose workflow.txt was literally "--- ...\n+++ ...\n@@\n publish-policy: allow\n-draft-check: skip\n+draft-check: run\n", because the fixture check only rejects an exact "draft-check: skip" line
+          - the rule is deterministic text inspection; it does not ask a model whether the text is a diff
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: The scopes a live prompt offers are exactly the scopes the run's validator accepts, taken from one source in the runner wiring.
+    scenarios:
+      - id: S3
+        when: a live proposer is asked for a mutation
+        then: the prompt's allowed scopes list only the scopes the run will realise (today WORKFLOW_DEFINITION), so the model is not invited to choose a scope the run will reject
+        and:
+          - evidence - 2 of 6 live asks across runs nw1 and nw2 chose PROMPT or TOOL_CONFIGURATION, which the prompt offered and the validator rejects
+
+acceptance:
+  - scenario: S1
+    test_id: cli/EvolveCommandAcceptanceTest.aLiveProposalIsTheFullReplacementFile
+    layer: acceptance
+  - scenario: S2
+    test_id: cli/EvolveCommandAcceptanceTest.aLiveProposalShapedLikeADiffIsRejectedBeforeAnyCandidateExists
+    layer: acceptance
+  - scenario: S2
+    test_id: deterministic/WholeFileContentValidatorTest
+    layer: unit
+  - scenario: S3
+    test_id: adapters/LangChain4jMutationProposalAdapterTest.offersOnlyTheScopesItIsGiven
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: Acceptance tests S1 and S2 with a real-shaped (diff) stub response, seen red first
+    status: pending
+  - id: T2
+    slice: Deterministic whole-file validator, composed into the runner's validator chain
+    status: pending
+  - id: T3
+    slice: Prompt wording - "content - the complete new workflow file, not a diff"; field name kept as patch on the wire for compatibility, documented
+    status: pending
+  - id: T4
+    slice: One source of realisable scopes in EvolveRunner, passed to both validator and proposer
+    status: pending
+  - id: T5
+    slice: README, ADR-0002 and ADR-0006 (both copies) record that the first live measurement was invalidated by this defect
+    status: pending
+
+non_goals:
+  - applying unified diffs (rejected as more surface for no current gain)
+  - realising PROMPT or TOOL_CONFIGURATION scopes
+  - recording tokens for rejected attempts (CHG-031)
+
+risks:
+  - Text inspection can reject a legitimate workflow file that happens to contain diff-like lines. Accepted for the toy-scale targets in use; the rule requires the leading "--- "/"+++ " header pair or an "@@" hunk line, not any line starting with + or -.
