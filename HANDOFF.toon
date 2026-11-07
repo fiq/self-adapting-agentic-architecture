@@ -1,21 +1,25 @@
 session:
-  updated: 2026-10-12
-  status: chg_029_merging_then_first_real_provider_run
-  branch: feat/chg-029-live-generation-usage
-  worktree: .worktrees/chg-029; .worktrees/adr-0006, .worktrees/readme and .worktrees/chg-028 are merged and removable once verified clean and pushed
-  head: feat/chg-029-live-generation-usage, rebased onto the CHG-028 head d2a3299, which merges as PR #59 before this does. PR #60.
-  head_note: CHG-027 merged as PR #53 on 2026-10-11. The user then authorised review of PRs #57-#60 by opencode neuralwatt/deepseek-v4-flash followed by merge. Merge order is #57 ADR-0006, #58 README (stacked on #57), #59 CHG-028, #60 CHG-029 (stacked on #57, rebased over CHG-028 before it lands because both edit GenerationEvaluationLoop, the reporters, EvolveRunner and README). Each branch rewrites this header just before its own merge.
-  transport_note: use git over ssh for fetch, push and rebase; the user asked for that explicitly on 2026-08-30. gh is only for what has no ssh equivalent, which is opening, editing or merging a pull request, and only when the user says so. If ssh-add -l reports no agent, SSH_AUTH_SOCK is unset in the shell; the key is in the gcr agent at /run/user/1000/gcr/ssh.
+  updated: 2026-11-07
+  status: three_reviewed_prs_awaiting_merge
+  branch: fix/chg-030-full-file-proposals (this header); also feat/chg-031-rejected-attempt-usage and chore/toy-fixture-hardening
+  worktree: .worktrees/chg-030, .worktrees/chg-031, .worktrees/fixture - all clean and pushed. The four merged worktrees from 2026-10-12 were repaired after the ~/Code reorg moved the repo (git worktree repair), verified clean and merged, then removed with their local and remote branches on the user's say-so.
+  head: PR #61 CHG-030 (this branch), PR #62 CHG-031, PR #63 fixture hardening plus RISK-010. All three branch from main e7f14ac and are independent; suggested merge order #63, #61, #62, rebasing #62 after #61 because both touch EvolveRunner (different regions) and ADR-0006/README (different paragraphs).
+  head_note: 2026-11-07 session. First live generations against neuralwatt glm-5.3-flash-flex (runs nw1-nw4, scratch repos outside the tree) found that live candidates wrote the model's diff as the file. CHG-030 fixes that, CHG-031 records the cost of rejected attempts, the fixture check now rejects warn and diff text. With the fix the spread is still 0.00 on the toy fixture - see ADR-0002 "First measurement".
+  transport_note: git over ssh for fetch, push and rebase. The key now lives in an agent socket under ~/.ssh/agent/ (s.*.agent.*) rather than the gcr path; a fresh shell has SSH_AUTH_SOCK unset, so export it from that socket. gh opened the three draft PRs this session, under AGENTS.md "open a PR as a draft as soon as the branch has something on it"; the earlier note reserving gh for when the user says so was not re-confirmed with the user, so ask before merging through gh.
   dirty: false
   pushed: true
 
 goal:
-  current: Land ADR-0006 (#57), then the README opening (#58), CHG-028 (#59) and CHG-029 (#60). After that the next step is not code but a measurement - a real provider filling a generation, which ADR-0002 and ADR-0006 slice 0 both name.
-  phase: merging_reviewed_prs
+  current: Get #61, #62 and #63 merged by the user, then the next measurement needs a target with more than one good answer and realised-tree identity (Q-013), because on the toy fixture every candidate converges on one file.
+  phase: awaiting_human_merge
 
 next_actions:
-  - START HERE: CHG-027 (#53), ADR-0006 (#57), the README (#58), CHG-028 (#59) and CHG-029 (#60) are merged. The next step is a measurement, not code - run a generation with a real provider through --profile openai-compatible and read the candidate_usage rows and the journal. That is the question ADR-0002 Layer 1 and ADR-0006 slice 0 both leave open - whether a model's candidates differ in ways the scorer can see - and the first real cost per candidate.
-  - Q-013 residue - two candidates with different mutation ids over an identical patch still rank as two. Settling it needs an identity from the realised tree, recorded in the CHG-029 spec as deferred.
+  - START HERE: PRs #61 (CHG-030), #62 (CHG-031) and #63 (fixture + RISK-010) are drafts, verified by the lead and independently reviewed; every accepted finding is fixed. The human owns merge. Mark them ready, merge #63 and #61, rebase #62 onto main, rerun its suites with --rerun-tasks, merge.
+  - Q-013 next, not later. Run nw4 realised the identical file under three ids and ranked it as a population of three with spread 0.00. Identity from the realised tree is now the blocker for any population measurement.
+  - A target with more than one good answer. The toy fixture has one, so it cannot show whether a model's candidates differ in ways the scorer can see. ADR-0002 "First measurement" records why.
+  - RISK-010 - a held-out case gates through the 0.80 threshold although the help says it gates nothing. Needs a decision (may a held-out case flip PROMOTE to DISCARD?), not a fixture change.
+  - CHG-030 deferred - a proposal rejected on a single-candidate run leaves only the console error line; no journal entry and no raw model text.
+  - the default --task text led the model to treat current values as constraints and to guess check vocabulary (nw3); with a stated goal it converged (nw4). Worth a look when choosing the next target.
   - CHG-028 review nits not fixed - an embedded newline in an exception message prints as more than one line, and only adjacent repeats in the cause chain are deduplicated.
   - superseded below - candidate one, the live proposer filling a generation, is delivered by CHG-029. The AST track (candidate two) is still open.
   - CANDIDATE ONE, and the stronger one: the live model proposer filling a generation. This is what turns the population from a proven mechanism into a measured one. Today the variety is the fixture proposer appending padding lines, so the spread measures padding volume and nothing about candidate quality - the change says so in three places and independent review confirmed the claim is honest. Only a live proposer answers whether a model's candidates differ in ways the scorer can see, which is ADR-0002's revisit question. Q-013 must be settled as part of it, because a live proposer chooses its own mutation ids and the duplicate rule compares ids alone.
@@ -397,6 +401,23 @@ chg_012_review:
       - the branch was stale against origin/main and conflicted in HANDOFF.toon and docs/wiki/architecture.md; it is rebased onto c4231b0
     not_addressed:
       - the gitOutput test helper duplicates one in EvolveCommandAcceptanceTest. Reuse would need a shared test fixture; recorded per the second-occurrence policy rather than done
+review_record_2026_11_07:
+  routing: no PR reviewed by the provider that wrote it. #61 written by codex (gpt), reviewed by Claude Sonnet (Explore, read-only) and opencode neuralwatt/glm-5.3 (--agent plan). #62 written by Claude Sonnet, reviewed by codex exec --sandbox read-only --ephemeral and opencode neuralwatt/glm-5.3. #63 written by Claude Haiku, lead verification only (fixture-only change).
+  verdicts: 4 of 4 launched passes returned a verdict, all CHANGES REQUESTED. All findings verified against the code by the lead before acting.
+  accepted_61: ACP still offered every scope (both reviewers) - fixed with withAllowedScopes defaults on MutationProposer and AgentHarness, no instanceof; validator false negatives (indented, diff --git, context format) - fixed; S2 bypassed the production error handler - fixed; operator-facing message - fixed; prompt "prefer the smallest change" - fixed.
+  deferred_61: journal entry and raw model text for a diff rejected on a single-candidate run (recorded in CHG-030 non_goals).
+  accepted_62: single-candidate path leaked AttemptFailedAfterProposalException (codex) - fixed at EvolveRunner.run; recordUsage inside the wrapping try could double-count on commit-then-close failure (codex) - fixed, undercount chosen over silent double count; credits and retries never asserted with a value on generation_unevaluated (GLM) - fixed; orphaned javadoc - fixed.
+  mutations_reproduced_by_lead: |
+    CHG-030 validator forced to pass -> cli:acceptanceTest S2 FAILS; restored, cmp.
+    CHG-030 AcpAgentHarness.withAllowedScopes returning this -> adapters:test AcpAgentHarnessTest.offersOnlyTheScopesPassedThroughTheProposer FAILS x3; restored, cmp.
+    CHG-031 journal and console usage rendering removed -> adapters:test JournalReporterTest, cli:test ConsoleReporterTest, cli:acceptanceTest RejectedAttemptUsageAcceptanceTest FAIL; restored.
+    CHG-031 recordUsage moved back inside the try -> deterministic:test MutationEvaluationLoopContractTest.aFailureOfTheUsageWriteItselfIsNotWrappedAsAFailedAttempt FAILS; restored, cmp.
+    Fixture: workflow-check.sh against warn and diff text -> FAIL, enforce -> PASS (lead ran by hand).
+  suites_by_lead: test, :deterministic:acceptanceTest, :cli:acceptanceTest, :adapters:integrationTest with --rerun-tasks green on both branches after the fix rounds (CHG-031 408 tests; CHG-030 430 passed, 2 Neo4j skips per implementer, lead run BUILD SUCCESSFUL); project lint and check-changes OK.
+  environment_note: EvolveCommandAcceptanceTest.evolvingAFileInsideThisRepositoryLeavesNoUntrackedJournalMd fails when the repo is checked out outside the main tree (it fails on main too from a scratch worktree), so per-commit bisect runs must use a worktree under .worktrees/.
+  sessions: opencode ses_e4c8910d0ffeHgLhH3ZkVTxOSa (#61 review) and ses_e4c8911afffep0AZF0wa1mfwqz (#62 review), read-only plan agent, not to be resumed for implementation. codex review was --ephemeral. Token usage for reviews unavailable from the CLIs.
+  live_runs_cost: nw1-nw4 on glm-5.3-flash-flex, about 375-400 input and 400-1500 output tokens per candidate; at the opencode catalogue price (0.0975 in / 0.325 out per million) under 0.1 cent per candidate. Rejected attempts in nw1/nw2 were unrecorded, which CHG-031 fixes.
+
 model_sessions:
   - purpose: independent read-only review of CHG-012 (PR #30)
     engine: opencode 1.18.13

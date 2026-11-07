@@ -64,7 +64,7 @@ tasks:
     status: completed
   - id: T5
     slice: README, ADR-0002 and ADR-0006 (both copies) record that the first live measurement was invalidated by this defect
-    status: pending
+    status: completed
 
 non_goals:
   - applying unified diffs (rejected as more surface for no current gain)

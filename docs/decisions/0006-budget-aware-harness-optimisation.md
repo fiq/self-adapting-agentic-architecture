@@ -305,8 +305,12 @@ slice is actually proposed.
 *Delivered as a mechanism by `CHG-029`.* A live proposer fills a generation and
 each candidate's usage and response-declared model are recorded in the journal
 and the `candidate_usage` ledger table, NULL where unobserved. No run against a
-real provider has been made yet, so no cost per successful task has been
-measured; the paragraphs below describe what was missing before it.
+real provider was made until 2026-11-07 (neuralwatt `glm-5.3-flash-flex`,
+runs `nw1`-`nw4`, recorded in ADR-0002). After `CHG-030` a candidate cost about
+380-400 input and 400-1500 output tokens and 10-65 s of wall clock. That is cost
+per candidate, not per successful task: the runs either promoted nothing or
+promoted one answer three times, so success is not yet a distinguishing
+outcome. The paragraphs below describe what was missing before slice 0.
 
 Cost per successful task cannot be measured today, for two reasons:
 
