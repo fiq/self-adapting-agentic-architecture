@@ -66,7 +66,12 @@ neuralwatt `glm-5.3-flash-flex` on the toy fixture, runs `nw1`-`nw4`:
 fixture there is one good answer, so the scorer had nothing to separate.
 Whether a model's candidates differ in ways the scorer can see needs a target
 with more than one good answer, and identity from the realised tree so
-duplicates stop counting as a population. Iterated generations, elitism and an archive of
+duplicates stop counting as a population. `CHG-033` adds the first:
+`fixtures/multi-answer-workflow`, where three hand-written answers each pass
+every required case and score 0.99, 0.90 and 0.81 on held-out cases, with
+enough cases that one held-out failure still promotes (`RISK-010`). Those are
+reference answers, so they show the scorer *can* separate candidates there,
+not that a model will produce different ones. Iterated generations, elitism and an archive of
 best-so-far are also missing and need their own decision about what survives.
 
 ### Layer 2 — SAAA as tooling for a custom agentic loop

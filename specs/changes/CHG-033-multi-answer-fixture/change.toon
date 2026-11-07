@@ -44,7 +44,7 @@ tasks:
     status: completed
   - id: T3
     slice: README fixture section and ADR-0002 (both copies) name the fixture as the population target
-    status: pending
+    status: completed
 
 non_goals:
   - a live-model run; that is a measurement, recorded after merge

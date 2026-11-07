@@ -201,6 +201,11 @@ No model credentials required. Real output:
 The fixture baseline deliberately fails `workflow-check.sh` and the canned
 proposal fixes it, so the run promotes.
 
+The toy fixture has one correct edit, so every passing candidate scores the
+same. To compare candidates, use `fixtures/multi-answer-workflow`: several
+different edits pass every required case and score differently on held-out
+cases. Its README has the command and the scores of its reference answers.
+
 ## Current implementation
 
 ### Harness-agnostic execution boundary
