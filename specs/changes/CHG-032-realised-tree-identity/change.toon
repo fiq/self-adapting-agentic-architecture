@@ -1,0 +1,68 @@
+change:
+  id: CHG-032
+  title: A generation ranks one candidate per distinct realised tree
+  status: proposed
+  intent: Decide candidate sameness by what landed, not by what the proposer claimed. Live run nw4 (2026-11-07) realised one identical file under three model-chosen ids and ranked it as a population of three with spread 0.00. Q-013's (id, patch) rule cannot see this. The realised Git tree of each candidate commit is the identity; a later candidate whose tree matches an earlier one is recorded as a duplicate of it and not ranked.
+  audience_level: developer
+  relates_to:
+    - Q-013
+    - ADR-0002
+    - PAT-004
+
+deltas:
+  - op: MODIFIED
+    capability: mutation-fitness-loop
+    requirement: In a generation, two candidates are the same when their committed Git trees are identical. The first one evaluated ranks; each later one is recorded as a duplicate naming the candidate it repeats, is excluded from the ranking, the winner and the spread, and is shown in the journal and console. A repeated (id, patch) no longer aborts the generation, because it realises the same tree and is recorded as a duplicate.
+    scenarios:
+      - id: S1
+        when: three candidates with different mutation ids realise the identical file
+        then: the ranking holds one candidate, the other two are recorded as duplicates of it, and the generation's size is still three
+      - id: S2
+        when: two candidates realise different files
+        then: both rank, whatever their mutation ids
+      - id: S3
+        when: a generation records duplicates
+        then: the ledger has a row per duplicate naming the run, the duplicate candidate and the candidate it repeats, and the journal and console each show one line per duplicate
+      - id: S4
+        when: the same mutation id and patch repeat, as from a non-varying fixture proposer
+        then: the generation completes with the repeat recorded as a duplicate, rather than aborting
+
+acceptance:
+  - scenario: S1
+    test_id: cli/EvolveGenerationAcceptanceTest.candidatesThatRealiseTheSameFileRankOnce
+    layer: acceptance
+  - scenario: S2
+    test_id: deterministic/GenerationEvaluationLoopTest.candidatesWithDifferentTreesBothRankWhateverTheirIds
+    layer: unit
+  - scenario: S3
+    test_id: adapters/SqliteExperimentMetadataStoreIntegrationTest.recordsEachDuplicateAndTheCandidateItRepeats
+    layer: integration
+  - scenario: S4
+    test_id: deterministic/GenerationEvaluationLoopTest.aRepeatedMutationIsRecordedAsADuplicateRatherThanAborting
+    layer: unit
+
+tasks:
+  - id: T1
+    slice: Acceptance test seen red first; real Git worktrees, OpenAI-compatible stub returning three ids over one file
+    status: pending
+  - id: T2
+    slice: Deterministic port RealisedTreeIdentity (Candidate to tree id) and a Git adapter reading the commit's tree
+    status: pending
+  - id: T3
+    slice: GenerationEvaluationLoop dedupes by tree; RankedGeneration gains duplicates; the (id, patch) abort is removed
+    status: pending
+  - id: T4
+    slice: Ledger table for duplicates through schema_migrations; journal and console duplicate lines
+    status: pending
+  - id: T5
+    slice: Q-013 resolved, ADR-0002 (both copies) and README note the rule
+    status: pending
+
+non_goals:
+  - skipping checks for a duplicate before it is evaluated; checks are local and cheap, and the model cost is already spent
+  - comparing trees across generations or runs
+  - semantic sameness (two different files with the same behaviour)
+
+risks:
+  - The whole committed tree is compared, so a realiser that writes anything run-specific into the tree would hide every duplicate. Today the realiser writes only the mutated file.
+  - Removing the (id, patch) abort means a non-varying proposer no longer fails loudly; it shows as a generation of one ranked candidate and N-1 duplicates. Accepted because the duplicate lines make it visible and a ranking of distinct trees has no tie artefact.
