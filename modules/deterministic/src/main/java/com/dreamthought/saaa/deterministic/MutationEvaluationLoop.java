@@ -263,13 +263,16 @@ public final class MutationEvaluationLoop {
                 throw new IllegalStateException("fitness result candidate does not match evaluated candidate");
             }
             metadataStore.recordFitness(result);
-            metadataStore.recordUsage(candidate, usage);
         } catch (RuntimeException failure) {
             // The proposer answered, so tokens were spent. Hand them to the generation, which
-            // records them against the attempt, since no candidate row will. Failures after the
-            // usage row is written are not wrapped: that usage is already recorded.
+            // records them against the attempt, since no candidate row will.
             throw new AttemptFailedAfterProposalException(failure, usage);
         }
+        // Outside the try on purpose: recordUsage may commit and then throw (for example on
+        // connection close), and wrapping that would make the generation record the same usage
+        // again. A failure here propagates unwrapped, so an undercount shows as a missing row
+        // rather than a silent double count.
+        metadataStore.recordUsage(candidate, usage);
         reporter.usageObserved(candidate, usage);
         reporter.scored(result);
 
