@@ -1,0 +1,55 @@
+change:
+  id: CHG-033
+  title: A fixture with more than one good answer
+  status: proposed
+  intent: Give a generation something to rank. The toy fixture has one correct edit, so every passing candidate scores the same and spread is zero by construction (ADR-0002 First measurement). A second fixture has several distinct edits that pass every required case, with held-out cases that reward different improvements, so distinct good candidates score differently.
+  audience_level: developer
+  relates_to:
+    - ADR-0002
+    - RISK-010
+    - PAT-004
+
+deltas:
+  - op: ADDED
+    capability: mutation-fitness-loop
+    requirement: The repository ships fixtures/multi-answer-workflow, a target where at least three distinct edits each pass every required behaviour case and earn different held-out results, and where enough cases are declared that one held-out failure keeps a candidate above the promotion threshold.
+    scenarios:
+      - id: S1
+        when: the baseline is checked
+        then: at least one required case fails, so a run shows a DISCARD-to-PROMOTE transition
+      - id: S2
+        when: each of the reference answers in the fixture is applied and checked
+        then: every one passes all required cases, their held-out results differ, and their fitness scores differ
+      - id: S3
+        when: a reference answer that fails exactly one held-out case is scored
+        then: it still promotes, so the fixture does not trip RISK-010
+
+acceptance:
+  - scenario: S1
+    test_id: cli/MultiAnswerFixtureAcceptanceTest.theBaselineFailsARequiredCase
+    layer: acceptance
+  - scenario: S2
+    test_id: cli/MultiAnswerFixtureAcceptanceTest.everyReferenceAnswerPassesTheGatesAndTheyScoreDifferently
+    layer: acceptance
+  - scenario: S3
+    test_id: cli/MultiAnswerFixtureAcceptanceTest.oneHeldOutFailureStillPromotes
+    layer: acceptance
+
+tasks:
+  - id: T1
+    slice: Fixture files, reference answers and README
+    status: pending
+  - id: T2
+    slice: Acceptance test running saaa-evolve on each reference answer with real Git and checks
+    status: pending
+  - id: T3
+    slice: README fixture section and ADR-0002 (both copies) name the fixture as the population target
+    status: pending
+
+non_goals:
+  - a live-model run; that is a measurement, recorded after merge
+  - changing the scorer or RISK-010
+  - changing the toy fixture
+
+risks:
+  - Hand-picked reference answers prove the fixture can separate candidates, not that a model will find different ones.
