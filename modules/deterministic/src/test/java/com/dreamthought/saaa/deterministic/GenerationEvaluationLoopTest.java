@@ -209,7 +209,6 @@ final class GenerationEvaluationLoopTest {
         assertThat(generation.spread()).isPresent();
     }
 
-    /** A result whose mutation identity the test does not care about, distinct per candidate id. */
     /** CHG-031. A failure after the proposer answered keeps its usage, and its reason stays readable. */
     @Test
     void anAttemptFailingAfterTheProposerAnsweredCarriesItsUsageIntoTheUnevaluatedEntry() {
@@ -230,6 +229,7 @@ final class GenerationEvaluationLoopTest {
         assertThat(generation.unevaluated().get(1).usage()).isEmpty();
     }
 
+    /** A result whose mutation identity the test does not care about, distinct per candidate id. */
     private static CandidateEvaluation evaluation(
             String candidateId, double magnitude, FitnessDecision decision) {
         return evaluationForMutation(
