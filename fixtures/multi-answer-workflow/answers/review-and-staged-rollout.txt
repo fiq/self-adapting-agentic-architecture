@@ -1,0 +1,10 @@
+require review and stage the rollout; improves review and rollout, leaves tests skipped
+# Allowed values (first is the default):
+#   review: skip | required      tests: skip | run
+#   rollout: all-at-once | staged | canary
+#   notify: none | email | chat  recovery: manual | automatic
+review: required
+tests: skip
+rollout: staged
+notify: none
+recovery: manual
