@@ -176,13 +176,26 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
             Connection connection, String runId, int position,
             com.dreamthought.saaa.domain.UnevaluatedCandidate candidate) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
-                insert into generation_unevaluated(run_id, position, candidate_reference, reason)
-                values (?, ?, ?, ?)
+                insert into generation_unevaluated(
+                  run_id, position, candidate_reference, reason, provider, model, input_tokens,
+                  output_tokens, credits_consumed, wall_clock_millis, retries)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """)) {
             statement.setString(1, runId);
             statement.setInt(2, position);
             statement.setString(3, candidate.reference());
             statement.setString(4, candidate.reason());
+            var usage = candidate.usage().orElse(AgentUsage.none());
+            setNullableString(statement, 5,
+                    usage.priceIdentity().map(identity -> identity.provider()).orElse(null));
+            setNullableString(statement, 6,
+                    usage.priceIdentity().map(identity -> identity.model()).orElse(null));
+            setNullableLong(statement, 7, usage.inputTokens());
+            setNullableLong(statement, 8, usage.outputTokens());
+            setNullableString(statement, 9,
+                    usage.creditsConsumed().map(java.math.BigDecimal::toPlainString).orElse(null));
+            setNullableLong(statement, 10, usage.wallClockMillis());
+            setNullableInt(statement, 11, usage.retries());
             statement.executeUpdate();
         }
     }
@@ -342,6 +355,23 @@ public final class SqliteExperimentMetadataStore implements ExperimentMetadataSt
                             "insert into schema_migrations(version) values (?)"
                     )) {
                         statement.setInt(1, 4);
+                        statement.executeUpdate();
+                    }
+                }
+                if (!migrationApplied(connection, 5)) {
+                    // CHG-031: what a rejected attempt cost. Nullable for the same reason as
+                    // candidate_usage: NULL means no usage is known, which a measured zero is not.
+                    // Existing rows keep NULL, which is true, since nothing recorded their spend.
+                    for (String column : java.util.List.of(
+                            "provider text", "model text", "input_tokens integer",
+                            "output_tokens integer", "credits_consumed text",
+                            "wall_clock_millis integer", "retries integer")) {
+                        execute(connection, "alter table generation_unevaluated add column " + column);
+                    }
+                    try (PreparedStatement statement = connection.prepareStatement(
+                            "insert into schema_migrations(version) values (?)"
+                    )) {
+                        statement.setInt(1, 5);
                         statement.executeUpdate();
                     }
                 }
