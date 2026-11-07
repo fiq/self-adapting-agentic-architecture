@@ -1,0 +1,6 @@
+run the tests only; improves tests, leaves review and rollout as they were
+review: skip
+tests: run
+rollout: all-at-once
+notify: none
+recovery: manual

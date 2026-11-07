@@ -1,0 +1,6 @@
+require review and stage the rollout; improves review and rollout, leaves tests skipped
+review: required
+tests: skip
+rollout: staged
+notify: none
+recovery: manual

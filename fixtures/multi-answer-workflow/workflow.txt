@@ -1,0 +1,5 @@
+review: skip
+tests: skip
+rollout: all-at-once
+notify: none
+recovery: manual

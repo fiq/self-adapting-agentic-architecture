@@ -1,0 +1,6 @@
+require a review before release
+review: required
+tests: skip
+rollout: all-at-once
+notify: none
+recovery: manual

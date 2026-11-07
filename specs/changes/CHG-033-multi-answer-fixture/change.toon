@@ -38,10 +38,10 @@ acceptance:
 tasks:
   - id: T1
     slice: Fixture files, reference answers and README
-    status: pending
+    status: completed
   - id: T2
     slice: Acceptance test running saaa-evolve on each reference answer with real Git and checks
-    status: pending
+    status: completed
   - id: T3
     slice: README fixture section and ADR-0002 (both copies) name the fixture as the population target
     status: pending

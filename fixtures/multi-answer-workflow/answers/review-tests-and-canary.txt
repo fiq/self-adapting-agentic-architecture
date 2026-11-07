@@ -1,0 +1,6 @@
+require review, run tests and canary the rollout; improves all three held-out signals
+review: required
+tests: run
+rollout: canary
+notify: none
+recovery: manual
