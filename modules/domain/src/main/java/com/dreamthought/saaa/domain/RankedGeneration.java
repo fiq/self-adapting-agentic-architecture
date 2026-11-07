@@ -20,16 +20,23 @@ import java.util.stream.Collectors;
  * second opinion on the gates: {@link #winner()} is empty when nothing promoted, because promoting
  * the best of a bad generation would move the deciding step back out of fixed code.
  *
- * @param ranked      every candidate that produced evidence, best first
+ * @param ranked      the first candidate for each distinct realised tree, best first
  * @param unevaluated every candidate that produced none, with the reason. Absent evidence counts as
  *                    failure everywhere in this loop, so these are recorded rather than dropped: a
  *                    generation that ranked two of three without saying so would hide a systematic
  *                    failure behind a plausible-looking winner
+ * @param duplicates later candidates whose trees repeat an earlier ranked candidate
  */
-public record RankedGeneration(List<FitnessResult> ranked, List<UnevaluatedCandidate> unevaluated) {
+public record RankedGeneration(List<FitnessResult> ranked, List<UnevaluatedCandidate> unevaluated,
+                               List<DuplicateCandidate> duplicates) {
+    public RankedGeneration(List<FitnessResult> ranked, List<UnevaluatedCandidate> unevaluated) {
+        this(ranked, unevaluated, List.of());
+    }
+
     public RankedGeneration {
         ranked = List.copyOf(Objects.requireNonNull(ranked, "ranked"));
         unevaluated = List.copyOf(Objects.requireNonNull(unevaluated, "unevaluated"));
+        duplicates = List.copyOf(Objects.requireNonNull(duplicates, "duplicates"));
 
         // Two candidates sharing an id would make the tie-break below non-total, so the order would
         // stop being reproducible from the record. It is also the symptom RISK-003 describes.
@@ -38,6 +45,22 @@ public record RankedGeneration(List<FitnessResult> ranked, List<UnevaluatedCandi
         if (ids.size() != ranked.size()) {
             throw new IllegalArgumentException(
                     "two candidates in one generation share an id, so the ranking cannot be total");
+        }
+
+        Set<String> duplicateIds = new TreeSet<>();
+        for (var duplicate : duplicates) {
+            if (!duplicateIds.add(duplicate.candidateId())) {
+                throw new IllegalArgumentException("duplicate candidate ids must be unique");
+            }
+            if (duplicate.candidateId().equals(duplicate.sameAsCandidateId())) {
+                throw new IllegalArgumentException("a duplicate cannot be the same as itself");
+            }
+            if (ids.contains(duplicate.candidateId())) {
+                throw new IllegalArgumentException("duplicate candidate ids must be disjoint from ranked ids");
+            }
+            if (!ids.contains(duplicate.sameAsCandidateId())) {
+                throw new IllegalArgumentException("a duplicate must reference a ranked candidate");
+            }
         }
 
         // A generation is a comparison, and CHG-024 stamped the fingerprint so that scores measured
@@ -92,8 +115,8 @@ public record RankedGeneration(List<FitnessResult> ranked, List<UnevaluatedCandi
      * ships but ranking is not measurably useful" as a revisit trigger, and a generation whose
      * candidates all land at the same score is that trigger firing rather than a detail.
      *
-     * <p>Empty when fewer than two candidates produced evidence, because there was then nothing to
-     * compare. See the comment in the body for why that is not zero.
+     * <p>Empty when fewer than two distinct trees rank, because there was then nothing to compare.
+     * See the comment in the body for why that is not zero.
      */
     public Optional<BigDecimal> spread() {
         // Fewer than two candidates is an absence, not a zero. Zero means "every candidate scored the
@@ -111,11 +134,16 @@ public record RankedGeneration(List<FitnessResult> ranked, List<UnevaluatedCandi
 
     /** How many candidates produced evidence. */
     public int evaluatedCount() {
-        return ranked.size();
+        return ranked.size() + duplicates.size();
+    }
+
+    /** All candidate attempts, including duplicates and attempts without evidence. */
+    public int size() {
+        return ranked.size() + unevaluated.size() + duplicates.size();
     }
 
     /** How many candidates the generation set out to evaluate. */
     public int requestedCount() {
-        return ranked.size() + unevaluated.size();
+        return size();
     }
 }

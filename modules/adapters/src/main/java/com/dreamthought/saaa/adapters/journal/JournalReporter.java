@@ -115,21 +115,30 @@ public final class JournalReporter implements EvolutionReporter {
                 .append(candidate.usageSummary().map(text -> " (" + text + ")").orElse(""))
                 .append('\n'));
 
+        generation.duplicates().forEach(candidate -> lost
+                .append("- duplicate  ").append(candidate.candidateId())
+                .append("  realised the same files as ").append(candidate.sameAsCandidateId())
+                .append("; not ranked\n"));
+
         return """
 
                 ## %s  generation
 
                 | | |
                 |---|---|
-                | evidence | %d of %d candidates |
+                | evidence | %s |
                 | fingerprint | %s |
                 | spread | %s |
                 | winner | %s |
 
                 %s%s""".formatted(
                         Instant.now(clock),
-                        generation.evaluatedCount(),
-                        generation.requestedCount(),
+                        generation.duplicates().isEmpty()
+                                ? "%d of %d candidates".formatted(
+                                        generation.evaluatedCount(), generation.requestedCount())
+                                : "%d candidates: %d ranked, %d duplicates, %d without evidence".formatted(
+                                        generation.requestedCount(), generation.ranked().size(),
+                                        generation.duplicates().size(), generation.unevaluated().size()),
                         generation.scoringFingerprint().orElse("none"),
                         generation.spread().map(Object::toString).orElse("none"),
                         generation.winner().map(result -> result.candidate().id())

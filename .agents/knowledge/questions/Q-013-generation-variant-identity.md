@@ -3,8 +3,8 @@ id: Q-013
 type: question
 title: What identifies two candidates in a generation as the same mutation
 status: answered
-resolution: Answered by CHG-029 (specs/changes/CHG-029-live-generation-usage). Sameness is the pair (mutation id, exact patch); the same id over a different patch ranks. Identity from the realised tree remains the recorded destination.
-summary: Answered by CHG-029. Two candidates are the same mutation only when their id and exact patch both match; the same id over a different patch ranks. Identity from the realised tree remains the recorded destination. Originally - a generation refuses to rank one mutation against itself, and it decides sameness by mutation id alone. That is exact for the fixture proposer, whose ids it controls, and blunt for a live proposer, whose ids are model-chosen free text. A model returning one id over two genuinely different patches would fail the run with a diagnosis that is only half true. Comparing bodies needs the mutation to reach the deterministic rule, and a scored result carries its candidate rather than the mutation that produced it.
+resolution: Answered by CHG-032 (specs/changes/CHG-032-realised-tree-identity). Two candidates are the same when their commits hold the same files, the audit envelope under .saaa/candidates/ excepted. The first ranks; later ones are recorded as duplicates. CHG-029's (id, patch) rule is retired.
+summary: Answered by CHG-032. Identity is the realised tree - the committed files minus the candidate's own audit envelope - so three ids over one file rank once and the other two are recorded as duplicates. CHG-029's (id, patch) rule, which aborted the run, is retired. Originally - a generation refuses to rank one mutation against itself, and it decides sameness by mutation id alone. That is exact for the fixture proposer, whose ids it controls, and blunt for a live proposer, whose ids are model-chosen free text. A model returning one id over two genuinely different patches would fail the run with a diagnosis that is only half true. Comparing bodies needs the mutation to reach the deterministic rule, and a scored result carries its candidate rather than the mutation that produced it.
 owners:
   - architect
   - tech-lead
@@ -17,15 +17,40 @@ evidence:
   - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/langchain4j/LangChain4jMutationProposalAdapter.java
   - modules/deterministic/src/main/java/com/dreamthought/saaa/deterministic/MutationProposer.java
   - specs/changes/CHG-029-live-generation-usage/change.toon
+  - specs/changes/CHG-032-realised-tree-identity/change.toon
+  - modules/adapters/src/main/java/com/dreamthought/saaa/adapters/git/GitRealisedTreeIdentity.java
 review_after: 2026-12-31
 ---
 
 # Generation Variant Identity
 
-## Answer (CHG-029)
+## Answer (CHG-032)
 
-The first and second candidate answers below were both taken, and the third is
-still where this ends up.
+The third candidate answer below is now built.
+
+- **Identity is what landed.** `GitRealisedTreeIdentity` hashes every committed
+  path, mode and blob id of a candidate's commit. It skips `.saaa/candidates/`,
+  because each candidate commits its own audit envelope there and the envelope
+  names the candidate. The envelope stays in the commit; it is the durable
+  record of why the candidate exists.
+- **First seen ranks; the rest are duplicates.** A later candidate with the
+  same identity is recorded as a duplicate naming the first, kept out of the
+  ranking, the winner and the spread, written to `generation_duplicates`, and
+  shown in the journal and console. Its usage stays in `candidate_usage`, so a
+  generation's whole spend is unchanged.
+- **No abort.** A repeated `(id, patch)` realises the same files, so it is now
+  a duplicate rather than a failed run. A non-varying proposer shows as one
+  ranked candidate and N-1 duplicates.
+- **A workflow file inside `.saaa/candidates/` is refused**, since identity
+  would not see it.
+- **Not built:** semantic sameness (different files, same behaviour) and
+  identity across generations or runs.
+
+
+## Earlier answer (CHG-029, superseded)
+
+The first and second candidate answers below were both taken; CHG-032 has since
+built the third.
 
 - **The check is `(id, patch)`.** `GenerationEvaluationLoop` now receives the
   mutation with each result (`CandidateEvaluation`) and fails the generation only

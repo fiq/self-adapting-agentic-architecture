@@ -85,13 +85,12 @@ it adds is a comparison.
   its reason and the rest continue, and the record says how many of N produced
   evidence, so a generation that ranked two of three cannot hide a systematic
   failure behind a plausible-looking winner.
-- **A repeated mutation does abort it.** Two candidates carrying the same
-  mutation would still get distinct ids from the namespace, so nothing downstream
-  would notice one candidate evaluated twice. That is the proposer failing to
-  vary rather than a candidate failing, so it fails the run. Two candidates are
-  the same mutation only when their id and exact patch both match, so a live
-  model reusing an id over a genuinely different patch still ranks; see `Q-013`,
-  answered by `CHG-029`.
+- **A repeated answer ranks once.** Two candidates whose commits hold the same
+  files (each candidate's own audit envelope under `.saaa/candidates/` aside)
+  are the same candidate, whatever ids the proposer gave them. The first ranks;
+  each later one is recorded as a duplicate of it and kept out of the ranking,
+  the winner and the spread, so one answer cannot pose as a population. See
+  `Q-013`, answered by `CHG-032`.
 - **Every candidate's usage is recorded.** The proposer reports the usage it
   observed while proposing, and the loop writes it beside the fitness row in the
   `candidate_usage` ledger table and the journal. A field nobody observed is

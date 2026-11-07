@@ -204,8 +204,7 @@ public final class MutationEvaluationLoop {
     }
 
     /**
-     * Evaluates one proposed candidate while retaining the mutation that produced its result for a
-     * generation-level identity check.
+     * Evaluates one proposed candidate while retaining the mutation alongside its scored result.
      */
     public CandidateEvaluation evaluateCandidate(MutationProposalRequest request) {
         Objects.requireNonNull(request, "request");

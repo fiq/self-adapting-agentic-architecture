@@ -1,5 +1,10 @@
 package com.dreamthought.saaa.cli;
 
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.clearOpenAiCompatibleProfileConfig;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.configureOpenAiCompatibleProfile;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.openAiMutationResponse;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.startOpenAiStub;
+import static com.dreamthought.saaa.cli.OpenAiStubSupport.stubOpenAiMutationResponses;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Files;
@@ -22,6 +27,94 @@ import picocli.CommandLine;
  * the selection rather than trust it.
  */
 final class EvolveGenerationAcceptanceTest {
+    @Test
+    void candidatesThatRealiseTheSameFileRankOnce(@TempDir Path tempDir) throws Exception {
+        Path repo = tempDir.resolve("repo");
+        Path target = repo.resolve("toy");
+        Files.createDirectories(target);
+        Files.writeString(target.resolve("workflow.txt"), "draft-check: skip\n");
+        writeCheck(target, "workflow-check", """
+                #!/usr/bin/env bash
+                grep -q '^draft-check: enforce$' "$(dirname "$0")/workflow.txt"
+                """);
+        initRepo(repo);
+        var server = startOpenAiStub();
+        try {
+            stubOpenAiMutationResponses(server,
+                    openAiMutationResponse("mut-one", "draft-check: enforce\n"),
+                    openAiMutationResponse("mut-two", "draft-check: enforce\n"),
+                    openAiMutationResponse("mut-three", "draft-check: enforce\n"));
+            configureOpenAiCompatibleProfile(server);
+            var output = new java.io.StringWriter();
+            var command = new CommandLine(new MutationLoopCli());
+            command.setOut(new java.io.PrintWriter(output, true));
+            assertThat(command.execute("saaa-evolve", target.toString(),
+                    "--profile", "openai-compatible", "--behaviour-case", "workflow-check",
+                    "--run-id", "same-tree", "--candidates", "3")).isZero();
+
+            try (var connection = DriverManager.getConnection(
+                    "jdbc:sqlite:" + repo.resolve(".saaa/experiments.sqlite").toAbsolutePath())) {
+                assertThat(rankedCandidateIds(connection, "same-tree"))
+                        .hasSize(1)
+                        .containsExactly("candidate-same-tree-c1-mut-one");
+                assertThat(singleText(connection,
+                        "select requested_count from generations where run_id = ?", "same-tree"))
+                        .isEqualTo("3");
+                org.assertj.core.api.SoftAssertions.assertSoftly(softly -> {
+                    try {
+                        softly.assertThat(singleText(connection, """
+                                select group_concat(candidate_id || ':' || input_tokens || ':' || output_tokens, ',')
+                                from (select * from candidate_usage
+                                      where candidate_id like 'candidate-same-tree-c%' order by candidate_id)
+                                """))
+                                .isEqualTo("candidate-same-tree-c1-mut-one:1:1,"
+                                        + "candidate-same-tree-c2-mut-two:1:1,candidate-same-tree-c3-mut-three:1:1");
+                        softly.assertThat(singleText(connection, """
+                                select sum(i) || ':' || sum(o) from (
+                                  select input_tokens i, output_tokens o from candidate_usage
+                                    where candidate_id like 'candidate-same-tree-c%'
+                                  union all
+                                  select input_tokens, output_tokens from generation_unevaluated
+                                    where run_id = 'same-tree')
+                                """))
+                                .as("CHG-031 S3: duplicate evaluations still count in the whole spend")
+                                .isEqualTo("3:3");
+                    } catch (SQLException failure) {
+                        throw new AssertionError(failure);
+                    }
+                });
+                try (var rows = connection.createStatement().executeQuery("""
+                        select candidate_id, same_as_candidate_id from generation_duplicates
+                        where run_id = 'same-tree' order by candidate_id
+                        """)) {
+                    for (int index = 2; index <= 3; index++) {
+                        assertThat(rows.next()).isTrue();
+                        assertThat(rows.getString(1)).isEqualTo("candidate-same-tree-c" + index
+                                + (index == 2 ? "-mut-two" : "-mut-three"));
+                        assertThat(rows.getString(2)).isEqualTo("candidate-same-tree-c1-mut-one");
+                    }
+                    assertThat(rows.next()).isFalse();
+                }
+            }
+            String journal = Files.readString(target.resolve("journal.md"));
+            assertThat(journal).contains("| evidence | 3 candidates: 1 ranked, 2 duplicates, 0 without evidence |");
+            assertThat(output.toString()).contains(
+                    "generation 3 candidates: 1 ranked, 2 duplicates, 0 without evidence");
+            assertThat(journal.lines().filter(line -> line.contains("duplicate  ")).count()).isEqualTo(2);
+            assertThat(output.toString().lines().filter(line -> line.contains("duplicate  ")).count()).isEqualTo(2);
+            for (int index = 2; index <= 3; index++) {
+                String line = "duplicate  candidate-same-tree-c" + index
+                        + (index == 2 ? "-mut-two" : "-mut-three")
+                        + "  realised the same files as candidate-same-tree-c1-mut-one; not ranked";
+                assertThat(journal).contains(line);
+                assertThat(output.toString()).contains(line.replace("duplicate  ", "duplicate   "));
+            }
+        } finally {
+            clearOpenAiCompatibleProfileConfig();
+            server.stop();
+        }
+    }
+
     @Test
     void aFixtureGenerationRecordsEveryCandidatesUsageAsUnavailable(@TempDir Path tempDir) throws Exception {
         Path repo = tempDir.resolve("repo");

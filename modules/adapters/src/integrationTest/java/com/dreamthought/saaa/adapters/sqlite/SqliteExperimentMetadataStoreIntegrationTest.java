@@ -28,6 +28,65 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
     @TempDir
     private Path tempDir;
 
+    /** CHG-032 S3: migrate existing ledgers and record duplicate links without recounting usage. */
+    @Test
+    void recordsEachDuplicateAndTheCandidateItRepeats() throws SQLException {
+        Path database = tempDir.resolve("duplicates.sqlite");
+        var store = new SqliteExperimentMetadataStore(database);
+        var first = scored("candidate-first", 0.81, com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
+        var second = scored("candidate-z-second", 0.99, com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
+        var third = scored("candidate-a-third", 0.95, com.dreamthought.saaa.domain.FitnessDecision.PROMOTE);
+        for (var result : List.of(first, second, third)) {
+            store.recordFitness(result);
+            store.recordUsage(result.candidate(), new AgentUsage(
+                    OptionalLong.of(10), OptionalLong.of(2), Optional.empty(),
+                    OptionalLong.empty(), OptionalInt.empty(), Optional.empty()));
+        }
+        // Reproduce an existing version-five ledger, including candidate fitness and usage.
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+             var statement = connection.createStatement()) {
+            statement.execute("drop table generation_duplicates");
+            statement.execute("delete from schema_migrations where version = 6");
+        }
+        store = new SqliteExperimentMetadataStore(database);
+        var generation = new com.dreamthought.saaa.domain.RankedGeneration(
+                List.of(first), List.of(), List.of(
+                        new com.dreamthought.saaa.domain.DuplicateCandidate("candidate-z-second", "candidate-first"),
+                        new com.dreamthought.saaa.domain.DuplicateCandidate("candidate-a-third", "candidate-first")));
+        var record = new com.dreamthought.saaa.domain.GenerationRecord("duplicate-run", generation, Instant.EPOCH);
+        store.recordGeneration(record);
+        // Reopening and recording again exercises migration idempotence and child-row replacement.
+        store = new SqliteExperimentMetadataStore(database);
+        store.recordGeneration(record);
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
+            assertThat(count(connection, "generation_duplicates")).isEqualTo(2);
+            assertThat(singleText(connection, """
+                    select group_concat(position || ':' || candidate_id, ',') from (
+                      select position, candidate_id from generation_duplicates
+                        where run_id = 'duplicate-run' order by position)
+                    """))
+                    .isEqualTo("1:candidate-z-second,2:candidate-a-third");
+            for (String id : List.of("candidate-z-second", "candidate-a-third")) {
+                assertThat(singleText(connection,
+                        "select run_id || ':' || same_as_candidate_id from generation_duplicates where candidate_id = ?",
+                        id)).isEqualTo("duplicate-run:candidate-first");
+            }
+            assertThat(count(connection, "generation_rankings")).isEqualTo(1);
+            assertThat(singleText(connection,
+                    "select candidate_id from generation_rankings where run_id = ?", "duplicate-run"))
+                    .isEqualTo("candidate-first");
+            assertThat(singleText(connection,
+                    "select sum(input_tokens) || ':' || sum(output_tokens) from candidate_usage"))
+                    .isEqualTo("30:6");
+        }
+        store.recordGeneration(new com.dreamthought.saaa.domain.GenerationRecord(
+                "duplicate-run", new com.dreamthought.saaa.domain.RankedGeneration(List.of(first), List.of()),
+                Instant.EPOCH));
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
+            assertThat(count(connection, "generation_duplicates")).isZero();
+        }
+    }
+
     /**
      * S5. Usage is a per-candidate audit row: observed fields retain their values while unavailable
      * fields remain SQL NULL. A zero would be a measurement claim, and an unobserved price identity
@@ -52,7 +111,7 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         store.recordUsage(unavailable, AgentUsage.none());
 
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
-            assertThat(count(connection, "schema_migrations")).isEqualTo(5);
+            assertThat(count(connection, "schema_migrations")).isEqualTo(6);
             assertThat(singleText(connection,
                     "select provider || ':' || model || ':' || input_tokens || ':' || output_tokens"
                             + " || ':' || coalesce(credits_consumed, 'null') || ':' || wall_clock_millis || ':' || retries"
@@ -132,7 +191,7 @@ final class SqliteExperimentMetadataStoreIntegrationTest {
         store.recordCandidate(candidate);
 
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath())) {
-            assertThat(count(connection, "schema_migrations")).isEqualTo(5);
+            assertThat(count(connection, "schema_migrations")).isEqualTo(6);
             assertThat(singleText(connection, "select branch_name from candidates where id = ?", candidate.id()))
                     .isEqualTo(candidate.branchName());
             assertThat(singleText(connection, "select decision from fitness_results where candidate_id = ?", candidate.id()))

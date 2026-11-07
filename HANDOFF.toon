@@ -1,22 +1,22 @@
 session:
   updated: 2026-11-07
-  status: chg_030_031_merged_next_is_q013
-  branch: main after PR #62; this header was written on feat/chg-031-rejected-attempt-usage, the last of the three to land
-  worktree: .worktrees/chg-030, .worktrees/chg-031 and .worktrees/fixture are merged and removable once verified clean
-  head: PR #63 (fixture + RISK-010) merged as c61ddad, PR #61 (CHG-030) as 46c87e1, PR #62 (CHG-031) last, after origin/main was merged into it (not rebased - no force-push was authorised) and its README row conflict resolved.
-  head_note: 2026-11-07 session. First live generations against neuralwatt glm-5.3-flash-flex (runs nw1-nw4) found that live candidates wrote the model's diff as the file. CHG-030 fixes that, CHG-031 records the cost of rejected attempts, the fixture check now rejects warn and diff text. With the fix the spread is still 0.00 on the toy fixture - see ADR-0002 "First measurement". The user merged by delegation ("you merge") and asked that an early clear be treated as covering the whole task.
+  status: chg_032_033_merged_next_is_live_measurement
+  branch: main after PR #64 (CHG-032); PR #65 (CHG-033) merged before it as 7684e3c
+  worktree: .worktrees/chg-032 and .worktrees/chg-033 are merged and removable once verified clean
+  head: PR #64 merged last, after origin/main was merged into it (not rebased - no force-push was authorised)
+  head_note: 2026-11-07 session, second half. CHG-032 answers Q-013 - candidates are identified by their committed files minus the audit envelope, and repeats are recorded as duplicates rather than ranked or aborting. CHG-033 adds fixtures/multi-answer-workflow, a target with more than one good answer. codex implemented CHG-032 and Sonnet CHG-033; codex and GLM-5.3 reviewed both, every finding was verified and fixed. The implementer first moved the audit envelope out of Git to make trees match; the lead reverted that, because Git deletes that folder with the worktree.
   transport_note: git over ssh for fetch, push and rebase. The key lives in an agent socket under ~/.ssh/agent/ (s.*.agent.*); a fresh shell has SSH_AUTH_SOCK unset, so export it from that socket. gh is used for PR open/ready/merge.
   dirty: false
   pushed: true
 
 goal:
-  current: Settle Q-013 with identity from the realised tree, then choose a target with more than one good answer and measure again. On the toy fixture every candidate converges on one file.
+  current: Measure a live generation on fixtures/multi-answer-workflow now that duplicates are not ranked: does a model produce candidates that differ in ways the scorer can see?
   phase: next_slice_selection
 
 next_actions:
-  - START HERE: #61 (CHG-030), #62 (CHG-031) and #63 (fixture + RISK-010) are merged. Remove the three merged worktrees after checking they are clean.
-  - Q-013 next, not later. Run nw4 realised the identical file under three ids and ranked it as a population of three with spread 0.00. Identity from the realised tree is now the blocker for any population measurement.
-  - CHG-033 (PR #65) adds fixtures/multi-answer-workflow, a target with more than one good answer; reference answers score 0.989, 0.911 and 0.833. Next is a live neuralwatt generation against it, once CHG-032 lands so duplicates stop counting.
+  - START HERE: #64 (CHG-032) and #65 (CHG-033) are merged. Remove .worktrees/chg-032 and .worktrees/chg-033 after checking they are clean.
+  - Live measurement - run a neuralwatt generation (glm-5.3-flash-flex, --candidates 3 or 5) on fixtures/multi-answer-workflow with its 4 required and 3 held-out cases. Record ranked vs duplicate counts, scores and spread in ADR-0002 "First measurement".
+  - CHG-032 fix-review nits (GLM-5.3, APPROVE) not fixed - console says '1 duplicates' for one; console and journal duplicate labels differ in width; RankedGeneration does not check duplicates against unevaluated ids (the loop cannot produce that). Migration 6 was edited in place on the branch, accepted because it never reached main.
   - RISK-010 - a held-out case gates through the 0.80 threshold although the help says it gates nothing. Needs a decision (may a held-out case flip PROMOTE to DISCARD?), not a fixture change.
   - CHG-030 deferred - a proposal rejected on a single-candidate run leaves only the console error line; no journal entry and no raw model text.
   - the default --task text led the model to treat current values as constraints and to guess check vocabulary (nw3); with a stated goal it converged (nw4). Worth a look when choosing the next target.
@@ -151,6 +151,8 @@ observed_engine_matrix:
     result: installed, but local help exposed print/interactive modes rather than ACP
 
 tests_run:
+  - 2026-11-07 CHG-032 pre-merge: all suites with --rerun-tasks BUILD SUCCESSFUL (codex reported 455 passed, 2 Neo4j skipped); project check all OK
+  - 2026-11-07 CHG-032 mutation evidence, each restored and verified with cmp. Lead-run - identity counting .saaa/candidates/ fails candidatesThatRealiseTheSameFileRankOnce and aLiveGenerationWhoseProposerRepeatsIdAndPatchRecordsADuplicate (:cli:acceptanceTest) and the identity integration test (:adapters:integrationTest); fingerprint guard disabled fails aDuplicateTreeWithADifferentScoringFingerprintAbortsTheGeneration (:deterministic:test); reserved-folder guard disabled fails refusesWorkflowInsideTheRepositoryCandidateAuditDirectory (:adapters:test). Codex-run, recorded in commit messages 1ae3e7b and 8796596 - newline encoding, .saaa/ over-exclusion, duplicate validation, recordUsage omission, summary and label text, journal duplicate lines, discovery order
   - 2026-11-07 CHG-033 review fixes (GLM-5.3 and codex, both CHANGES REQUESTED, every finding verified and fixed): all suites with --rerun-tasks BUILD SUCCESSFUL; project check all OK
   - 2026-11-07 CHG-033 mutation evidence, :cli:acceptanceTest MultiAnswerFixtureAcceptanceTest only, each file restored and verified with cmp: tested.sh always passing fails the two scoring tests (implementer's proof, reproduced by the lead); the ungated edit changed to review: required fails theBaselineFailsARequiredCase at the DISCARD assertion (a reviewer showed the earlier proof stopped at a prior assertion); in knob.sh, not trimming trailing spaces, allow-listing off and false for recovery, and one-value-per-knob allowing 9 repeats each fail checksAcceptPlausibleSpellingsAndRejectDisabledOrRepeatedValues. Before that test existed, the trim mutation left the suite green - the parser was untested
   - 2026-10-12 CHG-029 pre-merge, after rebase over CHG-028: all eight suites with --rerun-tasks, 27 tasks executed, BUILD SUCCESSFUL; project check, check-changes and check-glossary OK. The rebase also produced a conflict that merged cleanly as text - CHG-028's GenerationEvaluationLoopTest.aFailingAbortReporterDoesNotReplaceTheAbortCause built its evaluator from FitnessResult, which CHG-029 T6 replaced with CandidateEvaluation, and a repeated id alone no longer aborts. The test now repeats id and patch, folded into the T6 commit so every commit compiles; that commit was built and its deterministic tests run on their own. Mutation on the merged loop - deleting the reporter.generationAborted call fails GenerationEvaluationLoopTest (deterministic unit) and EvolveRunnerTest.aGenerationThatAbortsRecordsItsEvaluatedCountAndReasonBeforePropagating (adapters unit); restored and verified byte-identical with cmp

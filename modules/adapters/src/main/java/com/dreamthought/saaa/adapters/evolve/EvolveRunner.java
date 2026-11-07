@@ -4,6 +4,7 @@ import com.dreamthought.saaa.adapters.checks.CommandCheckRunner;
 import com.dreamthought.saaa.adapters.checks.CommandCheckRunner.CommandCheck;
 import com.dreamthought.saaa.adapters.files.TextMutationRealizer;
 import com.dreamthought.saaa.adapters.git.GitCandidateWorkspace;
+import com.dreamthought.saaa.adapters.git.GitRealisedTreeIdentity;
 import com.dreamthought.saaa.adapters.git.GitRealizationInspector;
 import com.dreamthought.saaa.adapters.git.GitRepositoryRevision;
 import com.dreamthought.saaa.adapters.git.JGitChangedPathInspector;
@@ -124,8 +125,7 @@ public final class EvolveRunner {
 
     public EvolveRunResult run(EvolveRunRequest request, EvolutionReporter reporter) {
         var prepared = prepare(request, reporter);
-        // The evaluator returns the mutation alongside the result for the generation identity
-        // check; a single-candidate run has no generation, so only the result travels on.
+        // A single-candidate run carries only the scored result forward.
         final com.dreamthought.saaa.domain.FitnessResult result;
         try {
             result = prepared.evaluator.evaluate(prepared.proposal).fitnessResult();
@@ -153,7 +153,8 @@ public final class EvolveRunner {
         var prepared = prepare(request, reporter);
         final com.dreamthought.saaa.domain.RankedGeneration generation;
         try {
-            generation = new GenerationEvaluationLoop(prepared.evaluator)
+            generation = new GenerationEvaluationLoop(
+                    prepared.evaluator, new com.dreamthought.saaa.adapters.git.GitRealisedTreeIdentity())
                     .evaluate(prepared.proposal, candidates, prepared.reporters);
         } catch (RuntimeException failure) {
             throw new EvolveGenerationAbortedException(prepared.journalPath, failure);
@@ -174,6 +175,12 @@ public final class EvolveRunner {
         Path workflowPath = folder.resolve(request.workflowFile()).normalize();
         if (!workflowPath.startsWith(folder)) {
             throw new IllegalArgumentException("workflowFile must stay inside targetFolder");
+        }
+        if (gitRoot.relativize(workflowPath).startsWith(
+                Path.of(GitRealisedTreeIdentity.AUDIT_ENVELOPE_DIRECTORY))) {
+            throw new IllegalArgumentException("workflowFile must not be inside "
+                    + GitRealisedTreeIdentity.AUDIT_ENVELOPE_DIRECTORY
+                    + "; that folder holds candidate audit records");
         }
         requireNoSymlinkSegments(folder, workflowPath);
         if (!Files.isRegularFile(workflowPath, LinkOption.NOFOLLOW_LINKS)) {
@@ -399,8 +406,7 @@ public final class EvolveRunner {
      *
      * <p>This is the whole of the wiring that turns N evaluations into N different candidates. A
      * proposer that ignores the variant still returns the same mutation every time, and
-     * {@code GenerationEvaluationLoop} fails the run for it rather than ranking one candidate against
-     * itself.
+     * {@code GenerationEvaluationLoop} records repeated realised trees as duplicates.
      */
     static final class VariantProposer implements MutationProposer {
         private final MutationProposer delegate;

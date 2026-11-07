@@ -60,13 +60,15 @@ neuralwatt `glm-5.3-flash-flex` on the toy fixture, runs `nw1`-`nw4`:
 - `nw4`, with a stated goal: three candidates, all PROMOTE at 0.99, all the
   identical file under three different ids. Spread 0.00. The variant ask did
   not produce variation, and the `(id, patch)` sameness rule ranked one answer
-  as three (`Q-013`).
+  as three (`Q-013`). `CHG-032` now identifies candidates by the files their
+  commits hold, so that run would rank one candidate and record two duplicates.
 
 *What's missing:* a measurement that could come out the other way. On the toy
 fixture there is one good answer, so the scorer had nothing to separate.
 Whether a model's candidates differ in ways the scorer can see needs a target
 with more than one good answer, and identity from the realised tree so
-duplicates stop counting as a population. `CHG-033` adds the first:
+duplicates stop counting as a population. `CHG-032` adds the second.
+`CHG-033` adds the first:
 `fixtures/multi-answer-workflow`, where three hand-written answers each pass
 every required case and, separated by held-out cases, score 0.989, 0.911 and
 0.833. The lowest clears the 0.80 threshold by about 0.033, and there are enough

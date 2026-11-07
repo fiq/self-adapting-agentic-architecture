@@ -40,7 +40,7 @@ final class GenerationEvaluationLoopTest {
                 },
                 () -> evaluation("candidate-c", 0.85, FitnessDecision.PROMOTE));
 
-        var generation = new GenerationEvaluationLoop(evaluator).evaluate(request(), 3);
+        var generation = new GenerationEvaluationLoop(evaluator, Candidate::id).evaluate(request(), 3);
 
         assertThat(generation.ranked()).hasSize(2);
         assertThat(generation.unevaluated())
@@ -61,7 +61,7 @@ final class GenerationEvaluationLoopTest {
                 () -> evaluation("candidate-worse", 0.81, FitnessDecision.PROMOTE),
                 () -> evaluation("candidate-best", 0.94, FitnessDecision.PROMOTE));
 
-        var generation = new GenerationEvaluationLoop(evaluator).evaluate(request(), 2);
+        var generation = new GenerationEvaluationLoop(evaluator, Candidate::id).evaluate(request(), 2);
 
         assertThat(generation.ranked())
                 .extracting(candidate -> candidate.candidate().id())
@@ -80,7 +80,7 @@ final class GenerationEvaluationLoopTest {
                     throw new IllegalStateException("mutation validation failed");
                 });
 
-        var generation = new GenerationEvaluationLoop(evaluator).evaluate(request(), 2);
+        var generation = new GenerationEvaluationLoop(evaluator, Candidate::id).evaluate(request(), 2);
 
         assertThat(generation.ranked()).isEmpty();
         assertThat(generation.winner()).isEmpty();
@@ -93,87 +93,87 @@ final class GenerationEvaluationLoopTest {
     void aGenerationMustHaveAtLeastOneCandidate() {
         var evaluator = evaluatorReturning(() -> evaluation("candidate-a", 0.90, FitnessDecision.PROMOTE));
 
-        assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator).evaluate(request(), 0))
+        assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator, Candidate::id).evaluate(request(), 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("at least one candidate");
     }
 
-    /**
-     * CHG-029 S3, and the rule a fixture proposer that produced no variant must still fail under.
-     * A proposer that returns the same mutation every time still produces distinct candidate ids,
-     * because the run's namespace keeps them apart, so nothing downstream notices: N worktrees, N
-     * rows, a ranking that is a tie broken by candidate id and a spread of zero that says nothing
-     * about the candidates.
-     *
-     * <p>The run fails rather than recording the repeat as an unevaluated candidate. This is not a
-     * candidate that failed, it is the proposer failing to vary, and a generation that returned the
-     * tie quietly would answer ADR-0002's "is ranking measurably useful" question with an artefact
-     * of its own wiring.
-     *
-     * <p>Sameness is decided on the pair (mutation id, patch), which settles Q-013: when the id and
-     * the patch both repeat, the one remaining cause is that the proposer produced no variant, so
-     * the message names that cause and says the patch matched. Under the old id-only rule the same
-     * message had to hedge, because a live proposer can legitimately reuse an id over a different
-     * patch.
-     */
     @Test
-    @DisplayName("the same mutation id over the same patch fails the generation naming non-variation")
-    void theSameMutationIdOverTheSamePatchFailsNamingNonVariation() {
+    void aRepeatedMutationIsRecordedAsADuplicateRatherThanAborting() {
         var evaluator = evaluatorReturning(
-                () -> evaluationForMutation("candidate-a", "MUT-same", "patch body", 0.90),
-                () -> evaluationForMutation("candidate-b", "MUT-same", "patch body", 0.90));
+                () -> evaluationForMutation("candidate-z", "MUT-same", "patch body", 0.81),
+                () -> evaluationForMutation("candidate-a", "MUT-same", "patch body", 0.99),
+                () -> evaluationForMutation("candidate-b", "MUT-other", "another proposal", 0.95));
 
-        assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator).evaluate(request(), 2))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("MUT-same")
-                .hasMessageContaining("cannot be ranked")
-                // The diagnosis names the one case this can now be: the id and the patch both
-                // matched, so the proposer produced no variant for the second candidate.
-                .hasMessageContaining("same patch")
-                .hasMessageContaining("produced no variant");
+        var generation = new GenerationEvaluationLoop(evaluator, candidate -> "one-tree").evaluate(request(), 3);
+
+        assertThat(generation.ranked()).extracting(entry -> entry.candidate().id())
+                .containsExactly("candidate-z");
+        assertThat(generation.duplicates()).containsExactly(
+                new com.dreamthought.saaa.domain.DuplicateCandidate("candidate-a", "candidate-z"),
+                new com.dreamthought.saaa.domain.DuplicateCandidate("candidate-b", "candidate-z"));
+        assertThat(generation.winner()).get().extracting(entry -> entry.candidate().id())
+                .isEqualTo("candidate-z");
+        assertThat(generation.spread()).isEmpty();
+        assertThat(generation.unevaluated()).isEmpty();
+        assertThat(generation.size()).isEqualTo(3);
+        assertThat(generation.requestedCount()).isEqualTo(3);
+        assertThat(generation.evaluatedCount()).isEqualTo(3);
     }
 
-    /**
-     * CHG-029 S4. A model chooses its own ids as free text, so one id over two genuinely different
-     * patches is two mutations, not one mutation ranked against itself. Failing that run was the
-     * half-true diagnosis Q-013 recorded: the id matched and the substance did not.
-     */
     @Test
-    @DisplayName("the same mutation id over different patches is two candidates and ranks")
-    void theSameMutationIdOverDifferentPatchesRanks() {
+    void aDuplicateTreeWithADifferentScoringFingerprintAbortsTheGeneration() {
+        var first = evaluation("candidate-a", 0.9, FitnessDecision.PROMOTE);
+        var other = new CandidateEvaluation(first.mutation(), result("candidate-b", 0.8,
+                FitnessDecision.PROMOTE, FitnessResultFixtures.context(0.6)));
+        var loop = new GenerationEvaluationLoop(evaluatorReturning(() -> first, () -> other),
+                candidate -> "same-tree");
+
+        assertThatThrownBy(() -> loop.evaluate(request(), 2))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("a generation cannot mix scoring fingerprints");
+    }
+
+    @Test
+    void candidatesWithDifferentTreesBothRankWhateverTheirIds() {
         var evaluator = evaluatorReturning(
-                () -> evaluationForMutation("candidate-a", "MUT-shared", "patch one", 0.90),
-                () -> evaluationForMutation("candidate-b", "MUT-shared", "patch two", 0.85));
+                () -> evaluationForMutation("candidate-a", "MUT-shared", "same proposal", 0.90),
+                () -> evaluationForMutation("candidate-b", "MUT-shared", "same proposal", 0.85));
 
-        var generation = new GenerationEvaluationLoop(evaluator).evaluate(request(), 2);
+        var generation = new GenerationEvaluationLoop(evaluator, Candidate::id).evaluate(request(), 2);
 
-        assertThat(generation.evaluatedCount())
-                .as("both candidates were evaluated rather than one refused as a repeat")
-                .isEqualTo(2);
-        assertThat(generation.ranked())
-                .extracting(entry -> entry.candidate().id())
+        assertThat(generation.ranked()).extracting(entry -> entry.candidate().id())
                 .containsExactly("candidate-a", "candidate-b");
+        assertThat(generation.duplicates()).isEmpty();
         assertThat(generation.spread()).isPresent();
     }
 
-    /**
-     * The other half of the pair rule: only a repeated id over a repeated patch is non-variation.
-     * Two candidates whose ids differ are two mutations even when their patches are byte-identical
-     * - whether identical bodies under distinct ids should count as one candidate is the
-     * realised-tree identity Q-013 records as the destination, and this slice deliberately does not
-     * build it.
-     */
     @Test
-    @DisplayName("different mutation ids over the same patch still rank as two candidates")
-    void differentMutationIdsOverTheSamePatchRank() {
+    void aTreeLookupFailureAbortsTheRunRatherThanRecordingAnUnevaluatedCandidate() {
+        var failure = new IllegalStateException("tree lookup failed");
+        var reasons = new ArrayList<String>();
+        var counts = new ArrayList<Integer>();
+        var reporter = new EvolutionReporter() {
+            @Override
+            public void generationAborted(int requested, int evaluated, String reason) {
+                counts.add(requested);
+                counts.add(evaluated);
+                reasons.add(reason);
+            }
+        };
         var evaluator = evaluatorReturning(
-                () -> evaluationForMutation("candidate-a", "MUT-one", "identical patch", 0.90),
-                () -> evaluationForMutation("candidate-b", "MUT-two", "identical patch", 0.85));
+                () -> evaluation("candidate-a", 0.9, FitnessDecision.PROMOTE),
+                () -> evaluation("candidate-b", 0.8, FitnessDecision.PROMOTE),
+                () -> evaluation("candidate-c", 0.7, FitnessDecision.PROMOTE));
+        RealisedTreeIdentity identity = candidate -> {
+            if (candidate.id().equals("candidate-c")) throw failure;
+            return "same-tree";
+        };
 
-        var generation = new GenerationEvaluationLoop(evaluator).evaluate(request(), 2);
-
-        assertThat(generation.evaluatedCount()).isEqualTo(2);
-        assertThat(generation.ranked()).hasSize(2);
+        assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator, identity)
+                .evaluate(request(), 3, reporter)).isSameAs(failure);
+        assertThat(counts).containsExactly(3, 2);
+        assertThat(reasons).containsExactly("IllegalStateException: tree lookup failed");
     }
 
     @Test
@@ -189,8 +189,10 @@ final class GenerationEvaluationLoopTest {
             }
         };
 
-        assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator).evaluate(request(), 2, reporter))
-                .hasMessageContaining("MUT-same")
+        assertThatThrownBy(() -> new GenerationEvaluationLoop(evaluator, candidate -> {
+                    throw new IllegalStateException("tree lookup failed");
+                }).evaluate(request(), 2, reporter))
+                .hasMessageContaining("tree lookup failed")
                 .satisfies(thrown -> assertThat(thrown.getSuppressed())
                         .extracting(Throwable::getMessage)
                         .containsExactly("journal unwritable"));
@@ -203,7 +205,7 @@ final class GenerationEvaluationLoopTest {
                 () -> evaluationForMutation("candidate-a", "MUT-one", "patch one", 0.90),
                 () -> evaluationForMutation("candidate-b", "MUT-two", "patch two", 0.85));
 
-        var generation = new GenerationEvaluationLoop(evaluator).evaluate(request(), 2);
+        var generation = new GenerationEvaluationLoop(evaluator, Candidate::id).evaluate(request(), 2);
 
         assertThat(generation.evaluatedCount()).isEqualTo(2);
         assertThat(generation.spread()).isPresent();
@@ -218,7 +220,7 @@ final class GenerationEvaluationLoopTest {
         var loop = new GenerationEvaluationLoop(evaluatorReturning(
                 () -> { throw new AttemptFailedAfterProposalException(
                         new IllegalStateException("mutation validation failed: scope"), spent); },
-                () -> { throw new IllegalStateException("transport"); }));
+                () -> { throw new IllegalStateException("transport"); }), Candidate::id);
 
         var generation = loop.evaluate(request(), 2);
 
