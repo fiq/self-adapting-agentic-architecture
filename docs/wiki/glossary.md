@@ -124,9 +124,11 @@ changelog.
 
 `fixtures/multi-answer-workflow` (`CHG-033`): a target folder where several
 different edits pass every required case and held-out cases score them
-differently. The toy fixture has one correct edit, so it cannot show a
-difference in answer quality. A generation there can still show a spread from
-diff size alone, which is what the fixture proposer's padded variants produce.
+differently. On the toy fixture, the fixture proposer's padded variants differ
+in diff size rather than answer quality, so their spread shows ranking works but
+not that it tells better answers apart. The toy fixture's held-out
+`publish-gated` case can separate answers, but its one-line edit leaves little
+room for different good ones.
 
 
 ## Northbound Interface
