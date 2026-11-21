@@ -143,10 +143,10 @@ Notes on the ports above:
   `ADR-0005` and `CHG-025`.
 
 - `PhenotypeFitnessScorer` also exposes a contract-aware entry point that takes
-  a `MutationContract` and a typed required-evidence channel. The bridge above
-  does not call it. The `FitnessScorer` port has no parameter for a contract, so
-  the wired path reaches only the contractless entry point. See `RISK-002` and
-  `CHG-014`.
+  a `MutationContract` and a typed required-evidence channel. Since `CHG-019`
+  the `FitnessScorer` port carries an optional contract, and the bridge routes a
+  present contract to that entry point. A run that declares no contract still
+  takes the contractless path. See `RISK-002` and `CHG-014`.
 - `:cli` has a Gradle dependency on `:benchmarks`. `EvolveRunner` takes an
   injected `BenchmarkRunner` rather than constructing one, so `EvolveCommand`
   composes the concrete choice:
