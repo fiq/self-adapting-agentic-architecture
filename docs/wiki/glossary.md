@@ -71,12 +71,30 @@ Candidate Fitness Function; the `saaa-ablate retrieval` TSV is a corpus of task
 rows. The genetic-programming literature would call these benchmarks; see
 Benchmark for why SAAA does not.
 
+## Duplicate Candidate
+
+A candidate in a generation whose realised tree matches an earlier candidate's.
+It is still evaluated, recorded and shown, but it is kept out of the ranking, so
+one answer produced three times counts once (`CHG-032`). A repeated
+`(id, patch)` is also recorded as a duplicate rather than aborting the run.
+
+
 ## Generation
 
 A set of candidates proposed from one baseline, evaluated one at a time against
 identical evidence, and ranked. Asked for with `--candidates N`. A generation
 adds no evaluation of its own; what it adds is a comparison, which is why every
 candidate in one must share a scoring fingerprint.
+
+## Held-Out Case
+
+A behaviour case, given with `--held-out-case`, that runs and is scored but
+decides no gate. A failing one lowers `task_success` without discarding the
+candidate, so two candidates that pass every required case can still score
+differently (`CHG-024`). One that did not run counts as failed. Promotion still
+needs the whole score to reach the 0.80 threshold, so a held-out failure can
+indirectly discard a candidate (`RISK-010`).
+
 
 ## Invariant
 
@@ -98,6 +116,14 @@ A structured Markdown entry under `.agents/knowledge/`, keyed by its category
 prefix such as `ARCH-*`, `CON-*`, `Q-*` or `RISK-*`. Knowledge nodes preserve
 durable facts, open questions and decisions without turning the wiki into a
 changelog.
+
+## Multi-Answer Fixture
+
+`fixtures/multi-answer-workflow` (`CHG-033`): a target folder where several
+different edits pass every required case and held-out cases score them
+differently. The toy fixture has one correct edit, so a generation there has no
+spread to rank.
+
 
 ## Northbound Interface
 
@@ -135,6 +161,15 @@ discards, then larger magnitudes, then candidate id. The id tie-break is what
 makes the order total, so it is reproducible from the record rather than
 dependent on the order the candidates happened to run in. Ranking selects among
 the candidates the gates promoted; it is never a second opinion on them.
+
+## Realised Tree Identity
+
+How a generation decides two candidates are the same: their commits hold the same
+files, ignoring the candidate's own audit envelope under `.saaa/candidates/`
+(`CHG-032`, which answers `Q-013`). What the proposer claimed, such as its
+mutation id, plays no part. The first candidate with a tree ranks; later ones are
+Duplicate Candidates.
+
 
 ## Run Id
 
@@ -183,6 +218,14 @@ discards included. It is what answers whether ranking discriminated at all:
 `ADR-0002` names "population ships but ranking is not measurably useful" as a
 revisit trigger, and a spread of zero is that trigger firing rather than a
 detail.
+
+## Usage Ledger
+
+The `candidate_usage` table in `.saaa/experiments.sqlite`, which holds the agent
+usage each candidate cost. A field nobody observed is stored as NULL, never as
+zero (`CHG-029`). A rejected attempt that never became a candidate records its
+usage on its `generation_unevaluated` row instead (`CHG-031`).
+
 
 ## Wiki Page
 
