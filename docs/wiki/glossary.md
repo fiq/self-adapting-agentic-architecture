@@ -38,8 +38,9 @@ Function, which grades a candidate and shares nothing with this beyond the name.
 
 A measurement instrument. In SAAA a benchmark is a JMH microbenchmark producing
 `BenchmarkEvidence(name, value, unit)`, the intended input to the
-`subject.objective.cost_latency_budget` objective. Nothing in the evaluation loop supplies one
-today. A benchmark never decides anything.
+`subject.objective.cost_latency_budget` objective. Opt-in: the CLI wires `JmhBenchmarkRunner`
+only when `--benchmark` is given, and runs none by default. The shipped benchmark measures a
+fixed SAAA class, not the candidate's file (`CHG-016`). A benchmark never decides anything.
 
 The genetic-programming literature often uses "benchmark" for a fixed evaluation
 suite. SAAA calls those Corpora and reserves "benchmark" for the instrument.
@@ -103,8 +104,10 @@ and not tradeable against any objective.
 
 The target model in `CON-002` also gives an invariant a magnitude, so that among
 candidates which have already failed, a near miss stays distinguishable from a
-total miss. That ranking is not implemented: any failed gate scores 0.0 and the
-candidate discards, so no magnitude survives.
+total miss. A failed gate is recorded as 0.0 and always discards, but the
+candidate's weighted score is kept, so a near miss and a total miss stay
+distinguishable and ranking uses that score after the decision
+(`PhenotypeFitnessScorer`, `CON-002`).
 
 Named `subject.invariant.*` or `process.invariant.*`; see `CON-002`.
 
@@ -121,8 +124,9 @@ changelog.
 
 `fixtures/multi-answer-workflow` (`CHG-033`): a target folder where several
 different edits pass every required case and held-out cases score them
-differently. The toy fixture has one correct edit, so a generation there has no
-spread to rank.
+differently. The toy fixture has one correct edit, so it cannot show a
+difference in answer quality. A generation there can still show a spread from
+diff size alone, which is what the fixture proposer's padded variants produce.
 
 
 ## Northbound Interface
@@ -223,8 +227,9 @@ detail.
 
 The `candidate_usage` table in `.saaa/experiments.sqlite`, which holds the agent
 usage each candidate cost. A field nobody observed is stored as NULL, never as
-zero (`CHG-029`). A rejected attempt that never became a candidate records its
-usage on its `generation_unevaluated` row instead (`CHG-031`).
+zero (`CHG-029`). In a generation, an attempt that validation rejected records
+its usage on its `generation_unevaluated` row instead (`CHG-031`). A rejected
+single-candidate run records no usage today.
 
 
 ## Wiki Page

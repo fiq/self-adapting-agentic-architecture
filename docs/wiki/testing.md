@@ -19,10 +19,10 @@ The testing approach is boundary-in and ATDD-aligned.
   must not move while it exists:
   `PhenotypeFitnessScorerTest.contractlessScoringPreservesTheExistingGates` holds
   the wired two-argument path, and
-  `PhenotypeBridgeScorerTest.theWiredBridgeStillUsesTheContractlessEntryPoint`
-  drives the bridge and asserts that the wired port carries no contract parameter
-  and that no declared-evidence gate can appear in its audit map, so `RISK-002`'s
-  remaining gap fails a test rather than being assumed.
+  `PhenotypeBridgeScorerTest.theWiredPortCarriesTheContractToScoring` asserts
+  that the wired `FitnessScorer` port carries an optional contract and that a
+  contract supplied through it reaches scoring (`CHG-019`). Runs that declare no
+  contract still take the contractless path.
 - Component tests drive the mutation loop with fake model, Git, check and
   benchmark ports, and drive the CLI outside-in, including a WireMock-backed
   live-proposer run that needs no real credentials.
@@ -40,9 +40,10 @@ The testing approach is boundary-in and ATDD-aligned.
   by `RejectedAttemptUsageAcceptanceTest`.
 - `MultiAnswerFixtureAcceptanceTest` runs `fixtures/multi-answer-workflow`
   (`CHG-033`), the target with several good answers.
-- JMH benchmarks exist and `JmhBenchmarkRunner` has integration coverage, but
-  the CLI does not wire them, so they do not currently feed
-  `EvaluationEvidence` on any runnable path.
+- JMH benchmarks exist and `JmhBenchmarkRunner` has integration coverage. The
+  CLI wires it only when `--benchmark` is given; by default no benchmark runs.
+  The shipped benchmark measures a fixed SAAA class, not the candidate
+  (`CHG-016`).
 - Three tests hold the no-merge boundary:
   `hasNoFlagThatTurnsAnyScoreIntoAMerge`,
   `promotedCandidateLandsAsABranchPointerAndNotAMerge` and

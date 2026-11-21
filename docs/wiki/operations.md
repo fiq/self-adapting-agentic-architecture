@@ -115,14 +115,18 @@ Three things bite in practice when running `evolve`.
    case-insensitively, because on a case-insensitive filesystem `Foo` and `foo`
    both exec `foo.sh` and one script would count as two cases.
 
-Re-running the same fixture against the same folder fails twice over:
+Re-running the same fixture against the same folder works. Each run gets its
+own run id, which goes into the candidate id, branch and worktree path, so a
+second run does not collide with the first (`RISK-003`, closed by `CHG-026`).
 
-- The worktree name derives from the mutation id, so `.worktrees/candidate-*`
-  and its branch must be removed first.
-- The `experiments/ledger/` envelope refuses to record a second, different
-  outcome for the same candidate id.
-- That second failure lands after the decision is journalled, so the run prints
-  its verdict and then exits non-zero.
+- **Same `--run-id` twice collides.** The run id defaults to a timestamp. If you
+  pass `--run-id` yourself and reuse it, a single-candidate rerun fails on the
+  worktree the first run left; a generation records each failed attempt and
+  exits 1 if none produced evidence.
+
+- **Worktrees pile up.** Every candidate leaves a worktree under `.worktrees/`
+  and nothing removes them automatically, on purpose. Remove old ones by hand
+  once you have checked they are clean.
 
 ## Interactive harness session
 
