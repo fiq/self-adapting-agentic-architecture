@@ -14,6 +14,7 @@ first and link to deeper detail.
 | Validation strategy | [Testing](testing.md) |
 | Operational repeatability | [Operations](operations.md) |
 | Agent session and model efficiency | [Development](development.md#resource-aware-model-routing) |
+| Runs made and what they showed | [Measurements](measurements.md) |
 | Experiment strategies and outcomes | [Experiment memory](experiments.md) |
 
 ## Pages
@@ -25,4 +26,5 @@ first and link to deeper detail.
 - [Operations](operations.md)
 - [Agents](agents.md)
 - [Glossary](glossary.md)
+- [Measurements](measurements.md) — hand-written record of live runs
 - [Experiment memory](experiments.md) — generated, non-authoritative projection
