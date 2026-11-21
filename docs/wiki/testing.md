@@ -35,6 +35,11 @@ The testing approach is boundary-in and ATDD-aligned.
   adapter semantics. The Neo4j graph tests are opt-in behind
   `SAAA_NEO4J_INTEGRATION`, so a plain `integration-test` skips them;
   `graphrag-integration-test` sets it, starts Compose and shuts it down.
+- Generation behaviour (`--candidates N`) is driven outside-in by
+  `EvolveGenerationAcceptanceTest`. Rejected-attempt usage (`CHG-031`) is covered
+  by `RejectedAttemptUsageAcceptanceTest`.
+- `MultiAnswerFixtureAcceptanceTest` runs `fixtures/multi-answer-workflow`
+  (`CHG-033`), the target with several good answers.
 - JMH benchmarks exist and `JmhBenchmarkRunner` has integration coverage, but
   the CLI does not wire them, so they do not currently feed
   `EvaluationEvidence` on any runnable path.
